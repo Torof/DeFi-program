@@ -49,6 +49,41 @@ Make smart contracts the primary account type, with programmable validation logi
 
 > 🔍 **Deep dive:** [Cyfrin Updraft - Account Abstraction Course](https://updraft.cyfrin.io/courses/advanced-foundry/account-abstraction/introduction) provides hands-on Foundry tutorials. [QuickNode - ERC-4337 Guide](https://www.quicknode.com/guides/ethereum-development/wallets/account-abstraction-and-erc-4337) covers fundamentals and implementation patterns.
 
+#### 🔗 DeFi Pattern Connection
+
+**Why DeFi protocol developers must understand account abstraction:**
+
+1. **User Onboarding** — Lending protocols (Aave, Compound) and DEXes lose users at the "need ETH for gas" step. Paymasters eliminate this entirely — new users deposit USDC without ever holding ETH.
+
+2. **Batch DeFi Operations** — Smart accounts can atomically: approve + deposit + borrow + swap in one UserOperation. Your protocol must handle these composite calls without reentrancy issues.
+
+3. **Institutional DeFi** — Enterprise users require multisig (3-of-5 signers to execute a trade). ERC-4337 makes this native instead of requiring external multisig contracts like Safe wrapping every interaction.
+
+4. **Cross-Chain UX** — Smart accounts + paymasters enable "swap on Arbitrum, pay gas in USDC on mainnet" patterns. Bridge protocols and aggregators are building this now.
+
+**The shift:** DeFi is moving from "user manages gas and approvals manually" to "protocol handles everything under the hood." Understanding this shift is essential for designing modern protocols.
+
+#### 💼 Job Market Context
+
+**Interview question you WILL be asked:**
+> "What is account abstraction and why does it matter for DeFi?"
+
+**What to say (30-second answer):**
+"Account abstraction makes smart contracts the primary account type, replacing EOA limitations with programmable validation. ERC-4337 achieves this without protocol changes through a system of UserOperations, Bundlers, an EntryPoint contract, and Paymasters. For DeFi, it means gasless onboarding, batch operations, custom signature schemes, and institutional-grade access controls. Over 40 million smart accounts are deployed — protocols that don't support them are losing users."
+
+**Follow-up question:**
+> "What's the difference between ERC-4337 and EIP-7702?"
+
+**What to say:**
+"ERC-4337 deploys new smart contract accounts — full flexibility but requires asset migration. EIP-7702, activated with Pectra in May 2025, lets existing EOAs temporarily delegate to smart contract code — same address, no migration. They're complementary: an EOA can use EIP-7702 to delegate to an ERC-4337-compatible implementation, getting the full bundler/paymaster ecosystem without changing addresses."
+
+**Red flags in interviews:**
+- 🚩 "Account abstraction requires a hard fork" — ERC-4337 is entirely at the application layer
+- 🚩 Not knowing that `msg.sender == tx.origin` breaks with smart accounts
+- 🚩 Can't name the ERC-4337 components (EntryPoint, Bundler, Paymaster)
+
+**Pro tip:** Mention real adoption numbers — 40M+ smart accounts, Coinbase Smart Wallet, Safe migration to 4337. Show you track the ecosystem, not just the spec.
+
 ---
 
 <a id="erc-4337-components"></a>
@@ -112,6 +147,76 @@ This enables **gasless interactions**—a dApp can pay its users' gas costs, or 
 
 An optional component for signature aggregation—multiple UserOperations can share a single aggregate signature (e.g., BLS signatures), reducing on-chain verification cost.
 
+#### 🔍 Deep Dive: Packed Fields in ERC-4337
+
+**Why this matters:** ERC-4337 v0.7 aggressively packs data to minimize calldata costs (which dominate L2 gas). If you misunderstand the packing, your smart account won't work.
+
+**PackedUserOperation — `accountGasLimits` (bytes32):**
+
+```
+┌────────────────────────────────┬────────────────────────────────┐
+│   verificationGasLimit         │      callGasLimit              │
+│   (128 bits / 16 bytes)        │   (128 bits / 16 bytes)        │
+│   Gas for validateUserOp()     │   Gas for execution phase      │
+├────────────────────────────────┼────────────────────────────────┤
+│   high 128 bits                │   low 128 bits                 │
+└────────────────────────────────┴────────────────────────────────┘
+                      bytes32 (256 bits)
+```
+
+**PackedUserOperation — `gasFees` (bytes32):**
+
+```
+┌────────────────────────────────┬────────────────────────────────┐
+│   maxPriorityFeePerGas         │      maxFeePerGas              │
+│   (128 bits / 16 bytes)        │   (128 bits / 16 bytes)        │
+│   Tip for the bundler          │   Max total gas price          │
+├────────────────────────────────┼────────────────────────────────┤
+│   high 128 bits                │   low 128 bits                 │
+└────────────────────────────────┴────────────────────────────────┘
+                      bytes32 (256 bits)
+```
+
+**`validationData` return value — the trickiest packing:**
+
+```
+┌───────────┬──────────────────────┬──────────────────────┐
+│ sigFailed │     validUntil       │     validAfter       │
+│ (1 bit)   │     (48 bits)        │     (48 bits)        │
+│ 0=valid   │  Expiration timestamp│  Not-before timestamp│
+│ 1=invalid │  0 = no expiration   │  0 = immediately     │
+├───────────┼──────────────────────┼──────────────────────┤
+│  bit 160  │  bits 161-208        │  bits 209-256        │
+└───────────┴──────────────────────┴──────────────────────┘
+Note: bits 0-159 are the aggregator address (0 if none)
+                      uint256 (256 bits)
+```
+
+**Common return values:**
+```solidity
+return 0;    // ✅ Signature valid, no time bounds, no aggregator
+return 1;    // ❌ Signature invalid (sigFailed = 1 in the aggregator field)
+
+// With time bounds:
+uint256 validAfter = block.timestamp;
+uint256 validUntil = block.timestamp + 1 hours;
+return (validUntil << 160) | (validAfter << 208);
+// This creates a 1-hour validity window
+```
+
+> **Connection to Section 1:** This is the same bit-packing pattern as BalanceDelta (Section 1) and PackedAllowance (Section 3) — multiple values squeezed into a single uint256 to save gas. The pattern is everywhere in production DeFi.
+
+💻 **Quick Try:**
+
+Check the EntryPoint contract on Etherscan to see ERC-4337 in action:
+1. Go to [EntryPoint v0.7 on Etherscan](https://etherscan.io/address/0x0000000071727De22E5E9d8BAf0edAc6f37da032)
+2. Click "Internal Txns" — each one is a UserOperation being executed
+3. Click any transaction → "Logs" tab → look for `UserOperationEvent`
+4. You'll see: sender (smart account), paymaster (who paid gas), actualGasCost, success
+5. Compare a sponsored tx (paymaster ≠ 0x0) vs a self-paid one (paymaster = 0x0)
+
+This gives you a concrete feel for how the system works in production.
+
 ---
 
 <a id="the-flow"></a>
@@ -150,14 +255,46 @@ Read these contracts in order:
 4. [`contracts/core/EntryPoint.sol`](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/core/EntryPoint.sol) — focus on `handleOps`, `_validatePrepayment`, and `_executeUserOp` (it's complex, but understanding the flow is essential)
 5. [`contracts/core/BasePaymaster.sol`](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/core/BasePaymaster.sol) — the interface for gas sponsorship
 
-> ⚡ **Common pitfall:** The validation function returns a packed `validationData` uint256 that encodes three values: `sigFailed` (1 bit), `validUntil` (48 bits), `validAfter` (48 bits). Returning 0 means "signature valid, no time bounds." Returning 1 means "signature invalid." Get the packing wrong and your account won't work.
+> ⚡ **Common pitfall:** The validation function returns a packed `validationData` uint256 that encodes three values: `sigFailed` (1 bit), `validUntil` (48 bits), `validAfter` (48 bits). Returning 0 means "signature valid, no time bounds." Returning 1 means "signature invalid." Get the packing wrong and your account won't work. See the Deep Dive above for the bit layout.
+
+#### 📖 How to Study ERC-4337 Source Code
+
+**Start here — the 5-step approach:**
+
+1. **Start with `IAccount.sol`** — just one function: `validateUserOp`
+   - Understand the inputs: PackedUserOperation, userOpHash, missingAccountFunds
+   - Understand the return: packed validationData (draw the bit layout!)
+
+2. **Read `SimpleAccount.sol`** — the simplest implementation
+   - How it stores the owner
+   - How `validateUserOp` verifies the ECDSA signature
+   - How `execute` and `executeBatch` handle the execution phase
+   - Note the `onlyOwnerOrEntryPoint` pattern
+
+3. **Skim `EntryPoint.handleOps`** — the orchestrator
+   - Don't try to understand every line — focus on the flow
+   - Find where it calls `validateUserOp` on each account
+   - Find where it calls the execution calldata
+   - Find where it handles paymaster logic
+
+4. **Read `BasePaymaster.sol`** — the paymaster interface
+   - `validatePaymasterUserOp` — decide whether to sponsor
+   - `postOp` — post-execution accounting
+   - How context bytes flow between validate and postOp
+
+5. **Study a production account** (Safe or Kernel)
+   - Compare to SimpleAccount — what's different?
+   - Look for: module systems, plugin hooks, access control
+   - These represent where the industry is heading
+
+**Don't get stuck on:** The gas accounting internals in EntryPoint. Understand the flow first (validate → execute → postOp), then revisit the gas math later.
 
 ---
 
 <a id="day8-exercise"></a>
 ## 🎯 Day 8 Build Exercise
 
-**Workspace:** [`workspace/src/part1/section4/`](../../workspace/src/part1/section4/) — starter file: [`SimpleSmartAccount.sol`](../../workspace/src/part1/section4/SimpleSmartAccount.sol), tests: [`SimpleSmartAccount.t.sol`](../../workspace/test/part1/section4/SimpleSmartAccount.t.sol)
+**Workspace:** [`workspace/src/part1/section4/`](../workspace/src/part1/section4/) — starter file: [`SimpleSmartAccount.sol`](../workspace/src/part1/section4/SimpleSmartAccount.sol), tests: [`SimpleSmartAccount.t.sol`](../workspace/test/part1/section4/SimpleSmartAccount.t.sol)
 
 1. Create a minimal smart account that implements `IAccount` (just `validateUserOp`)
 2. The account should validate that the UserOperation was signed by a single owner (ECDSA signature via `ecrecover`)
@@ -289,6 +426,89 @@ Smart accounts can use any signature scheme:
 
 If your protocol requires EIP-712 signatures from users (e.g., for permit or off-chain orders), you need to support **EIP-1271** (contract signature verification) in addition to `ecrecover`.
 
+#### 🔗 DeFi Pattern Connection
+
+**Where these implications hit real protocols:**
+
+1. **Uniswap V4 + Smart Accounts**
+   - Permit2's `SignatureVerification` already handles EIP-1271 → smart accounts can sign Permit2 permits
+   - Flash accounting (Section 2) works identically for EOAs and smart accounts
+   - But custom hooks might assume EOA behavior — audit carefully
+
+2. **Aave V3 + Batch Liquidations**
+   - Smart accounts enable atomic batch liquidations: scan undercollateralized positions → liquidate multiple → swap rewards → all in one UserOp
+   - This creates a new class of liquidation MEV that's more efficient than current flashbot bundles
+
+3. **Curve/Balancer + Gas Abstraction**
+   - LP providers who hold only stablecoins can now add/remove liquidity without ETH
+   - Protocol-sponsored paymasters can subsidize LP actions to attract TVL
+
+4. **Governance + Multisig**
+   - DAOs using smart accounts can vote with m-of-n signatures natively
+   - No more wrapping governance calls through external Safe contracts
+
+**The pattern:** Every `require(msg.sender == tx.origin)` and `ecrecover`-only validation is now a compatibility bug. Modern DeFi protocols must be account-abstraction-aware from day one.
+
+#### ⚠️ Common Mistakes
+
+**Mistakes that break with smart accounts:**
+
+1. **Using `msg.sender == tx.origin` as a security check**
+   ```solidity
+   // ❌ BREAKS: Smart accounts have msg.sender ≠ tx.origin always
+   require(msg.sender == tx.origin, "No contracts");
+
+   // ✅ If you need reentrancy protection, use a proper guard
+   // (ReentrancyGuard or transient storage from Section 1)
+   ```
+
+2. **Assuming all signatures are ECDSA**
+   ```solidity
+   // ❌ BREAKS: Smart accounts use EIP-1271, not ecrecover
+   address signer = ecrecover(hash, v, r, s);
+   require(signer == expectedSigner);
+
+   // ✅ Use SignatureChecker that handles both
+   // (see EIP-1271 section below)
+   ```
+
+3. **Assuming `msg.sender.code.length == 0` means EOA**
+   ```solidity
+   // ❌ BREAKS: With EIP-7702, an EOA can have code temporarily
+   // And during construction, contracts also have code.length == 0
+   require(msg.sender.code.length == 0, "Only EOAs");
+   ```
+
+4. **Hardcoding gas refund to `tx.origin`**
+   ```solidity
+   // ❌ BREAKS: tx.origin is the bundler, not the user
+   payable(tx.origin).transfer(refund);
+
+   // ✅ Refund to msg.sender (the smart account)
+   payable(msg.sender).transfer(refund);
+   ```
+
+#### 💼 Job Market Context
+
+**Interview question you WILL be asked:**
+> "How does account abstraction affect DeFi protocol design?"
+
+**What to say (30-second answer):**
+"Five major changes: msg.sender can be a contract, so tx.origin checks break; tx.origin is the bundler, so authentication must use msg.sender; gas patterns change because paymasters mean users might not hold ETH; batch transactions are common so reentrancy protection matters more; and signatures are non-standard because smart accounts use passkeys, multisig, or session keys instead of ECDSA, requiring EIP-1271 support for any signature verification."
+
+**Follow-up question:**
+> "How would you audit a protocol for smart account compatibility?"
+
+**What to say:**
+"I'd search for three red flags: any `msg.sender == tx.origin` checks, any `ecrecover`-only signature verification without EIP-1271 fallback, and any assumption that msg.sender can't be a contract. Then I'd verify reentrancy guards work correctly with batch operations, and check that gas refund patterns send to msg.sender, not tx.origin."
+
+**Red flags in interviews:**
+- 🚩 Using `tx.origin` for any authentication purpose
+- 🚩 "We only support EOAs" — excludes 40M+ smart accounts
+- 🚩 Not knowing what EIP-1271 is
+
+**Pro tip:** If you can articulate the five protocol design changes fluently, you signal deep understanding. Most candidates know "account abstraction exists" but can't explain concrete protocol implications.
+
 ---
 
 <a id="eip-1271"></a>
@@ -339,12 +559,100 @@ function verifySignature(address signer, bytes32 hash, bytes memory signature) i
 
 > 🔍 **Deep dive:** Permit2's [SignatureVerification.sol](https://github.com/Uniswap/permit2/blob/main/src/libraries/SignatureVerification.sol) is the production reference for handling both EOA and EIP-1271 signatures. [Ethereum.org - EIP-1271 Tutorial](https://ethereum.org/developers/tutorials/eip-1271-smart-contract-signatures/) provides step-by-step implementation. [Alchemy - Smart Contract Wallet Compatibility](https://www.alchemy.com/docs/how-to-make-your-dapp-compatible-with-smart-contract-wallets) covers dApp integration patterns.
 
+#### 🎓 Intermediate Example: Universal Signature Verification
+
+Before the exercise, here's a reusable pattern that handles both EOA and smart account signatures — the same approach used by OpenZeppelin's `SignatureChecker`:
+
+```solidity
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
+
+library UniversalSigVerifier {
+    bytes4 constant EIP1271_MAGIC = 0x1626ba7e;
+
+    function isValidSignature(
+        address signer,
+        bytes32 hash,
+        bytes memory signature
+    ) internal view returns (bool) {
+        // Path 1: Smart account → EIP-1271
+        if (signer.code.length > 0) {
+            try IERC1271(signer).isValidSignature(hash, signature) returns (bytes4 magic) {
+                return magic == EIP1271_MAGIC;
+            } catch {
+                return false;
+            }
+        }
+
+        // Path 2: EOA → ECDSA
+        (address recovered, ECDSA.RecoverError error,) = ECDSA.tryRecover(hash, signature);
+        return error == ECDSA.RecoverError.NoError && recovered == signer;
+    }
+}
+```
+
+**Key decisions in this pattern:**
+- **`signer.code.length > 0`** → check if it's a contract (imperfect with EIP-7702, but standard practice)
+- **`try/catch`** → protect against malicious `isValidSignature` implementations that revert or consume gas
+- **`tryRecover`** → safer than `recover` because it doesn't revert on bad signatures
+- **`0x1626ba7e`** → this magic value is the `isValidSignature` function selector itself
+
+**Where you'll use this:**
+- Any protocol that accepts off-chain signatures (permits, orders, votes)
+- Any protocol that integrates with Permit2 (which handles this internally)
+- Governance systems that accept delegated votes
+
+> **Connection to Section 3:** This is exactly what Permit2's `SignatureVerification.sol` does internally. The pattern you learned in Section 3 (Permit2 source code reading) connects directly here — `SignatureVerification` is the bridge between permit signatures and smart accounts.
+
+#### 🔗 DeFi Pattern Connection
+
+**Where EIP-1271 is required across DeFi:**
+
+1. **Permit2** — already supports EIP-1271 via `SignatureVerification.sol`
+   - Smart accounts can sign Permit2 permits
+   - Your vault from Section 3 works with smart accounts out of the box (if using Permit2)
+
+2. **OpenSea / NFT Marketplaces** — order signatures must support contract wallets
+   - Safe users listing NFTs sign via EIP-1271
+   - Marketplaces that only support `ecrecover` exclude enterprise users
+
+3. **Governance (Compound Governor, OpenZeppelin Governor)**
+   - `castVoteBySig` must verify both EOA and contract signatures
+   - DAOs with Safe treasuries need EIP-1271 to vote
+
+4. **UniswapX / Intent Systems**
+   - Swap orders signed by smart accounts → verified via EIP-1271
+   - Witness data (Section 3) + EIP-1271 = smart accounts participating in intent-based trading
+
+**The pattern:** If your protocol accepts any kind of off-chain signature, add EIP-1271 support. Use OpenZeppelin's `SignatureChecker` library — it's a one-line change that makes your protocol compatible with all smart accounts.
+
+#### 💼 Job Market Context
+
+**Interview question you WILL be asked:**
+> "How do you verify signatures from smart contract wallets?"
+
+**What to say (30-second answer):**
+"Use EIP-1271. Check if the signer has code — if yes, call `isValidSignature(hash, signature)` on the signer contract and verify it returns the magic value `0x1626ba7e`. If no code, fall back to standard ECDSA recovery with `ecrecover`. Wrap the EIP-1271 call in try/catch to handle malicious implementations. OpenZeppelin's `SignatureChecker` library implements this pattern, and Permit2 uses it internally."
+
+**Follow-up question:**
+> "What's the security risk of EIP-1271?"
+
+**What to say:**
+"The main risk is that `isValidSignature` is an external call to an arbitrary contract. A malicious implementation could: consume all gas (griefing), return the magic value for any input (always-valid), or have side effects. That's why you always use try/catch with a gas limit, and never trust that a valid EIP-1271 response means the signer actually authorized the action — it only means the contract says it did."
+
+**Red flags in interviews:**
+- 🚩 Only using `ecrecover` without EIP-1271 fallback
+- 🚩 Not knowing the magic value `0x1626ba7e`
+- 🚩 Calling `isValidSignature` without try/catch
+
+**Pro tip:** Mention that EIP-1271 enables passkey-based wallets (WebAuthn signatures verified on-chain). Coinbase Smart Wallet uses this — passkey signs, wallet contract verifies via `isValidSignature`. This is the future of DeFi UX.
+
 ---
 
 <a id="day9-exercise"></a>
 ## 🎯 Day 9 Build Exercise
 
-**Workspace:** [`workspace/src/part1/section4/`](../../workspace/src/part1/section4/) — starter file: [`SmartAccountEIP1271.sol`](../../workspace/src/part1/section4/SmartAccountEIP1271.sol), tests: [`SmartAccountEIP1271.t.sol`](../../workspace/test/part1/section4/SmartAccountEIP1271.t.sol)
+**Workspace:** [`workspace/src/part1/section4/`](../workspace/src/part1/section4/) — starter file: [`SmartAccountEIP1271.sol`](../workspace/src/part1/section4/SmartAccountEIP1271.sol), tests: [`SmartAccountEIP1271.t.sol`](../workspace/test/part1/section4/SmartAccountEIP1271.t.sol)
 
 1. **Extend your Day 8 smart account** to support EIP-1271:
    - Implement `isValidSignature(bytes32 hash, bytes signature)` that verifies the owner's ECDSA signature
@@ -482,6 +790,53 @@ Users pre-deposit ETH or tokens into the paymaster contract. Gas is deducted fro
 
 **Use case:** Subscription-like models. Users deposit once, protocol deducts gas over time.
 
+#### 🔗 DeFi Pattern Connection
+
+**How paymasters transform DeFi economics:**
+
+1. **Protocol-Subsidized Onboarding**
+   - Aave could sponsor first-time deposits: user deposits USDC, Aave pays gas
+   - Cost to protocol: ~$0.50 per new user on L2s
+   - ROI: retained TVL from users who would have abandoned at "need ETH" step
+
+2. **Token-Gated Gas Markets**
+   - Protocol tokens as gas: hold $UNI → pay gas in $UNI for Uniswap swaps
+   - Creates native demand for the protocol token
+   - Pimlico and Alchemy already offer this as a service
+
+3. **Cross-Protocol Gas Sponsorship**
+   - Aggregators (1inch, Paraswap) can sponsor gas for users routing through them
+   - "Free gas" becomes a competitive advantage for attracting order flow
+   - Similar to how CEXes offer zero-fee trading
+
+4. **Conditional Sponsorship**
+   - Sponsor gas only for trades above $1000 (whale onboarding)
+   - Sponsor gas only during low-activity hours (incentivize off-peak usage)
+   - Sponsor gas for LP deposits but not withdrawals (encourage TVL)
+
+**The pattern:** Paymasters turn gas from a user cost into a protocol design lever. The question isn't "does your protocol support paymasters?" — it's "what's your gas sponsorship strategy?"
+
+#### 💼 Job Market Context
+
+**Interview question you WILL be asked:**
+> "How would you implement gasless DeFi interactions?"
+
+**What to say (30-second answer):**
+"Using ERC-4337 paymasters. Three patterns: a verifying paymaster where the protocol backend signs each UserOperation it wants to sponsor — good for controlled onboarding. An ERC-20 paymaster that accepts stablecoins for gas, using a Chainlink oracle for the exchange rate — good for users who hold tokens but not ETH. Or a deposit paymaster where users pre-fund a gas balance. The paymaster's `validatePaymasterUserOp` decides whether to sponsor, and `postOp` handles accounting after execution."
+
+**Follow-up question:**
+> "What are the security risks of paymasters?"
+
+**What to say:**
+"Griefing is the main risk — a malicious user could submit expensive UserOperations that the paymaster sponsors, draining its balance. Mitigations include: off-chain validation before signing (verifying paymaster), rate limiting per user, gas caps per UserOp, and requiring token pre-approval before sponsoring (ERC-20 paymaster). Also, oracle manipulation for ERC-20 paymasters — if the price feed is stale, the paymaster could underprice gas and lose money."
+
+**Red flags in interviews:**
+- 🚩 "Just use meta-transactions" — ERC-4337 paymasters are the modern standard
+- 🚩 Not understanding the validate → execute → postOp flow
+- 🚩 Can't explain paymaster griefing risks
+
+**Pro tip:** Knowing specific paymaster services (Pimlico, Alchemy Gas Manager, Biconomy) shows you've worked with the ecosystem practically, not just theoretically.
+
 ---
 
 <a id="paymaster-flow"></a>
@@ -522,7 +877,7 @@ postOp(mode, context, actualGasCost, actualUserOpFeePerGas)
 <a id="day10-exercise"></a>
 ## 🎯 Day 10 Build Exercise
 
-**Workspace:** [`workspace/src/part1/section4/`](../../workspace/src/part1/section4/) — starter file: [`Paymasters.sol`](../../workspace/src/part1/section4/Paymasters.sol), tests: [`Paymasters.t.sol`](../../workspace/test/part1/section4/Paymasters.t.sol)
+**Workspace:** [`workspace/src/part1/section4/`](../workspace/src/part1/section4/) — starter file: [`Paymasters.sol`](../workspace/src/part1/section4/Paymasters.sol), tests: [`Paymasters.t.sol`](../workspace/test/part1/section4/Paymasters.t.sol)
 
 1. **Implement a simple verifying paymaster** that sponsors UserOperations if they carry a valid signature from a trusted signer:
    - Add a `verifyingSigner` address
@@ -564,6 +919,14 @@ postOp(mode, context, actualGasCost, actualUserOpFeePerGas)
 
 **Key takeaway:** Paymasters enable gasless DeFi interactions, making protocols accessible to users without ETH. Understanding paymaster economics is essential for modern protocol design.
 
+**🔗 Concept links:**
+- **← Section 1:** Bit-packing (BalanceDelta) appears again in validationData and PackedUserOperation; custom errors for clear UserOp validation failures; `abi.encodeCall` for type-safe EntryPoint calls
+- **← Section 2:** EIP-7702 delegation designator (Section 2's coverage) + ERC-4337 = combined AA approach
+- **← Section 3:** Permit2's `SignatureVerification` already supports EIP-1271 — smart accounts can use Permit2 natively
+- **→ Section 5:** Foundry's `vm.sign` and `vm.addr` for testing UserOperation signatures; fork testing for EntryPoint interaction
+- **→ Section 6:** Smart accounts use proxy patterns (UUPS) for upgradeability — Kernel and Safe are both upgradeable proxies
+- **→ Part 2:** Paymaster integration with lending protocols (oracle pricing), DEX aggregators (gas sponsorship), and yield vaults (gasless deposits)
+
 ---
 
 ## 📚 Resources
@@ -601,4 +964,4 @@ postOp(mode, context, actualGasCost, actualUserOpFeePerGas)
 
 ---
 
-**Navigation:** [← Previous: Section 3 - Token Approvals](../section3-token-approvals/token-approvals.md) | [Next: Section 5 - Foundry →](../section5-foundry/foundry.md)
+**Navigation:** [← Previous: Section 3 - Token Approvals](3-token-approvals.md) | [Next: Section 5 - Foundry →](5-foundry.md)

@@ -23,7 +23,7 @@
 
 **Why this matters:** You've used `transient` in Solidity. Now understand what the EVM actually does. Uniswap V4's entire architecture—the flash accounting that lets you batch swaps, add liquidity, and pay only net balances—depends on transient storage behaving exactly right across `CALL` boundaries.
 
-> 🔗 **Connection to Section 1:** Remember the [TransientGuard exercise from Day 2](../section1-solidity-modern/solidity-modern.md#day2-exercise)? You used the `transient` keyword and raw `tstore`/`tload` assembly. Now we're diving into **how EIP-1153 actually works at the EVM level**—the opcodes, gas costs, and why it's revolutionary for DeFi.
+> 🔗 **Connection to Section 1:** Remember the [TransientGuard exercise from Day 2](1-solidity-modern.md#day2-exercise)? You used the `transient` keyword and raw `tstore`/`tload` assembly. Now we're diving into **how EIP-1153 actually works at the EVM level**—the opcodes, gas costs, and why it's revolutionary for DeFi.
 
 > Introduced in [EIP-1153](https://eips.ethereum.org/EIPS/eip-1153), activated with the [Dencun upgrade](https://ethereum.org/en/roadmap/dencun/) (March 2024)
 
@@ -703,7 +703,7 @@ An attacker used metamorphic contracts to:
 <a id="day3-exercise"></a>
 ## 🎯 Day 3 Build Exercise
 
-**Workspace:** [`workspace/src/part1/section2/`](../../workspace/src/part1/section2/) — starter file: [`FlashAccounting.sol`](../../workspace/src/part1/section2/FlashAccounting.sol), tests: [`FlashAccounting.t.sol`](../../workspace/test/part1/section2/FlashAccounting.t.sol)
+**Workspace:** [`workspace/src/part1/section2/`](../workspace/src/part1/section2/) — starter file: [`FlashAccounting.sol`](../workspace/src/part1/section2/FlashAccounting.sol), tests: [`FlashAccounting.t.sol`](../workspace/test/part1/section2/FlashAccounting.t.sol)
 
 Build a "flash accounting" pattern using transient storage:
 
@@ -1177,7 +1177,7 @@ After BLS precompile:
 <a id="day4-exercise"></a>
 ## 🎯 Day 4 Build Exercise
 
-**Workspace:** [`workspace/src/part1/section2/`](../../workspace/src/part1/section2/) — starter file: [`EIP7702Delegate.sol`](../../workspace/src/part1/section2/EIP7702Delegate.sol), tests: [`EIP7702Delegate.t.sol`](../../workspace/test/part1/section2/EIP7702Delegate.t.sol)
+**Workspace:** [`workspace/src/part1/section2/`](../workspace/src/part1/section2/) — starter file: [`EIP7702Delegate.sol`](../workspace/src/part1/section2/EIP7702Delegate.sol), tests: [`EIP7702Delegate.t.sol`](../workspace/test/part1/section2/EIP7702Delegate.t.sol)
 
 1. **Research EIP-7702 delegation designator format**—understand how the EVM determines whether an address has delegated code
 2. **Write a simple delegation target contract**:
@@ -1254,4 +1254,4 @@ After BLS precompile:
 
 ---
 
-**Navigation:** [← Previous: Section 1 - Solidity Modern](../section1-solidity-modern/solidity-modern.md) | [Next: Section 3 - Token Approvals →](../section3-token-approvals/token-approvals.md)
+**Navigation:** [← Previous: Section 1 - Solidity Modern](1-solidity-modern.md) | [Next: Section 3 - Token Approvals →](3-token-approvals.md)

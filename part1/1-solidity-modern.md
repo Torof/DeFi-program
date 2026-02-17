@@ -731,7 +731,7 @@ This pattern dominates [Uniswap V4's codebase](https://github.com/Uniswap/v4-cor
 <a id="day1-exercise"></a>
 ## 🎯 Day 1 Build Exercise
 
-**Workspace:** [`workspace/src/part1/section1/`](../../workspace/src/part1/section1/) — starter files: [`ShareMath.sol`](../../workspace/src/part1/section1/ShareMath.sol), tests: [`ShareMath.t.sol`](../../workspace/test/part1/section1/ShareMath.t.sol)
+**Workspace:** [`workspace/src/part1/section1/`](../workspace/src/part1/section1/) — starter files: [`ShareMath.sol`](../workspace/src/part1/section1/ShareMath.sol), tests: [`ShareMath.t.sol`](../workspace/test/part1/section1/ShareMath.t.sol)
 
 Build a **vault share calculator** — the exact math that underpins every ERC-4626 vault, lending pool, and LP token in DeFi:
 
@@ -1046,7 +1046,7 @@ You should already be avoiding all of these in new code, but you'll encounter th
 <a id="day2-exercise"></a>
 ## 🎯 Day 2 Build Exercise
 
-**Workspace:** [`workspace/src/part1/section1/`](../../workspace/src/part1/section1/) — starter files: [`TransientGuard.sol`](../../workspace/src/part1/section1/TransientGuard.sol), tests: [`TransientGuard.t.sol`](../../workspace/test/part1/section1/TransientGuard.t.sol)
+**Workspace:** [`workspace/src/part1/section1/`](../workspace/src/part1/section1/) — starter files: [`TransientGuard.sol`](../workspace/src/part1/section1/TransientGuard.sol), tests: [`TransientGuard.t.sol`](../workspace/test/part1/section1/TransientGuard.t.sol)
 
 1. **Implement `TransientReentrancyGuard`** using the `transient` keyword (0.8.28+ syntax)
 2. **Implement the same guard** using raw `tstore`/`tload` assembly (0.8.24+ syntax)
@@ -1118,4 +1118,4 @@ You should already be avoiding all of these in new code, but you'll encounter th
 
 ---
 
-**Navigation:** [Next: Section 2 - EVM Changes →](../section2-evm-changes/evm-changes.md)
+**Navigation:** [Next: Section 2 - EVM Changes →](2-evm-changes.md)

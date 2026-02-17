@@ -46,6 +46,48 @@ If you've used Hardhat, the key mental shift: **everything happens in Solidity**
 
 > 🔍 **Deep dive:** Read the [Foundry Book - Projects](https://book.getfoundry.sh/projects/creating-a-new-project) section to understand the full project structure and how git submodules work for dependencies.
 
+#### 🔗 DeFi Pattern Connection
+
+**Where Foundry dominates in DeFi:**
+
+1. **Protocol Development** — Every major protocol launched since 2023 uses Foundry:
+   - [Uniswap V4](https://github.com/Uniswap/v4-core) — 1000+ tests, invariant suites, gas snapshots
+   - [Aave V3](https://github.com/aave/aave-v3-core) — Fork tests against live markets, invariant testing
+   - [Morpho Blue](https://github.com/morpho-org/morpho-blue) — Formal verification + Foundry fuzz testing
+   - [Euler V2](https://github.com/euler-xyz/euler-vault-kit) — Modular vault architecture tested entirely in Foundry
+
+2. **Security Auditing** — Top audit firms require Foundry fluency:
+   - **Trail of Bits** — Uses Foundry + Echidna for invariant testing
+   - **Spearbit** — All audit PoCs written in Foundry
+   - **Cantina** — Competition PoCs must be Foundry-based
+   - Exploit reproduction: Every post-mortem includes a Foundry PoC
+
+3. **On-chain Testing & Simulation** — Fork testing is the standard for:
+   - Governance proposal simulation (Compound, MakerDAO)
+   - Liquidation bot testing against live oracle prices
+   - MEV strategy backtesting against historical blocks
+
+**The pattern:** If you're building, auditing, or researching DeFi — Foundry is the language you speak.
+
+#### 💼 Job Market Context
+
+**What DeFi teams expect:**
+
+1. **"What testing framework do you use?"**
+   - Good answer: "Foundry — I write Solidity tests with fuzz and invariant testing"
+   - Great answer: "Foundry for everything — unit tests, fuzz tests, invariant suites with handlers, fork tests against mainnet, and gas snapshots in CI. I use Hardhat only when I need JavaScript integration tests for frontend"
+
+2. **"How do you test DeFi composability?"**
+   - Good answer: "Fork testing against mainnet"
+   - Great answer: "I pin fork tests to specific blocks for determinism, test against multiple market conditions, and use `deal()` instead of impersonating whales. For critical paths, I test against both mainnet and L2 forks"
+
+**🚩 Interview Red Flags:**
+- 🚩 Only knowing Hardhat/JavaScript testing in 2025+
+- 🚩 Not understanding `vm.prank` vs `vm.startPrank` semantics
+- 🚩 No experience with fuzz or invariant testing
+
+**Pro tip:** When applying for DeFi roles, having a GitHub repo with well-written Foundry tests (fuzz + invariant + fork) is worth more than most take-home assignments. It demonstrates real protocol development experience.
+
 ---
 
 <a id="setup"></a>
@@ -127,6 +169,81 @@ vm.revertTo(snapshot);  // Back to snapshot state
 
 > ⚡ **Common pitfall:** `vm.prank` only affects the **next** call. If you need multiple calls, use `vm.startPrank`/`vm.stopPrank`. Forgetting this leads to "hey why is msg.sender wrong?" debugging sessions.
 
+💻 **Quick Try:**
+
+Create a file `test/CheatcodePlayground.t.sol` and run it:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+import "forge-std/Test.sol";
+
+contract CheatcodePlayground is Test {
+    function test_TimeTravel() public {
+        uint256 now_ = block.timestamp;
+        vm.warp(now_ + 365 days);
+        assertEq(block.timestamp, now_ + 365 days);
+        // You just jumped one year into the future!
+    }
+
+    function test_Impersonation() public {
+        address vitalik = 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045;
+        deal(vitalik, 1000 ether);
+        vm.prank(vitalik);
+        // Next call's msg.sender is Vitalik
+        (bool ok,) = address(this).call{value: 1 ether}("");
+        assertTrue(ok);
+    }
+
+    receive() external payable {}
+}
+```
+
+Run with `forge test --match-contract CheatcodePlayground -vvv` and watch the traces. Feel how cheatcodes manipulate the EVM.
+
+#### 🔗 DeFi Pattern Connection
+
+**Where cheatcodes are essential in DeFi testing:**
+
+1. **Time-dependent logic** (`vm.warp`):
+   - Vault lock periods and vesting schedules
+   - Oracle staleness checks (← Section 5 Day 13)
+   - Interest accrual in lending protocols (→ Part 2 Module 3)
+   - Governance timelocks and voting periods
+
+2. **Access control testing** (`vm.prank`):
+   - Testing admin-only functions (pause, upgrade, fee changes)
+   - Simulating multi-sig signers
+   - Testing permit/signature flows with `vm.sign` (← Section 3)
+   - Account abstraction validation with `vm.prank(entryPoint)` (← Section 4)
+
+3. **State manipulation** (`deal`):
+   - Funding test accounts with exact token amounts
+   - Simulating whale positions for liquidation testing
+   - Setting up pool reserves for AMM testing (→ Part 2 Module 2)
+
+4. **Event verification** (`vm.expectEmit`):
+   - Verifying Transfer/Approval events for token standards
+   - Checking protocol-specific events (Deposit, Withdraw, Swap)
+   - Critical for integration testing: "did the downstream protocol emit the right event?"
+
+#### 💼 Job Market Context
+
+**What DeFi teams expect:**
+
+1. **"Walk me through how you'd test a time-locked vault"**
+   - Good answer: "Use `vm.warp` to advance past the lock period, test both before and after"
+   - Great answer: "I'd test at key boundaries — 1 second before unlock, exact unlock time, and after. I'd also fuzz the lock duration and test with `vm.roll` for block-number-based locks. For production, I'd add invariant tests ensuring no withdrawals are possible before the lock expires across random deposit/warp/withdraw sequences"
+
+2. **"How do you test signature-based flows?"**
+   - Good answer: "Use `makeAddrAndKey` to create signers, then `vm.sign` for EIP-712 digests"
+   - Great answer: "I create deterministic test signers with `makeAddrAndKey`, construct EIP-712 typed data hashes matching the contract's `DOMAIN_SEPARATOR`, sign with `vm.sign`, and test both valid signatures and invalid ones (wrong signer, expired deadline, replayed nonce). For EIP-1271, I test both EOA and contract signers"
+
+**🚩 Interview Red Flags:**
+- 🚩 Using `vm.assume` instead of `bound()` for constraining fuzz inputs
+- 🚩 Not knowing `vm.expectRevert` with custom error selectors (Section 1 pattern)
+- 🚩 Hardcoding block.timestamp instead of using `vm.warp` for time-dependent tests
+
 **🏗️ Real usage:**
 
 [Uniswap V4 test suite](https://github.com/Uniswap/v4-core/tree/main/test) extensively uses these cheatcodes. Read any test file to see production patterns.
@@ -172,7 +289,7 @@ mainnet = { key = "${ETHERSCAN_API_KEY}" }
 <a id="day11-exercise"></a>
 ## 🎯 Day 11 Build Exercise
 
-**Workspace:** [`workspace/test/part1/section5/`](../../workspace/test/part1/section5/) — base setup: [`BaseTest.sol`](../../workspace/test/part1/section5/BaseTest.sol), fork tests: [`UniswapV2Fork.t.sol`](../../workspace/test/part1/section5/UniswapV2Fork.t.sol), [`ChainlinkFork.t.sol`](../../workspace/test/part1/section5/ChainlinkFork.t.sol)
+**Workspace:** [`workspace/test/part1/section5/`](../workspace/test/part1/section5/) — base setup: [`BaseTest.sol`](../workspace/test/part1/section5/BaseTest.sol), fork tests: [`UniswapV2Fork.t.sol`](../workspace/test/part1/section5/UniswapV2Fork.t.sol), [`ChainlinkFork.t.sol`](../workspace/test/part1/section5/ChainlinkFork.t.sol)
 
 Set up the project structure you'll use throughout Part 2:
 
@@ -422,12 +539,131 @@ contract VaultInvariantTest is Test {
 
 > 🔍 **Deep dive:** [Cyfrin - Invariant Testing: Enter The Matrix](https://medium.com/cyfrin/invariant-testing-enter-the-matrix-c71363dea37e) explains advanced handler patterns. [RareSkills - Invariant Testing in Solidity](https://rareskills.io/post/invariant-testing-solidity) covers ghost variables and metrics. [Cyfrin Updraft - Handler Tutorial](https://updraft.cyfrin.io/courses/advanced-foundry/develop-defi-protocol/create-fuzz-tests-handler) provides step-by-step handler implementation.
 
+#### 🔍 Deep Dive: Advanced Invariant Patterns
+
+Beyond the basic handler pattern, production protocols use several advanced techniques:
+
+**1. Multi-Actor Handlers**
+
+Real DeFi protocols have many users interacting simultaneously. A single-actor handler misses concurrency bugs:
+
+```solidity
+contract MultiActorHandler is Test {
+    address[] public actors;
+    address internal currentActor;
+
+    modifier useActor(uint256 actorSeed) {
+        currentActor = actors[bound(actorSeed, 0, actors.length - 1)];
+        vm.startPrank(currentActor);
+        _;
+        vm.stopPrank();
+    }
+
+    function deposit(uint256 amount, uint256 actorSeed) public useActor(actorSeed) {
+        amount = bound(amount, 1, token.balanceOf(currentActor));
+        // ... deposit as random actor
+    }
+}
+```
+
+**Why this matters:** The [Euler Finance hack](https://www.certik.com/resources/blog/euler-finance-hack-explained) involved multiple actors interacting in a specific sequence. Single-actor invariant tests wouldn't have caught it.
+
+**2. Time-Weighted Invariants**
+
+Many DeFi invariants only hold after time passes (interest accrual, oracle updates):
+
+```solidity
+function handler_advanceTime(uint256 timeSkip) public {
+    timeSkip = bound(timeSkip, 1, 7 days);
+    vm.warp(block.timestamp + timeSkip);
+
+    ghost_timeAdvanced += timeSkip;
+}
+
+// Invariant: interest only increases over time
+function invariant_interestMonotonicity() public view {
+    assertGe(pool.totalDebt(), ghost_previousDebt, "Debt decreased without repayment");
+}
+```
+
+**3. Ghost Variable Accounting**
+
+Track what *should* be true alongside what *is* true:
+
+```
+┌─────────────────────────────────────────┐
+│         Ghost Variable Pattern          │
+│                                         │
+│  Handler tracks:                        │
+│  ├── ghost_totalDeposited  (cumulative) │
+│  ├── ghost_totalWithdrawn  (cumulative) │
+│  ├── ghost_userDeposits[user] (per-user)│
+│  └── ghost_callCount       (metrics)    │
+│                                         │
+│  Invariant checks:                      │
+│  ├── vault.balance == deposits - withdrawals  │
+│  ├── Σ userDeposits == ghost_totalDeposited   │
+│  └── vault.totalShares >= 0                    │
+└─────────────────────────────────────────┘
+```
+
+Ghost variables are your **parallel accounting system** — if the contract's state diverges from your ghost tracking, you've found a bug.
+
+#### 🔗 DeFi Pattern Connection
+
+**Where fuzz and invariant testing catch real bugs:**
+
+1. **AMM Invariants** (→ Part 2 Module 2):
+   - `x * y >= k` after every swap (constant product)
+   - No tokens can be extracted without providing the other side
+   - LP share value never decreases from swaps (fees accumulate)
+
+2. **Lending Protocol Invariants** (→ Part 2 Module 3):
+   - Total borrows ≤ total supplied (solvency)
+   - Health factor < 1 → liquidatable (always)
+   - Interest index only increases (monotonicity)
+
+3. **Vault Invariants** (→ Part 2 Module 4):
+   - `convertToShares(convertToAssets(shares)) <= shares` (no free shares — rounding in protocol's favor)
+   - Total assets ≥ sum of all redeemable assets (solvency)
+   - First depositor can't steal from subsequent depositors (inflation attack)
+
+4. **Governance Invariants**:
+   - Vote count ≤ total delegated power
+   - Executed proposals can't be re-executed
+   - Timelock delay is always enforced
+
+**The pattern:** For every DeFi protocol, ask "what must ALWAYS be true?" — those are your invariants.
+
+#### 💼 Job Market Context
+
+**What DeFi teams expect:**
+
+1. **"How do you approach testing a new DeFi protocol?"**
+   - Good answer: "Unit tests for individual functions, fuzz tests for properties, invariant tests for system-wide correctness"
+   - Great answer: "I start by identifying the protocol's invariants — solvency, conservation of value, monotonicity of share price. Then I build handlers that simulate realistic user behavior (deposits, withdrawals, swaps, liquidations), use ghost variables to track expected state, and run invariant tests with high depth. I also write targeted fuzz tests for mathematical edge cases like rounding and overflow boundaries"
+
+2. **"What's the difference between fuzz testing and invariant testing?"**
+   - Good answer: "Fuzz tests random inputs to one function, invariant tests random sequences of calls"
+   - Great answer: "Fuzz testing verifies properties of individual functions across all inputs — like 'swap output is always positive for positive input.' Invariant testing verifies system-wide properties across arbitrary call sequences — like 'the pool is always solvent regardless of what operations happened.' The key insight is that bugs often emerge from *sequences* of valid operations, not from any single call"
+
+3. **"Have you ever found a bug with fuzz/invariant testing?"**
+   - This is increasingly common in DeFi interviews. Having a real example (even from your own learning exercises) is powerful
+
+**🚩 Interview Red Flags:**
+- 🚩 Only writing unit tests with hardcoded values (no fuzzing)
+- 🚩 Not knowing the handler pattern for invariant testing
+- 🚩 Using `fail_on_revert = true` (shows lack of invariant testing experience)
+- 🚩 Can't articulate what invariants a vault or AMM should have
+
+**Pro tip:** The #1 skill that separates junior from senior DeFi developers is the ability to identify and test protocol invariants. If you can articulate "these 5 things must always be true about this protocol" and write tests proving it, you're already ahead of most candidates.
+
 ---
 
 <a id="day12-exercise"></a>
 ## 🎯 Day 12 Build Exercise
 
-**Workspace:** [`workspace/src/part1/section5/`](../../workspace/src/part1/section5/) — vault: [`SimpleVault.sol`](../../workspace/src/part1/section5/SimpleVault.sol), tests: [`SimpleVault.t.sol`](../../workspace/test/part1/section5/SimpleVault.t.sol), handler: [`VaultHandler.sol`](../../workspace/test/part1/section5/VaultHandler.sol), invariants: [`VaultInvariant.t.sol`](../../workspace/test/part1/section5/VaultInvariant.t.sol)
+**Workspace:** [`workspace/src/part1/section5/`](../workspace/src/part1/section5/) — vault: [`SimpleVault.sol`](../workspace/src/part1/section5/SimpleVault.sol), tests: [`SimpleVault.t.sol`](../workspace/test/part1/section5/SimpleVault.t.sol), handler: [`VaultHandler.sol`](../workspace/test/part1/section5/VaultHandler.sol), invariants: [`VaultInvariant.t.sol`](../workspace/test/part1/section5/VaultInvariant.t.sol)
 
 1. **Build a simple vault** (accepts one ERC-20 token, issues shares proportional to deposit size):
    ```solidity
@@ -503,6 +739,47 @@ contract VaultInvariantTest is Test {
 - Ghost variables — tracking cumulative state for invariants
 
 **Next:** Day 13 — Fork testing and gas optimization
+
+---
+
+### 📖 How to Study Production Test Suites
+
+Production DeFi test suites can be overwhelming (Uniswap V4 has 100+ test files). Here's a strategy:
+
+**Step 1: Start with the simplest test file**
+Find a basic unit test (not invariant or fork). In Uniswap V4, start with `test/PoolManager.t.sol` basic swap tests, not the complex hook tests.
+
+**Step 2: Read the base test contract**
+Every production suite has a `BaseTest` or `TestHelper`. This shows:
+- How they set up fork state
+- What helper functions they use
+- How they create test users and fund them
+- Common assertions they reuse
+
+**Step 3: Study the handler contracts**
+Handlers reveal what the team considers "valid operations." Look at:
+- Which functions are exposed (the attack surface)
+- How inputs are bounded (what ranges are realistic)
+- What ghost variables they track (what they think can go wrong)
+
+**Step 4: Read the invariant definitions**
+These are the protocol's core properties in code form:
+```
+Uniswap V4: "Pool reserves satisfy x*y >= k after every swap"
+Aave V3:    "Total borrows never exceed total deposits"
+Morpho:     "Sum of all user balances equals contract balance"
+```
+
+**Step 5: Look for edge case tests**
+Search for tests with names like `test_RevertWhen_*`, `test_EdgeCase_*`, `testFuzz_*`. These reveal the bugs the team found and patched.
+
+**Don't get stuck on:** Complex multi-contract integration tests or deployment scripts initially. Build up to those after understanding the unit and fuzz tests.
+
+**Recommended study order:**
+1. [Solmate tests](https://github.com/transmissions11/solmate/tree/main/src/test) — Clean, minimal, great for learning patterns
+2. [OpenZeppelin tests](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/test) — Comprehensive, well-documented
+3. [Uniswap V4 tests](https://github.com/Uniswap/v4-core/tree/main/test) — Production DeFi complexity
+4. [Aave V3 invariant tests](https://github.com/aave/aave-v3-core/tree/master/test-suites/invariants) — Gold standard for invariant testing
 
 ---
 
@@ -665,10 +942,104 @@ forge script script/Deploy.s.sol --rpc-url $RPC_URL --resume
 
 ---
 
+#### 🎓 Intermediate Example: Differential Testing
+
+Differential testing compares two implementations of the same function to find discrepancies. This is how auditors verify optimized code matches the reference implementation.
+
+```solidity
+contract DifferentialTest is Test {
+    /// @dev Reference implementation: clear, readable, obviously correct
+    function mulDivReference(uint256 x, uint256 y, uint256 d) public pure returns (uint256) {
+        return (x * y) / d;  // Overflows for large values!
+    }
+
+    /// @dev Optimized implementation: handles full 512-bit intermediate
+    function mulDivOptimized(uint256 x, uint256 y, uint256 d) public pure returns (uint256) {
+        // ... (Section 1's FullMath.mulDiv pattern)
+        return FullMath.mulDiv(x, y, d);
+    }
+
+    /// @dev Fuzz: both implementations agree for non-overflowing inputs
+    function testFuzz_MulDivEquivalence(uint256 x, uint256 y, uint256 d) public pure {
+        d = bound(d, 1, type(uint256).max);
+
+        // Only test where reference won't overflow
+        unchecked {
+            if (y != 0 && (x * y) / y != x) return; // Would overflow
+        }
+
+        assertEq(
+            mulDivReference(x, y, d),
+            mulDivOptimized(x, y, d),
+            "Implementations disagree"
+        );
+    }
+}
+```
+
+**Why this matters in DeFi:**
+- Verifying gas-optimized swap math matches the readable version
+- Comparing your oracle integration against a reference implementation
+- Ensuring an upgraded contract produces identical results to the old one
+
+**Production example:** Uniswap V3 uses differential testing to verify their `TickMath` and `SqrtPriceMath` libraries match reference implementations.
+
+#### 🔗 DeFi Pattern Connection
+
+**Where fork testing and gas optimization matter in DeFi:**
+
+1. **Exploit Reproduction & Prevention**:
+   - Every major hack post-mortem includes a Foundry fork test PoC
+   - Pin to the block *before* the exploit, then replay the attack
+   - Example: Reproduce the [Euler hack](https://github.com/iphelix/euler-exploit-v1) by forking at the pre-attack block
+   - Security teams run fork tests against their own protocols to find similar vectors
+
+2. **Oracle Integration Testing** (→ Part 2 Module 5):
+   - Fork test Chainlink feeds with real price data
+   - Test staleness checks: `vm.warp` past the heartbeat interval
+   - Simulate oracle manipulation by forking at blocks with extreme prices
+
+3. **Composability Verification**:
+   - "Does my vault work when Aave V3 changes interest rates?"
+   - "Does my liquidation bot handle Uniswap V3 tick crossing?"
+   - Fork both protocols, simulate realistic sequences, verify no breakage
+
+4. **Gas Benchmarking for Protocol Competitiveness**:
+   - Uniswap V4 hooks: gas overhead determines viability
+   - Lending protocols: gas cost of liquidation determines MEV profitability
+   - Aggregators (1inch, Cowswap): route selection depends on gas estimates
+   - `forge snapshot --diff` in CI prevents gas regressions
+
+#### 💼 Job Market Context
+
+**What DeFi teams expect:**
+
+1. **"How would you reproduce a DeFi exploit?"**
+   - Good answer: "Fork mainnet at the block before the exploit, replay the transactions"
+   - Great answer: "I'd fork at `block - 1`, use `vm.prank` to impersonate the attacker, replay the exact call sequence, and verify the stolen amount matches the post-mortem. Then I'd write a test that proves the fix prevents the attack. I keep a library of exploit reproductions — it's the best way to learn DeFi security patterns"
+
+2. **"How do you approach gas optimization?"**
+   - Good answer: "Use `forge snapshot` to measure and compare"
+   - Great answer: "I establish a baseline with `forge snapshot`, then use `forge test -vvvv` to identify the expensive opcodes. I focus on storage operations first (SLOAD/SSTORE dominate gas costs), then calldata optimizations, then arithmetic. I always run the full invariant suite after optimization to ensure correctness wasn't sacrificed. In CI, I use `forge snapshot --check` to catch regressions"
+
+3. **"Walk me through testing a protocol integration"**
+   - Good answer: "Fork test against the deployed protocol"
+   - Great answer: "I pin to a specific block for determinism, set up realistic token balances with `deal()`, test the happy path first, then systematically test edge cases — what happens when the external protocol pauses? What happens during extreme market conditions? I test against multiple blocks to catch time-dependent behavior, and I test on both mainnet and relevant L2 forks"
+
+**🚩 Interview Red Flags:**
+- 🚩 Never having reproduced an exploit (shows no security awareness)
+- 🚩 Optimizing gas without measuring first ("premature optimization")
+- 🚩 Not pinning fork tests to specific block numbers (non-deterministic tests)
+- 🚩 Not knowing the difference between `forge snapshot` and `forge test --gas-report`
+
+**Pro tip:** Maintain a personal repository of exploit reproductions as Foundry fork tests. It's the most effective way to learn DeFi security, and it's impressive in interviews. Start with [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) — they have 200+ reproductions.
+
+---
+
 <a id="day13-exercise"></a>
 ## 🎯 Day 13 Build Exercise
 
-**Workspace:** [`workspace/test/part1/section5/`](../../workspace/test/part1/section5/) — fork tests: [`UniswapSwapFork.t.sol`](../../workspace/test/part1/section5/UniswapSwapFork.t.sol), gas optimization: [`GasOptimization.sol`](../../workspace/src/part1/section5/GasOptimization.sol) and [`GasOptimization.t.sol`](../../workspace/test/part1/section5/GasOptimization.t.sol)
+**Workspace:** [`workspace/test/part1/section5/`](../workspace/test/part1/section5/) — fork tests: [`UniswapSwapFork.t.sol`](../workspace/test/part1/section5/UniswapSwapFork.t.sol), gas optimization: [`GasOptimization.sol`](../workspace/src/part1/section5/GasOptimization.sol) and [`GasOptimization.t.sol`](../workspace/test/part1/section5/GasOptimization.t.sol)
 
 1. **Write a fork test** that performs a full Uniswap V2 swap:
    ```solidity
@@ -748,6 +1119,21 @@ forge script script/Deploy.s.sol --rpc-url $RPC_URL --resume
 
 ---
 
+### 🔗 Cross-Section Concept Links
+
+**Building on earlier sections:**
+- **← Section 1 (Modern Solidity):** Custom errors tested with `vm.expectRevert(CustomError.selector)`, UDVTs for type-safe test assertions, transient storage patterns verified with cheatcodes
+- **← Section 2 (EVM Changes):** Flash accounting tested with `vm.expectRevert` for lock violations, EIP-7702 delegation tested with `vm.etch` for code injection
+- **← Section 3 (Token Approvals):** EIP-2612 permit flows tested with `vm.sign` + EIP-712 digest construction, Permit2 integration tested with `deal()` for token balances
+- **← Section 4 (Account Abstraction):** ERC-4337 validation tested with `vm.prank(entryPoint)`, EIP-1271 signatures verified in fork tests against real smart wallets
+
+**Connecting forward:**
+- **→ Section 6 (Proxy Patterns):** Testing upgradeable contracts — verify storage layout compatibility, test initializers vs constructors, fork test upgrades against live proxies
+- **→ Section 7 (Deployment):** Foundry scripts for deterministic deployment, `CREATE2` address prediction tests, multi-chain deployment verification
+- **→ Part 2 (DeFi Protocols):** Every module uses Foundry extensively — AMM invariant tests, lending protocol fork tests, vault fuzz tests, oracle integration tests, flash loan PoCs
+
+---
+
 ## 📚 Resources
 
 ### Foundry Documentation
@@ -777,4 +1163,4 @@ forge script script/Deploy.s.sol --rpc-url $RPC_URL --resume
 
 ---
 
-**Navigation:** [← Previous: Section 4 - Account Abstraction](../section4-account-abstraction/account-abstraction.md) | [Next: Section 6 - Proxy Patterns →](../section6-proxy-patterns/proxy-patterns.md)
+**Navigation:** [← Previous: Section 4 - Account Abstraction](4-account-abstraction.md) | [Next: Section 6 - Proxy Patterns →](6-proxy-patterns.md)

@@ -18,15 +18,13 @@ This part gets you current. Everything here feeds directly into Part 2 — you'l
 
 | # | Section | Duration | File |
 |---|---------|----------|------|
-| 1 | [Solidity 0.8.x Modern Features](section1-solidity-modern/solidity-modern.md) | ~2 days | `section1-solidity-modern/` |
-| 2 | [EVM-Level Changes (EIP-1153, EIP-4844, EIP-7702)](section2-evm-changes/evm-changes.md) | ~2 days | `section2-evm-changes/` |
-| 3 | [Modern Token Approvals (EIP-2612, Permit2)](section3-token-approvals/token-approvals.md) | ~3 days | `section3-token-approvals/` |
-| 4 | [Account Abstraction (ERC-4337, EIP-7702, Paymasters)](section4-account-abstraction/account-abstraction.md) | ~3 days | `section4-account-abstraction/` |
-| 5 | [Foundry Workflow & Testing (Fuzz, Invariant, Fork)](section5-foundry/foundry.md) | ~2-3 days | `section5-foundry/` |
-| 6 | [Proxy Patterns & Upgradeability](section6-proxy-patterns/proxy-patterns.md) | ~1.5-2 days | `section6-proxy-patterns/` |
-| 7 | [Deployment & Operations](section7-deployment/deployment.md) | ~0.5 day | `section7-deployment/` |
-
-Each section folder can contain additional files: exercises, links, notes, etc.
+| 1 | [Solidity 0.8.x Modern Features](1-solidity-modern.md) | ~2 days | `1-solidity-modern.md` |
+| 2 | [EVM-Level Changes (EIP-1153, EIP-4844, EIP-7702)](2-evm-changes.md) | ~2 days | `2-evm-changes.md` |
+| 3 | [Modern Token Approvals (EIP-2612, Permit2)](3-token-approvals.md) | ~3 days | `3-token-approvals.md` |
+| 4 | [Account Abstraction (ERC-4337, EIP-7702, Paymasters)](4-account-abstraction.md) | ~3 days | `4-account-abstraction.md` |
+| 5 | [Foundry Workflow & Testing (Fuzz, Invariant, Fork)](5-foundry.md) | ~2-3 days | `5-foundry.md` |
+| 6 | [Proxy Patterns & Upgradeability](6-proxy-patterns.md) | ~1.5-2 days | `6-proxy-patterns.md` |
+| 7 | [Deployment & Operations](7-deployment.md) | ~0.5 day | `7-deployment.md` |
 
 ---
 
