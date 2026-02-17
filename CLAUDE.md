@@ -80,6 +80,8 @@ The user learns best through:
 3. **Progression**: Practical use case → Concept → Theory → Hands-on
 4. **Chunking**: Information broken into digestible pieces
 5. **Iteration**: Building understanding layer by layer
+6. **Active coding**: Workspace exercises with auto-verification (Foundry tests)
+7. **Integration**: Capstone projects that combine multiple concepts
 
 ### Goals
 1. **Deep DeFi Understanding** - for personal use and mastery
@@ -465,6 +467,22 @@ Before considering a section "done":
 - [ ] Intermediate examples bridge basic → advanced
 - [ ] All links verified and working
 - [ ] Workspace exercise files exist and are linked correctly
+- [ ] Exercise skeleton code provided (no unnecessary boilerplate)
+- [ ] Exercise TODOs are clear with hints
+- [ ] Foundry tests written and passing
+- [ ] Tests have descriptive names and helpful error messages
+- [ ] Exercise requires thinking, not just copy-paste
+
+## Checklist for Every Part
+
+Before considering a Part "done":
+
+- [ ] All sections complete per section checklist
+- [ ] Capstone project designed
+- [ ] Capstone integrates 3-4+ major concepts
+- [ ] Capstone has architectural guidance (not full solution)
+- [ ] Capstone has comprehensive test requirements
+- [ ] Capstone is portfolio/interview ready
 
 ## Quality Standards
 
@@ -484,6 +502,186 @@ Before considering a section "done":
 - Protocol-specific knowledge (Uniswap V4, Aave V3, etc.)
 - Interview-ready examples
 - Signals of expertise vs beginner knowledge
+
+---
+
+## Workspace Exercises
+
+**Critical Component:** Every section must have hands-on exercises that the user codes themselves.
+
+### Exercise Design Principles
+
+**What makes a great exercise:**
+
+1. **Skeleton Code Provided**
+   - No redundant boilerplate (imports, basic setup already there)
+   - Focus is on the CONCEPT, not typing ceremony
+   - Clear `// TODO:` markers showing what to implement
+
+2. **Thoughtful Implementation Required**
+   - Can't just copy-paste from the lesson
+   - Must think through the logic
+   - May need to refer back to lesson or external sources
+   - Reinforces understanding through active problem-solving
+
+3. **Auto-Verification with Foundry**
+   - Tests use `forge test`
+   - Clear test names showing what's being verified
+   - Tests fail with helpful error messages
+   - Green checkmarks = dopamine hit = learning reinforcement
+
+4. **Incremental Difficulty**
+   - Start with simple implementation
+   - Build up to more complex patterns
+   - Each TODO builds on previous understanding
+
+### Exercise Structure
+
+```solidity
+// workspace/src/part1/section1/Concept.sol
+
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.28;
+
+// Imports already provided
+import {SomeType} from "./types/SomeType.sol";
+
+/// @notice [Brief description of what this contract demonstrates]
+/// @dev Exercise for Section X: [Concept Name]
+contract ConceptExercise {
+    // State variables and types already defined
+
+    // TODO: Implement [specific function/feature]
+    // Hint: [Helpful pointer without giving away the answer]
+    // See: [Link to relevant section in the lesson]
+
+    // TODO: Implement [next function/feature]
+    // This should use the pattern from [concept name]
+}
+```
+
+### Test Structure
+
+```solidity
+// workspace/test/part1/section1/Concept.t.sol
+
+contract ConceptTest is Test {
+    // Setup already provided
+
+    function test_BasicFunctionality() public {
+        // Verify basic implementation works
+        // Clear assertion messages
+    }
+
+    function test_EdgeCase() public {
+        // Test boundary conditions
+    }
+
+    function testFuzz_Property(uint256 input) public {
+        // Property-based testing where relevant
+    }
+}
+```
+
+### Exercise Guidelines
+
+**DO:**
+- ✅ Focus on the core concept from the lesson
+- ✅ Provide skeleton that eliminates busywork
+- ✅ Include hints that guide without solving
+- ✅ Link back to relevant lesson sections
+- ✅ Write tests that verify understanding
+- ✅ Make tests descriptive and helpful
+
+**DON'T:**
+- ❌ Make the user write boilerplate
+- ❌ Create exercises that are just copy-paste
+- ❌ Write vague TODOs without guidance
+- ❌ Forget to link to workspace files in the lesson
+- ❌ Write tests that don't help debug failures
+
+### Exercise Learning Cycle
+
+The intended flow:
+1. Read concept in lesson
+2. See "Quick Try" moment (2-min Remix)
+3. Read about real usage
+4. Go to workspace exercise
+5. Try to implement from memory
+6. Get stuck → refer back to lesson
+7. Implement solution
+8. Run tests → some fail
+9. Debug → understand why
+10. All tests pass → concept internalized
+
+**This cycle is CRITICAL** - the struggle and reference-back is where deep learning happens.
+
+---
+
+## Capstone Projects
+
+**Integration Component:** Each Part (not section) ends with a capstone project.
+
+### Capstone Purpose
+
+**Goals:**
+1. **Integration** - Bring together multiple concepts from the Part
+2. **Realistic** - Build something resembling production DeFi code
+3. **Challenging** - Require synthesizing knowledge, not just applying one concept
+4. **Portfolio-Ready** - Result is something they can show in interviews
+
+### Capstone Structure
+
+**For Part 1: Foundational Solidity**
+- Combine: Modern Solidity features, EVM changes, token patterns, Foundry testing
+- Example: Build a gas-optimized ERC-4626 vault with:
+  - UDVTs for Shares/Assets
+  - Custom errors
+  - Transient storage for reentrancy guard
+  - Comprehensive test suite
+  - Gas benchmarks
+
+**For Part 2: DeFi Protocols** (future)
+- Combine: Multiple protocol patterns learned
+- Example: Build a yield aggregator that:
+  - Integrates with Aave/Compound
+  - Uses flash loans
+  - Implements strategy pattern
+  - Handles multiple tokens
+
+**For Part 3: Advanced Patterns** (future)
+- Combine: Everything learned
+- Example: Build a production-ready protocol with:
+  - Proxy pattern for upgradeability
+  - Multi-sig governance
+  - Integration tests with mainnet forks
+  - Deployment scripts
+
+### Capstone Guidelines
+
+**DO:**
+- ✅ Require using at least 3-4 major concepts from the Part
+- ✅ Include comprehensive test requirements
+- ✅ Provide architectural guidance but not implementation
+- ✅ Include stretch goals for advanced features
+- ✅ Make it interview/portfolio worthy
+
+**DON'T:**
+- ❌ Make it too simple (just combining concepts superficially)
+- ❌ Make it overwhelming (unrealistic scope)
+- ❌ Provide too much skeleton code (this should be more open-ended)
+- ❌ Skip this - it's where everything clicks together
+
+### Capstone Success Criteria
+
+**The user should be able to:**
+1. Explain architectural decisions
+2. Justify technology choices
+3. Demonstrate understanding through code
+4. Show testing best practices
+5. Present it in an interview setting
+
+**This is the "final exam" that proves mastery of the Part.**
 
 ---
 
