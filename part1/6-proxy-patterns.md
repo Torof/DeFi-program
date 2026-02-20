@@ -78,6 +78,42 @@ contract Proxy {
 
 Deploy `Implementation`, then deploy `Proxy` with the implementation address. Call `setValue(42)` on the Proxy — then read `value` from the Proxy. It's 42! But read `value` from Implementation — it's 0. **The proxy's storage changed, not the implementation's.** That's `DELEGATECALL`.
 
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Using call instead of delegatecall
+fallback() external payable {
+    (bool ok,) = impl.call(msg.data);  // Runs in implementation's context!
+    // Storage writes go to the IMPLEMENTATION, not the proxy
+}
+
+// ✅ CORRECT: delegatecall executes in the caller's (proxy's) storage context
+fallback() external payable {
+    (bool ok,) = impl.delegatecall(msg.data);
+    require(ok);
+}
+
+// ❌ WRONG: Proxy state stored in normal slots — collides with implementation
+contract BadProxy {
+    address public implementation;  // slot 0 — collides with implementation's slot 0!
+    fallback() external payable {
+        (bool ok,) = implementation.delegatecall(msg.data);
+        require(ok);
+    }
+}
+
+// ✅ CORRECT: Use EIP-1967 slots for proxy-internal state
+// Derived from hashing a known string — collision-resistant
+bytes32 constant _IMPL_SLOT =
+    bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+
+// ❌ WRONG: Expecting the implementation's state to change
+Implementation impl = new Implementation();
+Proxy proxy = new Proxy(address(impl));
+proxy.setValue(42);
+impl.value();  // Returns 0, NOT 42! The proxy's storage changed, not impl's
+```
+
 ---
 
 <a id="transparent-proxy"></a>
@@ -257,6 +293,39 @@ contract VaultV1 {
 ```
 
 **Key insight:** The proxy is ~20 lines of assembly. All the complexity is in the implementation — that's why forgetting `upgradeTo` in V2 bricks the proxy forever. OpenZeppelin's `UUPSUpgradeable` adds safety checks (implementation validation, rollback tests) that you should always use in production.
+
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: V2 doesn't inherit UUPSUpgradeable — proxy bricked forever!
+contract VaultV2 {
+    // Forgot to include upgrade capability
+    // No way to ever call upgradeTo again — proxy is permanently stuck on V2
+}
+
+// ✅ CORRECT: Every version MUST preserve upgrade capability
+contract VaultV2 is UUPSUpgradeable, OwnableUpgradeable {
+    function _authorizeUpgrade(address) internal override onlyOwner {}
+}
+
+// ❌ WRONG: No access control on _authorizeUpgrade
+contract VaultV1 is UUPSUpgradeable {
+    function _authorizeUpgrade(address) internal override {
+        // Anyone can upgrade the proxy to a malicious implementation!
+    }
+}
+
+// ✅ CORRECT: Restrict who can authorize upgrades
+contract VaultV1 is UUPSUpgradeable, OwnableUpgradeable {
+    function _authorizeUpgrade(address) internal override onlyOwner {}
+}
+
+// ❌ WRONG: Calling upgradeTo on the implementation directly
+implementation.upgradeTo(newImpl);  // Changes nothing — impl has no proxy storage
+
+// ✅ CORRECT: Call upgradeTo through the proxy
+VaultV1(address(proxy)).upgradeTo(newImpl);  // Proxy's EIP-1967 slot gets updated
+```
 
 ---
 

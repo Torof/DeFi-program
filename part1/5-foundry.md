@@ -433,6 +433,40 @@ function testGood(uint256 amount) public {
 - ✅ **Test edge cases explicitly**: zero amounts, maximum values, minimum values
 - ⚠️ **Use `vm.assume()` sparingly**—it discards inputs, `bound()` transforms them
 
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Using vm.assume() for common constraints — discards too many inputs
+function testFuzz_deposit(uint256 amount) public {
+    vm.assume(amount > 0 && amount < 1e30);  // Rejects ~99% of inputs!
+}
+
+// ✅ CORRECT: Use bound() to transform inputs into valid range
+function testFuzz_deposit(uint256 amount) public {
+    amount = bound(amount, 1, 1e30);  // Every input becomes valid
+}
+```
+
+```solidity
+// ❌ WRONG: Testing only the happy path with fuzzing
+function testFuzz_swap(uint256 amountIn) public {
+    amountIn = bound(amountIn, 1, 1e24);
+    uint256 out = pool.swap(amountIn);
+    assertTrue(out > 0);  // Too weak — doesn't verify the math
+}
+
+// ✅ CORRECT: Test mathematical properties
+function testFuzz_swap(uint256 amountIn) public {
+    amountIn = bound(amountIn, 1, 1e24);
+    uint256 reserveBefore = pool.reserve();
+    uint256 out = pool.swap(amountIn);
+    assertTrue(out > 0, "Output must be positive");
+    assertTrue(out < reserveBefore, "Output must be less than reserve");
+    // Verify constant product: k should not decrease
+    assertTrue(pool.k() >= kBefore, "k must not decrease");
+}
+```
+
 ---
 
 <a id="invariant-testing"></a>
@@ -660,6 +694,51 @@ Ghost variables are your **parallel accounting system** — if the contract's st
 
 **Pro tip:** The #1 skill that separates junior from senior DeFi developers is the ability to identify and test protocol invariants. If you can articulate "these 5 things must always be true about this protocol" and write tests proving it, you're already ahead of most candidates.
 
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Not using a handler — fuzzer calls functions with random args directly
+// This causes constant reverts and wastes 90% of test runs
+
+// ✅ CORRECT: Use a handler to guide the fuzzer
+contract VaultHandler is Test {
+    Vault vault;
+
+    function deposit(uint256 amount) external {
+        amount = bound(amount, 1, token.balanceOf(address(this)));
+        token.approve(address(vault), amount);
+        vault.deposit(amount);
+    }
+    // Handler ensures valid state transitions
+}
+```
+
+```solidity
+// ❌ WRONG: Setting fail_on_revert = true in foundry.toml
+// Invariant tests SHOULD hit reverts — that's the fuzzer exploring
+// fail_on_revert = true makes your test fail on every revert, hiding real bugs
+
+// ✅ CORRECT: Use fail_on_revert = false (default for invariant tests)
+// [profile.default.invariant]
+// fail_on_revert = false
+```
+
+```solidity
+// ❌ WRONG: Testing implementation details instead of invariants
+function invariant_totalSupplyEquals1000() public {
+    assertEq(vault.totalSupply(), 1000);  // Not an invariant — it changes!
+}
+
+// ✅ CORRECT: Test properties that must ALWAYS hold
+function invariant_solvency() public {
+    assertGe(
+        token.balanceOf(address(vault)),
+        vault.totalAssets(),
+        "Vault must always be solvent"
+    );
+}
+```
+
 ---
 
 <a id="day12-exercise"></a>
@@ -828,6 +907,29 @@ vm.selectFork(arbitrumFork);  // Switch to arbitrum
 - ✅ **Test against multiple blocks** to ensure your protocol works across different market conditions
 
 > ⚡ **Common pitfall:** Forgetting to set `MAINNET_RPC_URL` in `.env`. Fork tests will fail with "RPC endpoint not found." Use [Alchemy](https://www.alchemy.com/) or [Infura](https://www.infura.io/) for reliable RPC endpoints.
+
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Fork tests without pinning a block number
+function setUp() public {
+    vm.createSelectFork("mainnet");  // Non-deterministic! Different results each run
+}
+
+// ✅ CORRECT: Always pin to a specific block
+function setUp() public {
+    vm.createSelectFork("mainnet", 19_000_000);  // Deterministic and cacheable
+}
+```
+
+```solidity
+// ❌ WRONG: Impersonating whale addresses for token balances
+vm.prank(0xBEEF...);  // This whale might move their tokens!
+token.transfer(alice, 1000e18);
+
+// ✅ CORRECT: Use deal() to set balances directly
+deal(address(token), alice, 1000e18);  // Always works, no dependencies
+```
 
 ---
 

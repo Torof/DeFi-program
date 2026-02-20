@@ -304,6 +304,48 @@ contract MultiChainDeploy is Script {
 
 **The pattern:** Configuration varies per chain, but the deployment structure is identical. This is how production protocols achieve consistent addresses and behavior across L1 and L2s.
 
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Deploy and initialize in separate transactions
+vm.startBroadcast(deployerKey);
+ERC1967Proxy proxy = new ERC1967Proxy(address(impl), "");
+vm.stopBroadcast();
+// ... later ...
+VaultV1(address(proxy)).initialize(owner);  // Attacker front-runs this!
+
+// ✅ CORRECT: Atomic deploy + initialize
+vm.startBroadcast(deployerKey);
+ERC1967Proxy proxy = new ERC1967Proxy(
+    address(impl),
+    abi.encodeCall(VaultV1.initialize, (owner))  // Initialized in constructor
+);
+vm.stopBroadcast();
+
+// ❌ WRONG: Hardcoded addresses across chains
+address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;  // Mainnet only!
+// Deploying this to Arbitrum points to a wrong/nonexistent contract
+
+// ✅ CORRECT: Chain-specific configuration
+function getUSDC() internal view returns (address) {
+    if (block.chainid == 1) return 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    if (block.chainid == 42161) return 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
+    revert("Unsupported chain");
+}
+
+// ❌ WRONG: No post-deployment verification
+vm.startBroadcast(deployerKey);
+new ERC1967Proxy(address(impl), initData);
+vm.stopBroadcast();
+// Hope it worked... 🤞
+
+// ✅ CORRECT: Verify state after deployment
+VaultV1 vault = VaultV1(address(proxy));
+require(vault.owner() == expectedOwner, "Owner mismatch");
+require(address(vault.token()) == expectedToken, "Token mismatch");
+require(vault.totalSupply() == 0, "Unexpected initial state");
+```
+
 ---
 
 <a id="contract-verification"></a>
@@ -431,6 +473,43 @@ safe.filters.Withdraw(null, null, gte(1000000e18))
 ```
 
 > ⚡ **Common pitfall:** Not indexing the right parameters. You can only index up to 3 parameters per event. Choose the ones you'll filter by (usually addresses and IDs).
+
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Single EOA as protocol owner
+contract Vault is Ownable {
+    constructor() Ownable(msg.sender) {}  // Deployer EOA = single point of failure
+    // If the key leaks, attacker owns the entire protocol
+}
+
+// ✅ CORRECT: Transfer ownership to multisig after deployment
+// Step 1: Deploy with EOA (convenient for setup)
+// Step 2: Verify everything works
+// Step 3: Transfer to Safe
+vault.transferOwnership(safeMultisigAddress);
+
+// ❌ WRONG: No events on critical state changes
+function setFee(uint256 newFee) external onlyOwner {
+    fee = newFee;  // Silent — no monitoring tool can detect this change
+}
+
+// ✅ CORRECT: Emit events for every admin action
+event FeeUpdated(uint256 oldFee, uint256 newFee, address indexed updatedBy);
+function setFee(uint256 newFee) external onlyOwner {
+    emit FeeUpdated(fee, newFee, msg.sender);
+    fee = newFee;
+}
+
+// ❌ WRONG: No emergency pause mechanism
+// When an exploit starts, no way to stop the damage
+
+// ✅ CORRECT: Include pausable for emergency response
+contract Vault is Pausable, Ownable {
+    function deposit(uint256 amount) external whenNotPaused { /* ... */ }
+    function pause() external onlyOwner { _pause(); }  // Guardian can stop bleeding
+}
+```
 
 #### 🔗 DeFi Pattern Connection
 

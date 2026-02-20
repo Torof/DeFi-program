@@ -172,6 +172,49 @@ If `a * b < 2^512` (virtually always true) AND `c != 0`, the result fits in uint
 
 **Pro tip:** In interviews, mention that you understand the tradeoff: checked arithmetic costs gas (~20-30 gas per operation) but prevents exploits. Show you think about both security AND efficiency.
 
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Using unchecked without mathematical proof
+unchecked {
+    uint256 result = userInput - fee;  // If fee > userInput → wraps to ~2^256!
+}
+
+// ✅ CORRECT: Validate first, then use unchecked
+require(userInput >= fee, InsufficientBalance());
+unchecked {
+    uint256 result = userInput - fee;  // Safe: validated above
+}
+```
+
+```solidity
+// ❌ WRONG: Importing SafeMath in 0.8+ code
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+using SafeMath for uint256;
+uint256 total = a.add(b);  // Redundant! Already checked by default
+
+// ✅ CORRECT: Just use native operators
+uint256 total = a + b;  // Reverts on overflow automatically
+```
+
+```solidity
+// ❌ WRONG: Wrapping entire function in unchecked to "save gas"
+function processDeposit(uint256 amount) external {
+    unchecked {
+        totalDeposits += amount;             // Could overflow with enough deposits!
+        userBalances[msg.sender] += amount;  // Same problem
+    }
+}
+
+// ✅ CORRECT: Only unchecked for provably safe operations
+function processDeposit(uint256 amount) external {
+    totalDeposits += amount;  // Keep checked — can't prove safety
+    userBalances[msg.sender] += amount;
+
+    unchecked { ++depositCount; }  // Safe: would need 2^256 deposits to overflow
+}
+```
+
 ---
 
 <a id="custom-errors"></a>
@@ -294,6 +337,52 @@ Aave's frontend decodes 60+ custom errors to show specific messages like "Health
 **Pro tip:** When building aggregators or routers, design your error types as a hierarchy — base errors for the protocol, specific errors per module. Teams that do this well (like 1inch, Paraswap) can provide users with actionable revert reasons instead of opaque failures.
 
 > 🔍 **Deep dive:** [Cyfrin Updraft - Custom Errors](https://updraft.cyfrin.io/courses/solidity/fund-me/solidity-custom-errors) provides a tutorial with practical examples. [Solidity Docs - Error Handling](https://docs.soliditylang.org/en/latest/control-structures.html#error-handling-assert-require-revert-and-exceptions) covers how custom errors work with try/catch.
+
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Mixing old and new error styles in the same contract
+error InsufficientBalance(uint256 available, uint256 required);
+
+function withdraw(uint256 amount) external {
+    require(amount > 0, "Amount must be positive");  // Old style string
+    if (balance < amount) revert InsufficientBalance(balance, amount);  // New style
+}
+
+// ✅ CORRECT: Consistent error style throughout
+error ZeroAmount();
+error InsufficientBalance(uint256 available, uint256 required);
+
+function withdraw(uint256 amount) external {
+    if (amount == 0) revert ZeroAmount();
+    if (balance < amount) revert InsufficientBalance(balance, amount);
+}
+```
+
+```solidity
+// ❌ WRONG: Losing error context in cross-contract calls
+try pool.swap(amount) {} catch {
+    revert("Swap failed");  // Lost the original error — debugging nightmare
+}
+
+// ✅ CORRECT: Decode and handle specific errors
+try pool.swap(amount) {} catch (bytes memory reason) {
+    if (bytes4(reason) == IPool.InsufficientLiquidity.selector) {
+        // Try alternate pool
+    } else {
+        // Re-throw original error with full context
+        assembly { revert(add(reason, 32), mload(reason)) }
+    }
+}
+```
+
+```solidity
+// ❌ WRONG: Errors without useful parameters
+error TransferFailed();  // Which transfer? Which token? How much?
+
+// ✅ CORRECT: Include debugging context in error parameters
+error TransferFailed(address token, address to, uint256 amount);
+```
 
 ---
 
@@ -584,6 +673,56 @@ using { add as + } for BalanceDelta global;
 
 > 🔍 **Deep dive:** [Uniswap V4 Design Blog](https://blog.uniswap.org/uniswap-v4) explains their architectural reasoning for using UDVTs. [Solidity Blog - User-Defined Operators](https://www.soliditylang.org/blog/2023/02/22/user-defined-operators/) provides an official deep dive on custom operators.
 
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Unwrapping too early, losing type safety
+function deposit(Assets assets) external {
+    uint256 raw = Assets.unwrap(assets);  // Unwrapped immediately
+    // ... 50 lines of math with raw uint256 ...
+    // Type safety lost — could mix with shares again
+}
+
+// ✅ CORRECT: Keep wrapped as long as possible
+function deposit(Assets assets) external {
+    Shares shares = convertToShares(assets);  // Types maintained throughout
+    _totalAssets = _totalAssets + assets;      // Can't accidentally mix with shares
+    _totalShares = _totalShares + shares;      // Type-enforced ✨
+}
+```
+
+```solidity
+// ❌ WRONG: Wrapping arbitrary values — defeats the purpose
+type PoolId is bytes32;
+
+function getPool(bytes32 data) external view returns (Pool memory) {
+    return pools[PoolId.wrap(data)];  // Wrapping unvalidated data — no safety!
+}
+
+// ✅ CORRECT: Only create PoolId from validated sources
+function computePoolId(PoolKey memory key) internal pure returns (PoolId) {
+    return PoolId.wrap(keccak256(abi.encode(key)));  // Only valid path
+}
+```
+
+```solidity
+// ❌ WRONG: Forgetting to define operators, leading to verbose code
+type Shares is uint256;
+
+// Without operators, every operation is painful:
+Shares total = Shares.wrap(Shares.unwrap(a) + Shares.unwrap(b));
+
+// ✅ CORRECT: Define operators with `using for ... global`
+using { addShares as + } for Shares global;
+
+function addShares(Shares a, Shares b) pure returns (Shares) {
+    return Shares.wrap(Shares.unwrap(a) + Shares.unwrap(b));
+}
+
+// Now clean and readable:
+Shares total = a + b;
+```
+
 ---
 
 <a id="abi-encodecall"></a>
@@ -685,6 +824,37 @@ The compiler knows `IERC20.transfer` expects `(address, uint256)` and will rejec
 - 🚩 Not aware of the type safety benefits
 
 **Pro tip:** In multicall/batch architectures, `abi.encodeCall` shines because a single typo in a selector can drain funds. Show interviewers you default to the type-safe option and only drop to `encodeWithSelector` when dealing with dynamic interfaces (e.g., proxy patterns where the target ABI isn't known at compile time).
+
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Using abi.encodeWithSignature — typo-prone, no type checking
+bytes memory data = abi.encodeWithSignature(
+    "tranfer(address,uint256)",  // Typo! Missing 's' — silent failure
+    recipient, amount
+);
+
+// ❌ ALSO WRONG: Using abi.encodeWithSelector — no argument type checking
+bytes memory data = abi.encodeWithSelector(
+    IERC20.transfer.selector,
+    amount, recipient  // Swapped args — compiles fine, fails at runtime!
+);
+
+// ✅ CORRECT: abi.encodeCall catches both issues at compile time
+bytes memory data = abi.encodeCall(
+    IERC20.transfer,
+    (recipient, amount)  // Compiler verifies types match signature
+);
+```
+
+```solidity
+// ❌ WRONG: Forgetting the tuple syntax for arguments
+bytes memory data = abi.encodeCall(IERC20.transfer, recipient, amount);
+// Compile error! Arguments must be wrapped in a tuple
+
+// ✅ CORRECT: Arguments in parentheses as a tuple
+bytes memory data = abi.encodeCall(IERC20.transfer, (recipient, amount));
+```
 
 ---
 
@@ -1013,6 +1183,58 @@ Savings: 4 transfers eliminated!
 **Pro tip:** If interviewing for a DEX/AMM role, deeply study Uniswap V4's implementation. Mentioning you understand flash accounting puts you ahead of 90% of candidates.
 
 > 🔍 **Deep dive:** [EIP-1153](https://eips.ethereum.org/EIPS/eip-1153) includes detailed security considerations. [Uniswap V4 Flash Accounting Docs](https://docs.uniswap.org/contracts/v4/concepts/flash-accounting) shows production usage. [Cyfrin - Uniswap V4 Swap Deep Dive](https://www.cyfrin.io/blog/uniswap-v4-swap-deep-dive-into-execution-and-accounting) provides a technical walkthrough of flash accounting with transient storage.
+
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Assuming transient storage persists across transactions
+contract TokenCache {
+    address transient lastSender;
+
+    function recordSender() external {
+        lastSender = msg.sender;  // Gone after this transaction!
+    }
+
+    function getLastSender() external view returns (address) {
+        return lastSender;  // Always address(0) in a new transaction
+    }
+}
+
+// ✅ CORRECT: Use regular storage for cross-transaction state
+contract TokenCache {
+    address public lastSender;       // Regular storage — persists
+    bool transient _processing;      // Transient — only for intra-tx flags
+}
+```
+
+```solidity
+// ❌ WRONG: Using transient storage for data that must survive upgrades
+contract VaultV1 {
+    uint256 transient totalDeposits;  // Lost after every transaction!
+}
+
+// ✅ CORRECT: Only transient for ephemeral intra-transaction state
+contract VaultV1 {
+    uint256 public totalDeposits;       // Persistent — survives across txs
+    bool transient _reentrancyLocked;   // Ephemeral — only during tx
+}
+```
+
+```solidity
+// ❌ WRONG: Forgetting to reset transient state in multi-step transactions
+modifier withCallback() {
+    _callbackExpected = true;
+    _;
+    // Forgot to reset! If tx continues after this call, stale flag remains
+}
+
+// ✅ CORRECT: Explicitly reset even though tx-end auto-clears
+modifier withCallback() {
+    _callbackExpected = true;
+    _;
+    _callbackExpected = false;  // Clean up — don't rely only on auto-clear
+}
+```
 
 ---
 

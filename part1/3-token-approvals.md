@@ -292,6 +292,44 @@ Most modern tokens implement EIP-2612:
 
 **Pro tip:** Knowing the DAI permit story shows depth — DAI had `permit()` before EIP-2612 existed and actually inspired the standard, but uses a slightly different signature format (`allowed` boolean instead of `value` uint256). This is a common gotcha in production code.
 
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Assuming all tokens support permit
+function deposit(address token, uint256 amount, ...) external {
+    IERC20Permit(token).permit(...);  // Reverts for USDT, mainnet WETH, etc.
+    IERC20(token).transferFrom(msg.sender, address(this), amount);
+}
+
+// ✅ CORRECT: Check permit support or use try/catch with fallback
+function deposit(address token, uint256 amount, ...) external {
+    try IERC20Permit(token).permit(...) {} catch {}
+    // Falls back to pre-existing allowance if permit isn't supported
+    IERC20(token).transferFrom(msg.sender, address(this), amount);
+}
+```
+
+```solidity
+// ❌ WRONG: Hardcoding DOMAIN_SEPARATOR — breaks on chain forks
+bytes32 constant DOMAIN_SEP = 0xabc...;  // Computed at deployment on chain 1
+
+// ✅ CORRECT: Recompute if chainId changes (OpenZeppelin pattern)
+function DOMAIN_SEPARATOR() public view returns (bytes32) {
+    if (block.chainid == _CACHED_CHAIN_ID) return _CACHED_DOMAIN_SEPARATOR;
+    return _buildDomainSeparator();  // Recompute for different chain
+}
+```
+
+```solidity
+// ❌ WRONG: Not checking the nonce before building the digest
+bytes32 digest = buildPermitDigest(owner, spender, value, 0, deadline);
+//                                                        ^ hardcoded nonce 0!
+
+// ✅ CORRECT: Always read the current nonce from the token
+uint256 nonce = token.nonces(owner);
+bytes32 digest = buildPermitDigest(owner, spender, value, nonce, deadline);
+```
+
 ---
 
 <a id="day5-exercise"></a>
@@ -724,6 +762,46 @@ function permitWitnessTransferFrom(
 - 🚩 Thinks AllowanceTransfer's uint160 amount is a limitation (it's a deliberate packing optimization)
 
 **Pro tip:** If you're interviewing at a protocol that integrates Permit2, know which mode they use. Uniswap V4 uses SignatureTransfer (one-time, stateless). If the protocol has recurring interactions (like a lending pool), they likely use AllowanceTransfer. Showing you checked their codebase before the interview is a strong signal.
+
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Using SignatureTransfer for frequent interactions
+// User must sign a new permit for EVERY deposit — bad UX for daily users
+function deposit(PermitTransferFrom calldata permit, ...) external {
+    PERMIT2.permitTransferFrom(permit, details, msg.sender, signature);
+}
+
+// ✅ BETTER: Use AllowanceTransfer for protocols users interact with regularly
+// User sets a time-bounded allowance once, then deposits freely
+function deposit(uint256 amount) external {
+    PERMIT2.transferFrom(msg.sender, address(this), uint160(amount), token);
+}
+```
+
+```solidity
+// ❌ WRONG: Forgetting that AllowanceTransfer uses uint160, not uint256
+function deposit(uint256 amount) external {
+    // This will silently truncate amounts > type(uint160).max!
+    PERMIT2.transferFrom(msg.sender, address(this), uint160(amount), token);
+}
+
+// ✅ CORRECT: Validate the amount fits in uint160
+function deposit(uint256 amount) external {
+    require(amount <= type(uint160).max, "Amount exceeds uint160");
+    PERMIT2.transferFrom(msg.sender, address(this), uint160(amount), token);
+}
+```
+
+```solidity
+// ❌ WRONG: Not approving Permit2 first — the one-time ERC-20 approve step
+// Users need to: approve(PERMIT2, MAX) once per token BEFORE using permits
+// Your dApp must check and prompt this approval
+
+// ✅ CORRECT: Check Permit2 allowance in your frontend
+// if (token.allowance(user, PERMIT2) == 0) → prompt approve tx
+// Then use Permit2 signatures for all subsequent interactions
+```
 
 ---
 

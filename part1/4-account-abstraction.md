@@ -84,6 +84,31 @@ Make smart contracts the primary account type, with programmable validation logi
 
 **Pro tip:** Mention real adoption numbers — 40M+ smart accounts, Coinbase Smart Wallet, Safe migration to 4337. Show you track the ecosystem, not just the spec.
 
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Blocking smart accounts with EOA-only checks
+function deposit() external {
+    require(msg.sender == tx.origin, "No contracts");  // Breaks all smart wallets!
+}
+
+// ✅ CORRECT: Allow both EOAs and smart accounts
+function deposit() external {
+    // No msg.sender == tx.origin check — smart accounts welcome
+}
+```
+
+```solidity
+// ❌ WRONG: Assuming msg.sender.code.length == 0 means EOA
+// Post-EIP-7702, EOAs can have delegated code!
+if (msg.sender.code.length == 0) {
+    // "Must be an EOA" — wrong assumption
+}
+
+// ✅ CORRECT: Don't try to distinguish EOAs from contracts
+// Design your protocol to work with both
+```
+
 ---
 
 <a id="erc-4337-components"></a>
@@ -364,6 +389,21 @@ An EOA can use EIP-7702 to delegate to an ERC-4337-compatible smart account impl
 - [Coinbase Smart Wallet](https://www.coinbase.com/wallet/smart-wallet) uses this approach
 - [Trust Wallet](https://trustwallet.com/) planning migration
 - Metamask exploring integration
+
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Confusing EIP-7702 and ERC-4337 in your integration
+// EIP-7702 = EOA delegates to code (no new account needed)
+// ERC-4337 = deploy a new smart account contract
+
+// ❌ WRONG: Assuming delegation is temporary per-transaction
+// Delegation PERSISTS across transactions until explicitly revoked!
+// Don't assume a user's EOA will behave like a plain EOA next block
+
+// ✅ CORRECT: Design protocols to handle both transparently
+// Check neither msg.sender.code.length nor tx.origin — just work with msg.sender
+```
 
 ---
 
@@ -647,6 +687,42 @@ library UniversalSigVerifier {
 
 **Pro tip:** Mention that EIP-1271 enables passkey-based wallets (WebAuthn signatures verified on-chain). Coinbase Smart Wallet uses this — passkey signs, wallet contract verifies via `isValidSignature`. This is the future of DeFi UX.
 
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Only supporting EOA signatures (ecrecover)
+function verifySignature(bytes32 hash, bytes memory sig) internal view returns (address) {
+    return ECDSA.recover(hash, sig);  // Fails for ALL smart wallets!
+}
+
+// ✅ CORRECT: Support both EOA and contract signatures
+function verifySignature(address signer, bytes32 hash, bytes memory sig) internal view returns (bool) {
+    if (signer.code.length > 0) {
+        // Smart account — use EIP-1271
+        try IERC1271(signer).isValidSignature(hash, sig) returns (bytes4 magic) {
+            return magic == IERC1271.isValidSignature.selector;
+        } catch {
+            return false;
+        }
+    } else {
+        // EOA — use ecrecover
+        return ECDSA.recover(hash, sig) == signer;
+    }
+}
+```
+
+```solidity
+// ❌ WRONG: Calling isValidSignature without gas limit
+(bool success, bytes memory result) = signer.staticcall(
+    abi.encodeCall(IERC1271.isValidSignature, (hash, sig))
+);  // Malicious contract could consume ALL remaining gas!
+
+// ✅ CORRECT: Set a gas limit for the external call
+(bool success, bytes memory result) = signer.staticcall{gas: 50_000}(
+    abi.encodeCall(IERC1271.isValidSignature, (hash, sig))
+);
+```
+
 ---
 
 <a id="day9-exercise"></a>
@@ -836,6 +912,34 @@ Users pre-deposit ETH or tokens into the paymaster contract. Gas is deducted fro
 - 🚩 Can't explain paymaster griefing risks
 
 **Pro tip:** Knowing specific paymaster services (Pimlico, Alchemy Gas Manager, Biconomy) shows you've worked with the ecosystem practically, not just theoretically.
+
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Paymaster without griefing protection
+function _validatePaymasterUserOp(PackedUserOperation calldata userOp, ...)
+    internal returns (bytes memory, uint256) {
+    return ("", 0);  // Sponsors everything — will be drained!
+}
+
+// ✅ CORRECT: Validate user eligibility and set limits
+function _validatePaymasterUserOp(PackedUserOperation calldata userOp, ...)
+    internal returns (bytes memory, uint256) {
+    address sender = userOp.getSender();
+    require(isWhitelisted[sender], "Not eligible");
+    require(dailyUsage[sender] < MAX_DAILY_GAS, "Daily limit reached");
+    return (abi.encode(sender), 0);
+}
+```
+
+```solidity
+// ❌ WRONG: ERC-20 paymaster with no oracle staleness check
+uint256 tokenAmount = gasUsed * gasPrice / tokenPrice;  // tokenPrice could be stale!
+
+// ✅ CORRECT: Check oracle freshness
+(, int256 price, , uint256 updatedAt, ) = priceFeed.latestRoundData();
+require(block.timestamp - updatedAt < 1 hours, "Stale price feed");
+```
 
 ---
 
