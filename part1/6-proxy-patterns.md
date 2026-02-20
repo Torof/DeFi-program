@@ -488,7 +488,7 @@ If `initialize()` can be called by anyone (or called again), an attacker can tak
    - Fixed before exploitation, discovered through bug bounty
    - **Lesson:** Always call `_disableInitializers()` in the constructor
 
-3. **Initializer Re-entrancy — Parity Wallet ($150M locked, 2017)**:
+3. **Initializer Re-entrancy — [Parity Wallet ($150M locked, 2017)](https://medium.com/paritytech/a-postmortem-on-the-parity-multi-sig-library-self-destruct-63daca3a4cf7)**:
    - The `initWallet()` function could be called by anyone on the library contract
    - Attacker became owner of the library, then called `selfdestruct`
    - All wallets using the library lost access to their funds forever

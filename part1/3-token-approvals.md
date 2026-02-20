@@ -34,13 +34,13 @@
 | Problem | Impact | Example |
 |---------|--------|---------|
 | **Two transactions** per interaction | 2x gas costs, poor UX | Approve tx + Action tx = ~42k extra gas |
-| **Infinite approvals** as default | All tokens at risk if protocol hacked | 💰 **Euler Finance** (March 2023): $197M drained |
+| **Infinite approvals** as default | All tokens at risk if protocol hacked | 💰 **[Euler Finance](https://www.certik.com/resources/blog/euler-finance-hack-explained)** (March 2023): $197M drained |
 | **No expiration** | Forgotten approvals persist forever | Approvals from 2020 still active today |
 | **No batch revocation** | 1 tx per token per spender to revoke | Users have 50+ active approvals on average |
 
 **🚨 Real-world impact:**
 
-When protocols get hacked (Euler Finance March 2023, KyberSwap November 2023), attackers drain not just deposited funds but all tokens users have approved. The approval system turns every protocol into a potential honeypot.
+When protocols get hacked ([Euler Finance March 2023](https://www.certik.com/resources/blog/euler-finance-hack-explained), [KyberSwap November 2023](https://blog.kyberswap.com/post-mortem-kyberswap-elastic-exploit/)), attackers drain not just deposited funds but all tokens users have approved. The approval system turns every protocol into a potential honeypot.
 
 > ⚡ **Check your own approvals:** Visit [Revoke.cash](https://revoke.cash/) and see how many active unlimited approvals you have. Most users are shocked.
 

@@ -122,7 +122,7 @@ If `a * b < 2^512` (virtually always true) AND `c != 0`, the result fits in uint
 **When you'll see this in DeFi:**
 - ERC-4626 vault share calculations (`convertToShares`, `convertToAssets`)
 - AMM price calculations with large reserves
-- Fixed-point math libraries (Ray/Wad math in Aave, DSMath in MakerDAO)
+- Fixed-point math libraries ([Ray/Wad math in Aave](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/math/WadRayMath.sol), [DSMath in MakerDAO](https://github.com/dapphub/ds-math/blob/master/src/math.sol))
 
 **How to read the code:**
 1. Start with the [tests in Uniswap's repo](https://github.com/Uniswap/v3-core/blob/main/test/FullMath.spec.ts) - see inputs/outputs, then read the [FullMath implementation](https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/FullMath.sol)
@@ -146,7 +146,7 @@ If `a * b < 2^512` (virtually always true) AND `c != 0`, the result fits in uint
    - Reserve updates must never overflow
    - Modern AMMs use `unchecked` only where math proves safety (like in Uniswap's `FullMath`)
 
-3. **Rebasing Tokens** (Aave aTokens, Lido stETH)
+3. **Rebasing Tokens** ([Aave aTokens](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/tokenization/AToken.sol), [Lido stETH](https://github.com/lidofinance/lido-dao/blob/master/contracts/0.4.24/StETH.sol))
    - Balance = `shares * rebaseIndex / 1e18`
    - Overflow protection is critical when rebaseIndex grows over years
    - Checked arithmetic prevents silent corruption
@@ -163,7 +163,7 @@ If `a * b < 2^512` (virtually always true) AND `c != 0`, the result fits in uint
    - Good answer: Lose precision. If `a < c`, you get 0, then 0 * b = 0 (wrong!)
 
 3. "How do you handle multiplication overflow in share price calculations?"
-   - Good answer: Use a `mulDiv` library (OpenZeppelin, Solady, or custom) for precise 512-bit intermediate math
+   - Good answer: Use a `mulDiv` library ([OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol), [Solady](https://github.com/Vectorized/solady/blob/main/src/utils/FixedPointMathLib.sol), or custom) for precise 512-bit intermediate math
 
 **Interview Red Flags:**
 - 🚩 Importing SafeMath in new Solidity 0.8+ code

@@ -665,7 +665,7 @@ Before EIP-6780, attackers could:
 
 5. **Exploit**: The DAO/protocol thinks address A is still the benign contract, but it's now malicious!
 
-**Real attack: Tornado Cash governance (2023)**
+**Real attack: [Tornado Cash governance (2023)](https://www.halborn.com/blog/post/explained-the-tornado-cash-hack-may-2023)**
 
 An attacker used metamorphic contracts to:
 - Deploy a proposal contract with benign code
