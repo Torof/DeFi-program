@@ -120,7 +120,7 @@ Step 2: Divide the 512-bit result by c = 256-bit result
 If `a * b < 2^512` (virtually always true) AND `c != 0`, the result fits in uint256 and is exact.
 
 **When you'll see this in DeFi:**
-- ERC-4626 vault share calculations (`convertToShares`, `convertToAssets`)
+- [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) vault share calculations (`convertToShares`, `convertToAssets`)
 - AMM price calculations with large reserves
 - Fixed-point math libraries ([Ray/Wad math in Aave](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/math/WadRayMath.sol), [DSMath in MakerDAO](https://github.com/dapphub/ds-math/blob/master/src/math.sol))
 
@@ -136,7 +136,7 @@ If `a * b < 2^512` (virtually always true) AND `c != 0`, the result fits in uint
 
 **Where checked arithmetic changed everything:**
 
-1. **Vault Share Math (ERC-4626)**
+1. **Vault Share Math ([ERC-4626](https://eips.ethereum.org/EIPS/eip-4626))**
    - Pre-0.8: Every vault needed SafeMath for `shares = (assets * totalSupply) / totalAssets`
    - Post-0.8: Built-in safety, cleaner code
    - You'll implement this in the Day 1 exercise
@@ -409,7 +409,7 @@ function deposit(Assets assets) external returns (Shares) {
 
 Understanding UDVTs is essential for reading V4 code. They use them extensively:
 - [`PoolId.sol`](https://github.com/Uniswap/v4-core/blob/d153b048868a60c2403a3ef5b2301bb247884d46/src/types/PoolId.sol) — `type PoolId is bytes32`, computed via `keccak256(abi.encode(poolKey))`
-- [`Currency.sol`](https://github.com/Uniswap/v4-core/blob/d153b048868a60c2403a3ef5b2301bb247884d46/src/types/Currency.sol) — `type Currency is address`, unifies native ETH and ERC-20 handling with custom comparison operators
+- [`Currency.sol`](https://github.com/Uniswap/v4-core/blob/d153b048868a60c2403a3ef5b2301bb247884d46/src/types/Currency.sol) — `type Currency is address`, unifies native ETH and [ERC-20](https://eips.ethereum.org/EIPS/eip-20) handling with custom comparison operators
 - [`BalanceDelta.sol`](https://github.com/Uniswap/v4-core/blob/d153b048868a60c2403a3ef5b2301bb247884d46/src/types/BalanceDelta.sol) — `type BalanceDelta is int256`, packs two `int128` values using bit manipulation with custom `+`, `-`, `==`, `!=` operators
 
 #### 🔍 Deep Dive: Understanding `BalanceDelta` Bit-Packing

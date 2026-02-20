@@ -668,7 +668,7 @@ function initialize(IPoolAddressesProvider provider) external initializer {
 **Building on earlier sections:**
 - **← Section 1 (Modern Solidity):** Custom errors in upgradeable contracts, UDVTs across proxy boundaries, `immutable` variables don't live in storage (critical: removing immutables between versions causes slot shifts)
 - **← Section 2 (EVM Changes):** Transient storage (`TSTORE`/`TLOAD`) works correctly through `DELEGATECALL` — the proxy and implementation share transient storage in the same execution context
-- **← Section 3 (Token Approvals):** Permit2's `DOMAIN_SEPARATOR` includes the contract address — for proxies, this is the proxy address (correct), not the implementation address. `EIP-2612` permits work correctly with proxies because `address(this)` in a `DELEGATECALL` returns the proxy address
+- **← Section 3 (Token Approvals):** Permit2's `DOMAIN_SEPARATOR` includes the contract address — for proxies, this is the proxy address (correct), not the implementation address. [EIP-2612](https://eips.ethereum.org/EIPS/eip-2612) permits work correctly with proxies because `address(this)` in a `DELEGATECALL` returns the proxy address
 - **← Section 4 (Account Abstraction):** ERC-4337 smart wallets (like SimpleAccount) use UUPS pattern — the wallet itself is a proxy, enabling account logic upgrades without changing the wallet address
 - **← Section 5 (Foundry):** `forge inspect storage-layout` is the primary tool for verifying upgrade safety. Fork tests verify upgrades against live proxy state. `vm.load` reads EIP-1967 slots in tests
 

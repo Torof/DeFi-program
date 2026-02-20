@@ -333,7 +333,7 @@ forge verify-contract <IMPL_ADDRESS> src/VaultV1.sol:VaultV1 \
     --chain sepolia \
     --etherscan-api-key $ETHERSCAN_KEY
 
-# 2. Verify proxy (Etherscan auto-detects EIP-1967 proxies)
+# 2. Verify proxy (Etherscan auto-detects [EIP-1967](https://eips.ethereum.org/EIPS/eip-1967) proxies)
 #    Just mark it as a proxy in the Etherscan UI
 ```
 
@@ -514,7 +514,7 @@ This is the capstone exercise for Part 1:
 
 3. **Verify the contract** on Etherscan:
    - ✅ Check both implementation and proxy are verified
-   - ✅ Verify proxy is detected as EIP-1967 proxy
+   - ✅ Verify proxy is detected as [EIP-1967](https://eips.ethereum.org/EIPS/eip-1967) proxy
    - ✅ Test "Read Contract" and "Write Contract" tabs
 
 4. **(Optional) Set up a Safe multisig** on Sepolia:
@@ -598,9 +598,9 @@ Separate from initial deployment — these handle proxy upgrades with storage la
 
 **Building on earlier sections:**
 - **← Section 1 (Modern Solidity):** `abi.encodeCall` for type-safe initialization data in deployment scripts, custom errors for deployment validation failures
-- **← Section 2 (EVM Changes):** EIP-7702 delegate accounts may need custom deployment patterns — the delegation target must exist before the EOA delegates to it
+- **← Section 2 (EVM Changes):** [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702) delegate accounts may need custom deployment patterns — the delegation target must exist before the EOA delegates to it
 - **← Section 3 (Token Approvals):** Permit2's canonical `CREATE2` address is the gold standard for deterministic multi-chain deployment. `DOMAIN_SEPARATOR` includes `block.chainid` — verify it differs per chain after deployment
-- **← Section 4 (Account Abstraction):** ERC-4337 wallet factories use `CREATE2` for counterfactual addresses — the wallet address exists before deployment, enabling deposits to it
+- **← Section 4 (Account Abstraction):** [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337) wallet factories use `CREATE2` for counterfactual addresses — the wallet address exists before deployment, enabling deposits to it
 - **← Section 5 (Foundry):** `forge script` is the deployment tool, `forge verify-contract` handles verification, `cast call`/`cast send` for post-deployment interaction
 - **← Section 6 (Proxy Patterns):** UUPS proxy deployment must be atomic (deploy + initialize in one tx). `forge inspect storage-layout` before any upgrade deployment. `_disableInitializers()` in implementation constructors
 
@@ -644,8 +644,8 @@ Separate from initial deployment — these handle proxy upgrades with storage la
 You've now covered:
 - ✅ Solidity 0.8.x modern features
 - ✅ EVM-level changes (Dencun, Pectra)
-- ✅ Modern token approval patterns (EIP-2612, Permit2)
-- ✅ Account abstraction (ERC-4337, EIP-7702)
+- ✅ Modern token approval patterns ([EIP-2612](https://eips.ethereum.org/EIPS/eip-2612), Permit2)
+- ✅ Account abstraction ([ERC-4337](https://eips.ethereum.org/EIPS/eip-4337), [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702))
 - ✅ Foundry testing workflow
 - ✅ Proxy patterns and upgradeability
 - ✅ Production deployment pipeline

@@ -158,7 +158,7 @@ someContract.doSomething();  // Must emit the event
 address alice = makeAddr("alice");
 (address bob, uint256 bobKey) = makeAddrAndKey("bob");
 
-// ✅ Sign messages (for EIP-712, permit, etc.)
+// ✅ Sign messages (for EIP-712 (https://eips.ethereum.org/EIPS/eip-712), permit, etc.)
 (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
 
 // ✅ Snapshot and revert state (useful for testing multiple scenarios)

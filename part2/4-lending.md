@@ -19,7 +19,7 @@
 - [Radiant Capital](https://rekt.news/radiant-rekt/) ($58M, January 2024) — flash loan price manipulation
 - [Rari Capital/Fuse](https://rekt.news/rari-capital-rekt/) ($80M, May 2022) — reentrancy in pool withdrawals
 - [Cream Finance](https://rekt.news/cream-rekt-2/) ($130M, October 2021) — oracle manipulation
-- [Hundred Finance](https://rekt.news/hundred-rekt/) ($7M, April 2022) — ERC-777 reentrancy
+- [Hundred Finance](https://rekt.news/hundred-rekt/) ($7M, April 2022) — [ERC-777](https://eips.ethereum.org/EIPS/eip-777) reentrancy
 - [Venus Protocol](https://rekt.news/venus-blizz-rekt/) ($11M, May 2023) — stale oracle pricing
 
 If you're building DeFi products, you'll either build a lending protocol, integrate with one, or compete with one. Understanding the internals is non-negotiable.
@@ -851,7 +851,7 @@ Write comprehensive Foundry tests:
 - [Radiant Capital postmortem](https://rekt.news/radiant-rekt/) — $58M flash loan manipulation
 - [Rari Capital/Fuse postmortem](https://rekt.news/rari-capital-rekt/) — $80M reentrancy
 - [Cream Finance postmortem](https://rekt.news/cream-rekt-2/) — $130M oracle manipulation
-- [Hundred Finance postmortem](https://rekt.news/hundred-rekt/) — $7M ERC-777 reentrancy
+- [Hundred Finance postmortem](https://rekt.news/hundred-rekt/) — $7M [ERC-777](https://eips.ethereum.org/EIPS/eip-777) reentrancy
 - [Venus Protocol postmortem](https://rekt.news/venus-blizz-rekt/) — $11M stale oracle
 - [CRV liquidity crisis analysis](https://cointelegraph.com/news/curve-founder-s-300m-loans-teeter-on-liquidation) — bad debt accumulation
 - [MakerDAO Black Thursday report](https://blog.makerdao.com/the-market-collapse-of-march-12-2020-how-it-impacted-makerdao/) — liquidation cascades

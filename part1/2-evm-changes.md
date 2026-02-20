@@ -161,7 +161,7 @@ In a Uniswap V4 swap that touches 5 pools in a single transaction:
 
 1. **Flash accounting ([Uniswap V4](https://github.com/Uniswap/v4-core))**: Track balance deltas across multiple operations in a single transaction, settling the net difference at the end. The PoolManager uses transient storage to accumulate what each caller owes or is owed, then enforces that everything balances to zero before the transaction completes.
 
-2. **Temporary approvals**: ERC-20 approvals that last only for the current transaction—approve, use, and automatically revoke, all without touching persistent storage.
+2. **Temporary approvals**: [ERC-20](https://eips.ethereum.org/EIPS/eip-20) approvals that last only for the current transaction—approve, use, and automatically revoke, all without touching persistent storage.
 
 3. **Callback validation**: A contract can set a transient flag before making an external call that expects a callback, then verify in the callback that it was legitimately triggered by the calling contract.
 

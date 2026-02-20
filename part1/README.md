@@ -19,9 +19,9 @@ This part gets you current. Everything here feeds directly into Part 2 — you'l
 | # | Section | Duration | File |
 |---|---------|----------|------|
 | 1 | [Solidity 0.8.x Modern Features](1-solidity-modern.md) | ~2 days | `1-solidity-modern.md` |
-| 2 | [EVM-Level Changes (EIP-1153, EIP-4844, EIP-7702)](2-evm-changes.md) | ~2 days | `2-evm-changes.md` |
-| 3 | [Modern Token Approvals (EIP-2612, Permit2)](3-token-approvals.md) | ~3 days | `3-token-approvals.md` |
-| 4 | [Account Abstraction (ERC-4337, EIP-7702, Paymasters)](4-account-abstraction.md) | ~3 days | `4-account-abstraction.md` |
+| 2 | [EVM-Level Changes ([EIP-1153](https://eips.ethereum.org/EIPS/eip-1153), [EIP-4844](https://eips.ethereum.org/EIPS/eip-4844), [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702))](2-evm-changes.md) | ~2 days | `2-evm-changes.md` |
+| 3 | [Modern Token Approvals ([EIP-2612](https://eips.ethereum.org/EIPS/eip-2612), Permit2)](3-token-approvals.md) | ~3 days | `3-token-approvals.md` |
+| 4 | [Account Abstraction ([ERC-4337](https://eips.ethereum.org/EIPS/eip-4337), [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702), Paymasters)](4-account-abstraction.md) | ~3 days | `4-account-abstraction.md` |
 | 5 | [Foundry Workflow & Testing (Fuzz, Invariant, Fork)](5-foundry.md) | ~2-3 days | `5-foundry.md` |
 | 6 | [Proxy Patterns & Upgradeability](6-proxy-patterns.md) | ~1.5-2 days | `6-proxy-patterns.md` |
 | 7 | [Deployment & Operations](7-deployment.md) | ~0.5 day | `7-deployment.md` |
@@ -36,13 +36,13 @@ Before moving to Part 2, verify you can:
 - [ ] Define and use user-defined value types with custom operators
 - [ ] Use custom errors in both `revert` and `require` syntax
 - [ ] Explain what transient storage is and implement a reentrancy guard using it
-- [ ] Describe EIP-4844's impact on L2 DeFi costs
+- [ ] Describe [EIP-4844](https://eips.ethereum.org/EIPS/eip-4844)'s impact on L2 DeFi costs
 - [ ] Explain why SELFDESTRUCT-based upgrade patterns are dead
-- [ ] Describe EIP-7702 and how it relates to ERC-4337
-- [ ] Build a contract that accepts EIP-2612 permit signatures
+- [ ] Describe [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702) and how it relates to [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337)
+- [ ] Build a contract that accepts [EIP-2612](https://eips.ethereum.org/EIPS/eip-2612) permit signatures
 - [ ] Integrate with Permit2 using both SignatureTransfer and AllowanceTransfer
-- [ ] Implement EIP-1271 signature verification for smart account compatibility
-- [ ] Explain the ERC-4337 flow: UserOp → Bundler → EntryPoint → Smart Account
+- [ ] Implement [EIP-1271](https://eips.ethereum.org/EIPS/eip-1271) signature verification for smart account compatibility
+- [ ] Explain the [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337) flow: UserOp → Bundler → EntryPoint → Smart Account
 - [ ] Build a basic paymaster
 - [ ] Write fuzz tests with `bound()` for input constraints
 - [ ] Write invariant tests with handler contracts

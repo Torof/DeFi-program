@@ -424,7 +424,7 @@ Smart accounts can use any signature scheme:
 - MPC (distributed key generation)
 - Session keys (temporary authorization)
 
-If your protocol requires EIP-712 signatures from users (e.g., for permit or off-chain orders), you need to support **EIP-1271** (contract signature verification) in addition to `ecrecover`.
+If your protocol requires [EIP-712](https://eips.ethereum.org/EIPS/eip-712) signatures from users (e.g., for permit or off-chain orders), you need to support **EIP-1271** (contract signature verification) in addition to `ecrecover`.
 
 #### 🔗 DeFi Pattern Connection
 
