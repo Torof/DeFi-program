@@ -1,32 +1,28 @@
 # Part 2 — Module 1: Token Mechanics in Practice
 
 **Duration:** ~2 days (3–4 hours/day)
-**Prerequisites:** Part 1 complete (including Permit and Permit2 from Section 3), Foundry installed
+**Prerequisites:** Part 1 complete (including Permit and Permit2 from Module 3), Foundry installed
 **Pattern:** Concept → Read production code → Build → Extend
-**Builds on:** Part 1 Section 3 (Permit/Permit2), Part 1 Section 5 (Foundry)
+**Builds on:** Part 1 Module 3 (Permit/Permit2), Part 1 Module 5 (Foundry)
 **Used by:** Every subsequent module — SafeERC20, balance-before-after, and WETH patterns are foundational
 
 ---
 
 ## 📚 Table of Contents
 
-- [Why This Module Comes First](#why-this-module-comes-first)
-- **Day 1: ERC-20 Core Patterns & Weird Tokens**
-  - [💡 The Approval Model](#-concept-the-approval-model)
-  - [💡 Decimal Handling — The Silent Bug Factory](#-concept-decimal-handling--the-silent-bug-factory)
-  - [📖 Read: OpenZeppelin ERC20 and SafeERC20](#-read-openzeppelin-erc20-and-safeerc20)
-  - [📖 Read: The Weird ERC-20 Catalog](#-read-the-weird-erc-20-catalog)
-  - [🎓 Intermediate Example: Minimal Safe Deposit](#intermediate-example-safe-deposit)
-- **Day 2: Advanced Token Behaviors & Protocol Design**
-  - [⚠️ Advanced Token Behaviors That Break Protocols](#advanced-token-behaviors)
-  - [📖 Read: WETH](#-read-weth)
-  - [💡 Token Listing Patterns](#-concept-token-listing-patterns--permissionless-vs-curated)
-  - [📋 Token Evaluation Checklist](#token-evaluation-checklist)
-  - [🛠️ Build: Token Interaction Test Suite](#️-build-token-interaction-test-suite-foundry)
-- [Practice Challenges](#practice-challenges)
-- [Key Takeaways](#key-takeaways-for-protocol-development)
-- [🔗 Cross-Module Concept Links](#cross-module-concept-links)
-- [Resources](#resources)
+**ERC-20 Core Patterns & Weird Tokens**
+- [The Approval Model](#approval-model)
+- [Decimal Handling — The Silent Bug Factory](#decimal-handling)
+- [Read: OpenZeppelin ERC20 and SafeERC20](#read-oz-erc20)
+- [Read: The Weird ERC-20 Catalog](#read-weird-erc20)
+- [Intermediate Example: Minimal Safe Deposit](#intermediate-example-safe-deposit)
+
+**Advanced Token Behaviors & Protocol Design**
+- [Advanced Token Behaviors That Break Protocols](#advanced-token-behaviors)
+- [Read: WETH](#read-weth)
+- [Token Listing Patterns](#token-listing-patterns)
+- [Token Evaluation Checklist](#token-evaluation-checklist)
+- [Build: Token Interaction Test Suite](#build-token-test-suite)
 
 ---
 
@@ -34,14 +30,15 @@
 
 **Why this matters:** Every DeFi protocol moves tokens. AMMs swap them, lending pools custody them, vaults compound them. Before you build any of that, you need to deeply understand how token interactions actually work at the contract level — not just the [ERC-20 interface](https://eips.ethereum.org/EIPS/eip-20), but the real-world edge cases that have caused millions in losses.
 
-> **Real impact:** [Hundred Finance hack](https://rekt.news/hundred-rekt/) ($7M, April 2022) — exploited lending pool that didn't account for [ERC-777 reentrancy hooks](https://github.com/d-xo/weird-erc20#tokens-with-more-than-one-address). [SushiSwap MISO incident](https://www.coindesk.com/tech/2021/09/17/3m-in-ether-stolen-from-sushiswap-token-launchpad/) ($3M, September 2021) — malicious token with transfer() that silently failed but returned true, draining auction funds.
+> **Real impact:** [Hundred Finance hack](https://rekt.news/hundred-rekt2/) ($7M, April 2023) — exploited lending pool that didn't account for [ERC-777](https://eips.ethereum.org/EIPS/eip-777) [reentrancy hooks](https://github.com/d-xo/weird-erc20#reentrant-calls). [SushiSwap MISO incident](https://www.coindesk.com/tech/2021/09/17/3m-in-ether-stolen-from-sushiswap-token-launchpad/) ($3M, September 2021) — malicious token with transfer() that silently failed but returned true, draining auction funds.
 
-> **Note:** Permit ([EIP-2612](https://eips.ethereum.org/EIPS/eip-2612)) and [Permit2](https://github.com/Uniswap/permit2) patterns are covered in Part 1 Section 3. This module focuses on the ERC-20 edge cases and safe integration patterns that will affect every protocol you build in Part 2.
+> **Note:** Permit ([EIP-2612](https://eips.ethereum.org/EIPS/eip-2612)) and [Permit2](https://github.com/Uniswap/permit2) patterns are covered in Part 1 Module 3. This module focuses on the ERC-20 edge cases and safe integration patterns that will affect every protocol you build in Part 2.
 
 ---
 
-## Day 1: ERC-20 Core Patterns & Weird Tokens
+## ERC-20 Core Patterns & Weird Tokens
 
+<a id="approval-model"></a>
 ### 💡 Concept: The Approval Model
 
 **Why this matters:** The approve/transferFrom two-step isn't just a design pattern — it's the foundation that every DeFi interaction is built on. Understanding *why* it exists and how it shapes protocol architecture is essential before building anything.
@@ -65,11 +62,12 @@ Every DeFi protocol you'll ever build begins here. [Uniswap V2](https://github.c
 
 1. **AMMs (Module 2):** Uniswap V2's "pull" pattern — users approve the Router, Router calls `transferFrom` to move tokens into Pair contracts. V4 replaces this with flash accounting
 2. **Lending (Module 4):** Users approve the Pool contract to pull collateral. Aave V3 and Compound V3 both use this for deposits
-3. **Vaults (Module 7):** ERC-4626 vaults call `transferFrom` on deposit — the entire vault standard is built on this two-step pattern
-4. **Alternative:** Permit (Part 1 §3) eliminates the separate approve transaction by using EIP-712 signatures
+3. **Vaults (Module 7):** [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) vaults call `transferFrom` on deposit — the entire vault standard is built on this two-step pattern
+4. **Alternative:** Permit (Part 1 §3) eliminates the separate approve transaction by using [EIP-712](https://eips.ethereum.org/EIPS/eip-712) signatures
 
 ---
 
+<a id="decimal-handling"></a>
 ### 💡 Concept: Decimal Handling — The Silent Bug Factory
 
 **Why this matters:** Tokens have different decimal places: USDC and USDT use 6, WBTC uses 8, DAI and WETH use 18. Incorrect decimal normalization is one of the most common sources of DeFi bugs. When your protocol compares 1 USDC (1e6) with 1 DAI (1e18), you're comparing numbers that differ by a factor of 10^12. Get this wrong and your protocol is either giving away money or locking up funds.
@@ -141,10 +139,11 @@ uint256 normWBTC = oneWBTC * 1e10;  // 1e8 * 1e10 = 1e18 ✓
 assertEq(normUSDC, oneDAI);  // Both represent "1 token" at 18 decimals
 ```
 
-> **Deep dive:** [OpenZeppelin Math.mulDiv](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol) — when scaling involves multiplication that could overflow, use `mulDiv` for safe precision handling. Covered in Part 1 Section 1.
+> **Deep dive:** [OpenZeppelin Math.mulDiv](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol) — when scaling involves multiplication that could overflow, use `mulDiv` for safe precision handling. Covered in Part 1 Module 1.
 
 ---
 
+<a id="read-oz-erc20"></a>
 ### 📖 Read: OpenZeppelin ERC20 and SafeERC20
 
 **Source:** [@openzeppelin/contracts v5.x](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/token/ERC20)
@@ -175,6 +174,7 @@ Then read [SafeERC20](https://github.com/OpenZeppelin/openzeppelin-contracts/blo
 
 ---
 
+<a id="read-weird-erc20"></a>
 ### 📖 Read: The Weird ERC-20 Catalog
 
 **Source:** [github.com/d-xo/weird-erc20](https://github.com/d-xo/weird-erc20)
@@ -248,7 +248,7 @@ If Alice has approved 100 tokens to a spender, and then calls `approve(200)`, th
 **Solutions:**
 - USDT's brute-force: "approve to zero first" requirement
 - Better: use `increaseAllowance`/`decreaseAllowance` (removed from OZ v5 core but still available in extensions)
-- Best: use [Permit (EIP-2612)](https://eips.ethereum.org/EIPS/eip-2612) or [Permit2](https://github.com/Uniswap/permit2) (covered in Part 1 Section 3)
+- Best: use [Permit (EIP-2612)](https://eips.ethereum.org/EIPS/eip-2612) or [Permit2](https://github.com/Uniswap/permit2) (covered in Part 1 Module 3)
 
 > **Common pitfall:** Calling `approve(newAmount)` directly without first checking if existing approval is non-zero. With USDT, this reverts. Use `forceApprove` which handles the zero-first pattern automatically.
 
@@ -328,7 +328,7 @@ This 8-line function handles 90% of weird token edge cases. The remaining 10% (r
 
 ---
 
-### 📋 Day 1 Summary
+### 📋 Summary: ERC-20 Core Patterns & Weird Tokens
 
 **✓ Covered:**
 - The approve/transferFrom two-step and how it shapes all DeFi interactions
@@ -342,7 +342,7 @@ This 8-line function handles 90% of weird token edge cases. The remaining 10% (r
 
 ---
 
-## Day 2: Advanced Token Behaviors & Protocol Design
+## Advanced Token Behaviors & Protocol Design
 
 <a id="advanced-token-behaviors"></a>
 ### ⚠️ Advanced Token Behaviors That Break Protocols
@@ -374,7 +374,7 @@ The receiver's `tokensReceived` hook fires *after* the balance update but *befor
 
 > **Real impact:** [imBTC/Uniswap V1 exploit](https://zengo.com/imbtc-defi-hack-explained/) (~$300K, April 2020) — The attacker used imBTC (an ERC-777 token) on Uniswap V1, which had no reentrancy protection. The `tokensToSend` hook was called during `tokenToEthSwap`, allowing the attacker to re-enter the pool before reserves were updated, extracting more ETH than deserved.
 
-> **Real impact:** [Hundred Finance exploit](https://rekt.news/hundred-rekt/) ($7M, April 2023) — Similar pattern on a Compound V2 fork. The ERC-777 hook allowed reentrancy during the borrow flow.
+> **Real impact:** [Hundred Finance exploit](https://rekt.news/hundred-rekt2/) ($7M, April 2023) — Similar pattern on a Compound V2 fork. The ERC-777 hook allowed reentrancy during the borrow flow.
 
 **How to guard against it:**
 
@@ -417,7 +417,7 @@ function withdraw(uint256 amount) external nonReentrant {
 - Return value behavior
 
 **Real-world example — USDC V2 → V2.1 upgrade:**
-Circle upgraded USDC in August 2020 to add [gasless sends (EIP-3009)](https://eips.ethereum.org/EIPS/eip-3009) and [blacklisting improvements](https://www.circle.com/blog/usdc-v2.1-upgrade). While this was benign, the capability to modify the token's behavior means your protocol must consider:
+Circle upgraded USDC in August 2020 to add [gasless sends (EIP-3009)](https://eips.ethereum.org/EIPS/eip-3009) and [blacklisting improvements](https://www.circle.com/blog/announcing-usdc-v2-2). While this was benign, the capability to modify the token's behavior means your protocol must consider:
 
 ```solidity
 // Your protocol assumption:
@@ -435,10 +435,10 @@ uint256 received = usdc.balanceOf(address(this)) - balanceBefore;
 
 **How protocols manage this risk:**
 - **Monitoring:** Watch for [proxy upgrade events](https://eips.ethereum.org/EIPS/eip-1967) (`Upgraded(address indexed implementation)`) on critical tokens
-- **Governance response:** Aave's [Risk DAO](https://governance.aave.com/) monitors token changes and can pause markets
+- **Governance response:** Aave's [risk service providers](https://governance.aave.com/) monitor token changes and can pause markets
 - **Conservative assumptions:** Use balance-before-after pattern even for "trusted" tokens
 
-> **Used by:** [MakerDAO's collateral onboarding](https://mips.makerdao.com/mips/details/MIP6) evaluates whether tokens are upgradeable as a risk factor. [Aave's risk framework](https://docs.aave.com/risk/) considers proxy risk in asset ratings.
+> **Used by:** [MakerDAO's collateral onboarding](https://github.com/makerdao/mips/blob/master/MIP6/mip6.md) evaluates whether tokens are upgradeable as a risk factor. [Aave's risk framework](https://docs.aave.com/risk/) considers proxy risk in asset ratings.
 
 ---
 
@@ -488,7 +488,7 @@ function emergencyWithdraw(address user) external {
 
 > **Common pitfall:** Assuming your protocol's address will never be blacklisted. Even if your protocol is legitimate, composability means a blacklisted address might interact with your contracts through a flash loan or arbitrage path, potentially contaminating your contract's history. [Chainalysis Reactor](https://www.chainalysis.com/reactor/) and [OFAC SDN list](https://sanctionssearch.ofac.treas.gov/) are the tools compliance teams use.
 
-> **Used by:** [Aave V3 can freeze individual reserves](https://docs.aave.com/developers/whats-new/risk-management#reserve-freeze) via governance if the underlying token is paused. [MakerDAO's PSM (Peg Stability Module)](https://mips.makerdao.com/mips/details/MIP29) has emergency shutdown capability for this scenario. [Liquity](https://docs.liquity.org/) chose to use only ETH as collateral — no freeze risk.
+> **Used by:** [Aave V3 can freeze individual reserves](https://aave.com/docs/resources/risks) via governance if the underlying token is paused. [MakerDAO's PSM (Peg Stability Module)](https://github.com/makerdao/mips/blob/master/MIP29/mip29.md) has emergency shutdown capability for this scenario. [Liquity](https://docs.liquity.org/) chose to use only ETH as collateral — no freeze risk.
 
 #### 💼 Job Market Context
 
@@ -512,19 +512,19 @@ function emergencyWithdraw(address user) external {
 **Why this matters:** Tokens don't just sit still — their total supply changes through minting and burning, and these supply mechanics directly affect protocol accounting.
 
 **Inflationary tokens (reward emissions):**
-Protocols like [Aave (stkAAVE)](https://docs.aave.com/aavenomics/safety-module), [Compound (COMP)](https://compound.finance/governance/comp), and [Curve (CRV)](https://curve.fi/files/CurveDAO.pdf) distribute reward tokens to users. When you build yield aggregators or reward distribution systems, you need to handle:
+Protocols like [Aave (stkAAVE)](https://aave.com/docs/developers/safety-module), [Compound (COMP)](https://compound.finance/governance/comp), and [Curve (CRV)](https://resources.curve.finance/crv-token/overview/) distribute reward tokens to users. When you build yield aggregators or reward distribution systems, you need to handle:
 - Continuous emission schedules
 - Reward accrual per block/second
 - Claim accounting without iterating over all users (the "reward per token" pattern)
 
 ```solidity
 // The standard reward-per-token pattern (from Synthetix StakingRewards)
-// See: https://github.com/Synthetix-Periphery/synthetix/blob/develop/contracts/StakingRewards.sol
+// See: https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol
 rewardPerTokenStored += (rewardRate * (block.timestamp - lastUpdateTime) * 1e18) / totalSupply;
 rewards[user] += balance[user] * (rewardPerTokenStored - userRewardPerTokenPaid[user]) / 1e18;
 ```
 
-> **Used by:** This exact pattern (originally from [Synthetix StakingRewards](https://github.com/Synthetix-Periphery/synthetix/blob/develop/contracts/StakingRewards.sol)) is used by virtually every DeFi protocol that distributes rewards — [Sushi MasterChef](https://github.com/sushiswap/sushiswap/blob/master/protocols/masterchef/contracts/MasterChef.sol), [Convex](https://github.com/convex-eth/platform/blob/main/contracts/contracts/BaseRewardPool.sol), [Yearn V3 gauges](https://docs.yearn.fi/).
+> **Used by:** This exact pattern (originally from [Synthetix StakingRewards](https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol)) is used by virtually every DeFi protocol that distributes rewards — [Sushi MasterChef](https://github.com/sushiswap/masterchef/blob/master/contracts/MasterChef.sol), [Convex](https://github.com/convex-eth/platform/blob/main/contracts/contracts/BaseRewardPool.sol), [Yearn V3 gauges](https://docs.yearn.fi/).
 
 #### 🔍 Deep Dive: Reward-Per-Token Math
 
@@ -639,12 +639,13 @@ uint256 votes = votingToken.getPastVotes(msg.sender, block.number - 1);
 
 > **Common pitfall:** Using `balanceOf` in the current block for governance votes or price calculations. Flash mints (and flash loans, covered in Module 5) can inflate balances to arbitrary amounts within a single transaction. Always use historical snapshots or time-weighted values.
 
-> **Used by:** [MakerDAO flash mint module](https://docs.makerdao.com/smart-contract-modules/flash-mint-module) — 0.05% fee, no maximum. [Aave V3 flash loans](https://docs.aave.com/developers/guides/flash-loans) enable similar behavior for any token they hold. [OpenZeppelin ERC20FlashMint](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC20FlashMint.sol) provides a standard implementation.
+> **Used by:** [MakerDAO flash mint module](https://docs.makerdao.com/smart-contract-modules/flash-mint-module) — 0.05% fee, no maximum. [Aave V3 flash loans](https://aave.com/docs/aave-v3/guides/flash-loans) enable similar behavior for any token they hold. [OpenZeppelin ERC20FlashMint](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC20FlashMint.sol) provides a standard implementation.
 
 > **Deep dive:** Flash loans and flash mints are covered extensively in Module 5. Here, the key takeaway is: **never trust current-block balances for security-critical decisions**.
 
 ---
 
+<a id="read-weth"></a>
 ### 📖 Read: WETH
 
 **Source:** The canonical [WETH9 contract](https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2#code) (deployed December 2017)
@@ -654,15 +655,15 @@ uint256 votes = votingToken.getPastVotes(msg.sender, block.number - 1);
 - `deposit()` (payable): accepts ETH, mints equivalent WETH (1:1)
 - `withdraw(uint256 wad)`: burns WETH, sends ETH back
 
-Understand that many protocols ([Uniswap](https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol#L18), [Aave](https://github.com/aave/aave-v3-core/blob/master/contracts/misc/WETHGateway.sol), etc.) have dual paths — one for ETH (wraps to WETH internally) and one for ERC-20 tokens.
+Understand that many protocols ([Uniswap](https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol#L18), [Aave](https://github.com/aave/aave-v3-periphery/blob/master/contracts/misc/WrappedTokenGatewayV3.sol), etc.) have dual paths — one for ETH (wraps to WETH internally) and one for ERC-20 tokens.
 
 **When you build your own protocols, you'll face the same design choice:**
 - Support raw ETH: better UX (users don't need to wrap), but requires separate code paths and careful handling of `msg.value`
 - Require WETH: simpler code (single ERC-20 path), but users must wrap ETH themselves
 
-> **Used by:** [Uniswap V2 Router](https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol) has `swapExactETHForTokens` (wraps ETH → WETH internally), [Aave WETHGateway](https://github.com/aave/aave-v3-core/blob/master/contracts/misc/WETHGateway.sol) wraps/unwraps for users. [Uniswap V4 added native ETH support](https://github.com/Uniswap/v4-core) — its singleton architecture manages ETH balances directly via flash accounting, eliminating the WETH wrapping overhead.
+> **Used by:** [Uniswap V2 Router](https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol) has `swapExactETHForTokens` (wraps ETH → WETH internally), [Aave WETHGateway](https://github.com/aave/aave-v3-periphery/blob/master/contracts/misc/WrappedTokenGatewayV3.sol) wraps/unwraps for users. [Uniswap V4 added native ETH support](https://github.com/Uniswap/v4-core) — its singleton architecture manages ETH balances directly via flash accounting, eliminating the WETH wrapping overhead.
 
-> **Awareness:** [ERC-6909](https://eips.ethereum.org/EIPS/eip-6909) is a minimal multi-token standard (think lightweight ERC-1155). Uniswap V4 uses it for LP position tokens instead of V3's ERC-721 NFTs — simpler, cheaper, and fungible per-pool. You'll encounter it when reading V4 code.
+> **Awareness:** [ERC-6909](https://eips.ethereum.org/EIPS/eip-6909) is a minimal multi-token standard (think lightweight [ERC-1155](https://eips.ethereum.org/EIPS/eip-1155)). Uniswap V4 uses it for LP position tokens instead of V3's [ERC-721](https://eips.ethereum.org/EIPS/eip-721) NFTs — simpler, cheaper, and fungible per-pool. You'll encounter it when reading V4 code.
 
 > **Deep dive:** [WETH9 source code](https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2#code) — only 60 lines. Read it.
 
@@ -713,6 +714,7 @@ Feel the simplicity — WETH is just a deposit/withdraw box. Now imagine every p
 
 ---
 
+<a id="token-listing-patterns"></a>
 ### 💡 Concept: Token Listing Patterns — Permissionless vs Curated
 
 **Why this matters:** One of the first architectural decisions in any DeFi protocol is: which tokens does it support? This decision shapes your entire security model, risk framework, and user experience.
@@ -729,7 +731,7 @@ Feel the simplicity — WETH is just a deposit/withdraw box. Now imagine every p
 
 **2. Curated allowlist (governance-approved tokens only)**
 
-[Aave V3](https://docs.aave.com/developers/getting-started/supported-assets) requires governance approval for each new asset, with risk parameters set per token (LTV, liquidation threshold, etc.). [Compound V3](https://github.com/compound-finance/comet) has hardcoded asset lists per market.
+[Aave V3](https://aave.com/docs/aave-v3/markets/data) requires governance approval for each new asset, with risk parameters set per token (LTV, liquidation threshold, etc.). [Compound V3](https://github.com/compound-finance/comet) has hardcoded asset lists per market.
 
 - **Pros:** Each token is risk-assessed before addition. Protocol can optimize for known token behaviors. Smaller attack surface
 - **Cons:** Slow to add new assets (governance overhead). May miss opportunities. Centralization of listing decisions
@@ -756,7 +758,7 @@ Feel the simplicity — WETH is just a deposit/withdraw box. Now imagine every p
 
 > **Common pitfall:** Building a permissionless protocol without handling weird token edge cases. If anyone can add tokens, someone WILL add a fee-on-transfer token, a rebasing token, or a malicious token. Either handle all cases or explicitly document/revert on unsupported behaviors.
 
-> **Deep dive:** [Aave's asset listing governance process](https://governance.aave.com/), [Gauntlet's risk assessment framework](https://gauntlet.network/) (used by Aave and Compound for parameter recommendations), [Euler V2 architecture](https://docs.euler.finance/).
+> **Deep dive:** [Aave's asset listing governance process](https://governance.aave.com/), [Gauntlet risk assessment framework](https://www.gauntlet.xyz/) (used by Aave and Compound for parameter recommendations), [Euler V2 architecture](https://docs.euler.finance/).
 
 ---
 
@@ -797,6 +799,7 @@ Is your protocol permissionless or curated?
 
 ---
 
+<a id="build-token-test-suite"></a>
 ### 🛠️ Build: Token Interaction Test Suite (Foundry)
 
 Create a Foundry project that tests your understanding of these patterns:
@@ -885,7 +888,7 @@ contract FeeOnTransferToken is ERC20 {
 
 ---
 
-### 📋 Day 2 Summary
+### 📋 Summary: Advanced Token Behaviors & Protocol Design
 
 **✓ Covered:**
 - ERC-777 hooks — reentrancy through token transfers, not just ETH sends (imBTC, Hundred Finance exploits)
@@ -962,27 +965,39 @@ shares = convertToShares(received); // Use received, not amount
 
 **8. Recognize the reward-per-token accumulator pattern** — it appears as `rewardPerToken` (Synthetix), `feeGrowthGlobal` (Uniswap V3), and `liquidityIndex` (Aave V3). Whenever you need to distribute value to N users proportionally without iterating, this is the pattern.
 
-> **Examples:** [Aave V3 has an asset listing process](https://docs.aave.com/developers/v/2.0/guides/asset-listing) (curated allowlist), [Uniswap V3 is permissionless](https://docs.uniswap.org/contracts/v3/guides/providing-liquidity/the-full-contract) (but warns about weird tokens), [Yearn V3 vaults](https://docs.yearn.fi/developers/v3/overview) handle fee-on-transfer explicitly.
+> **Examples:** [Aave V3 has an asset listing process](https://aave.com/docs/resources/legacy-versions/v2) (curated allowlist), [Uniswap V3 is permissionless](https://docs.uniswap.org/contracts/v3/guides/providing-liquidity/the-full-contract) (but warns about weird tokens), [Yearn V3 vaults](https://docs.yearn.fi/developers/v3/overview) handle fee-on-transfer explicitly.
 
 ---
 
 ## 🔗 Cross-Module Concept Links
 
-**← From Part 1 (concepts you already know):**
-- **Section 1 (Solidity Modern):** Custom errors for token transfer failures, `unchecked` for gas-optimized balance math, UDVTs to prevent mixing up token amounts with shares
-- **Section 2 (EVM Changes):** Transient storage for reentrancy guards on token transfers (ERC-777 protection)
-- **Section 3 (Token Approvals):** Permit and Permit2 build directly on the approval mechanics in this module
-- **Section 5 (Foundry):** Fork testing against mainnet tokens (real USDC, USDT, WETH), fuzz testing with different token types
-- **Section 6 (Proxy Patterns):** Upgradeable tokens like USDC are proxies — same storage layout and upgrade mechanics
+#### Building on Part 1
 
-**→ Forward to Part 2 (where these patterns appear next):**
-- **Module 2 (AMMs):** Balance-before-after in V2's `swap()`, decimal handling in prices, WETH in routers
-- **Module 3 (Oracles):** Decimal normalization when combining amounts with price feeds
-- **Module 4 (Lending):** SafeERC20 everywhere, token listing as risk parameter, aTokens as rebasing token example
-- **Module 5 (Flash Loans):** Flash-mintable tokens, flash loan callbacks as reentrancy vectors
-- **Module 6 (Stablecoins):** Pausable/blacklistable stablecoins, USDC/USDT operational risk
-- **Module 7 (Vaults & Yield):** ERC-4626 shares/assets pattern solves rebasing problem, fee-on-transfer in vault deposits
-- **Module 8 (DeFi Security):** Token-based attack vectors (ERC-777 reentrancy, flash mint oracle manipulation)
+| Section | Concept | How It Connects |
+|---------|---------|-----------------|
+| [← §1 Modern Solidity](../part1/1-solidity-modern.md) | Custom errors | Token transfer failure revert data — `InsufficientBalance()` over string messages |
+| [← §1 Modern Solidity](../part1/1-solidity-modern.md) | `unchecked` blocks | Gas-optimized balance math where underflow is impossible (post-require) |
+| [← §1 Modern Solidity](../part1/1-solidity-modern.md) | UDVTs | Prevent mixing up token amounts with share amounts — `type Shares is uint256` |
+| [← §2 EVM Changes](../part1/2-evm-changes.md) | Transient storage | Reentrancy guards for ERC-777 hook protection — `TSTORE`/`TLOAD` pattern |
+| [← §3 Token Approvals](../part1/3-token-approvals.md) | Permit (EIP-2612) | Gasless approve built on the approval mechanics covered in this module |
+| [← §3 Token Approvals](../part1/3-token-approvals.md) | Permit2 | Universal approval manager — extends the approve/transferFrom pattern |
+| [← §5 Foundry](../part1/5-foundry.md) | Fork testing | Test against real mainnet tokens (USDC, USDT, WETH) — catch behaviors mocks miss |
+| [← §5 Foundry](../part1/5-foundry.md) | Fuzz testing | Randomized token amounts and decimal values to catch edge cases |
+| [← §6 Proxy Patterns](../part1/6-proxy-patterns.md) | Upgradeable proxies | USDC/USDT are proxy tokens — same storage layout and upgrade mechanics from §6 |
+
+#### Forward to Part 2
+
+| Module | Token Pattern | Application |
+|--------|--------------|-------------|
+| [→ M2: AMMs](2-amms.md) | Balance-before-after | V2's `swap()` uses balance checks, not transfer amounts — handles fee-on-transfer |
+| [→ M2: AMMs](2-amms.md) | WETH in routers | V2/V3 Router wraps ETH → WETH; V4 handles native ETH via flash accounting |
+| [→ M3: Lending](3-lending.md) | SafeERC20 everywhere | Aave V3 supply/borrow/repay all use SafeERC20, decimal normalization via reserveDecimals |
+| [→ M4: Liquidations](4-liquidations.md) | Token listing as risk | Collateral token properties (decimals, pausability) directly affect liquidation mechanics |
+| [→ M5: Flash Loans](5-flash-loans.md) | Flash-mintable tokens | DAI `flashMint()` and flash loan callbacks as reentrancy vectors |
+| [→ M6: Oracles](6-oracles.md) | Decimal normalization | Combining token amounts with price feeds requires dynamic `decimals()` handling |
+| [→ M7: Governance](7-governance.md) | Reward-per-token | Synthetix StakingRewards pattern reappears in governance staking and gauge systems |
+| [→ M8: Security](8-security.md) | Token attack vectors | ERC-777 reentrancy, flash mint oracle manipulation, fee-on-transfer accounting bugs |
+| [→ M9: Integration](9-integration-capstone.md) | Full token integration | Capstone requires handling all token edge cases in a complete protocol |
 
 ---
 
@@ -1005,13 +1020,13 @@ shares = convertToShares(received); // Use received, not amount
 - [Uniswap V2 Pair.sol](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol) — balance-before-after pattern in `swap()`
 - [Aave V3 Pool.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/pool/Pool.sol) — SafeERC20 usage, wstETH wrapping, decimal normalization
 - [Compound V3 Comet.sol](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol) — curated allowlist approach, scaling factors
-- [Synthetix StakingRewards](https://github.com/Synthetix-Periphery/synthetix/blob/develop/contracts/StakingRewards.sol) — reward-per-token pattern
+- [Synthetix StakingRewards](https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol) — reward-per-token pattern
 - [USDC proxy implementation](https://etherscan.io/token/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48#code) — upgradeable, pausable, blacklistable
 
 **Security reading:**
 - [MixBytes — DeFi patterns: ERC20 token transfers](https://mixbytes.io/blog/defi-patterns-erc20-token-transfers-howto)
 - [Integrating arbitrary ERC-20 tokens (cheat sheet)](https://andrej.hashnode.dev/integrating-arbitrary-erc-20-tokens)
-- [Hundred Finance postmortem](https://rekt.news/hundred-rekt/) — ERC-777 reentrancy ($7M)
+- [Hundred Finance postmortem](https://rekt.news/hundred-rekt2/) — ERC-777 reentrancy ($7M)
 - [SushiSwap MISO incident](https://www.coindesk.com/tech/2021/09/17/3m-in-ether-stolen-from-sushiswap-token-launchpad/) — malicious token ($3M)
 - [imBTC/Uniswap V1 exploit](https://zengo.com/imbtc-defi-hack-explained/) — ERC-777 hook reentrancy (~$300K)
 - [USDC depeg analysis (SVB crisis)](https://rekt.news/usdc-depeg/) — centralized stablecoin risk
@@ -1022,10 +1037,10 @@ shares = convertToShares(received); // Use received, not amount
 - [Morpho Blue documentation](https://docs.morpho.org/) — permissionless lending markets with per-market risk parameters
 
 **Risk frameworks:**
-- [Aave risk documentation](https://docs.aave.com/risk/)
-- [Gauntlet risk platform](https://gauntlet.network/) — quantitative risk assessment
-- [MakerDAO collateral onboarding (MIP6)](https://mips.makerdao.com/mips/details/MIP6)
+- [Aave risk documentation](https://aave.com/docs/resources/risks)
+- [Gauntlet risk platform](https://www.gauntlet.xyz/) — quantitative risk assessment
+- [MakerDAO collateral onboarding (MIP6)](https://github.com/makerdao/mips/blob/master/MIP6/mip6.md)
 
 ---
 
-**Navigation:** Part 1 Section 7 ← | → [Module 2: AMMs from First Principles](2-amms.md)
+**Navigation:** [← Part 1 Module 7: Deployment](../part1/7-deployment.md) | [Module 2: AMMs →](2-amms.md)

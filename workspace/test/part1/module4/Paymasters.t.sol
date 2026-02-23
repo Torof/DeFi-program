@@ -10,11 +10,11 @@ import {
     InsufficientTokenBalance,
     TransferFailed,
     IPaymaster
-} from "../../../src/part1/section4/Paymasters.sol";
-import {UserOperation, UserOpHelper, MockEntryPoint} from "../../../src/part1/section4/SimpleSmartAccount.sol";
+} from "../../../src/part1/module4/Paymasters.sol";
+import {UserOperation, UserOpHelper, MockEntryPoint} from "../../../src/part1/module4/SimpleSmartAccount.sol";
 
 /// @notice Tests for Paymasters exercise.
-/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/section4/Paymasters.sol instead.
+/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/module4/Paymasters.sol instead.
 contract PaymastersTest is Test {
     MockEntryPoint entryPoint;
     VerifyingPaymaster verifyingPaymaster;

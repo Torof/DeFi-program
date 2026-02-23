@@ -2,11 +2,11 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
-import {SmartAccountEIP1271, InvalidSignatureLength} from "../../../src/part1/section4/SmartAccountEIP1271.sol";
-import {MockEntryPoint} from "../../../src/part1/section4/SimpleSmartAccount.sol";
+import {SmartAccountEIP1271, InvalidSignatureLength} from "../../../src/part1/module4/SmartAccountEIP1271.sol";
+import {MockEntryPoint} from "../../../src/part1/module4/SimpleSmartAccount.sol";
 
 /// @notice Tests for Smart Account with EIP-1271 support.
-/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/section4/SmartAccountEIP1271.sol instead.
+/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/module4/SmartAccountEIP1271.sol instead.
 contract SmartAccountEIP1271Test is Test {
     MockEntryPoint entryPoint;
     SmartAccountEIP1271 account;

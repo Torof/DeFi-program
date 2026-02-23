@@ -8,10 +8,10 @@ import {
     StorageGuardedVault,
     UnguardedVault,
     ReentrancyAttacker
-} from "../../../src/part1/section1/TransientGuard.sol";
+} from "../../../src/part1/module1/TransientGuard.sol";
 
 /// @notice Tests for the transient reentrancy guard exercise.
-/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/section1/TransientGuard.sol instead.
+/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/module1/TransientGuard.sol instead.
 contract TransientGuardTest is Test {
     uint256 constant VICTIM_DEPOSIT = 10 ether;
     uint256 constant ATTACKER_DEPOSIT = 1 ether;

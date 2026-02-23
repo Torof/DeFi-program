@@ -7,12 +7,12 @@ import {
     NonPermitToken,
     InsufficientAllowance,
     TransferFailed
-} from "../../../src/part1/section3/SafePermit.sol";
-import {PermitToken, IERC20Permit} from "../../../src/part1/section3/PermitVault.sol";
+} from "../../../src/part1/module3/SafePermit.sol";
+import {PermitToken, IERC20Permit} from "../../../src/part1/module3/PermitVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @notice Tests for Safe Permit wrapper exercise.
-/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/section3/SafePermit.sol instead.
+/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/module3/SafePermit.sol instead.
 contract SafePermitTest is Test {
     SafePermitVault vault;
     PermitToken permitToken;

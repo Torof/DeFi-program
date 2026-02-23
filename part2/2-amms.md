@@ -3,51 +3,54 @@
 **Duration:** ~12 days (3–4 hours/day)
 **Prerequisites:** Module 1 complete (token mechanics, SafeERC20)
 **Pattern:** Math → Build minimal version → Read production code → Extend
-**Builds on:** Module 1 (SafeERC20, balance-before-after), Part 1 Section 5 (Foundry, fork testing)
+**Builds on:** Module 1 (SafeERC20, balance-before-after), Part 1 Module 5 (Foundry, fork testing)
 **Used by:** Module 3 (TWAP oracles), Module 4 (liquidation swaps), Module 5 (flash swaps/arbitrage), Module 9 (integration capstone)
 
 ---
 
 ## 📚 Table of Contents
 
-- [Why This Is the Longest Module](#why-this-is-the-longest-module)
-- [Days 1–2: The Constant Product Formula](#days-12-the-constant-product-formula)
-  - [💡 The Math](#-the-math)
-  - [🛠️ Build: Minimal Constant Product Pool](#️-build-minimal-constant-product-pool-days-12)
-- [Days 3–4: Reading Uniswap V2](#days-34-reading-uniswap-v2)
-  - [📖 Read: UniswapV2Pair.sol](#-read-uniswapv2pairsol)
-  - [📖 Read: UniswapV2Factory.sol](#-read-uniswapv2factorysol)
-  - [📖 Read: UniswapV2Router02.sol](#-read-uniswapv2router02sol)
-  - [V2 Exercises](#v2-exercises)
-- [Days 5–6: Concentrated Liquidity (V3)](#days-56-concentrated-liquidity-uniswap-v3-concepts)
-  - [💡 The Problem V3 Solves](#-the-problem-v3-solves)
-  - [💡 Core V3 Concepts](#-core-v3-concepts)
-  - [📖 Read: Key V3 Contracts](#-read-key-v3-contracts)
-  - [V3 Exercises](#v3-exercises)
-- [Days 7–8: Build a Simplified CLAMM](#days-78-build-a-simplified-concentrated-liquidity-pool)
-- [Day 9: V4 — Singleton Architecture and Flash Accounting](#day-9-uniswap-v4--singleton-architecture-and-flash-accounting)
-  - [📖 Read: Key V4 Contracts](#-read-key-v4-contracts)
-  - [V4 Exercises](#v4-exercises)
-- [Day 10: V4 Hooks](#day-10-uniswap-v4-hooks)
-  - [The 10 Hook Functions](#the-10-hook-functions)
-  - [Hook Capabilities](#hook-capabilities)
-  - [📖 Read: Hook Examples](#-read-hook-examples)
-  - [⚠️ Hook Security Considerations](#️-hook-security-considerations)
-  - [🛠️ Build: A Simple Hook](#️-build-a-simple-hook)
-- [Day 11: Beyond Uniswap and Advanced AMM Topics](#day-11-beyond-uniswap-and-advanced-amm-topics)
-  - [AMMs vs Order Books (CLOBs)](#amms-vs-order-books-clobs)
-  - [Curve StableSwap](#curve-stableswap)
-  - [Balancer Weighted Pools](#balancer-weighted-pools)
-  - [Trader Joe Liquidity Book](#trader-joe-liquidity-book-bins-vs-ticks)
-  - [ve(3,3) DEXes (Velodrome / Aerodrome)](#ve33-dexes-velodrome--aerodrome)
-  - [⚠️ MEV & Sandwich Attacks](#️-mev--sandwich-attacks)
-  - [JIT (Just-In-Time) Liquidity](#jit-just-in-time-liquidity)
-  - [AMM Aggregators & Routing](#amm-aggregators--routing)
-  - [LP Management Strategies](#lp-management-strategies)
-- [Day 12: Practice Challenges and Review](#day-12-practice-challenges-and-review)
-- [Key Takeaways](#key-takeaways-for-protocol-builders)
-- [Cross-Module Concept Links](#-cross-module-concept-links)
-- [Resources](#resources)
+**The Constant Product Formula**
+- [The Math](#amm-math)
+- [Build: Minimal Constant Product Pool](#build-cpp)
+
+**Reading Uniswap V2**
+- [Read: UniswapV2Pair.sol](#read-v2-pair)
+- [Read: UniswapV2Factory.sol](#read-v2-factory)
+- [Read: UniswapV2Router02.sol](#read-v2-router)
+- [V2 Exercises](#v2-exercises)
+
+**Concentrated Liquidity (V3)**
+- [The Problem V3 Solves](#v3-problem)
+- [Core V3 Concepts](#v3-concepts)
+- [Read: Key V3 Contracts](#read-v3-contracts)
+- [V3 Exercises](#v3-exercises)
+
+**Build a Simplified CLAMM**
+
+**V4 — Singleton Architecture and Flash Accounting**
+- [Read: Key V4 Contracts](#read-v4-contracts)
+- [V4 Exercises](#v4-exercises)
+
+**V4 Hooks**
+- [The 10 Hook Functions](#hook-functions)
+- [Hook Capabilities](#hook-capabilities)
+- [Read: Hook Examples](#read-hook-examples)
+- [Hook Security Considerations](#hook-security)
+- [Build: A Simple Hook](#build-hook)
+
+**Beyond Uniswap and Advanced AMM Topics**
+- [AMMs vs Order Books (CLOBs)](#amms-vs-clobs)
+- [Curve StableSwap](#curve-stableswap)
+- [Balancer Weighted Pools](#balancer-weighted)
+- [Trader Joe Liquidity Book](#trader-joe-lb)
+- [ve(3,3) DEXes (Velodrome / Aerodrome)](#ve33-dexes)
+- [MEV & Sandwich Attacks](#mev-sandwich)
+- [JIT (Just-In-Time) Liquidity](#jit-liquidity)
+- [AMM Aggregators & Routing](#amm-aggregators-routing)
+- [LP Management Strategies](#lp-management)
+
+**Practice Challenges and Review**
 
 ---
 
@@ -59,12 +62,13 @@
 
 This module is 12 days because you're building one from scratch, then studying three generations of production AMM code, plus exploring alternative AMM designs and the advanced topics (MEV, aggregators, LP management) that every protocol builder needs.
 
-> **Deep dive:** [Uniswap V2 Whitepaper](https://uniswap.org/whitepaper.pdf), [V3 Whitepaper](https://uniswap.org/whitepaper-v3.pdf), [V4 Whitepaper](https://github.com/Uniswap/v4-core/blob/main/docs/whitepaper-v4.pdf)
+> **Deep dive:** [Uniswap V2 Whitepaper](https://uniswap.org/whitepaper.pdf), [V3 Whitepaper](https://uniswap.org/whitepaper-v3.pdf), [V4 Whitepaper](https://github.com/Uniswap/v4-core/blob/main/docs/whitepaper/whitepaper-v4.pdf)
 
 ---
 
-## Days 1–2: The Constant Product Formula
+## The Constant Product Formula
 
+<a id="amm-math"></a>
 ### 💡 The Math
 
 **Why this matters:** Every AMM begins with a single equation: **x · y = k**
@@ -106,7 +110,7 @@ dy = y · dx_effective / (x + dx_effective)
 
 The fee stays in the pool, increasing `k` over time. This is how LPs earn — the pool's reserves grow from accumulated fees.
 
-> **Used by:** [Uniswap V2](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol#L159), [SushiSwap](https://github.com/sushiswap/sushiswap/blob/master/protocols/sushiswap/contracts/UniswapV2Pair.sol) (V2 fork), [PancakeSwap](https://github.com/pancakeswap/pancake-smart-contracts/blob/master/projects/exchange-protocol/contracts/PancakePair.sol) (V2 fork), and hundreds of other AMMs use this exact formula.
+> **Used by:** [Uniswap V2](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol#L159), [SushiSwap](https://github.com/sushiswap/v2-core/blob/master/contracts/UniswapV2Pair.sol) (V2 fork), [PancakeSwap](https://github.com/pancakeswap/pancake-smart-contracts/blob/master/projects/exchange-protocol/contracts/PancakePair.sol) (V2 fork), and hundreds of other AMMs use this exact formula.
 
 #### 🔍 Deep Dive: Visualizing the Constant Product Curve
 
@@ -322,7 +326,8 @@ Fees must exceed LVR, not just IL, for LPs to profit. When evaluating whether a 
 
 ---
 
-### 🛠️ Build: Minimal Constant Product Pool (Days 1–2)
+<a id="build-cpp"></a>
+### 🛠️ Build: Minimal Constant Product Pool
 
 Create a new Foundry project:
 
@@ -336,7 +341,7 @@ forge install OpenZeppelin/openzeppelin-contracts
 
 **Core state:**
 - `reserve0`, `reserve1` — current token reserves
-- `totalSupply` of LP tokens (use a simple internal accounting, or inherit [ERC-20](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol))
+- `totalSupply` of LP tokens (use a simple internal accounting, or inherit [ERC-20](https://eips.ethereum.org/EIPS/eip-20) ([OZ implementation](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol)))
 - `token0`, `token1` — the two ERC-20 token addresses
 - `FEE_NUMERATOR = 3`, `FEE_DENOMINATOR = 1000` — 0.3% fee
 
@@ -411,7 +416,7 @@ Write comprehensive Foundry tests covering:
 - Add events: `Swap`, `Mint`, `Burn` (match [Uniswap V2's event signatures](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol#L13-L15))
 - Implement a simple TWAP (time-weighted average price) oracle: store cumulative price and timestamp on each swap, expose a function to compute average price over a period
 
-### 📋 Days 1–2 Summary
+### 📋 Summary: The Constant Product Formula
 
 **✓ Covered:**
 - Constant product formula (`x · y = k`) and swap output calculation
@@ -424,7 +429,7 @@ Write comprehensive Foundry tests covering:
 
 ---
 
-## Days 3–4: Reading Uniswap V2
+## Reading Uniswap V2
 
 ### Why V2 Matters
 
@@ -436,6 +441,7 @@ Write comprehensive Foundry tests covering:
 
 ---
 
+<a id="read-v2-pair"></a>
 ### 📖 Read: UniswapV2Pair.sol
 
 **Source:** [github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol)
@@ -480,6 +486,7 @@ This is the most important function to understand deeply.
 
 ---
 
+<a id="read-v2-factory"></a>
 ### 📖 Read: UniswapV2Factory.sol
 
 **Source:** [github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Factory.sol](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Factory.sol)
@@ -493,6 +500,7 @@ Focus on:
 
 ---
 
+<a id="read-v2-router"></a>
 ### 📖 Read: UniswapV2Router02.sol
 
 **Source:** [github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol](https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol)
@@ -574,7 +582,7 @@ This is exactly what V3 does — but it adds complexity:
 
 V3 trades simplicity for capital efficiency. Keep this tradeoff in mind as you read the next section.
 
-### 📋 Days 3–4 Summary
+### 📋 Summary: Reading Uniswap V2
 
 **✓ Covered:**
 - Read V2 Pair, Factory, and Router contracts
@@ -589,8 +597,9 @@ V3 trades simplicity for capital efficiency. Keep this tradeoff in mind as you r
 
 ---
 
-## Days 5–6: Concentrated Liquidity (Uniswap V3 Concepts)
+## Concentrated Liquidity (Uniswap V3 Concepts)
 
+<a id="v3-problem"></a>
 ### 💡 The Problem V3 Solves
 
 **Why this matters:** In V2, liquidity is spread uniformly across the entire price range from 0 to infinity. For a stablecoin pair like DAI/USDC, the price almost always stays between 0.99 and 1.01 — meaning ~99.5% of LP capital is sitting idle at extreme price ranges that never get traded. This is massively capital-inefficient.
@@ -603,6 +612,7 @@ V3 lets LPs choose a specific price range for their liquidity. Capital between 0
 
 ---
 
+<a id="v3-concepts"></a>
 ### 💡 Core V3 Concepts
 
 **Ticks:**
@@ -802,6 +812,7 @@ Fees in V3 are tracked per unit of liquidity within active ranges using `feeGrow
 
 ---
 
+<a id="read-v3-contracts"></a>
 ### 📖 Read: Key V3 Contracts
 
 **Core contracts (v3-core):**
@@ -891,7 +902,7 @@ Write tests that verify all three cases and check that amounts change continuous
 
 **Don't get stuck on:** `FullMath.sol` (it's mulDiv for precision — you know this from Part 1), `Oracle.sol` (save for Module 3).
 
-### 📋 Days 5–6 Summary
+### 📋 Summary: Concentrated Liquidity (V3)
 
 **✓ Covered:**
 - Ticks (`price = 1.0001^i`), tick spacing, and fee tiers
@@ -908,7 +919,7 @@ Write tests that verify all three cases and check that amounts change continuous
 
 ---
 
-## Days 7–8: Build a Simplified Concentrated Liquidity Pool
+## Build a Simplified Concentrated Liquidity Pool
 
 ### What to Build
 
@@ -970,7 +981,7 @@ Between any two initialized ticks, the pool behaves exactly like a V2 pool with 
 
 ### Tests
 
-- Create a single full-range position (equivalent to V2 behavior), verify swap outputs match your Day 1–2 pool
+- Create a single full-range position (equivalent to V2 behavior), verify swap outputs match your Constant Product Pool
 - Create two overlapping positions, verify liquidity adds at overlapping ticks
 - Execute a swap that crosses a tick boundary, verify liquidity changes correctly
 - Verify fee accrual: position earning fees only while in range
@@ -979,7 +990,7 @@ Between any two initialized ticks, the pool behaves exactly like a V2 pool with 
 
 > **Common pitfall:** Not testing tick crossings in both directions. A swap buying token0 (decreasing price) crosses ticks differently than a swap buying token1 (increasing price). Test both directions.
 
-### 📋 Days 7–8 Summary
+### 📋 Summary: Simplified CLAMM Build
 
 **✓ Covered:**
 - Built a simplified CLAMM with `addLiquidity`, `swap` (with tick-crossing loop), `removeLiquidity`
@@ -1033,7 +1044,7 @@ V4 trades the simplicity of independent pool contracts for a singleton that trac
 
 ---
 
-## Day 9: Uniswap V4 — Singleton Architecture and Flash Accounting
+## Uniswap V4 — Singleton Architecture and Flash Accounting
 
 ### 💡 Architectural Revolution
 
@@ -1051,14 +1062,14 @@ The key benefit: multi-hop swaps never move tokens between contracts. All accoun
 
 > **Used by:** [Balancer V2 pioneered this pattern](https://github.com/balancer/balancer-v2-monorepo/tree/master/pkg/vault) with its Vault architecture (July 2021). V4 adopted and extended it with transient storage.
 
-**2. Flash Accounting (EIP-1153 Transient Storage)**
+**2. Flash Accounting ([EIP-1153](https://eips.ethereum.org/EIPS/eip-1153) Transient Storage)**
 
-V4 uses [transient storage](https://eips.ethereum.org/EIPS/eip-1153) (which you studied in Part 1 Section 2) to implement "flash accounting." During a transaction:
+V4 uses [transient storage](https://eips.ethereum.org/EIPS/eip-1153) (which you studied in Part 1 Module 2) to implement "flash accounting." During a transaction:
 
 1. The caller "unlocks" the PoolManager
 2. The caller can perform multiple operations (swaps, liquidity changes) across any pools
 3. The PoolManager tracks net balance changes ("deltas") in transient storage
-4. At the end, the caller must settle all deltas to zero — either by transferring tokens or using ERC-6909 claim tokens
+4. At the end, the caller must settle all deltas to zero — either by transferring tokens or using [ERC-6909](https://eips.ethereum.org/EIPS/eip-6909) claim tokens
 5. If deltas aren't zero, the transaction reverts
 
 This is essentially flash-loan-like behavior baked into the protocol's core. You can swap A→B in one pool and B→C in another without ever transferring B — the PoolManager tracks that your B delta nets to zero.
@@ -1081,6 +1092,7 @@ Instead of withdrawing tokens from the PoolManager, users can receive [ERC-6909]
 
 ---
 
+<a id="read-v4-contracts"></a>
 ### 📖 Read: Key V4 Contracts
 
 **Source:** [github.com/Uniswap/v4-core](https://github.com/Uniswap/v4-core)
@@ -1135,7 +1147,7 @@ forge test --fork-url $MAINNET_RPC --match-contract V4Test
 4. **Read `Pool.sol` (library)** — V3's math adapted for V4's singleton, familiar territory
 5. **Read `PositionManager.sol`** in v4-periphery — How the user-facing contract interacts with PoolManager
 
-### 📋 Day 9 Summary
+### 📋 Summary: V4 Singleton & Flash Accounting
 
 **✓ Covered:**
 - Singleton pattern — all pools in one PoolManager contract
@@ -1149,7 +1161,7 @@ forge test --fork-url $MAINNET_RPC --match-contract V4Test
 
 ---
 
-## Day 10: Uniswap V4 Hooks
+## Uniswap V4 Hooks
 
 ### 💡 The Hook System
 
@@ -1157,12 +1169,13 @@ forge test --fork-url $MAINNET_RPC --match-contract V4Test
 
 A pool is linked to a hook contract at initialization and cannot change it afterward. The hook address itself encodes which callbacks are enabled — specific bits in the address determine which hook functions the PoolManager will call. This is a gas optimization: the PoolManager checks the address bits rather than making external calls to query capabilities.
 
-> **Real impact:** Over 100+ production hooks deployed in V4's first 3 months. Examples: [Clanker hook](https://www.clanker.world/) (meme coin launching), [Brahma hook](https://www.brahma.fi/) (MEV protection), [Full Range hook](https://github.com/Uniswap/v4-periphery/blob/main/src/hooks/FullRange.sol) (V2-style behavior).
+> **Real impact:** Over 100+ production hooks deployed in V4's first 3 months. Examples: [Clanker hook](https://www.clanker.world/) (meme coin launching), [Brahma hook](https://www.brahma.fi/) (MEV protection), [Full Range hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/FullRange.sol) (V2-style behavior).
 
 > **Deep dive:** [Hooks documentation](https://docs.uniswap.org/contracts/v4/concepts/hooks), [Awesome Uniswap Hooks list](https://github.com/fewwwww/awesome-uniswap-hooks)
 
 ---
 
+<a id="hook-functions"></a>
 ### The 10 Hook Functions
 
 Hooks can intercept at these points:
@@ -1182,6 +1195,7 @@ Hooks can intercept at these points:
 
 ---
 
+<a id="hook-capabilities"></a>
 ### Hook Capabilities
 
 **Dynamic fees:** A hook can implement `getFee()` to return a custom fee for each swap. This enables strategies like: higher fees during volatile periods, lower fees for certain users, MEV-aware fee adjustment.
@@ -1192,23 +1206,25 @@ Hooks can intercept at these points:
 
 **Oracle integration:** A hook can maintain a custom oracle, updated on every swap — similar to V3's built-in oracle but customizable.
 
-> **Used by:** [EulerSwap hook](https://www.euler.finance/) implements volatility-adjusted fees, [GeomeanOracle hook](https://github.com/Uniswap/v4-periphery/blob/main/src/hooks/examples/GeomeanOracle.sol) provides TWAP oracles with better properties than V2/V3.
+> **Used by:** [EulerSwap hook](https://www.euler.finance/) implements volatility-adjusted fees, [GeomeanOracle hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/GeomeanOracle.sol) provides TWAP oracles with better properties than V2/V3.
 
 ---
 
+<a id="read-hook-examples"></a>
 ### 📖 Read: Hook Examples
 
-**Source:** [github.com/Uniswap/v4-periphery/tree/main/src/hooks](https://github.com/Uniswap/v4-periphery/tree/main/src/hooks) (official examples)
+**Source:** [github.com/Uniswap/v4-periphery/tree/main/src/hooks](https://github.com/Uniswap/v4-periphery/tree/example-contracts/contracts/hooks/examples) (official examples)
 **Source:** [github.com/fewwwww/awesome-uniswap-hooks](https://github.com/fewwwww/awesome-uniswap-hooks) (curated community list)
 
 Study these hook patterns:
-- **[Limit order hook](https://github.com/Uniswap/v4-periphery/blob/main/src/hooks/examples/LimitOrder.sol)** — converts a liquidity position into a limit order that executes when the price crosses a specific tick
-- **[TWAMM hook](https://github.com/Uniswap/v4-periphery/blob/main/src/hooks/examples/TWAMM.sol)** — time-weighted average market maker (execute large orders over time)
-- **[Dynamic fee hook](https://github.com/Uniswap/v4-periphery/blob/main/src/hooks/examples/VolatilityOracle.sol)** — adjusts fees based on volatility or other on-chain signals
-- **[Full-range hook](https://github.com/Uniswap/v4-periphery/blob/main/src/hooks/FullRange.sol)** — enforces V2-style full-range liquidity for specific use cases
+- **[Limit order hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/LimitOrder.sol)** — converts a liquidity position into a limit order that executes when the price crosses a specific tick
+- **[TWAMM hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/TWAMM.sol)** — time-weighted average market maker (execute large orders over time)
+- **[Dynamic fee hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/VolatilityOracle.sol)** — adjusts fees based on volatility or other on-chain signals
+- **[Full-range hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/FullRange.sol)** — enforces V2-style full-range liquidity for specific use cases
 
 ---
 
+<a id="hook-security"></a>
 ### ⚠️ Hook Security Considerations
 
 **Why this matters:** Hooks introduce new attack surfaces that don't exist in V2/V3.
@@ -1261,11 +1277,12 @@ function afterSwap(...) external returns (...) {
 
 ---
 
+<a id="build-hook"></a>
 ### 🛠️ Build: A Simple Hook
 
 **Exercise 1: Dynamic fee hook.** Build a hook that adjusts the swap fee based on recent volatility. Track the last N swap prices, compute a simple volatility metric, and return a higher fee when volatility is elevated. This teaches you the full hook development cycle:
 
-- Extend [`BaseHook`](https://github.com/Uniswap/v4-periphery/blob/main/src/base/hooks/BaseHook.sol) from v4-periphery
+- Extend [`BaseHook`](https://github.com/Uniswap/v4-hooks-public/blob/main/src/base/BaseHook.sol) from v4-periphery
 - Set the correct hook address bits (use the [`Hooks`](https://github.com/Uniswap/v4-core/blob/main/src/libraries/Hooks.sol) library to mine an address with the right flags)
 - Implement `beforeSwap` to adjust fees
 - Deploy and test with a real PoolManager
@@ -1301,7 +1318,7 @@ contract VolatilityHook is BaseHook {
 
 **Exercise 2: Swap counter hook.** Build a minimal hook that simply counts the number of swaps on a pool. This is the "hello world" of hooks — it gets you through the setup and deployment mechanics without complex logic.
 
-**Exercise 3: Read an existing production hook.** Pick one from the [awesome-uniswap-hooks list](https://github.com/fewwwww/awesome-uniswap-hooks) (Clanker, EulerSwap, or the [Full Range hook](https://github.com/Uniswap/v4-periphery/blob/main/src/hooks/FullRange.sol) from Uniswap themselves). Read the source, understand what lifecycle points it hooks into and why.
+**Exercise 3: Read an existing production hook.** Pick one from the [awesome-uniswap-hooks list](https://github.com/fewwwww/awesome-uniswap-hooks) (Clanker, EulerSwap, or the [Full Range hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/FullRange.sol) from Uniswap themselves). Read the source, understand what lifecycle points it hooks into and why.
 
 > **Deep dive:** [Hook development guide](https://docs.uniswap.org/contracts/v4/guides/create-a-hook), [Hook security best practices](https://www.trustlook.com/blog/uniswap-v4-hooks-security/)
 
@@ -1326,12 +1343,12 @@ contract VolatilityHook is BaseHook {
 
 1. **MEV protection:** [Sorella's Angstrom](https://www.sorella.xyz/) uses hooks to batch-settle swaps at uniform clearing prices, eliminating sandwich attacks
 2. **Lending integration:** Hooks that auto-deposit idle LP assets into lending protocols between swaps — earning additional yield on liquidity
-3. **Custom oracles:** [GeomeanOracle hook](https://github.com/Uniswap/v4-periphery/blob/main/src/hooks/examples/GeomeanOracle.sol) provides TWAP with better properties than V2/V3's built-in oracle
+3. **Custom oracles:** [GeomeanOracle hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/GeomeanOracle.sol) provides TWAP with better properties than V2/V3's built-in oracle
 4. **LP management:** [Bunni](https://bunni.pro/) uses hooks for native concentrated liquidity management without external vaults
 
 **The pattern:** V4 hooks are the composability layer for AMM innovation. Instead of forking an AMM (fragmenting liquidity), you plug into shared liquidity with custom logic.
 
-### 📋 Day 10 Summary
+### 📋 Summary: V4 Hooks
 
 **✓ Covered:**
 - V4 hook system — 10 lifecycle functions, address-encoded permissions
@@ -1345,8 +1362,9 @@ contract VolatilityHook is BaseHook {
 
 ---
 
-## Day 11: Beyond Uniswap and Advanced AMM Topics
+## Beyond Uniswap and Advanced AMM Topics
 
+<a id="amms-vs-clobs"></a>
 ### AMMs vs Order Books (CLOBs)
 
 **Why this matters:** Before exploring alternative AMM designs, it's worth asking the fundamental question: **why use an AMM at all?** Traditional finance uses order books (Central Limit Order Books — CLOBs), where makers post limit orders and takers fill them. Understanding the tradeoffs is essential for protocol design decisions and a common interview question.
@@ -1384,6 +1402,7 @@ The line is blurring. V4 hooks enable limit-order-like behavior in AMMs. Uniswap
 
 This module focuses on Uniswap because it's the Rosetta Stone of AMMs — V2's constant product, V3's concentrated liquidity, and V4's hooks represent the core design space. But other AMM architectures are important to know about. They'll be covered in depth in Part 3; this section gives you enough context to recognize them in the wild.
 
+<a id="curve-stableswap"></a>
 ### Curve StableSwap
 
 **Why this matters:** [Curve](https://curve.fi/) is the dominant AMM for assets that should trade near 1:1 (stablecoins, wrapped/staked ETH variants). Its invariant is a hybrid between constant-product (`x · y = k`) and constant-sum (`x + y = k`):
@@ -1402,6 +1421,7 @@ When prices are near 1:1, Curve pools offer far lower slippage than Uniswap. Whe
 
 ---
 
+<a id="balancer-weighted"></a>
 ### Balancer Weighted Pools
 
 **Why this matters:** [Balancer](https://balancer.fi/) generalizes the constant product formula to N tokens with arbitrary weights. The invariant:
@@ -1443,6 +1463,7 @@ This is why Curve dominates stablecoin trading. The amplification parameter `A` 
 
 ---
 
+<a id="trader-joe-lb"></a>
 ### Trader Joe Liquidity Book (Bins vs Ticks)
 
 **Why this matters:** [Trader Joe V2](https://traderjoexyz.com/) (dominant on Avalanche, growing on Arbitrum) takes a different approach to concentrated liquidity: instead of V3's continuous ticks, it uses **discrete bins**. Each bin has a fixed price and holds only one token type.
@@ -1471,6 +1492,7 @@ LB (bins):   Discrete buckets, each at a single price
 
 ---
 
+<a id="ve33-dexes"></a>
 ### ve(3,3) DEXes (Velodrome / Aerodrome)
 
 **Why this matters:** [Velodrome](https://velodrome.finance/) (Optimism) and [Aerodrome](https://aerodrome.finance/) (Base) are the highest-TVL DEXes on their respective L2s, using a model called **ve(3,3)** — vote-escrowed tokenomics combined with game theory (the "3,3" from OlympusDAO). This model fundamentally changes how DEX liquidity is bootstrapped and incentivized.
@@ -1497,6 +1519,7 @@ These topics sit at the intersection of AMM mechanics, market microstructure, an
 
 ---
 
+<a id="mev-sandwich"></a>
 ### ⚠️ MEV & Sandwich Attacks
 
 **Why this matters:** Every AMM swap is a public transaction that sits in the mempool before execution. MEV (Maximal Extractable Value) searchers monitor the mempool and exploit the ordering of transactions for profit. If you're building any protocol that swaps through an AMM, MEV is your adversary.
@@ -1749,6 +1772,7 @@ If your protocol needs to execute swaps (liquidations, rebalancing, treasury man
 
 ---
 
+<a id="lp-management"></a>
 ### LP Management Strategies
 
 **Why this matters:** In V3/V4, passive LP-ing (deposit and forget) is often unprofitable due to impermanent loss and JIT liquidity diluting fees. Active management has become essential — and it's created an entire sub-industry of LP management protocols.
@@ -1845,7 +1869,7 @@ If your protocol uses LP tokens as collateral or manages liquidity:
 
 > **Deep dive:** [Arrakis documentation](https://docs.arrakis.fi/), [Gamma strategies overview](https://docs.gamma.xyz/), [Maverick AMM docs](https://docs.mav.xyz/), [Bunni V2 design](https://docs.bunni.pro/)
 
-### 📋 Day 11 Summary
+### 📋 Summary: Beyond Uniswap & Advanced AMM Topics
 
 **✓ Covered:**
 - AMMs vs Order Books — tradeoffs, when each wins, the convergence toward hybrid systems
@@ -1862,7 +1886,7 @@ If your protocol uses LP tokens as collateral or manages liquidity:
 
 ---
 
-## Day 12: Practice Challenges and Review
+## Practice Challenges and Review
 
 Test your AMM understanding with these exercises:
 
@@ -1937,22 +1961,33 @@ After 12 days, you should have internalized:
 
 ## 🔗 Cross-Module Concept Links
 
-**← Backward references (concepts you already know):**
-- **SafeERC20** (Module 1) → V2 implements its own `_safeTransfer`; Routers use SafeERC20
-- **Balance-before-after** (Module 1) → V2's `mint()`/`burn()` read balances directly — the foundation of composability
-- **Fee-on-transfer tokens** (Module 1) → V2's `_update()` syncs reserves from actual balances. V3/V4 don't natively support them
-- **Transient storage** (Part 1 §2) → V4 flash accounting uses TSTORE/TLOAD — 20x cheaper than SSTORE
-- **ERC-4626 share math** (Part 1 §1) → LP token minting uses the same shares-proportional-to-deposit pattern
-- **Foundry fork testing** (Part 1 §5) → Essential for testing AMM integrations against real mainnet liquidity
+### ← Backward References (Part 1 + Module 1)
 
-**→ Forward references (where AMM knowledge feeds into):**
-- **Module 3 (Oracles):** TWAP oracles built on AMM price accumulators; oracle manipulation via price impact
-- **Module 4 (Lending):** Liquidation swaps route through AMMs; LP tokens as collateral; CEX-DEX arb informs liquidation MEV
-- **Module 5 (Flash Loans):** Flash swaps (V2) and flash accounting (V4) are specialized flash loan patterns
-- **Module 6 (Stablecoins):** Curve StableSwap for peg maintenance; AMM-based depegging detection
-- **Module 7 (Yield):** LP fee income as yield source; auto-compounding vaults; LVR framework for evaluating LP strategy profitability
-- **Module 8 (Governance):** Protocol fee switches (V2 `feeTo`, V3 factory owner); hook governance in V4; ve(3,3) gauge voting and bribe markets for liquidity incentives
-- **Module 9 (Integration):** Full-stack capstone combining AMM + lending + oracles + yield
+| Source | Concept | How It Connects |
+|--------|---------|-----------------|
+| Part 1 §1 | [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) share math / `mulDiv` | LP token minting uses the same shares-proportional-to-deposit pattern; `Math.sqrt` in V2 parallels vault share math |
+| Part 1 §1 | Unchecked arithmetic | V2/V3 use unchecked blocks for gas-optimized tick and fee math where overflow is intentional |
+| Part 1 §2 | Transient storage | V4 flash accounting uses TSTORE/TLOAD for delta tracking — 20× cheaper than SSTORE |
+| Part 1 §3 | Permit2 | Universal token approvals for V4 PositionManager; aggregator integrations use Permit2 for gasless approvals |
+| Part 1 §5 | Fork testing | Essential for testing AMM integrations against real mainnet liquidity and verifying swap routing |
+| Part 1 §5 | Invariant / fuzz testing | Property-based testing for AMM invariants: `x * y >= k`, tick math boundaries, fee accumulation monotonicity |
+| Part 1 §6 | Immutable core + periphery | V2/V3/V4 all use immutable core contracts with upgradeable periphery routers — the canonical DeFi proxy pattern |
+| Module 1 | SafeERC20 / balance-before-after | V2 implements its own `_safeTransfer`; `mint()`/`burn()` read balances directly — the foundation of composability |
+| Module 1 | Fee-on-transfer tokens | V2's `_update()` syncs reserves from actual balances; V3/V4 don't natively support fee-on-transfer |
+| Module 1 | WETH wrapping | All AMM routers wrap/unwrap ETH; V4 supports native ETH pairs directly |
+| Module 1 | Token decimals handling | Price display and tick math must account for differing decimals between token0/token1 |
+
+### → Forward References (Modules 3–9)
+
+| Target | Concept | How AMM Knowledge Applies |
+|--------|---------|---------------------------|
+| Module 3 (Oracles) | TWAP oracles | Built on AMM price accumulators; oracle manipulation via concentrated liquidity price impact |
+| Module 4 (Lending) | Liquidation swaps | Route through AMMs; LP tokens as collateral; CEX-DEX arb informs liquidation MEV |
+| Module 5 (Flash Loans) | Flash swaps / flash accounting | V2 flash swaps and V4 flash accounting are specialized flash loan patterns |
+| Module 6 (Stablecoins) | Curve StableSwap | AMM design optimized for peg maintenance; AMM-based depegging detection signals |
+| Module 7 (Yield) | LP fee income | Yield source from trading fees; auto-compounding vaults; LVR framework for LP strategy evaluation |
+| Module 8 (Governance) | Protocol fee switches | V2 `feeTo`, V3 factory owner, V4 hook governance; ve(3,3) gauge voting and bribe markets |
+| Module 9 (Integration) | Full-stack capstone | Combining AMM + lending + oracles + yield in a production-grade protocol |
 
 ---
 
@@ -1961,7 +1996,7 @@ After 12 days, you should have internalized:
 **Essential reading:**
 - [Uniswap V2 Whitepaper](https://uniswap.org/whitepaper.pdf)
 - [Uniswap V3 Whitepaper](https://uniswap.org/whitepaper-v3.pdf)
-- [Uniswap V4 Whitepaper](https://github.com/Uniswap/v4-core/blob/main/docs/whitepaper-v4.pdf)
+- [Uniswap V4 Whitepaper](https://github.com/Uniswap/v4-core/blob/main/docs/whitepaper/whitepaper-v4.pdf)
 - [Uniswap V3 Math Primer (Parts 1 & 2)](https://blog.uniswap.org/uniswap-v3-math-primer)
 - [UniswapX Whitepaper](https://uniswap.org/whitepaper-uniswapx.pdf) — intent-based swap architecture
 
@@ -2035,4 +2070,4 @@ After 12 days, you should have internalized:
 
 ---
 
-**Navigation:** [← Previous: Module 1 — Token Mechanics](1-token-mechanics.md) | [Next: Module 3 — Oracles →](3-oracles.md)
+**Navigation:** [← Module 1: Token Mechanics](1-token-mechanics.md) | [Module 3: Oracles →](3-oracles.md)

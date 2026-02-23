@@ -10,11 +10,11 @@ import {
     InsufficientBalance,
     TransferFailed,
     InvalidWitnessData
-} from "../../../src/part1/section3/Permit2Vault.sol";
+} from "../../../src/part1/module3/Permit2Vault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @notice Tests for Permit2 integration exercise.
-/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/section3/Permit2Vault.sol instead.
+/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/module3/Permit2Vault.sol instead.
 /// @dev Requires mainnet fork: forge test --match-contract Permit2VaultTest --fork-url $MAINNET_RPC_URL
 contract Permit2VaultTest is Test {
     // Deployed Permit2 address on mainnet

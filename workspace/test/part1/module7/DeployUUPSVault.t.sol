@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
 import {DeployUUPSVault, DeployMultiNetwork} from "../../../script/DeployUUPSVault.s.sol";
-import {VaultV1, VaultV2} from "../../../src/part1/section6/UUPSVault.sol";
+import {VaultV1, VaultV2} from "../../../src/part1/module6/UUPSVault.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /// @notice Tests for deployment scripts.

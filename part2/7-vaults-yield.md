@@ -3,24 +3,57 @@
 **Duration:** ~4 days (3–4 hours/day)
 **Prerequisites:** Modules 1–6 (especially token mechanics, lending, and stablecoins)
 **Pattern:** Standard deep-dive → Read Yearn V3 → Build vault + strategy → Security analysis
-**Builds on:** Module 1 (ERC-20 mechanics, SafeERC20), Module 4 (index-based accounting — the same shares × rate = assets pattern)
+**Builds on:** Module 1 ([ERC-20](https://eips.ethereum.org/EIPS/eip-20) mechanics, SafeERC20), Module 4 (index-based accounting — the same shares × rate = assets pattern)
 **Used by:** Module 8 (inflation attack invariant testing), Module 9 (vault shares as collateral in integration capstone)
 
 ---
 
-## Why Vaults Matter
+## 📚 Table of Contents
+
+**ERC-4626 — The Tokenized Vault Standard**
+- [The Core Abstraction](#core-abstraction)
+- [The Interface](#vault-interface)
+- [The Share Math](#share-math)
+- [Read: OpenZeppelin ERC4626.sol](#read-oz-erc4626)
+- [Exercise](#day1-exercise)
+
+**The Inflation Attack and Defenses**
+- [The Attack](#inflation-attack)
+- [Defense 1: Virtual Shares and Assets](#defense-virtual-shares)
+- [Defense 2: Dead Shares](#defense-dead-shares)
+- [Defense 3: Internal Accounting](#defense-internal-accounting)
+- [When Vaults Are Used as Collateral](#vaults-as-collateral)
+
+**Yield Aggregation — Yearn V3 Architecture**
+- [The Yield Aggregation Problem](#yield-aggregation)
+- [Yearn V3: The Allocator Vault Pattern](#yearn-allocator)
+- [Allocator Vault Mechanics](#allocator-mechanics)
+- [The Curator Model](#curator-model)
+- [Read: Yearn V3 Source](#read-yearn-v3)
+
+**Composable Yield Patterns and Security**
+- [Yield Strategy Comparison](#yield-strategies)
+- [Pattern 1: Auto-Compounding](#auto-compounding)
+- [Pattern 2: Leveraged Yield](#leveraged-yield)
+- [Pattern 3: LP + Staking](#lp-staking)
+- [Security Considerations for Vault Builders](#vault-security)
+
+---
+
+## 💡 Why Vaults Matter
 
 Every protocol in DeFi that holds user funds and distributes yield faces the same core problem: how do you track each user's share of a pool that changes in size as deposits, withdrawals, and yield accrual happen simultaneously?
 
-The answer is vault share accounting — the same shares/assets math that underpins Aave's aTokens, Compound's cTokens, Uniswap LP tokens, Yearn vault tokens, and MakerDAO's DSR Pot. ERC-4626 standardized this pattern into a universal interface, and it's now the foundation of the modular DeFi stack.
+The answer is vault share accounting — the same shares/assets math that underpins Aave's aTokens, Compound's cTokens, Uniswap LP tokens, Yearn vault tokens, and MakerDAO's DSR Pot. [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) standardized this pattern into a universal interface, and it's now the foundation of the modular DeFi stack.
 
 Understanding ERC-4626 deeply — the math, the interface, the security pitfalls — gives you the building block for virtually any DeFi protocol. Yield aggregators like Yearn compose these vaults into multi-strategy systems, and the emerging "curator" model (Morpho, Euler V2) uses ERC-4626 vaults as the fundamental unit of risk management.
 
 ---
 
-## Day 1: ERC-4626 — The Tokenized Vault Standard
+## ERC-4626 — The Tokenized Vault Standard
 
-### The Core Abstraction
+<a id="core-abstraction"></a>
+### 💡 The Core Abstraction
 
 An ERC-4626 vault is an ERC-20 token that represents proportional ownership of a pool of underlying assets. The two key quantities:
 
@@ -29,7 +62,61 @@ An ERC-4626 vault is an ERC-20 token that represents proportional ownership of a
 
 The **exchange rate** = `totalAssets() / totalSupply()`. As yield accrues (totalAssets increases while totalSupply stays constant), each share becomes worth more assets. This is the "rebasing without rebasing" pattern — your share balance doesn't change, but each share's value increases.
 
-### The Interface
+💻 **Quick Try:**
+
+Read a live ERC-4626 vault on a mainnet fork. This script reads Yearn's USDC vault to see the share math in action:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "forge-std/Script.sol";
+
+interface IERC4626 {
+    function asset() external view returns (address);
+    function totalAssets() external view returns (uint256);
+    function totalSupply() external view returns (uint256);
+    function convertToShares(uint256 assets) external view returns (uint256);
+    function convertToAssets(uint256 shares) external view returns (uint256);
+    function decimals() external view returns (uint8);
+}
+
+contract ReadVault is Script {
+    function run() external view {
+        // Yearn V3 USDC vault on mainnet
+        IERC4626 vault = IERC4626(0xBe53A109B494E5c9f97b9Cd39Fe969BE68f2166c);
+
+        uint256 totalAssets = vault.totalAssets();
+        uint256 totalSupply = vault.totalSupply();
+        uint8 decimals = vault.decimals();
+
+        console.log("=== Yearn V3 USDC Vault ===");
+        console.log("Total Assets:", totalAssets);
+        console.log("Total Supply:", totalSupply);
+        console.log("Decimals:", decimals);
+
+        // What's 1000 USDC worth in shares?
+        uint256 sharesFor1000 = vault.convertToShares(1000 * 10**6);
+        console.log("Shares for 1000 USDC:", sharesFor1000);
+
+        // What's 1000 shares worth in assets?
+        uint256 assetsFor1000 = vault.convertToAssets(1000 * 10**6);
+        console.log("Assets for 1000 shares:", assetsFor1000);
+
+        // Exchange rate: if shares < assets, the vault has earned yield
+        if (totalSupply > 0) {
+            console.log("Rate (assets/share):", totalAssets * 1e18 / totalSupply);
+        }
+    }
+}
+```
+
+Run with: `forge script ReadVault --rpc-url https://eth.llamarpc.com`
+
+Notice the exchange rate is > 1.0 — that's accumulated yield. Each share is worth more than 1 USDC because the vault's strategies have earned profit since launch.
+
+<a id="vault-interface"></a>
+### 📖 The Interface
 
 ERC-4626 extends ERC-20 with these core functions:
 
@@ -61,7 +148,8 @@ ERC-4626 extends ERC-20 with these core functions:
 
 This ensures the vault can never be drained by rounding exploits.
 
-### The Share Math
+<a id="share-math"></a>
+### 💡 The Share Math
 
 ```
 shares = assets × totalSupply / totalAssets    (for deposits — rounds down)
@@ -82,9 +170,88 @@ Yield:   Vault earns 100 USDC from strategy
 Redeem:  User redeems 500 shares → 500 × 1100/1000 = 550 USDC
 ```
 
-### Read: OpenZeppelin ERC4626.sol
+#### 🔍 Deep Dive: Share Math — Multi-Deposit Walkthrough
 
-**Source:** `@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol`
+Let's trace a vault through multiple deposits, yield events, and withdrawals to build intuition for how shares track proportional ownership.
+
+**Setup:** Empty USDC vault, no virtual shares (for clarity).
+
+```
+Step 1: Alice deposits 1,000 USDC
+─────────────────────────────────────────────────
+  shares_alice = 1000 × 0 / 0  → first deposit, 1:1 ratio
+  shares_alice = 1,000
+
+  State: totalAssets = 1,000  |  totalSupply = 1,000  |  rate = 1.000
+  ┌──────────────────────────────────────────────┐
+  │  Alice: 1,000 shares (100% of vault)         │
+  │  Vault holds: 1,000 USDC                     │
+  └──────────────────────────────────────────────┘
+
+Step 2: Bob deposits 2,000 USDC
+─────────────────────────────────────────────────
+  shares_bob = 2000 × 1000 / 1000 = 2,000
+
+  State: totalAssets = 3,000  |  totalSupply = 3,000  |  rate = 1.000
+  ┌──────────────────────────────────────────────┐
+  │  Alice: 1,000 shares (33.3%)                 │
+  │  Bob:   2,000 shares (66.7%)                 │
+  │  Vault holds: 3,000 USDC                     │
+  └──────────────────────────────────────────────┘
+
+Step 3: Vault earns 300 USDC yield (strategy profits)
+─────────────────────────────────────────────────
+  No shares minted — totalAssets increases, totalSupply unchanged
+
+  State: totalAssets = 3,300  |  totalSupply = 3,000  |  rate = 1.100
+  ┌──────────────────────────────────────────────┐
+  │  Alice: 1,000 shares → 1,000 × 1.1 = 1,100 USDC  │
+  │  Bob:   2,000 shares → 2,000 × 1.1 = 2,200 USDC  │
+  │  Vault holds: 3,300 USDC                           │
+  │  Yield distributed proportionally ✓                │
+  └──────────────────────────────────────────────┘
+
+Step 4: Carol deposits 1,100 USDC (after yield)
+─────────────────────────────────────────────────
+  shares_carol = 1100 × 3000 / 3300 = 1,000
+  Carol gets 1,000 shares — same as Alice, but she deposited
+  1,100 USDC (not 1,000). She's buying in at the higher rate.
+
+  State: totalAssets = 4,400  |  totalSupply = 4,000  |  rate = 1.100
+  ┌──────────────────────────────────────────────┐
+  │  Alice: 1,000 shares (25%) → 1,100 USDC     │
+  │  Bob:   2,000 shares (50%) → 2,200 USDC     │
+  │  Carol: 1,000 shares (25%) → 1,100 USDC     │
+  │  Vault holds: 4,400 USDC                     │
+  └──────────────────────────────────────────────┘
+
+Step 5: Alice withdraws everything
+─────────────────────────────────────────────────
+  assets_alice = 1000 × 4400 / 4000 = 1,100 USDC ✓
+  Alice deposited 1,000, gets back 1,100 → earned 100 USDC (10%)
+
+  State: totalAssets = 3,300  |  totalSupply = 3,000  |  rate = 1.100
+  ┌──────────────────────────────────────────────┐
+  │  Bob:   2,000 shares (66.7%) → 2,200 USDC   │
+  │  Carol: 1,000 shares (33.3%) → 1,100 USDC   │
+  │  Vault holds: 3,300 USDC                     │
+  │  Rate unchanged after withdrawal ✓           │
+  └──────────────────────────────────────────────┘
+```
+
+**Key observations:**
+- Shares track **proportional ownership**, not absolute amounts
+- Yield accrual increases the rate without minting shares — existing holders benefit automatically
+- Late depositors (Carol) buy at the current rate — they don't capture past yield
+- Withdrawals don't change the exchange rate for remaining holders
+- This is **exactly** how aTokens, cTokens, and LP tokens work under the hood
+
+**Rounding in practice:** In the example above, we used clean numbers. In reality, `1100 × 3000 / 3300 = 999.999...` which rounds down to 999 shares. Carol gets slightly fewer shares than expected. This rounding loss is typically negligible (< 1 wei of the underlying), but it accumulates vault-favorably — the vault slowly builds a tiny surplus that protects against rounding-based exploits.
+
+<a id="read-oz-erc4626"></a>
+### 📖 Read: OpenZeppelin ERC4626.sol
+
+**Source:** [`@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC4626.sol)
 
 Focus on:
 - The `_decimalsOffset()` virtual function and its role in inflation attack mitigation
@@ -108,7 +275,8 @@ Also compare with Solmate's implementation (`solmate/src/tokens/ERC4626.sol`) wh
 
 **Don't get stuck on:** The `_decimalsOffset()` virtual function mechanics. Just know: default is 0 (no virtual offset), override to 3 or 6 for inflation protection. The higher the offset, the more expensive the attack becomes, but the more precision you lose for tiny deposits.
 
-### Exercise
+<a id="day1-exercise"></a>
+### 🛠️ Exercise
 
 **Exercise 1:** Implement a minimal ERC-4626 vault from scratch (don't use OpenZeppelin or Solmate). Use `Math.mulDiv` for safe division. Implement all required functions. Test:
 - Deposit 1000 USDC, receive 1000 shares
@@ -120,11 +288,48 @@ Also compare with Solmate's implementation (`solmate/src/tokens/ERC4626.sol`) wh
 
 **Exercise 2:** Implement `deposit` and `mint` side by side. Show that `deposit(100)` and `mint(previewDeposit(100))` produce the same result. Show that `mint(100)` and `deposit(previewMint(100))` produce the same result (accounting for rounding).
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know about ERC-4626:**
+
+1. **"Explain the rounding rules in ERC-4626 and why they matter."**
+   - Good answer: "Conversions round in favor of the vault — fewer shares on deposit, fewer assets on withdrawal — so the vault can't be drained."
+   - Great answer: "The spec mandates `deposit` rounds shares down, `mint` rounds assets up, `withdraw` rounds shares up, `redeem` rounds assets down. This creates a tiny vault-favorable spread on every operation. It's the same principle as a bank's bid/ask spread — the vault always wins the rounding."
+
+2. **"How does ERC-4626 differ from Compound cTokens or Aave aTokens?"**
+   - Good answer: "ERC-4626 standardizes the interface. cTokens use an exchange rate, aTokens rebase — both do the same thing differently."
+   - Great answer: "cTokens store `exchangeRate` and you multiply by your balance. aTokens rebase your balance directly using a `scaledBalance × liquidityIndex` pattern. ERC-4626 abstracts both approaches behind `convertToShares/convertToAssets` — any protocol can implement the interface however they want. The key win is composability: any ERC-4626 vault works as a strategy in Yearn, as collateral in Morpho, etc."
+
+3. **"What's the first thing you check when auditing a new ERC-4626 vault?"**
+   - Good answer: "I check for the inflation attack — whether the vault uses virtual shares."
+   - Great answer: "I check three things: (1) how `totalAssets()` is computed — if it reads `balanceOf(address(this))` it's vulnerable to donation attacks; (2) whether there's inflation protection (virtual shares or dead shares); (3) whether `preview` functions match actual `deposit`/`withdraw` behavior, since broken preview functions break all integrators."
+
+**Interview Red Flags:**
+- ❌ Not knowing what ERC-4626 is (it's the foundation of modern DeFi infrastructure)
+- ❌ Confusing shares and assets (which direction does the conversion go?)
+- ❌ Not knowing about the inflation attack and its defenses
+
+**Pro tip:** The ERC-4626 ecosystem is one of the fastest-growing in DeFi. Morpho, Euler V2, Yearn V3, Ethena (sUSDe), Lido (wstETH adapter), and hundreds of other protocols all use it. Being able to write, audit, and integrate ERC-4626 vaults is a high-demand skill.
+
+### 📋 Summary: ERC-4626 — The Tokenized Vault Standard
+
+**✓ Covered:**
+- The shares/assets abstraction and why it's the universal pattern for yield-bearing tokens
+- ERC-4626 interface — all 16 functions across deposit, mint, withdraw, redeem flows
+- Rounding rules: always in favor of the vault (against the user)
+- Share math with multi-deposit walkthrough (Alice → Bob → yield → Carol → withdrawal)
+- OpenZeppelin vs Solmate implementation trade-offs
+
+**Key insight:** ERC-4626 is the same math pattern you've seen in Aave aTokens, Compound cTokens, and Uniswap LP tokens — standardized into a universal interface. Master the share math once, apply it everywhere.
+
+**Next:** The inflation attack — why empty vaults are dangerous and three defense strategies.
+
 ---
 
-## Day 2: The Inflation Attack and Defenses
+## The Inflation Attack and Defenses
 
-### The Attack
+<a id="inflation-attack"></a>
+### ⚠️ The Attack
 
 The inflation attack (also called the donation attack or first-depositor attack) exploits empty or nearly-empty vaults:
 
@@ -136,11 +341,91 @@ The inflation attack (also called the donation attack or first-depositor attack)
 
 The attack works because the large donation inflates the exchange rate, and the subsequent deposit rounds down to give the victim far fewer shares than their deposit warrants.
 
-### Why It Still Matters
+#### 🔍 Deep Dive: Inflation Attack Step-by-Step
+
+```
+NAIVE VAULT (no virtual shares, totalAssets = balanceOf)
+═══════════════════════════════════════════════════════════
+
+Step 1: Attacker deposits 1 wei
+─────────────────────────────────
+  totalAssets = 1          totalSupply = 1
+  shares_attacker = 1      rate = 1.0
+
+  ┌─────────────────────────────────────┐
+  │  Vault: 1 wei                       │
+  │  Attacker: 1 share (100%)           │
+  └─────────────────────────────────────┘
+
+Step 2: Attacker DONATES 10,000 USDC via transfer()
+─────────────────────────────────────────────────────
+  balanceOf(vault) = 10,000,000,001 (10k USDC + 1 wei)
+  totalAssets = 10,000,000,001     totalSupply = 1
+  rate = 10,000,000,001 per share  ← INFLATED!
+
+  ┌─────────────────────────────────────┐
+  │  Vault: 10,000.000001 USDC         │
+  │  Attacker: 1 share (100%)          │
+  │  Attacker cost so far: ~10,000 USDC│
+  └─────────────────────────────────────┘
+
+Step 3: Victim deposits 20,000 USDC
+─────────────────────────────────────
+  shares = 20,000,000,000 × 1 / 10,000,000,001
+         = 1.999...
+         = 1  (rounded DOWN — vault-favorable)
+
+  totalAssets = 30,000,000,001     totalSupply = 2
+
+  ┌─────────────────────────────────────┐
+  │  Vault: 30,000.000001 USDC         │
+  │  Attacker: 1 share (50%)           │
+  │  Victim:   1 share (50%)  ← WRONG! │
+  │  Victim deposited 2× but gets 50%  │
+  └─────────────────────────────────────┘
+
+Step 4: Attacker redeems 1 share
+─────────────────────────────────
+  assets = 1 × 30,000,000,001 / 2 = 15,000 USDC
+
+  ┌─────────────────────────────────────────────┐
+  │  Attacker spent:   10,000 USDC (donation)   │
+  │                  +     0 USDC (1 wei deposit)│
+  │  Attacker received: 15,000 USDC             │
+  │  Attacker PROFIT:    5,000 USDC             │
+  │                                             │
+  │  Victim deposited:  20,000 USDC             │
+  │  Victim can redeem: 15,000 USDC             │
+  │  Victim LOSS:        5,000 USDC             │
+  └─────────────────────────────────────────────┘
+
+WITH VIRTUAL SHARES (OpenZeppelin, offset = 3)
+═══════════════════════════════════════════════
+
+  Same attack, but conversion uses virtual shares/assets:
+  shares = assets × (totalSupply + 1000) / (totalAssets + 1)
+
+  After donation (Step 2):
+    totalAssets = 10,000,000,001    totalSupply = 1
+
+  Victim deposits 20,000 USDC (Step 3):
+    shares = 20,000,000,000 × (1 + 1000) / (10,000,000,001 + 1)
+           = 20,000,000,000 × 1001 / 10,000,000,002
+           = 2,001          ← victim gets ~2000 shares!
+
+  Attacker has 1 share, victim has 2,001 shares.
+  Attacker redeems: 1 × totalAssets / totalSupply ≈ 15 USDC
+  Attacker LOSS: ~10,000 USDC ← Attack is UNPROFITABLE
+```
+
+**Why virtual shares work:** The 1000 virtual shares in the denominator mean the attacker's donation is spread across 1001 shares (1 real + 1000 virtual), not just 1. The attacker can't monopolize the inflated rate.
+
+### ⚠️ Why It Still Matters
 
 This isn't theoretical. The Resupply protocol was exploited via this vector in 2025, and the Venus Protocol lost approximately 86 WETH to a similar attack on ZKsync in February 2025. Any protocol using ERC-4626 vaults as collateral in a lending market is at risk if the vault's exchange rate can be manipulated.
 
-### Defense 1: Virtual Shares and Assets (OpenZeppelin approach)
+<a id="defense-virtual-shares"></a>
+### 🛡️ Defense 1: Virtual Shares and Assets (OpenZeppelin approach)
 
 OpenZeppelin's ERC4626 (since v4.9) adds a configurable decimal offset that creates "virtual" shares and assets:
 
@@ -158,7 +443,8 @@ With `_decimalsOffset() = 3`, there are always at least 1000 virtual shares and 
 
 The trade-off: virtual shares capture a tiny fraction of all yield (the virtual shares "earn" yield that belongs to no one). This is negligible in practice.
 
-### Defense 2: Dead Shares (Uniswap V2 approach)
+<a id="defense-dead-shares"></a>
+### 🛡️ Defense 2: Dead Shares (Uniswap V2 approach)
 
 On the first deposit, permanently lock a small amount of shares (e.g., mint shares to `address(0)` or `address(1)`). This ensures `totalSupply` is never trivially small.
 
@@ -176,7 +462,8 @@ function _deposit(uint256 assets, address receiver) internal {
 
 This is simpler but slightly punishes the first depositor (they lose the value of the dead shares).
 
-### Defense 3: Internal Accounting (Aave V3 approach)
+<a id="defense-internal-accounting"></a>
+### 🛡️ Defense 3: Internal Accounting (Aave V3 approach)
 
 Don't use `balanceOf(address(this))` for `totalAssets()`. Instead, track deposits and withdrawals internally. Direct token transfers (donations) don't affect the vault's accounting.
 
@@ -195,7 +482,8 @@ function _deposit(uint256 assets, address receiver) internal {
 
 This is the most robust defense but requires careful bookkeeping — you must update `_totalManagedAssets` correctly for every flow (deposits, withdrawals, yield harvest, losses).
 
-### When Vaults Are Used as Collateral
+<a id="vaults-as-collateral"></a>
+### ⚠️ When Vaults Are Used as Collateral
 
 The inflation attack becomes especially dangerous when ERC-4626 tokens are used as collateral in lending protocols. If a lending protocol prices collateral using `vault.convertToAssets(shares)`, an attacker can:
 
@@ -206,7 +494,7 @@ The inflation attack becomes especially dangerous when ERC-4626 tokens are used 
 
 Defense: lending protocols should use time-weighted or externally-sourced exchange rates for ERC-4626 collateral, not the vault's own `convertToAssets()` at a single point in time.
 
-### Exercise
+### 🛠️ Exercise
 
 **Exercise 1:** Build the inflation attack. Deploy a naive vault (no virtual shares, `totalAssets = balanceOf`), execute the attack step by step, and show the victim's loss. Then add OpenZeppelin's virtual share offset and show the attack becomes unprofitable.
 
@@ -214,11 +502,26 @@ Defense: lending protocols should use time-weighted or externally-sourced exchan
 
 **Exercise 3:** Implement all three defenses (virtual shares, dead shares, internal accounting) and compare: gas cost of deposit/withdraw, precision loss on first deposit, effectiveness against varying donation sizes.
 
+### 📋 Summary: The Inflation Attack and Defenses
+
+**✓ Covered:**
+- The inflation (donation/first-depositor) attack — step-by-step mechanics
+- Real exploits: Resupply (2025), Venus Protocol on ZKsync (2025)
+- Defense 1: Virtual shares and assets (OpenZeppelin's `_decimalsOffset`)
+- Defense 2: Dead shares (Uniswap V2 approach — lock minimum liquidity)
+- Defense 3: Internal accounting (track `_totalManagedAssets` instead of `balanceOf`)
+- Collateral pricing risk when ERC-4626 tokens are used in lending markets
+
+**Key insight:** The inflation attack is the #1 ERC-4626 security concern. Virtual shares (OpenZeppelin) are the most common defense, but internal accounting is the most robust. Never use raw `balanceOf(address(this))` for critical pricing in any vault.
+
+**Next:** Yield aggregation architecture — how Yearn V3 composes ERC-4626 vaults into multi-strategy systems.
+
 ---
 
-## Day 3: Yield Aggregation — Yearn V3 Architecture
+## Yield Aggregation — Yearn V3 Architecture
 
-### The Yield Aggregation Problem
+<a id="yield-aggregation"></a>
+### 💡 The Yield Aggregation Problem
 
 A single yield source (e.g., supplying USDC on Aave) gives you one return. But there are dozens of yield sources for USDC: Aave, Compound, Morpho, Curve pools, Balancer pools, DSR, etc. Each has different risk, return, and capacity. A yield aggregator's job is to:
 
@@ -228,7 +531,8 @@ A single yield source (e.g., supplying USDC on Aave) gives you one return. But t
 4. Handle deposits/withdrawals seamlessly
 5. Account for profits and losses correctly
 
-### Yearn V3: The Allocator Vault Pattern
+<a id="yearn-allocator"></a>
+### 💡 Yearn V3: The Allocator Vault Pattern
 
 Yearn V3 redesigned their vault system around ERC-4626 composability:
 
@@ -250,7 +554,8 @@ function _harvestAndReport() internal virtual returns (uint256 _totalAssets);
 
 **The delegation pattern:** TokenizedStrategy is a pre-deployed implementation contract. Your strategy contract delegates all ERC-4626, accounting, and reporting logic to it via `delegateCall` in the fallback function. You only write the three yield-specific functions above.
 
-### Allocator Vault Mechanics
+<a id="allocator-mechanics"></a>
+### 🔧 Allocator Vault Mechanics
 
 **Adding strategies:** The vault manager calls `vault.add_strategy(strategy_address)`. Each strategy gets a `max_debt` parameter — the maximum the vault will allocate to that strategy.
 
@@ -264,9 +569,68 @@ function _harvestAndReport() internal virtual returns (uint256 _totalAssets);
 
 **Profit unlocking:** Profits aren't immediately available to withdrawers. They unlock linearly over a configurable `profitMaxUnlockTime` period. This prevents sandwich attacks where someone deposits right before a harvest and withdraws right after, capturing yield they didn't contribute to.
 
-### The Curator Model
+#### 🔍 Deep Dive: Profit Unlocking — Numeric Walkthrough
 
-The broader trend in DeFi (2024-25) extends Yearn's pattern: protocols like Morpho and Euler V2 allow third-party "curators" to deploy ERC-4626 vaults that allocate to their underlying lending markets. Curators set risk parameters, choose which markets to allocate to, and earn management/performance fees. Users choose a curator based on risk appetite and track record.
+Why does profit unlocking matter? Without it, an attacker can sandwich the `harvest()` call to steal yield. Let's trace both scenarios.
+
+```
+SCENARIO A: NO PROFIT UNLOCKING (vulnerable)
+═════════════════════════════════════════════
+
+Setup: Vault has 100,000 USDC, 100,000 shares, rate = 1.0
+       Strategy earned 10,000 USDC profit (not yet reported)
+
+Timeline:
+  T=0  Attacker sees harvest() in mempool
+       Attacker deposits 100,000 USDC → gets 100,000 shares
+       State: totalAssets = 200,000 | totalSupply = 200,000
+
+  T=1  harvest() executes, reports 10,000 profit
+       State: totalAssets = 210,000 | totalSupply = 200,000
+       Rate: 1.05 per share
+
+  T=2  Attacker redeems 100,000 shares
+       Receives: 100,000 × 210,000 / 200,000 = 105,000 USDC
+       Attacker PROFIT: 5,000 USDC (in ONE block!)
+
+  Legitimate depositors earned 5,000 USDC instead of 10,000.
+  Attacker captured 50% of the yield by holding for 1 block.
+
+
+SCENARIO B: WITH PROFIT UNLOCKING (profitMaxUnlockTime = 6 hours)
+════════════════════════════════════════════════════════════════
+
+Setup: Same — 100,000 USDC, 100,000 shares, 10,000 profit pending
+
+Timeline:
+  T=0  Attacker deposits 100,000 USDC → gets 100,000 shares
+       State: totalAssets = 200,000 | totalSupply = 200,000
+
+  T=1  harvest() executes, reports 10,000 profit
+       But profit is LOCKED — it unlocks linearly over 6 hours.
+       Immediately available: 0 USDC of profit
+       State: totalAssets = 200,000 (profit not yet in totalAssets)
+              totalSupply = 200,000
+       Rate: still 1.0
+
+  T=2  Attacker redeems immediately
+       Receives: 100,000 × 200,000 / 200,000 = 100,000 USDC
+       Attacker PROFIT: 0 USDC ← sandwich FAILED
+
+  After 1 hour:  1,667 USDC unlocked (10,000 / 6)
+  After 3 hours: 5,000 USDC unlocked
+  After 6 hours: 10,000 USDC fully unlocked → rate = 1.10
+  Only depositors who stayed the full 6 hours earn the yield.
+```
+
+**How the unlock works mechanically:** Yearn V3 tracks `fullProfitUnlockDate` and `profitUnlockingRate`. The vault's `totalAssets()` includes only the portion of profit that has unlocked so far: `unlockedProfit = profitUnlockingRate × (block.timestamp - lastReport)`. This smooths the share price increase over the unlock period.
+
+**The trade-off:** Longer unlock times are more sandwich-resistant but delay yield recognition for legitimate depositors. Most vaults use 6-24 hours as a balance.
+
+<a id="curator-model"></a>
+### 💡 The Curator Model
+
+The broader trend in DeFi (2024-25) extends Yearn's pattern: protocols like [Morpho](https://github.com/morpho-org/metamorpho) and [Euler V2](https://github.com/euler-xyz/euler-vault-kit) allow third-party "curators" to deploy ERC-4626 vaults that allocate to their underlying lending markets. Curators set risk parameters, choose which markets to allocate to, and earn management/performance fees. Users choose a curator based on risk appetite and track record.
 
 This separates infrastructure (the lending protocol) from risk management (the curator's vault), creating a modular stack:
 - **Layer 1:** Base lending protocol (Morpho Blue, Euler V2, Aave)
@@ -275,16 +639,19 @@ This separates infrastructure (the lending protocol) from risk management (the c
 
 Each layer uses ERC-4626, so they compose naturally.
 
-### Read: Yearn V3 Source
+<a id="read-yearn-v3"></a>
+### 📖 Read: Yearn V3 Source
 
-**VaultV3.sol:** `github.com/yearn/yearn-vaults-v3`
-- Focus on `process_report()` — how profit/loss is calculated and fees charged
+**VaultV3.sol:** [`yearn/yearn-vaults-v3`](https://github.com/yearn/yearn-vaults-v3/blob/master/contracts/VaultV3.vy)
+- Focus on [`process_report()`](https://github.com/yearn/yearn-vaults-v3/blob/master/contracts/VaultV3.vy) — how profit/loss is calculated and fees charged
 - The withdrawal queue — how the vault pulls funds from strategies when a user withdraws
 - The `profitMaxUnlockTime` mechanism
 
-**TokenizedStrategy:** `github.com/yearn/tokenized-strategy`
-- The `BaseStrategy` abstract contract — the three functions you override
+**TokenizedStrategy:** [`yearn/tokenized-strategy`](https://github.com/yearn/tokenized-strategy/blob/master/src/TokenizedStrategy.sol)
+- The [`BaseStrategy`](https://github.com/yearn/tokenized-strategy/blob/master/src/BaseStrategy.sol) abstract contract — the three functions you override
 - How `report()` triggers `_harvestAndReport()` and handles accounting
+
+**Morpho MetaMorpho Vault:** [`morpho-org/metamorpho`](https://github.com/morpho-org/metamorpho/blob/main/src/MetaMorpho.sol) — A production curator vault built on Morpho Blue. Compare with Yearn V3: both are ERC-4626 allocator vaults, but MetaMorpho allocates across Morpho Blue lending markets while Yearn allocates across arbitrary strategies.
 
 #### 📖 How to Study Yearn V3 Architecture
 
@@ -300,7 +667,7 @@ Each layer uses ERC-4626, so they compose naturally.
 
 **Don't get stuck on:** The Vyper syntax in VaultV3 (Yearn V3 vaults are written in Vyper, not Solidity). The logic maps directly to Solidity concepts — `@external` = `external`, `@view` = `view`, `self.variable` = `this.variable`. Focus on the architecture, not the syntax.
 
-### Exercise
+### 🛠️ Exercise
 
 **Exercise:** Build a simplified allocator vault:
 
@@ -324,11 +691,41 @@ Test:
 - Withdraw 8,000 USDC: verify funds are pulled from idle first, then strategies
 - Verify shares reflect correct value throughout
 
+### 📋 Summary: Yield Aggregation — Yearn V3 Architecture
+
+**✓ Covered:**
+- The yield aggregation problem — why allocating across multiple sources matters
+- Yearn V3 Allocator Vault pattern — vault holds strategies, not yield sources directly
+- TokenizedStrategy delegation pattern — your strategy delegates ERC-4626 logic to a shared implementation
+- The three overrides: `_deployFunds()`, `_freeFunds()`, `_harvestAndReport()`
+- Debt allocation mechanics: `max_debt`, `update_debt()`, `process_report()`
+- Profit unlocking as anti-sandwich defense (`profitMaxUnlockTime`)
+- The Curator model (Morpho, Euler V2) — modular risk management layers
+
+**Key insight:** The allocator vault pattern separates yield generation (strategies) from risk management (the vault). ERC-4626 composability means each layer can plug into the next — this is how modern DeFi infrastructure is being built.
+
+**Next:** Composable yield patterns (auto-compounding, leveraged yield, LP staking) and critical security considerations for vault builders.
+
 ---
 
-## Day 4: Composable Yield Patterns and Security
+## Composable Yield Patterns and Security
 
-### Pattern 1: Auto-Compounding
+<a id="yield-strategies"></a>
+### 📋 Yield Strategy Comparison
+
+| Strategy | Typical APY | Risk Level | Complexity | Key Risk | Example |
+|---|---|---|---|---|---|
+| **Single lending** | 2-8% | Low | Low | Protocol hack, bad debt | Aave USDC supply |
+| **Auto-compound** | 4-12% | Low-Med | Medium | Swap slippage, keeper costs | Yearn Aave strategy |
+| **Leveraged yield** | 8-25% | Medium-High | High | Liquidation, rate inversion | Recursive borrowing on Aave |
+| **LP + staking** | 10-40% | High | High | Impermanent loss, reward token dump | Curve/Convex USDC-USDT |
+| **Vault-of-vaults** | 5-15% | Medium | Very High | Cascading losses, liquidity fragmentation | Yearn allocator across strategies |
+| **Delta-neutral** | 5-20% | Medium | Very High | Funding rate reversal, basis risk | Ethena USDe (spot + short perp) |
+
+*APY ranges are illustrative and vary significantly with market conditions. Higher APY = higher risk.*
+
+<a id="auto-compounding"></a>
+### 💡 Pattern 1: Auto-Compounding
 
 Many yield sources distribute rewards in a separate token (e.g., COMP tokens from Compound, CRV from Curve). Auto-compounding sells these reward tokens for the underlying asset and re-deposits:
 
@@ -341,7 +738,8 @@ Many yield sources distribute rewards in a separate token (e.g., COMP tokens fro
 
 **Build consideration:** The harvest transaction pays gas and incurs swap slippage. Only economical when accumulated rewards exceed costs. Most vaults use keeper bots that call harvest based on profitability calculations.
 
-### Pattern 2: Leveraged Yield (Recursive Borrowing)
+<a id="leveraged-yield"></a>
+### 💡 Pattern 2: Leveraged Yield (Recursive Borrowing)
 
 Combine lending with borrowing to amplify yield:
 
@@ -358,7 +756,8 @@ Only profitable when supply APY + incentives > borrow APY, which is common when 
 
 **Risk:** Liquidation if collateral value drops. The strategy must manage health factor carefully and deleverage automatically if it approaches the liquidation threshold.
 
-### Pattern 3: LP + Staking
+<a id="lp-staking"></a>
+### 💡 Pattern 3: LP + Staking
 
 Provide liquidity to an AMM pool, then stake the LP tokens for additional rewards:
 
@@ -371,7 +770,7 @@ Provide liquidity to an AMM pool, then stake the LP tokens for additional reward
 
 This is the model behind Yearn's Curve strategies (Curve LP → stake in Convex → earn CRV+CVX), which have historically been among the highest and most consistent yield sources.
 
-### Pattern 4: Vault Composability
+### 🔗 Pattern 4: Vault Composability
 
 Because ERC-4626 vaults are ERC-20 tokens, they can be used as:
 - **Collateral in lending protocols:** Deposit sUSDe (Ethena's staked USDe vault token) as collateral on Aave, borrow against your yield-bearing position
@@ -380,7 +779,8 @@ Because ERC-4626 vaults are ERC-20 tokens, they can be used as:
 
 This composability is why ERC-4626 adoption has been so rapid — each new vault automatically works with every protocol that supports the standard.
 
-### Security Considerations for Vault Builders
+<a id="vault-security"></a>
+### ⚠️ Security Considerations for Vault Builders
 
 **1. totalAssets() must be manipulation-resistant.** If `totalAssets()` reads external state that can be manipulated within a transaction (DEX spot prices, raw token balances), your vault is vulnerable. Use internal accounting or time-delayed oracles.
 
@@ -394,7 +794,29 @@ This composability is why ERC-4626 adoption has been so rapid — each new vault
 
 **6. ERC-4626 compliance edge cases.** The standard requires specific behaviors for max functions (must return `type(uint256).max` or actual limit), preview functions (must be exact or revert), and empty vault handling. Non-compliant implementations cause integration failures across the ecosystem. Test against the ERC-4626 property tests.
 
-### Exercise
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know about vault security:**
+
+1. **"How would you prevent sandwich attacks on a yield vault?"**
+   - Good answer: "Use profit unlocking — spread harvested yield over hours/days so an attacker can't capture it instantly."
+   - Great answer: "Three layers: (1) linear profit unlocking via `profitMaxUnlockTime` (Yearn's approach) — profits accrue to share price gradually; (2) deposit/withdrawal fees that punish short-term deposits; (3) private transaction submission (Flashbots Protect) for harvest calls so MEV searchers can't see them in the mempool."
+
+2. **"A protocol wants to use your ERC-4626 vault token as collateral. What do you warn them about?"**
+   - Good answer: "Don't use `convertToAssets()` directly for pricing — it can be manipulated via donation."
+   - Great answer: "Three risks: (1) the vault's exchange rate can be manipulated within a single transaction (donation attack) — use a TWAP or oracle for pricing; (2) the vault may have withdrawal liquidity constraints (strategy funds locked, withdrawal queue) — so liquidation may fail; (3) the vault's `totalAssets()` may include unrealized gains that could reverse (strategy loss, depeg). They should read `maxWithdraw()` to check actual liquidity."
+
+3. **"What yield strategy patterns have you built or reviewed?"**
+   - Good answer: "Auto-compounders that claim rewards and reinvest, leveraged staking."
+   - Great answer: "I've worked with (1) auto-compounders with keeper economics (harvest only when reward value exceeds gas + slippage); (2) leveraged yield via recursive borrowing with automated health factor management; (3) LP strategies that handle impermanent loss reporting; (4) allocator vaults that rebalance across multiple strategies based on utilization and APY signals."
+
+**Hot topics (2025-26):**
+- ERC-4626 as collateral in lending markets (Morpho, Euler V2, Aave V3.1)
+- Curator/vault-as-a-service models replacing monolithic vault managers
+- Restaking vaults (EigenLayer, Symbiotic) — ERC-4626 wrappers around restaking positions
+- Real-world asset (RWA) vaults — tokenized treasury yields via ERC-4626
+
+### 🛠️ Exercise
 
 **Exercise 1: Auto-compounder.** Build an ERC-4626 vault that:
 - Deposits USDC into a mock lending protocol
@@ -407,16 +829,118 @@ This composability is why ERC-4626 adoption has been so rapid — each new vault
 - Implement linear profit unlocking over 6 hours
 - Show the same sandwich attempt now captures minimal yield
 
-**Exercise 3: Strategy loss.** Using the allocator vault from Day 3:
+**Exercise 3: Strategy loss.** Using the allocator vault from the Yield Aggregation section:
 - Simulate a strategy losing 20% of its funds (mock a hack)
 - Call report — verify the vault correctly records the loss
 - Verify share price decreased proportionally
 - Verify existing depositors can still withdraw (at reduced value)
 - Verify new depositors enter at the correct (lower) share price
 
+### 📋 Summary: Composable Yield Patterns and Security
+
+**✓ Covered:**
+- Auto-compounding: claim rewards → swap → re-deposit, keeper economics
+- Leveraged yield: recursive borrowing, health factor management, flash loan shortcuts
+- LP + staking: AMM liquidity + reward farming (Curve/Convex pattern)
+- Vault composability: ERC-4626 tokens as collateral, LP assets, or strategy inputs
+- Six critical security considerations for vault builders
+- Sandwich attack on harvest and profit unlocking defense
+
+**Key insight:** ERC-4626 composability is a double-edged sword. It enables powerful yield strategies (vault-of-vaults, vault tokens as collateral), but every layer of composition adds attack surface. The security checklist (manipulation-resistant `totalAssets`, withdrawal liquidity, loss handling, sandwich defense, token edge cases, compliance) is non-negotiable for production vaults.
+
 ---
 
-## Key Takeaways
+## ⚠️ Common Mistakes
+
+**Mistake 1: Using `balanceOf(address(this))` for `totalAssets()`**
+
+```solidity
+// WRONG — vulnerable to donation attack
+function totalAssets() public view returns (uint256) {
+    return asset.balanceOf(address(this));
+}
+
+// CORRECT — internal accounting
+uint256 private _managedAssets;
+function totalAssets() public view returns (uint256) {
+    return _managedAssets;
+}
+```
+
+**Mistake 2: Wrong rounding direction in conversions**
+
+```solidity
+// WRONG — rounds in favor of the USER (attacker can drain vault)
+function convertToShares(uint256 assets) public view returns (uint256) {
+    return assets * totalSupply() / totalAssets();  // rounds down = fewer shares (OK for deposit)
+}
+function previewWithdraw(uint256 assets) public view returns (uint256) {
+    return assets * totalSupply() / totalAssets();  // rounds down = fewer shares burned (BAD!)
+}
+
+// CORRECT — withdraw must round UP (burn more shares = vault-favorable)
+function previewWithdraw(uint256 assets) public view returns (uint256) {
+    return Math.mulDiv(assets, totalSupply(), totalAssets(), Math.Rounding.Ceil);
+}
+```
+
+**Mistake 3: Not handling the empty vault case**
+
+```solidity
+// WRONG — division by zero when totalSupply == 0
+function convertToShares(uint256 assets) public view returns (uint256) {
+    return assets * totalSupply() / totalAssets();  // 0/0 on first deposit!
+}
+
+// CORRECT — handle first deposit explicitly or use virtual shares
+function convertToShares(uint256 assets) public view returns (uint256) {
+    uint256 supply = totalSupply();
+    return supply == 0 ? assets : Math.mulDiv(assets, supply, totalAssets());
+}
+```
+
+**Mistake 4: Instantly reflecting harvested yield in share price**
+
+```solidity
+// WRONG — enables sandwich attack on harvest
+function harvest() external {
+    uint256 profit = strategy.claim();
+    _managedAssets += profit;  // share price jumps instantly
+}
+
+// CORRECT — unlock profit linearly over time
+function harvest() external {
+    uint256 profit = strategy.claim();
+    _profitUnlockingRate = profit / UNLOCK_PERIOD;
+    _lastHarvestTimestamp = block.timestamp;
+    _fullProfitUnlockDate = block.timestamp + UNLOCK_PERIOD;
+}
+
+function totalAssets() public view returns (uint256) {
+    uint256 unlocked = _profitUnlockingRate * (block.timestamp - _lastHarvestTimestamp);
+    return _managedAssets + Math.min(unlocked, _totalLockedProfit);
+}
+```
+
+**Mistake 5: Not checking `maxDeposit`/`maxWithdraw` before operations**
+
+```solidity
+// WRONG — assumes vault always accepts deposits
+function depositIntoVault(IERC4626 vault, uint256 assets) external {
+    vault.deposit(assets, msg.sender);  // reverts if vault is paused or full!
+}
+
+// CORRECT — check limits first
+function depositIntoVault(IERC4626 vault, uint256 assets) external {
+    uint256 maxAllowed = vault.maxDeposit(msg.sender);
+    require(assets <= maxAllowed, "Exceeds vault deposit limit");
+    vault.deposit(assets, msg.sender);
+}
+```
+
+---
+
+## 📋 Key Takeaways
 
 1. **ERC-4626 is the TCP/IP of DeFi yield.** It's the universal interface that lets any vault plug into any protocol. Understanding it deeply — the math, the rounding rules, the security model — is foundational for building anything yield-related.
 
@@ -430,7 +954,60 @@ This composability is why ERC-4626 adoption has been so rapid — each new vault
 
 ---
 
-## Resources
+## 🔗 Cross-Module Concept Links
+
+### Backward References (concepts from earlier modules used here)
+
+| Source | Concept | How It Connects |
+|---|---|---|
+| **Part 1 §1** | `mulDiv` with rounding | Vault conversions use `Math.mulDiv` with explicit rounding direction — rounds down for deposits, up for withdrawals |
+| **Part 1 §1** | Custom errors | Vault revert patterns (`DepositExceedsMax`, `InsufficientShares`) use typed errors from §1 |
+| **Part 1 §2** | Transient storage | Reentrancy guard for vault deposit/withdraw uses transient storage pattern from §2 |
+| **Part 1 §5** | Fork testing | ERC-4626 Quick Try reads a live Yearn vault on mainnet fork — fork testing from §5 enables this |
+| **Part 1 §5** | Invariant testing | ERC-4626 property tests (a16z suite) use invariant/fuzz patterns from §5 |
+| **Part 1 §6** | Proxy / delegateCall | Yearn V3 TokenizedStrategy uses `delegateCall` to shared implementation — proxy pattern from §6 |
+| **M1** | SafeERC20 | All vault deposit/withdraw flows use SafeERC20 for underlying token transfers |
+| **M1** | Fee-on-transfer tokens | Break naive vault accounting — balance-before-after check from M1 is required |
+| **M2** | MINIMUM_LIQUIDITY / dead shares | Uniswap V2's dead shares defense is the same pattern as Defense 2 (burn shares to `address(1)`) |
+| **M2** | AMM swaps / MEV | Auto-compound harvest routes through DEXs — slippage and sandwich risks from M2 apply directly |
+| **M3** | Oracle pricing | Vault tokens used as lending collateral need oracle pricing — can't trust the vault's own `convertToAssets()` |
+| **M4** | Index-based accounting | `shares × rate = assets` is the same pattern as Aave's `scaledBalance × liquidityIndex` |
+| **M5** | Flash loans | Enable single-tx recursive leverage; also enable atomic sandwich attacks on harvest |
+| **M6** | MakerDAO DSR / sDAI | DSR Pot is a vault pattern; sDAI is an ERC-4626 wrapper around it — same share math |
+
+### Forward References (where these concepts lead)
+
+| Target | Concept | How It Connects |
+|---|---|---|
+| **M8** | Invariant testing for vaults | Property-based tests verify vault rounding, share price monotonicity, withdrawal guarantees |
+| **M8** | Composability attack surfaces | Multi-layer vault composition creates novel attack vectors covered in M8 threat models |
+| **M9** | Vault shares as collateral | Integration capstone uses ERC-4626 vault tokens as building blocks |
+| **M9** | Yield aggregator integration | Capstone combines vault patterns with flash loans and liquidation mechanics |
+| **Part 3 M1** | Upgradeable vault architecture | Proxy patterns for vault upgrades and migration strategies |
+| **Part 3 M5** | Formal verification | Proving vault invariants (share price monotonicity, rounding correctness) formally |
+| **Part 3 M8** | Vault deployment | Production deployment patterns for vault infrastructure |
+| **Part 3 M9** | Vault monitoring | Runtime monitoring of vault health, strategy performance, exchange rate anomalies |
+
+---
+
+## 📖 Production Study Order
+
+Study these implementations in order — each builds on concepts from the previous:
+
+| # | Repository | Why Study This | Key Files |
+|---|---|---|---|
+| 1 | [OpenZeppelin ERC4626](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC4626.sol) | Foundation implementation with virtual shares defense — the reference all others compare against | `ERC4626.sol` (conversion math, rounding), `Math.sol` (mulDiv) |
+| 2 | [Solmate ERC4626](https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC4626.sol) | Minimal gas-efficient alternative — no virtual shares, shows the trade-off between safety and efficiency | `ERC4626.sol` (compare rounding, no `_decimalsOffset`) |
+| 3 | [Yearn TokenizedStrategy](https://github.com/yearn/tokenized-strategy/blob/master/src/TokenizedStrategy.sol) | The delegation pattern — how a strategy delegates ERC-4626 logic to a shared implementation via `delegateCall` | `TokenizedStrategy.sol` (accounting, reporting), `BaseStrategy.sol` (the 3 overrides) |
+| 4 | [Yearn VaultV3](https://github.com/yearn/yearn-vaults-v3/blob/master/contracts/VaultV3.vy) | Allocator vault with profit unlocking, role system, and multi-strategy debt management | `VaultV3.vy` (`process_report`, `update_debt`, profit unlock), `TECH_SPEC.md` |
+| 5 | [Morpho MetaMorpho](https://github.com/morpho-org/metamorpho/blob/main/src/MetaMorpho.sol) | Production curator vault — allocates across Morpho Blue lending markets, real-world fee/cap/queue mechanics | `MetaMorpho.sol` (allocation logic, fee handling, withdrawal queue) |
+| 6 | [a16z ERC-4626 Property Tests](https://github.com/a16z/ERC4626-property-tests) | Comprehensive compliance test suite — run against any vault to verify rounding, preview accuracy, edge cases | `ERC4626.prop.sol` (all property tests), README (how to integrate) |
+
+**Reading strategy:** Start with OZ ERC4626 (1) to understand the math foundation. Compare with Solmate (2) to see what "no virtual shares" means in practice. Then read a simple Yearn strategy (3) to understand the user-facing abstraction. VaultV3 (4) shows how strategies compose into an allocator. MetaMorpho (5) is the most production-complete curator vault. Finally, run the a16z tests (6) against your own implementations.
+
+---
+
+## 📚 Resources
 
 **ERC-4626:**
 - [EIP-4626 specification](https://eips.ethereum.org/EIPS/eip-4626)
@@ -449,13 +1026,18 @@ This composability is why ERC-4626 adoption has been so rapid — each new vault
 - [Tokenized Strategy source](https://github.com/yearn/tokenized-strategy)
 - [Strategy writing guide](https://docs.yearn.fi/developers/v3/strategy_writing_guide)
 
+**ERC-4626 Property Tests:**
+- [a16z ERC-4626 property tests](https://github.com/a16z/ERC4626-property-tests) — Comprehensive property-based test suite for ERC-4626 compliance. Run these against any vault implementation to verify spec-correctness: rounding invariants, preview accuracy, max function behavior, and edge cases. If your vault passes these, it will integrate correctly with the broader ERC-4626 ecosystem.
+- [OpenZeppelin ERC-4626 tests](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/test/token/ERC20/extensions) — OpenZeppelin's own test suite covers the virtual share mechanism and rounding behavior.
+
 **Modular DeFi / Curators:**
 - [Morpho documentation](https://docs.morpho.org)
 - [Euler V2 documentation](https://docs.euler.finance)
+- [MetaMorpho source](https://github.com/morpho-org/metamorpho) — Production ERC-4626 curator vault
 
 ---
 
-## Practice Challenges
+## 🎯 Practice Challenges
 
 These challenges test vault interaction patterns and are best attempted after completing the module:
 
@@ -463,4 +1045,4 @@ These challenges test vault interaction patterns and are best attempted after co
 
 ---
 
-*Next module: DeFi Security (~4 days) — DeFi-specific attack patterns, invariant testing with Foundry, reading audit reports, and security tooling.*
+**Navigation:** [← Module 6: Stablecoins & CDPs](6-stablecoins-cdps.md) | [Module 8: DeFi Security →](8-defi-security.md)

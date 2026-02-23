@@ -1,28 +1,28 @@
-# Section 5: Foundry Workflow & Testing (~2-3 days)
+# Module 5: Foundry Workflow & Testing (~2-3 days)
 
 ## 📚 Table of Contents
 
-**Day 11: Foundry Essentials**
+**Foundry Essentials**
 - [Why Foundry](#why-foundry)
 - [Setup](#setup)
 - [Core Cheatcodes for DeFi Testing](#core-cheatcodes)
 - [Configuration](#configuration)
-- [Day 11 Build Exercise](#day11-exercise)
+- [Build Exercise: Cheatcodes and Fork Tests](#day11-exercise)
 
-**Day 12: Fuzz Testing and Invariant Testing**
+**Fuzz Testing and Invariant Testing**
 - [Fuzz Testing](#fuzz-testing)
 - [Invariant Testing](#invariant-testing)
-- [Day 12 Build Exercise](#day12-exercise)
+- [Build Exercise: Vault Invariants](#day12-exercise)
 
-**Day 13: Fork Testing and Gas Optimization**
+**Fork Testing and Gas Optimization**
 - [Fork Testing for DeFi](#fork-testing)
 - [Gas Optimization Workflow](#gas-optimization)
 - [Foundry Scripts for Deployment](#foundry-scripts)
-- [Day 13 Build Exercise](#day13-exercise)
+- [Build Exercise: Fork Testing and Gas](#day13-exercise)
 
 ---
 
-## Day 11: Foundry Essentials for DeFi Development
+## Foundry Essentials for DeFi Development
 
 <a id="why-foundry"></a>
 ### 💡 Concept: Why Foundry
@@ -207,15 +207,15 @@ Run with `forge test --match-contract CheatcodePlayground -vvv` and watch the tr
 
 1. **Time-dependent logic** (`vm.warp`):
    - Vault lock periods and vesting schedules
-   - Oracle staleness checks (← Section 5 Day 13)
+   - Oracle staleness checks
    - Interest accrual in lending protocols (→ Part 2 Module 3)
    - Governance timelocks and voting periods
 
 2. **Access control testing** (`vm.prank`):
    - Testing admin-only functions (pause, upgrade, fee changes)
    - Simulating multi-sig signers
-   - Testing permit/signature flows with `vm.sign` (← Section 3)
-   - Account abstraction validation with `vm.prank(entryPoint)` (← Section 4)
+   - Testing permit/signature flows with `vm.sign` (← Module 3)
+   - Account abstraction validation with `vm.prank(entryPoint)` (← Module 4)
 
 3. **State manipulation** (`deal`):
    - Funding test accounts with exact token amounts
@@ -241,7 +241,7 @@ Run with `forge test --match-contract CheatcodePlayground -vvv` and watch the tr
 
 **Interview Red Flags:**
 - 🚩 Using `vm.assume` instead of `bound()` for constraining fuzz inputs
-- 🚩 Not knowing `vm.expectRevert` with custom error selectors (Section 1 pattern)
+- 🚩 Not knowing `vm.expectRevert` with custom error selectors (Module 1 pattern)
 - 🚩 Hardcoding block.timestamp instead of using `vm.warp` for time-dependent tests
 
 **Pro tip:** Master `vm.sign` + EIP-712 digest construction — it's the most asked-about Foundry skill in DeFi interviews. Permit flows and meta-transactions are everywhere, and having a reusable EIP-712 test helper in your toolkit signals production experience.
@@ -289,9 +289,9 @@ mainnet = { key = "${ETHERSCAN_API_KEY}" }
 ---
 
 <a id="day11-exercise"></a>
-## 🎯 Day 11 Build Exercise
+## 🎯 Build Exercise: Cheatcodes and Fork Tests
 
-**Workspace:** [`workspace/test/part1/section5/`](../workspace/test/part1/section5/) — base setup: [`BaseTest.sol`](../workspace/test/part1/section5/BaseTest.sol), fork tests: [`UniswapV2Fork.t.sol`](../workspace/test/part1/section5/UniswapV2Fork.t.sol), [`ChainlinkFork.t.sol`](../workspace/test/part1/section5/ChainlinkFork.t.sol)
+**Workspace:** [`workspace/test/part1/module5/`](../workspace/test/part1/module5/) — base setup: [`BaseTest.sol`](../workspace/test/part1/module5/BaseTest.sol), fork tests: [`UniswapV2Fork.t.sol`](../workspace/test/part1/module5/UniswapV2Fork.t.sol), [`ChainlinkFork.t.sol`](../workspace/test/part1/module5/ChainlinkFork.t.sol)
 
 Set up the project structure you'll use throughout Part 2:
 
@@ -368,7 +368,7 @@ Set up the project structure you'll use throughout Part 2:
 
 ---
 
-## 📋 Day 11 Summary
+## 📋 Summary: Foundry Essentials
 
 **✓ Covered:**
 - Why Foundry — Solidity tests, built-in fuzzing, fast execution
@@ -376,11 +376,11 @@ Set up the project structure you'll use throughout Part 2:
 - Core cheatcodes — `vm.prank`, `vm.warp`, `deal`, `vm.expectRevert`, `vm.sign`
 - BaseTest pattern — reusable test setup for fork testing
 
-**Next:** Day 12 — Fuzz testing and invariant testing for DeFi
+**Next:** Fuzz testing and invariant testing for DeFi
 
 ---
 
-## Day 12: Fuzz Testing and Invariant Testing
+## Fuzz Testing and Invariant Testing
 
 <a id="fuzz-testing"></a>
 ### 💡 Concept: Fuzz Testing
@@ -742,9 +742,9 @@ function invariant_solvency() public {
 ---
 
 <a id="day12-exercise"></a>
-## 🎯 Day 12 Build Exercise
+## 🎯 Build Exercise: Vault Invariants
 
-**Workspace:** [`workspace/src/part1/section5/`](../workspace/src/part1/section5/) — vault: [`SimpleVault.sol`](../workspace/src/part1/section5/SimpleVault.sol), tests: [`SimpleVault.t.sol`](../workspace/test/part1/section5/SimpleVault.t.sol), handler: [`VaultHandler.sol`](../workspace/test/part1/section5/VaultHandler.sol), invariants: [`VaultInvariant.t.sol`](../workspace/test/part1/section5/VaultInvariant.t.sol)
+**Workspace:** [`workspace/src/part1/module5/`](../workspace/src/part1/module5/) — vault: [`SimpleVault.sol`](../workspace/src/part1/module5/SimpleVault.sol), tests: [`SimpleVault.t.sol`](../workspace/test/part1/module5/SimpleVault.t.sol), handler: [`VaultHandler.sol`](../workspace/test/part1/module5/VaultHandler.sol), invariants: [`VaultInvariant.t.sol`](../workspace/test/part1/module5/VaultInvariant.t.sol)
 
 1. **Build a simple vault** (accepts one ERC-20 token, issues shares proportional to deposit size):
    ```solidity
@@ -810,7 +810,7 @@ function invariant_solvency() public {
 
 ---
 
-## 📋 Day 12 Summary
+## 📋 Summary: Fuzz and Invariant Testing
 
 **✓ Covered:**
 - Fuzz testing — property-based testing for all inputs
@@ -819,7 +819,7 @@ function invariant_solvency() public {
 - Handler pattern — constraining fuzzer to valid operations
 - Ghost variables — tracking cumulative state for invariants
 
-**Next:** Day 13 — Fork testing and gas optimization
+**Next:** Fork testing and gas optimization
 
 ---
 
@@ -864,7 +864,7 @@ Search for tests with names like `test_RevertWhen_*`, `test_EdgeCase_*`, `testFu
 
 ---
 
-## Day 13: Fork Testing and Gas Optimization
+## Fork Testing and Gas Optimization
 
 <a id="fork-testing"></a>
 ### 💡 Concept: Fork Testing for DeFi
@@ -1094,7 +1094,7 @@ contract DifferentialTest is Test {
 
     /// @dev Optimized implementation: handles full 512-bit intermediate
     function mulDivOptimized(uint256 x, uint256 y, uint256 d) public pure returns (uint256) {
-        // ... (Section 1's FullMath.mulDiv pattern)
+        // ... (Module 1's FullMath.mulDiv pattern)
         return FullMath.mulDiv(x, y, d);
     }
 
@@ -1176,9 +1176,9 @@ contract DifferentialTest is Test {
 ---
 
 <a id="day13-exercise"></a>
-## 🎯 Day 13 Build Exercise
+## 🎯 Build Exercise: Fork Testing and Gas
 
-**Workspace:** [`workspace/test/part1/section5/`](../workspace/test/part1/section5/) — fork tests: [`UniswapSwapFork.t.sol`](../workspace/test/part1/section5/UniswapSwapFork.t.sol), gas optimization: [`GasOptimization.sol`](../workspace/src/part1/section5/GasOptimization.sol) and [`GasOptimization.t.sol`](../workspace/test/part1/section5/GasOptimization.t.sol)
+**Workspace:** [`workspace/test/part1/module5/`](../workspace/test/part1/module5/) — fork tests: [`UniswapSwapFork.t.sol`](../workspace/test/part1/module5/UniswapSwapFork.t.sol), gas optimization: [`GasOptimization.sol`](../workspace/src/part1/module5/GasOptimization.sol) and [`GasOptimization.t.sol`](../workspace/test/part1/module5/GasOptimization.t.sol)
 
 1. **Write a fork test** that performs a full Uniswap V2 swap:
    ```solidity
@@ -1240,13 +1240,13 @@ contract DifferentialTest is Test {
      forge snapshot --diff
      ```
 
-4. **Write a simple deployment script** for any contract you've built this section
+4. **Write a simple deployment script** for any contract you've built this module
 
 **🎯 Goal:** You should be completely fluent in Foundry before starting Part 2. Fork testing and gas optimization are skills you'll use in every single module.
 
 ---
 
-## 📋 Day 13 Summary
+## 📋 Summary: Fork Testing and Gas Optimization
 
 **✓ Covered:**
 - Fork testing — testing against real deployed contracts and liquidity
@@ -1258,18 +1258,60 @@ contract DifferentialTest is Test {
 
 ---
 
-### 🔗 Cross-Section Concept Links
+### 🔗 Cross-Module Concept Links
 
-**Building on earlier sections:**
-- **← Section 1 (Modern Solidity):** Custom errors tested with `vm.expectRevert(CustomError.selector)`, UDVTs for type-safe test assertions, transient storage patterns verified with cheatcodes
-- **← Section 2 (EVM Changes):** Flash accounting tested with `vm.expectRevert` for lock violations, EIP-7702 delegation tested with `vm.etch` for code injection
-- **← Section 3 (Token Approvals):** EIP-2612 permit flows tested with `vm.sign` + EIP-712 digest construction, Permit2 integration tested with `deal()` for token balances
-- **← Section 4 (Account Abstraction):** ERC-4337 validation tested with `vm.prank(entryPoint)`, EIP-1271 signatures verified in fork tests against real smart wallets
+#### Building on Earlier Modules
 
-**Connecting forward:**
-- **→ Section 6 (Proxy Patterns):** Testing upgradeable contracts — verify storage layout compatibility, test initializers vs constructors, fork test upgrades against live proxies
-- **→ Section 7 (Deployment):** Foundry scripts for deterministic deployment, `CREATE2` address prediction tests, multi-chain deployment verification
-- **→ Part 2 (DeFi Protocols):** Every module uses Foundry extensively — AMM invariant tests, lending protocol fork tests, vault fuzz tests, oracle integration tests, flash loan PoCs
+| Module | Concept | How It Connects |
+|--------|---------|-----------------|
+| [← M1 Modern Solidity](1-solidity-modern.md) | Custom errors | Tested with `vm.expectRevert(CustomError.selector)` — verify revert selectors |
+| [← M1 Modern Solidity](1-solidity-modern.md) | UDVTs | Type-safe test assertions — unwrap for comparison, wrap for inputs |
+| [← M1 Modern Solidity](1-solidity-modern.md) | Transient storage | Verified with cheatcodes — `vm.load` at transient slots, cross-call state |
+| [← M2 EVM Changes](2-evm-changes.md) | Flash accounting | `vm.expectRevert` for lock violations, settlement verification |
+| [← M2 EVM Changes](2-evm-changes.md) | EIP-7702 delegation | `vm.etch` for code injection, delegation target testing |
+| [← M3 Token Approvals](3-token-approvals.md) | EIP-2612 permits | `vm.sign` + EIP-712 digest construction for permit flows |
+| [← M3 Token Approvals](3-token-approvals.md) | Permit2 integration | `deal()` for token balances, approval chain testing |
+| [← M4 Account Abstraction](4-account-abstraction.md) | ERC-4337 validation | `vm.prank(entryPoint)` for validateUserOp testing |
+| [← M4 Account Abstraction](4-account-abstraction.md) | EIP-1271 signatures | Fork tests against real deployed smart wallets |
+
+#### Connecting Forward
+
+| Module | Concept | How It Connects |
+|--------|---------|-----------------|
+| [→ M6 Proxy Patterns](6-proxy-patterns.md) | Upgradeable testing | Verify storage layout compatibility, test initializers vs constructors |
+| [→ M6 Proxy Patterns](6-proxy-patterns.md) | Fork test upgrades | Test proxy upgrades against live deployments |
+| [→ M7 Deployment](7-deployment.md) | Foundry scripts | Deterministic deployment scripts, `CREATE2` address prediction tests |
+| [→ M7 Deployment](7-deployment.md) | Multi-chain verification | Cross-chain deployment consistency checks |
+
+#### Part 2 Connections
+
+| Part 2 Module | Foundry Technique | Application |
+|---------------|-------------------|-------------|
+| [M2: AMMs](../part2/2-amms.md) | Invariant testing | `x * y = k` preservation, price bounds, LP share accounting |
+| [M3: Oracles](../part2/3-oracles.md) | `vm.warp` + `vm.roll` | Time manipulation for oracle staleness, TWAP testing |
+| [M4: Lending](../part2/4-lending.md) | Fork testing + fuzz testing | Test against live Aave/Compound pools, randomized health factor scenarios |
+| [M5: Flash Loans](../part2/5-flash-loans.md) | Fork testing + scripts | Flash loan PoCs against real pools, arbitrage scripts |
+| [M6: Stablecoins](../part2/6-stablecoins-cdps.md) | Invariant testing | CDP solvency, peg stability, liquidation thresholds |
+| [M7: Vaults](../part2/7-vaults-yield.md) | Fuzz testing | Share/asset conversion edge cases, yield strategy invariants |
+| [M8: Security](../part2/8-defi-security.md) | Exploit reproduction | DeFiHackLabs-style fork tests reproducing real attacks |
+| [M9: Integration](../part2/9-integration-capstone.md) | Full test suite | All techniques combined — capstone integration testing |
+
+---
+
+### 📖 Production Study Order
+
+Study these test suites in this order — each builds on skills from the previous:
+
+| # | Repository | Why Study This | Key Files |
+|---|-----------|----------------|-----------|
+| 1 | [Solmate tests](https://github.com/transmissions11/solmate/tree/main/src/test) | Clean, minimal — learn Foundry idioms | ERC20.t.sol, ERC4626.t.sol |
+| 2 | [OZ test suite](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/test) | Industry-standard patterns, comprehensive coverage | ERC20.test.js → Foundry equivalents |
+| 3 | [Uniswap V4 basic tests](https://github.com/Uniswap/v4-core/tree/main/test) | State-of-the-art DeFi testing patterns | PoolManager.t.sol, Swap.t.sol |
+| 4 | [Uniswap V4 handlers](https://github.com/Uniswap/v4-core/tree/main/test) | Invariant testing with handler contracts | invariant/ directory |
+| 5 | [Aave V3 invariant tests](https://github.com/aave/aave-v3-core/tree/master/test-suites/invariants) | Complex protocol invariant testing | Handler patterns for lending |
+| 6 | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) | Exploit reproduction with fork tests | src/test/ — real attack PoCs |
+
+**Reading strategy:** Start with Solmate to learn clean Foundry patterns, then OZ for coverage standards. Move to V4 for DeFi-specific testing, then Aave for invariant handler patterns. Finish with DeFiHackLabs to understand exploit reproduction — the ultimate fork testing skill.
 
 ---
 
@@ -1302,4 +1344,4 @@ contract DifferentialTest is Test {
 
 ---
 
-**Navigation:** [← Previous: Section 4 - Account Abstraction](4-account-abstraction.md) | [Next: Section 6 - Proxy Patterns →](6-proxy-patterns.md)
+**Navigation:** [← Module 4: Account Abstraction](4-account-abstraction.md) | [Module 6: Proxy Patterns →](6-proxy-patterns.md)

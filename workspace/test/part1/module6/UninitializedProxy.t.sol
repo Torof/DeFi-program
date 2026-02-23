@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
-import {VulnerableVault, SecureVault, VaultWithReinitializer} from "../../../src/part1/section6/UninitializedProxy.sol";
+import {VulnerableVault, SecureVault, VaultWithReinitializer} from "../../../src/part1/module6/UninitializedProxy.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /// @notice Tests for uninitialized proxy attacks and fixes.

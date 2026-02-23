@@ -11,10 +11,10 @@ import {
     ZeroAssets,
     ZeroShares,
     ZeroTotalSupply
-} from "../../../src/part1/section1/ShareMath.sol";
+} from "../../../src/part1/module1/ShareMath.sol";
 
 /// @notice Tests for the vault share calculator exercise.
-/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/section1/ShareMath.sol instead.
+/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/module1/ShareMath.sol instead.
 contract ShareMathTest is Test {
     ShareCalculator calculator;
 

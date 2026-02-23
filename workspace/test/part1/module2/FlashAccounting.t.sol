@@ -9,10 +9,10 @@ import {
     AlreadyLocked,
     NotSettled,
     Unauthorized
-} from "../../../src/part1/section2/FlashAccounting.sol";
+} from "../../../src/part1/module2/FlashAccounting.sol";
 
 /// @notice Tests for the flash accounting exercise.
-/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/section2/FlashAccounting.sol instead.
+/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/module2/FlashAccounting.sol instead.
 contract FlashAccountingTest is Test {
     FlashAccounting accounting;
     FlashAccountingUser user;

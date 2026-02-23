@@ -11,7 +11,7 @@ pragma solidity ^0.8.19;
 // Day 15: Understand storage layout compatibility.
 //
 // Run: forge test --match-contract StorageCollisionTest -vvv
-// Run: forge inspect src/part1/section6/StorageCollision.sol:VaultV1 storage-layout
+// Run: forge inspect src/part1/module6/StorageCollision.sol:VaultV1 storage-layout
 // ============================================================================
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";

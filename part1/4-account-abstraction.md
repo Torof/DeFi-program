@@ -1,29 +1,29 @@
-# Section 4: Account Abstraction (~3 days)
+# Module 4: Account Abstraction (~3 days)
 
 ## 📚 Table of Contents
 
-**Day 8: ERC-4337 Architecture**
+**ERC-4337 Architecture**
 - [The Problem Account Abstraction Solves](#problem-aa-solves)
 - [ERC-4337 Components](#erc-4337-components)
 - [The Flow](#the-flow)
 - [Reading SimpleAccount and BaseAccount](#read-simpleaccount)
-- [Day 8 Build Exercise](#day8-exercise)
+- [Build Exercise: SimpleSmartAccount](#day8-exercise)
 
-**Day 9: EIP-7702 and DeFi Implications**
+**EIP-7702 and DeFi Implications**
 - [EIP-7702 — How It Differs from ERC-4337](#eip-7702-vs-erc-4337)
 - [DeFi Protocol Implications](#defi-implications)
 - [EIP-1271 — Contract Signature Verification](#eip-1271)
-- [Day 9 Build Exercise](#day9-exercise)
+- [Build Exercise: SmartAccountEIP1271](#day9-exercise)
 
-**Day 10: Paymasters and Gas Abstraction**
+**Paymasters and Gas Abstraction**
 - [Paymaster Design Patterns](#paymaster-patterns)
 - [Paymaster Flow in Detail](#paymaster-flow)
 - [Reading Paymaster Implementations](#read-paymasters)
-- [Day 10 Build Exercise](#day10-exercise)
+- [Build Exercise: Paymasters](#day10-exercise)
 
 ---
 
-## Day 8: ERC-4337 Architecture
+## ERC-4337 Architecture
 
 <a id="problem-aa-solves"></a>
 ### 💡 Concept: The Problem Account Abstraction Solves
@@ -229,7 +229,7 @@ return (validUntil << 160) | (validAfter << 208);
 // This creates a 1-hour validity window
 ```
 
-> **Connection to Section 1:** This is the same bit-packing pattern as BalanceDelta (Section 1) and PackedAllowance (Section 3) — multiple values squeezed into a single uint256 to save gas. The pattern is everywhere in production DeFi.
+> **Connection to Module 1:** This is the same bit-packing pattern as BalanceDelta (Module 1) and PackedAllowance (Module 3) — multiple values squeezed into a single uint256 to save gas. The pattern is everywhere in production DeFi.
 
 💻 **Quick Try:**
 
@@ -317,9 +317,9 @@ Read these contracts in order:
 ---
 
 <a id="day8-exercise"></a>
-## 🎯 Day 8 Build Exercise
+## 🎯 Build Exercise: SimpleSmartAccount
 
-**Workspace:** [`workspace/src/part1/section4/`](../workspace/src/part1/section4/) — starter file: [`SimpleSmartAccount.sol`](../workspace/src/part1/section4/SimpleSmartAccount.sol), tests: [`SimpleSmartAccount.t.sol`](../workspace/test/part1/section4/SimpleSmartAccount.t.sol)
+**Workspace:** [`workspace/src/part1/module4/`](../workspace/src/part1/module4/) — starter file: [`SimpleSmartAccount.sol`](../workspace/src/part1/module4/SimpleSmartAccount.sol), tests: [`SimpleSmartAccount.t.sol`](../workspace/test/part1/module4/SimpleSmartAccount.t.sol)
 
 1. Create a minimal smart account that implements `IAccount` (just `validateUserOp`)
 2. The account should validate that the UserOperation was signed by a single owner (ECDSA signature via `ecrecover`)
@@ -350,7 +350,7 @@ function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash,
 
 ---
 
-## 📋 Day 8 Summary
+## 📋 Summary: ERC-4337 Architecture
 
 **✓ Covered:**
 - EOA limitations — gas requirements, single key, no batch operations
@@ -358,11 +358,11 @@ function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash,
 - Validation/execution split — why it matters for security
 - SimpleAccount implementation — ECDSA validation and execution
 
-**Next:** Day 9 — EIP-7702 and how smart accounts change DeFi protocol design
+**Next:** EIP-7702 and how smart accounts change DeFi protocol design
 
 ---
 
-## Day 9: EIP-7702 and DeFi Implications
+## EIP-7702 and DeFi Implications
 
 <a id="eip-7702-vs-erc-4337"></a>
 ### 💡 Concept: EIP-7702 — How It Differs from ERC-4337
@@ -472,7 +472,7 @@ If your protocol requires [EIP-712](https://eips.ethereum.org/EIPS/eip-712) sign
 
 1. **Uniswap V4 + Smart Accounts**
    - Permit2's `SignatureVerification` already handles EIP-1271 → smart accounts can sign Permit2 permits
-   - Flash accounting (Section 2) works identically for EOAs and smart accounts
+   - Flash accounting (Module 2) works identically for EOAs and smart accounts
    - But custom hooks might assume EOA behavior — audit carefully
 
 2. **Aave V3 + Batch Liquidations**
@@ -499,7 +499,7 @@ If your protocol requires [EIP-712](https://eips.ethereum.org/EIPS/eip-712) sign
    require(msg.sender == tx.origin, "No contracts");
 
    // ✅ If you need reentrancy protection, use a proper guard
-   // (ReentrancyGuard or transient storage from Section 1)
+   // (ReentrancyGuard or transient storage from Module 1)
    ```
 
 2. **Assuming all signatures are ECDSA**
@@ -642,7 +642,7 @@ library UniversalSigVerifier {
 - Any protocol that integrates with Permit2 (which handles this internally)
 - Governance systems that accept delegated votes
 
-> **Connection to Section 3:** This is exactly what Permit2's `SignatureVerification.sol` does internally. The pattern you learned in Section 3 (Permit2 source code reading) connects directly here — `SignatureVerification` is the bridge between permit signatures and smart accounts.
+> **Connection to Module 3:** This is exactly what Permit2's `SignatureVerification.sol` does internally. The pattern you learned in Module 3 (Permit2 source code reading) connects directly here — `SignatureVerification` is the bridge between permit signatures and smart accounts.
 
 #### 🔗 DeFi Pattern Connection
 
@@ -650,7 +650,7 @@ library UniversalSigVerifier {
 
 1. **Permit2** — already supports EIP-1271 via `SignatureVerification.sol`
    - Smart accounts can sign Permit2 permits
-   - Your vault from Section 3 works with smart accounts out of the box (if using Permit2)
+   - Your vault from Module 3 works with smart accounts out of the box (if using Permit2)
 
 2. **OpenSea / NFT Marketplaces** — order signatures must support contract wallets
    - Safe users listing NFTs sign via EIP-1271
@@ -662,7 +662,7 @@ library UniversalSigVerifier {
 
 4. **UniswapX / Intent Systems**
    - Swap orders signed by smart accounts → verified via EIP-1271
-   - Witness data (Section 3) + EIP-1271 = smart accounts participating in intent-based trading
+   - Witness data (Module 3) + EIP-1271 = smart accounts participating in intent-based trading
 
 **The pattern:** If your protocol accepts any kind of off-chain signature, add EIP-1271 support. Use OpenZeppelin's `SignatureChecker` library — it's a one-line change that makes your protocol compatible with all smart accounts.
 
@@ -726,15 +726,15 @@ function verifySignature(address signer, bytes32 hash, bytes memory sig) interna
 ---
 
 <a id="day9-exercise"></a>
-## 🎯 Day 9 Build Exercise
+## 🎯 Build Exercise: SmartAccountEIP1271
 
-**Workspace:** [`workspace/src/part1/section4/`](../workspace/src/part1/section4/) — starter file: [`SmartAccountEIP1271.sol`](../workspace/src/part1/section4/SmartAccountEIP1271.sol), tests: [`SmartAccountEIP1271.t.sol`](../workspace/test/part1/section4/SmartAccountEIP1271.t.sol)
+**Workspace:** [`workspace/src/part1/module4/`](../workspace/src/part1/module4/) — starter file: [`SmartAccountEIP1271.sol`](../workspace/src/part1/module4/SmartAccountEIP1271.sol), tests: [`SmartAccountEIP1271.t.sol`](../workspace/test/part1/module4/SmartAccountEIP1271.t.sol)
 
-1. **Extend your Day 8 smart account** to support EIP-1271:
+1. **Extend your SimpleSmartAccount** to support EIP-1271:
    - Implement `isValidSignature(bytes32 hash, bytes signature)` that verifies the owner's ECDSA signature
    - Return `0x1626ba7e` if valid ✅, `0xffffffff` if invalid ❌
 
-2. **Modify the Permit2 Vault** you built in Section 3 to support both EOA signatures (ecrecover) and contract signatures (EIP-1271):
+2. **Modify the Permit2 Vault** you built in Module 3 to support both EOA signatures (ecrecover) and contract signatures (EIP-1271):
    ```solidity
    function verifyPermitSignature(
        address owner,
@@ -760,7 +760,7 @@ function verifySignature(address signer, bytes32 hash, bytes memory sig) interna
 
 ---
 
-## 📋 Day 9 Summary
+## 📋 Summary: EIP-7702 and DeFi Implications
 
 **✓ Covered:**
 - EIP-7702 vs ERC-4337 — temporary delegation vs full smart accounts
@@ -768,11 +768,11 @@ function verifySignature(address signer, bytes32 hash, bytes memory sig) interna
 - EIP-1271 — contract signature verification for smart account compatibility
 - Real-world patterns — Permit2 integration with smart accounts
 
-**Next:** Day 10 — Paymasters and how to sponsor gas for users
+**Next:** Paymasters and how to sponsor gas for users
 
 ---
 
-## Day 10: Paymasters and Gas Abstraction
+## Paymasters and Gas Abstraction
 
 <a id="paymaster-patterns"></a>
 ### 💡 Concept: Paymaster Design Patterns
@@ -1007,9 +1007,9 @@ postOp(mode, context, actualGasCost, actualUserOpFeePerGas)
 ---
 
 <a id="day10-exercise"></a>
-## 🎯 Day 10 Build Exercise
+## 🎯 Build Exercise: Paymasters
 
-**Workspace:** [`workspace/src/part1/section4/`](../workspace/src/part1/section4/) — starter file: [`Paymasters.sol`](../workspace/src/part1/section4/Paymasters.sol), tests: [`Paymasters.t.sol`](../workspace/test/part1/section4/Paymasters.t.sol)
+**Workspace:** [`workspace/src/part1/module4/`](../workspace/src/part1/module4/) — starter file: [`Paymasters.sol`](../workspace/src/part1/module4/Paymasters.sol), tests: [`Paymasters.t.sol`](../workspace/test/part1/module4/Paymasters.t.sol)
 
 1. **Implement a simple verifying paymaster** that sponsors UserOperations if they carry a valid signature from a trusted signer:
    - Add a `verifyingSigner` address
@@ -1041,7 +1041,7 @@ postOp(mode, context, actualGasCost, actualUserOpFeePerGas)
 
 ---
 
-## 📋 Day 10 Summary
+## 📋 Summary: Paymasters and Gas Abstraction
 
 **✓ Covered:**
 - Paymaster patterns — verifying, ERC-20, deposit models
@@ -1051,13 +1051,60 @@ postOp(mode, context, actualGasCost, actualUserOpFeePerGas)
 
 **Key takeaway:** Paymasters enable gasless DeFi interactions, making protocols accessible to users without ETH. Understanding paymaster economics is essential for modern protocol design.
 
-**🔗 Concept links:**
-- **← Section 1:** Bit-packing (BalanceDelta) appears again in validationData and PackedUserOperation; custom errors for clear UserOp validation failures; `abi.encodeCall` for type-safe EntryPoint calls
-- **← Section 2:** EIP-7702 delegation designator (Section 2's coverage) + ERC-4337 = combined AA approach
-- **← Section 3:** Permit2's `SignatureVerification` already supports EIP-1271 — smart accounts can use Permit2 natively
-- **→ Section 5:** Foundry's `vm.sign` and `vm.addr` for testing UserOperation signatures; fork testing for EntryPoint interaction
-- **→ Section 6:** Smart accounts use proxy patterns (UUPS) for upgradeability — Kernel and Safe are both upgradeable proxies
-- **→ Part 2:** Paymaster integration with lending protocols (oracle pricing), DEX aggregators (gas sponsorship), and yield vaults (gasless deposits)
+---
+
+## 🔗 Cross-Module Concept Links
+
+**Backward references (← concepts from earlier modules):**
+
+| Module 4 Concept | Builds on | Where |
+|---|---|---|
+| PackedUserOperation + validationData packing | BalanceDelta bit-packing, uint256 slot layout | [M1 — BalanceDelta](1-solidity-modern.md#balance-delta) |
+| UserOp validation errors | Custom errors for clear revert reasons | [M1 — Custom Errors](1-solidity-modern.md#custom-errors) |
+| Type-safe EntryPoint calls | `abi.encodeCall` for compile-time type checking | [M1 — abi.encodeCall](1-solidity-modern.md#abi-encodecall) |
+| EIP-7702 + ERC-4337 combined approach | Delegation designator format, DELEGATECALL semantics | [M2 — EIP-7702](2-evm-changes.md#eip-7702) |
+| EIP-1271 signature verification | Permit2's SignatureVerification handles EOA + contract sigs | [M3 — Permit2 Source Code](3-token-approvals.md#permit2-source-code) |
+| Smart account permit support | Permit2 works with smart accounts via EIP-1271 | [M3 — EIP-2612 Permit](3-token-approvals.md#eip-2612-permit) |
+
+**Forward references (→ concepts you'll use later):**
+
+| Module 4 Concept | Used in | Where |
+|---|---|---|
+| UserOp signature testing | `vm.sign`, `vm.addr`, fork testing for EntryPoint | [M5 — Foundry](5-foundry.md) |
+| Smart account upgradeability | UUPS proxy pattern — Kernel, Safe are upgradeable proxies | [M6 — Proxy Patterns](6-proxy-patterns.md) |
+| EntryPoint singleton deployment | CREATE2 deterministic addresses across chains | [M7 — Deployment](7-deployment.md) |
+
+**Part 2 connections:**
+
+| Module 4 Concept | Part 2 Module | How it connects |
+|---|---|---|
+| EIP-1271 + smart account signatures | [M2 — AMMs](../part2/2-amms.md) | Smart accounts using Permit2 for swaps — EIP-1271 verifies the permit signature |
+| Paymaster oracle pricing | [M3 — Oracles](../part2/3-oracles.md) | ERC-20 paymasters need Chainlink feeds for ETH/token exchange rates |
+| Batch liquidations via smart accounts | [M4 — Lending](../part2/4-lending.md) | Atomic batch liquidation: scan → liquidate multiple → swap rewards in one UserOp |
+| Gasless flash loan execution | [M5 — Flash Loans](../part2/5-flash-loans.md) | Paymasters can sponsor flash loan arb execution for users |
+| Gas sponsorship for vault deposits | [M7 — Vaults & Yield](../part2/7-vaults-yield.md) | Protocol-sponsored gasless deposits to attract TVL |
+| AA security implications | [M8 — DeFi Security](../part2/8-defi-security.md) | `msg.sender == tx.origin` checks, EIP-1271 griefing, paymaster draining |
+| Full AA integration | [M9 — Integration Capstone](../part2/9-integration-capstone.md) | Capstone should support smart account users with paymaster option |
+
+---
+
+## 📖 Production Study Order
+
+Read these files in order to build progressive understanding of account abstraction in production:
+
+| # | File | Why | Lines |
+|---|------|-----|-------|
+| 1 | [IAccount.sol](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/interfaces/IAccount.sol) | One function: `validateUserOp` — the minimal smart account interface | ~15 |
+| 2 | [BaseAccount.sol](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/core/BaseAccount.sol) | Validation helper — see how `_validateSignature` is separated from nonce/payment handling | ~50 |
+| 3 | [SimpleAccount.sol](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccount.sol) | Reference implementation — ECDSA owner validation, execute/executeBatch | ~100 |
+| 4 | [EntryPoint.sol — `handleOps`](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/core/EntryPoint.sol) | The orchestrator — follow validate → execute → postOp flow (skim, don't deep-read) | ~500 |
+| 5 | [BasePaymaster.sol](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/core/BasePaymaster.sol) | Paymaster interface — `validatePaymasterUserOp` + `postOp` with context passing | ~60 |
+| 6 | [VerifyingPaymaster.sol](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/VerifyingPaymaster.sol) | Simplest paymaster — off-chain signature verification | ~80 |
+| 7 | [TokenPaymaster.sol](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/TokenPaymaster.sol) | ERC-20 gas payment — oracle integration, postOp accounting | ~200 |
+| 8 | [OZ SignatureChecker.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/SignatureChecker.sol) | Universal sig verification — the bridge between EOA and smart account signatures | ~30 |
+| 9 | [Kernel (ZeroDev)](https://github.com/zerodev-app/kernel) | Production modular account — plugins, session keys, how the industry builds on top of ERC-4337 | ~300 |
+
+**Reading strategy:** Files 1–3 build the smart account from interface → reference implementation. File 4 is the orchestrator (skim the flow, don't memorize). Files 5–7 cover paymasters from simple → complex. File 8 is the EIP-1271 bridge. File 9 shows where the industry is heading — modular, pluggable account architecture.
 
 ---
 
@@ -1096,4 +1143,4 @@ postOp(mode, context, actualGasCost, actualUserOpFeePerGas)
 
 ---
 
-**Navigation:** [← Previous: Section 3 - Token Approvals](3-token-approvals.md) | [Next: Section 5 - Foundry →](5-foundry.md)
+**Navigation:** [← Module 3: Token Approvals](3-token-approvals.md) | [Module 5: Foundry →](5-foundry.md)

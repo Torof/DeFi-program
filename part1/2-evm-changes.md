@@ -1,29 +1,29 @@
-# Section 2: EVM-Level Changes (~2 days)
+# Module 2: EVM-Level Changes (~2 days)
 
 ## 📚 Table of Contents
 
-**Day 3: Dencun Upgrade**
+**Dencun Upgrade**
 - [Transient Storage Deep Dive (EIP-1153)](#transient-storage-deep-dive)
 - [Proto-Danksharding (EIP-4844)](#proto-danksharding)
 - [PUSH0 & MCOPY](#push0-mcopy)
 - [SELFDESTRUCT Changes](#selfdestruct-changes)
-- [Day 3 Build Exercise](#day3-exercise)
+- [Build Exercise: FlashAccounting](#day3-exercise)
 
-**Day 4: Pectra Upgrade**
+**Pectra Upgrade**
 - [EIP-7702 — EOA Code Delegation](#eip-7702)
 - [Other Pectra EIPs](#other-pectra-eips)
-- [Day 4 Build Exercise](#day4-exercise)
+- [Build Exercise: EIP7702Delegate](#day4-exercise)
 
 ---
 
-## Day 3: Dencun Upgrade — EIP-1153 & EIP-4844
+## Dencun Upgrade — EIP-1153 & EIP-4844
 
 <a id="transient-storage-deep-dive"></a>
 ### 💡 Concept: Transient Storage Deep Dive (EIP-1153)
 
 **Why this matters:** You've used `transient` in Solidity. Now understand what the EVM actually does. Uniswap V4's entire architecture—the flash accounting that lets you batch swaps, add liquidity, and pay only net balances—depends on transient storage behaving exactly right across `CALL` boundaries.
 
-> 🔗 **Connection to Section 1:** Remember the [TransientGuard exercise from Day 2](1-solidity-modern.md#day2-exercise)? You used the `transient` keyword and raw `tstore`/`tload` assembly. Now we're diving into **how EIP-1153 actually works at the EVM level**—the opcodes, gas costs, and why it's revolutionary for DeFi.
+> 🔗 **Connection to Module 1:** Remember the [TransientGuard exercise](1-solidity-modern.md#day2-exercise)? You used the `transient` keyword and raw `tstore`/`tload` assembly. Now we're diving into **how EIP-1153 actually works at the EVM level**—the opcodes, gas costs, and why it's revolutionary for DeFi.
 
 > Introduced in [EIP-1153](https://eips.ethereum.org/EIPS/eip-1153), activated with the [Dencun upgrade](https://ethereum.org/en/roadmap/dencun/) (March 2024)
 
@@ -677,7 +677,7 @@ An attacker used metamorphic contracts to:
 
 `SELFDESTRUCT` now only deletes code if called in the **same transaction** as deployment. The redeploy attack requires two transactions (deploy → selfdestruct → redeploy), so the code persists.
 
-> ⚡ **Common pitfall:** If you're reading older DeFi code (pre-2024) and see `SELFDESTRUCT` used for upgrade patterns, be aware that pattern is now obsolete. Modern upgradeable contracts use UUPS or Transparent Proxy patterns (covered in Section 6).
+> ⚡ **Common pitfall:** If you're reading older DeFi code (pre-2024) and see `SELFDESTRUCT` used for upgrade patterns, be aware that pattern is now obsolete. Modern upgradeable contracts use UUPS or Transparent Proxy patterns (covered in Module 6).
 
 > 🔍 **Deep dive:** [Dedaub - Removal of SELFDESTRUCT](https://dedaub.com/blog/eip-4758-eip-6780-removal-of-selfdestruct/) explains security benefits. [Vibranium Audits - EIP-6780 Objectives](https://www.vibraniumaudits.com/post/taking-self-destructing-contracts-to-the-next-level-the-objectives-of-eip-6780) covers how metamorphic contracts were exploited in governance attacks.
 
@@ -700,7 +700,7 @@ An attacker used metamorphic contracts to:
 **What production DeFi engineers know:**
 
 1. **Pause, don't destroy**: Use OpenZeppelin's `Pausable` pattern instead of SELFDESTRUCT
-2. **Upgradability**: Use UUPS or Transparent Proxy (Section 6), not metamorphic contracts
+2. **Upgradability**: Use UUPS or Transparent Proxy (Module 6), not metamorphic contracts
 3. **The one exception**: Factory contracts that deploy+test+destroy in a single transaction (rare)
 4. **Historical code**: Pre-2024 contracts may have SELFDESTRUCT—understand it won't work as originally intended
 
@@ -709,9 +709,9 @@ An attacker used metamorphic contracts to:
 ---
 
 <a id="day3-exercise"></a>
-## 🎯 Day 3 Build Exercise
+## 🎯 Build Exercise: FlashAccounting
 
-**Workspace:** [`workspace/src/part1/section2/`](../workspace/src/part1/section2/) — starter file: [`FlashAccounting.sol`](../workspace/src/part1/section2/FlashAccounting.sol), tests: [`FlashAccounting.t.sol`](../workspace/test/part1/section2/FlashAccounting.t.sol)
+**Workspace:** [`workspace/src/part1/module2/`](../workspace/src/part1/module2/) — starter file: [`FlashAccounting.sol`](../workspace/src/part1/module2/FlashAccounting.sol), tests: [`FlashAccounting.t.sol`](../workspace/test/part1/module2/FlashAccounting.t.sol)
 
 Build a "flash accounting" pattern using transient storage:
 
@@ -728,7 +728,7 @@ Build a "flash accounting" pattern using transient storage:
 
 ---
 
-## ⚠️ Common Mistakes: Day 3 Recap
+## ⚠️ Common Mistakes: Dencun Recap
 
 **Transient Storage:**
 1. ❌ **Using transient storage for cross-transaction state** → It resets every transaction! Use regular storage.
@@ -746,13 +746,13 @@ Build a "flash accounting" pattern using transient storage:
 2. ❌ **Manually optimizing for PUSH0** → The compiler does this automatically. Focus on logic, not opcode-level tricks.
 
 **SELFDESTRUCT:**
-1. ❌ **Using SELFDESTRUCT for upgradability** → Broken post-Dencun. Use proxy patterns (Section 6).
+1. ❌ **Using SELFDESTRUCT for upgradability** → Broken post-Dencun. Use proxy patterns (Module 6).
 2. ❌ **Relying on SELFDESTRUCT for contract removal** → Code persists unless called in same transaction as deployment.
 3. ❌ **Trusting pre-2024 code with SELFDESTRUCT** → Understand it won't work as originally intended.
 
 ---
 
-## 📋 Day 3 Summary
+## 📋 Summary: Dencun Upgrade
 
 **✓ Covered:**
 - Transient storage mechanics (EIP-1153) — how it differs from memory and storage, gas costs, flash accounting
@@ -761,11 +761,11 @@ Build a "flash accounting" pattern using transient storage:
 - PUSH0 & MCOPY — bytecode comparisons and gas savings
 - SELFDESTRUCT changes (EIP-6780) — metamorphic contracts are dead, historical context
 
-**Next:** Day 4 — EIP-7702 (EOA code delegation) and the Pectra upgrade
+**Next:** EIP-7702 (EOA code delegation) and the Pectra upgrade
 
 ---
 
-## Day 4: Pectra Upgrade — EIP-7702 and Beyond
+## Pectra Upgrade — EIP-7702 and Beyond
 
 <a id="eip-7702"></a>
 ### 💡 Concept: EIP-7702 — EOA Code Delegation
@@ -789,7 +789,7 @@ EIP-7702 allows Externally Owned Accounts (EOAs) to temporarily delegate to smar
 
 EIP-7702 means EOAs can:
 - ✅ **Batch transactions**: Execute multiple operations in a single transaction
-- ✅ **Use paymasters**: Have someone else pay gas fees (covered in Section 4)
+- ✅ **Use paymasters**: Have someone else pay gas fees (covered in Module 4)
 - ✅ **Implement custom validation**: Use multisig, passkeys, session keys, etc.
 - ✅ **All without creating a new smart account**
 
@@ -970,7 +970,7 @@ function goodExecute(Call[] calldata calls) external {
 }
 ```
 
-> 🔍 **Deep dive:** EIP-7702 is closely related to ERC-4337 (Section 4). The difference: ERC-4337 requires deploying a new smart account, while EIP-7702 upgrades existing EOAs. Read [Vitalik's post on EIP-7702](https://notes.ethereum.org/@vbuterin/account_abstraction_roadmap) for the full account abstraction roadmap.
+> 🔍 **Deep dive:** EIP-7702 is closely related to ERC-4337 (Module 4). The difference: ERC-4337 requires deploying a new smart account, while EIP-7702 upgrades existing EOAs. Read [Vitalik's post on EIP-7702](https://notes.ethereum.org/@vbuterin/account_abstraction_roadmap) for the full account abstraction roadmap.
 
 **Security considerations:**
 
@@ -980,6 +980,23 @@ function goodExecute(Call[] calldata calls) external {
 > ⚡ **Common pitfall:** Some contracts use `tx.origin` checks for authentication (e.g., "only allow if `tx.origin == owner`"). These patterns break with EIP-7702 because delegated calls have the same `tx.origin` as direct calls. Avoid `tx.origin`-based authentication.
 
 > 🔍 **Deep dive:** [QuickNode - EIP-7702 Implementation Guide](https://www.quicknode.com/guides/ethereum-development/smart-contracts/eip-7702-smart-accounts) provides hands-on Foundry examples. [Biconomy - Comprehensive EIP-7702 Guide](https://blog.biconomy.io/a-comprehensive-eip-7702-guide-for-apps/) covers app integration. [Gelato - Account Abstraction from ERC-4337 to EIP-7702](https://gelato.cloud/blog/gelato-s-guide-to-account-abstraction-from-erc-4337-to-eip-7702) explains how EIP-7702 compares to ERC-4337.
+
+**📖 Code Reading Strategy for EIP-7702 Delegation Targets:**
+
+Real delegation targets are what EOAs point to via EIP-7702. Study them to understand production security patterns:
+
+1. **Start with the interface** — Look for `execute(Call[])` or `executeBatch()`. Every delegation target exposes a batch execution entry point.
+2. **Find the auth check** — Search for `msg.sender == address(this)`. This is the critical guard: in delegated context, `address(this)` is the EOA, so only the EOA owner can trigger execution.
+3. **Check for module support** — Modern targets (Rhinestone, Biconomy) support pluggable validators and executors. Look for `isValidSignature()` and module registry patterns.
+4. **Look at fallback handling** — What happens if someone calls an unknown function on the delegated EOA? Good targets have a secure `fallback()` that either reverts or routes to modules.
+5. **Test files first** — As always, start with the test suite. Search for `test_batch`, `test_unauthorized`, `test_delegatecall` to see what security properties are verified.
+
+**Recommended study order:**
+- [Alchemy LightAccount](https://github.com/alchemyplatform/light-account/blob/main/src/LightAccount.sol) — cleanest minimal implementation
+- [Rhinestone ModuleKit](https://github.com/rhinestonewtf/modulekit) — modular architecture with validators/executors
+- [Biconomy Nexus](https://github.com/bcnmy/nexus) — production AA account with EIP-7702 support
+
+**Don't get stuck on:** Module installation/uninstallation flows or ERC-4337 `validateUserOp()` specifics — those are Module 4 topics. Focus on the batch execution path and auth model.
 
 #### 💼 Job Market Context: EIP-7702
 
@@ -1187,9 +1204,9 @@ After BLS precompile:
 ---
 
 <a id="day4-exercise"></a>
-## 🎯 Day 4 Build Exercise
+## 🎯 Build Exercise: EIP7702Delegate
 
-**Workspace:** [`workspace/src/part1/section2/`](../workspace/src/part1/section2/) — starter file: [`EIP7702Delegate.sol`](../workspace/src/part1/section2/EIP7702Delegate.sol), tests: [`EIP7702Delegate.t.sol`](../workspace/test/part1/section2/EIP7702Delegate.t.sol)
+**Workspace:** [`workspace/src/part1/module2/`](../workspace/src/part1/module2/) — starter file: [`EIP7702Delegate.sol`](../workspace/src/part1/module2/EIP7702Delegate.sol), tests: [`EIP7702Delegate.t.sol`](../workspace/test/part1/module2/EIP7702Delegate.t.sol)
 
 1. **Research EIP-7702 delegation designator format**—understand how the EVM determines whether an address has delegated code
 2. **Write a simple delegation target contract**:
@@ -1210,7 +1227,7 @@ After BLS precompile:
 
 ---
 
-## ⚠️ Common Mistakes: Day 4 Recap
+## ⚠️ Common Mistakes: Pectra Recap
 
 **EIP-7702:**
 1. ❌ **Using `tx.origin` for authentication** → Broken by EIP-7702 delegation. Always use `msg.sender`.
@@ -1225,7 +1242,7 @@ After BLS precompile:
 
 ---
 
-## 📋 Day 4 Summary
+## 📋 Summary: Pectra Upgrade
 
 **✓ Covered:**
 - EIP-7702 — EOA code delegation, delegation designator format, DELEGATECALL semantics
@@ -1233,7 +1250,58 @@ After BLS precompile:
 - Security implications — `tx.origin` antipattern, delegation revocation, batch executor security
 - Other Pectra EIPs — increased calldata costs, BLS12-381 precompile with liquid staking example
 
-**Key takeaway:** EIP-7702 brings account abstraction to existing EOAs without migration. Combined with ERC-4337 (Section 4), this creates a comprehensive AA ecosystem. The `tx.origin` antipattern becomes actively exploitable with EIP-7702—always use `msg.sender` for authentication.
+**Key takeaway:** EIP-7702 brings account abstraction to existing EOAs without migration. Combined with ERC-4337 (Module 4), this creates a comprehensive AA ecosystem. The `tx.origin` antipattern becomes actively exploitable with EIP-7702—always use `msg.sender` for authentication.
+
+---
+
+## 🔗 Cross-Module Concept Links
+
+**Backward references (← concepts from earlier modules):**
+
+| Module 2 Concept | Builds on | Where |
+|---|---|---|
+| Transient storage (EIP-1153) | `transient` keyword, `tstore`/`tload` assembly | [§1 — Transient Storage](1-solidity-modern.md#transient-storage) |
+| Flash accounting gas savings | `unchecked` blocks, `mulDiv` precision | [§1 — Checked Arithmetic](1-solidity-modern.md#checked-arithmetic) |
+| Delegation designator format | Custom types (UDVTs), type safety | [§1 — User-Defined Value Types](1-solidity-modern.md#user-defined-value-types) |
+
+**Forward references (→ concepts you'll use later):**
+
+| Module 2 Concept | Used in | Where |
+|---|---|---|
+| Transient storage | Temporary approvals, flash loans | [§3 — Token Approvals](3-token-approvals.md) |
+| EIP-7702 delegation | Account abstraction architecture, paymasters | [§4 — Account Abstraction](4-account-abstraction.md) |
+| SELFDESTRUCT neutered | Why proxy patterns are the only upgrade path | [§6 — Proxy Patterns](6-proxy-patterns.md) |
+| Gas profiling (PUSH0/MCOPY) | Forge snapshot, gas optimization workflows | [§5 — Foundry](5-foundry.md) |
+| EIP-7702 + proxy security | Deployment scripts, CREATE2 deterministic addresses | [§7 — Deployment](7-deployment.md) |
+
+**Part 2 connections:**
+
+| Module 2 Concept | Part 2 Module | How it connects |
+|---|---|---|
+| Transient storage + flash accounting | [M2 — AMMs](../part2/2-amms.md) | Uniswap V4's entire architecture is built on transient storage deltas |
+| EIP-4844 blob economics | [M2](../part2/2-amms.md)–[M9](../part2/9-integration-capstone.md) | All L2 DeFi is 90-97% cheaper post-Dencun — affects protocol design assumptions |
+| Transient storage | [M5 — Flash Loans](../part2/5-flash-loans.md) | Flash loan settlement patterns use the same lock → operate → settle flow |
+| BLS12-381 precompile | [M7 — Vaults & Yield](../part2/7-vaults-yield.md) | On-chain validator consensus for liquid staking protocols (Lido, Rocket Pool) |
+| EIP-7702 + tx.origin | [M8 — DeFi Security](../part2/8-defi-security.md) | New attack surfaces from delegated EOAs, `tx.origin` exploits |
+| SELFDESTRUCT changes | [M8 — DeFi Security](../part2/8-defi-security.md) | Metamorphic contract attacks are dead — historical context for audit work |
+
+---
+
+## 📖 Production Study Order
+
+Read these files in order to build progressive understanding of Module 2's concepts in production code:
+
+| # | File | Why | Lines |
+|---|------|-----|-------|
+| 1 | [OZ ReentrancyGuardTransient.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/ReentrancyGuardTransient.sol) | Simplest transient storage usage — compare to classic ReentrancyGuard | ~30 |
+| 2 | [V4 Transient state declarations](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) | See `NonzeroDeltaCount transient` and `mapping(...) transient` — how V4 declares transient state | Top ~50 |
+| 3 | [V4 `swap()` → `_accountPoolBalanceDelta()`](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) | Follow how swaps update transient deltas without moving tokens | ~100 |
+| 4 | [V4 `settle()` and `take()`](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) | Where actual token transfers happen — the settlement phase | ~60 |
+| 5 | [Lido AccountingOracle.sol](https://github.com/lidofinance/lido-dao/blob/master/contracts/0.8.9/oracle/AccountingOracle.sol) | Validator reporting — context for BLS precompile use cases | ~200 |
+| 6 | [Rhinestone ModuleKit](https://github.com/rhinestonewtf/modulekit) | EIP-7702 compatible account modules — delegation target patterns | ~150 |
+| 7 | [Alchemy LightAccount.sol](https://github.com/alchemyplatform/light-account/blob/main/src/LightAccount.sol) | Production ERC-4337 account that works with EIP-7702 delegation | ~200 |
+
+**Reading strategy:** Files 1–4 cover transient storage from simple → complex. File 5 gives BLS context. Files 6–7 show real EIP-7702 delegation targets — study how they validate `msg.sender` and handle batch execution.
 
 ---
 
@@ -1266,4 +1334,4 @@ After BLS precompile:
 
 ---
 
-**Navigation:** [← Previous: Section 1 - Solidity Modern](1-solidity-modern.md) | [Next: Section 3 - Token Approvals →](3-token-approvals.md)
+**Navigation:** [← Module 1: Solidity Modern](1-solidity-modern.md) | [Module 3: Token Approvals →](3-token-approvals.md)

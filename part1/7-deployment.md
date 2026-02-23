@@ -1,18 +1,18 @@
-# Section 7: Deployment & Operations (~0.5 day)
+# Module 7: Deployment & Operations (~0.5 day)
 
 ## 📚 Table of Contents
 
-**Day 16: From Local to Production**
+**From Local to Production**
 - [The Deployment Pipeline](#deployment-pipeline)
 - [Deployment Scripts](#deployment-scripts)
 - [Contract Verification](#contract-verification)
 - [Safe Multisig for Ownership](#safe-multisig)
 - [Monitoring and Alerting](#monitoring-alerting)
-- [Day 16 Build Exercise](#day16-exercise)
+- [Build Exercise: Deployment Capstone](#day16-exercise)
 
 ---
 
-## Day 16: From Local to Production
+## From Local to Production
 
 <a id="deployment-pipeline"></a>
 ### 💡 Concept: The Deployment Pipeline
@@ -48,7 +48,7 @@ Post-deployment verification
 |----------|-------------------|-----|
 | **Uniswap V4** | `CREATE2` deterministic + immutable core | Same address on every chain, no proxy overhead |
 | **Aave V3** | Factory pattern + governance proposal | `PoolAddressesProvider` deploys all components atomically |
-| **Permit2** | `CREATE2` with zero-nonce deployer | Canonical address `0x000000000022D473...` on every chain (← Section 3) |
+| **Permit2** | `CREATE2` with zero-nonce deployer | Canonical address `0x000000000022D473...` on every chain (← Module 3) |
 | **Safe** | `CREATE2` proxy factory | Deterministic wallet addresses before deployment |
 | **MakerDAO** | Spell-based deployment | Each upgrade is a "spell" contract voted through governance |
 
@@ -68,7 +68,7 @@ Post-deployment verification
 
 2. **"What can go wrong during deployment?"**
    - Good answer: "Initialization front-running, wrong constructor args"
-   - Great answer: "The biggest risk is initialization: if deploy and initialize aren't atomic, an attacker front-runs `initialize()` and takes ownership (← Section 6 Wormhole example). Second is address-dependent configuration — hardcoded token addresses that differ between chains. Third is gas estimation: a script that works on Sepolia may need different gas on mainnet during congestion. I always dry-run with `forge script` (no `--broadcast`) first"
+   - Great answer: "The biggest risk is initialization: if deploy and initialize aren't atomic, an attacker front-runs `initialize()` and takes ownership (← Module 6 Wormhole example). Second is address-dependent configuration — hardcoded token addresses that differ between chains. Third is gas estimation: a script that works on Sepolia may need different gas on mainnet during congestion. I always dry-run with `forge script` (no `--broadcast`) first"
 
 **Interview Red Flags:**
 - 🚩 Deploying without dry-running first
@@ -248,7 +248,7 @@ cast create2 --starts-with 0x --salt $SALT --init-code-hash $HASH
 - Multi-chain protocols (same address everywhere)
 - Factory patterns (predict child addresses before deployment)
 - Vanity addresses (cosmetic, but Permit2's `0x000000000022D4...` is memorable)
-- Counterfactual wallets in Account Abstraction (← Section 4)
+- Counterfactual wallets in Account Abstraction (← Module 4)
 
 #### 🎓 Intermediate Example: Multi-Chain Deployment Pattern
 
@@ -571,11 +571,13 @@ contract Vault is Pausable, Ownable {
 ---
 
 <a id="day16-exercise"></a>
-## 🎯 Day 16 Build Exercise
+## 🎯 Build Exercise: Deployment Capstone
+
+**Workspace:** [`workspace/script/`](../workspace/script/) — deployment script: [`DeployUUPSVault.s.sol`](../workspace/script/DeployUUPSVault.s.sol), tests: [`DeployUUPSVault.t.sol`](../workspace/test/part1/module7/DeployUUPSVault.t.sol)
 
 This is the capstone exercise for Part 1:
 
-1. **Write a complete deployment script** for your UUPS vault from Section 6:
+1. **Write a complete deployment script** for your UUPS vault from Module 6:
    - Load configuration from environment variables
    - Deploy implementation
    - Deploy proxy with initialization
@@ -617,7 +619,7 @@ This is the capstone exercise for Part 1:
 
 ---
 
-## 📋 Day 16 Summary
+## 📋 Summary: Deployment and Operations
 
 **✓ Covered:**
 - Deployment pipeline — local → testnet → mainnet
@@ -666,25 +668,53 @@ Separate from initial deployment — these handle proxy upgrades with storage la
 
 **Don't get stuck on:** Helper utilities and test-specific deployment code. Focus on the production deployment path.
 
-**Recommended study order:**
-1. [Foundry Book - Solidity Scripting Tutorial](https://book.getfoundry.sh/tutorials/solidity-scripting) — Official patterns
-2. [Morpho Blue deployment](https://github.com/morpho-org/morpho-blue/tree/main/script) — Clean, minimal deployment
-3. [Aave V3 deployment](https://github.com/aave/aave-v3-deploy) — Full production deployment with multi-chain support
+### 📖 Production Study Order
+
+Study these deployment scripts in this order — each builds on patterns from the previous:
+
+| # | Repository | Why Study This | Key Files |
+|---|-----------|----------------|-----------|
+| 1 | [Foundry Book - Scripting](https://book.getfoundry.sh/tutorials/solidity-scripting) | Official patterns — learn the `Script` base class and `vm.broadcast` | Tutorial examples |
+| 2 | [Morpho Blue scripts](https://github.com/morpho-org/morpho-blue/tree/main/script) | Clean, minimal production deployment — single contract, no proxies | Deploy.s.sol |
+| 3 | [Uniswap V4 scripts](https://github.com/Uniswap/v4-core/tree/main/script) | `CREATE2` deterministic deployment — immutable core pattern | DeployPoolManager.s.sol |
+| 4 | [Permit2 deployment](https://github.com/Uniswap/permit2) | Canonical `CREATE2` address — the gold standard for multi-chain deployment | DeployPermit2.s.sol |
+| 5 | [Aave V3 deploy](https://github.com/aave/aave-v3-deploy) | Full production pipeline — multi-contract, multi-chain, proxy + beacon | deploy/, config/ |
+| 6 | [Safe deployment](https://github.com/safe-global/safe-contracts/tree/main/scripts) | Factory + `CREATE2` for deterministic wallet addresses | deploy scripts |
+
+**Reading strategy:** Start with the Foundry Book for idioms, then Morpho for the simplest real deployment. Move to Uniswap/Permit2 for `CREATE2` mastery. Finish with Aave for the most complex deployment you'll encounter — multi-contract, multi-chain, proxy architecture. Safe shows `CREATE2` applied to wallet infrastructure.
 
 ---
 
-### 🔗 Cross-Section Concept Links
+### 🔗 Cross-Module Concept Links
 
-**Building on earlier sections:**
-- **← Section 1 (Modern Solidity):** `abi.encodeCall` for type-safe initialization data in deployment scripts, custom errors for deployment validation failures
-- **← Section 2 (EVM Changes):** [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702) delegate accounts may need custom deployment patterns — the delegation target must exist before the EOA delegates to it
-- **← Section 3 (Token Approvals):** Permit2's canonical `CREATE2` address is the gold standard for deterministic multi-chain deployment. `DOMAIN_SEPARATOR` includes `block.chainid` — verify it differs per chain after deployment
-- **← Section 4 (Account Abstraction):** [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337) wallet factories use `CREATE2` for counterfactual addresses — the wallet address exists before deployment, enabling deposits to it
-- **← Section 5 (Foundry):** `forge script` is the deployment tool, `forge verify-contract` handles verification, `cast call`/`cast send` for post-deployment interaction
-- **← Section 6 (Proxy Patterns):** UUPS proxy deployment must be atomic (deploy + initialize in one tx). `forge inspect storage-layout` before any upgrade deployment. `_disableInitializers()` in implementation constructors
+#### Building on Earlier Modules
 
-**Connecting forward:**
-- **→ Part 2 (DeFi Protocols):** Every module includes deployment considerations — AMM pool creation (factory pattern), lending market initialization, vault deployment with strategy registration, oracle feed configuration
+| Module | Concept | How It Connects |
+|--------|---------|-----------------|
+| [← M1 Modern Solidity](1-solidity-modern.md) | `abi.encodeCall` | Type-safe initialization data in deployment scripts — compiler catches mismatched args |
+| [← M1 Modern Solidity](1-solidity-modern.md) | Custom errors | Deployment validation failures with rich error data |
+| [← M2 EVM Changes](2-evm-changes.md) | EIP-7702 delegation | Delegation targets must exist before EOA delegates — deployment order matters |
+| [← M3 Token Approvals](3-token-approvals.md) | Permit2 `CREATE2` | Gold standard for deterministic multi-chain deployment — canonical address everywhere |
+| [← M3 Token Approvals](3-token-approvals.md) | `DOMAIN_SEPARATOR` | Includes `block.chainid` — verify it differs per chain after deployment |
+| [← M4 Account Abstraction](4-account-abstraction.md) | `CREATE2` factories | ERC-4337 wallet factories use counterfactual addresses — wallet exists before deployment |
+| [← M5 Foundry](5-foundry.md) | `forge script` | Primary deployment tool — simulation, broadcast, resume |
+| [← M5 Foundry](5-foundry.md) | `cast` commands | Post-deployment interaction: `cast call` for reads, `cast send` for writes |
+| [← M6 Proxy Patterns](6-proxy-patterns.md) | Atomic deploy+init | UUPS proxy must deploy + initialize in one tx to prevent front-running |
+| [← M6 Proxy Patterns](6-proxy-patterns.md) | Storage layout checks | `forge inspect storage-layout` before any upgrade deployment |
+
+#### Part 2 Connections
+
+| Part 2 Module | Deployment Pattern | Application |
+|---------------|-------------------|-------------|
+| [M1: Token Mechanics](../part2/1-token-mechanics.md) | Token deployment | ERC-20 deployment with initial supply, fee configuration, and access control setup |
+| [M2: AMMs](../part2/2-amms.md) | Factory pattern | Pool creation through factory contracts — deterministic pool addresses from token pairs |
+| [M3: Oracles](../part2/3-oracles.md) | Feed configuration | Chain-specific Chainlink feed addresses — different on every L2 |
+| [M4: Lending](../part2/4-lending.md) | Multi-contract deploy | Aave V3 deploys Pool + Configurator + Oracle + aTokens atomically via AddressesProvider |
+| [M5: Flash Loans](../part2/5-flash-loans.md) | Arbitrage scripts | Flash loan deployment with DEX router addresses per chain |
+| [M6: Stablecoins](../part2/6-stablecoins-cdps.md) | CDP deployment | Multi-contract CDP engine with oracle + liquidation + stability modules |
+| [M7: Vaults](../part2/7-vaults-yield.md) | Strategy deployment | Vault + strategy deploy scripts with yield source configuration per chain |
+| [M8: Security](../part2/8-defi-security.md) | Post-deploy audit | Deployment verification as security practice — check all state before going live |
+| [M9: Integration](../part2/9-integration-capstone.md) | Full pipeline | End-to-end deployment: factory → pools → oracles → governance → monitoring |
 
 ---
 
@@ -733,4 +763,4 @@ You've now covered:
 
 ---
 
-**Navigation:** [← Previous: Section 6 - Proxy Patterns](6-proxy-patterns.md)
+**Navigation:** [← Module 6: Proxy Patterns](6-proxy-patterns.md)

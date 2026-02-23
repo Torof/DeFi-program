@@ -9,7 +9,7 @@ import {
     TokenVaultV2,
     ZeroAddress,
     Unauthorized
-} from "../../../src/part1/section6/BeaconProxy.sol";
+} from "../../../src/part1/module6/BeaconProxy.sol";
 
 /// @notice Tests for beacon proxy pattern.
 /// @dev DO NOT MODIFY THIS FILE. Fill in BeaconProxy.sol instead.

@@ -8,7 +8,7 @@ import {
     VaultV2Correct,
     VaultWithGap,
     VaultWithGapV2
-} from "../../../src/part1/section6/StorageCollision.sol";
+} from "../../../src/part1/module6/StorageCollision.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 /// @notice Tests demonstrating storage collisions and correct patterns.

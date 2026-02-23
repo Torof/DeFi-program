@@ -1,8 +1,8 @@
-# Section 6: Proxy Patterns & Upgradeability (~1.5-2 days)
+# Module 6: Proxy Patterns & Upgradeability (~1.5-2 days)
 
 ## 📚 Table of Contents
 
-**Day 14: Proxy Fundamentals**
+**Proxy Fundamentals**
 - [Why Proxies Matter for DeFi](#why-proxies-matter)
 - [How Proxies Work](#how-proxies-work)
 - [Transparent Proxy Pattern](#transparent-proxy)
@@ -10,10 +10,10 @@
 - [Beacon Proxy](#beacon-proxy)
 - [Diamond Pattern (EIP-2535) — Awareness](#diamond-pattern)
 
-**Day 15: Storage Layout and Initializers**
+**Storage Layout and Initializers**
 - [Storage Layout Compatibility](#storage-layout)
 - [Initializers vs Constructors](#initializers)
-- [Day 14-15 Build Exercises](#day14-15-exercise)
+- [Build Exercise: Proxy Patterns](#day14-15-exercise)
 
 ---
 
@@ -28,7 +28,7 @@ In Part 2, you'll encounter: Aave V3 (transparent proxy + libraries), Compound V
 
 ---
 
-## Day 14: Proxy Fundamentals
+## Proxy Fundamentals
 
 <a id="how-proxies-work"></a>
 ### 💡 Concept: How Proxies Work
@@ -429,7 +429,7 @@ The Diamond pattern allows a single proxy to delegate to **multiple** implementa
 
 ---
 
-## Day 15: Storage Layout and Initializers
+## Storage Layout and Initializers
 
 <a id="storage-layout"></a>
 ### 💡 Concept: Storage Layout Compatibility
@@ -621,9 +621,9 @@ contract V2 { uint256 public fee = 100; }             // IN storage at slot 0 �
 ---
 
 <a id="day14-15-exercise"></a>
-## 🎯 Day 14-15 Build Exercises
+## 🎯 Build Exercise: Proxy Patterns
 
-**Workspace:** [`workspace/src/part1/section6/`](../workspace/src/part1/section6/) — starter files: [`UUPSVault.sol`](../workspace/src/part1/section6/UUPSVault.sol), [`UninitializedProxy.sol`](../workspace/src/part1/section6/UninitializedProxy.sol), [`StorageCollision.sol`](../workspace/src/part1/section6/StorageCollision.sol), [`BeaconProxy.sol`](../workspace/src/part1/section6/BeaconProxy.sol), tests: [`UUPSVault.t.sol`](../workspace/test/part1/section6/UUPSVault.t.sol), [`UninitializedProxy.t.sol`](../workspace/test/part1/section6/UninitializedProxy.t.sol), [`StorageCollision.t.sol`](../workspace/test/part1/section6/StorageCollision.t.sol), [`BeaconProxy.t.sol`](../workspace/test/part1/section6/BeaconProxy.t.sol)
+**Workspace:** [`workspace/src/part1/module6/`](../workspace/src/part1/module6/) — starter files: [`UUPSVault.sol`](../workspace/src/part1/module6/UUPSVault.sol), [`UninitializedProxy.sol`](../workspace/src/part1/module6/UninitializedProxy.sol), [`StorageCollision.sol`](../workspace/src/part1/module6/StorageCollision.sol), [`BeaconProxy.sol`](../workspace/src/part1/module6/BeaconProxy.sol), tests: [`UUPSVault.t.sol`](../workspace/test/part1/module6/UUPSVault.t.sol), [`UninitializedProxy.t.sol`](../workspace/test/part1/module6/UninitializedProxy.t.sol), [`StorageCollision.t.sol`](../workspace/test/part1/module6/StorageCollision.t.sol), [`BeaconProxy.t.sol`](../workspace/test/part1/module6/BeaconProxy.t.sol)
 
 **Exercise 1: UUPS upgradeable vault**
 
@@ -672,7 +672,7 @@ contract V2 { uint256 public fee = 100; }             // IN storage at slot 0 �
 
 ---
 
-## 📋 Day 14-15 Summary
+## 📋 Summary: Proxy Patterns
 
 **✓ Covered:**
 - Proxy patterns — Transparent, UUPS, Beacon, Diamond
@@ -725,25 +725,59 @@ function initialize(IPoolAddressesProvider provider) external initializer {
 
 **Don't get stuck on:** The proxy contract's assembly code. Once you understand the pattern (it delegates everything), focus entirely on the implementation.
 
-**Recommended study order:**
-1. [OpenZeppelin's Proxy contracts](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/proxy) — Clean reference implementations
-2. [Compound V3 (Comet)](https://github.com/compound-finance/comet) — Custom proxy, simpler than Aave
-3. [Aave V3 Pool](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/pool/Pool.sol) — Full production proxy architecture with beacon pattern for tokens
+### 📖 Production Study Order
+
+Study these proxy implementations in this order — each builds on patterns from the previous:
+
+| # | Repository | Why Study This | Key Files |
+|---|-----------|----------------|-----------|
+| 1 | [OZ Proxy contracts](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/proxy) | Clean reference implementations — learn the standards | ERC1967Proxy.sol, TransparentUpgradeableProxy.sol |
+| 2 | [OZ UUPSUpgradeable](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/proxy/utils/UUPSUpgradeable.sol) | Understand UUPS internals — `_authorizeUpgrade`, rollback test | UUPSUpgradeable.sol, Initializable.sol |
+| 3 | [Compound V3 (Comet)](https://github.com/compound-finance/comet) | Custom immutable proxy — simpler than Aave, different philosophy | Comet.sol, CometConfiguration.sol |
+| 4 | [Aave V3 Pool](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/pool/Pool.sol) | Full production proxy architecture — Transparent + Beacon | Pool.sol, PoolStorage.sol, AToken.sol |
+| 5 | [Aave V3 aToken beacon](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/tokenization/AToken.sol) | Beacon proxy in production — 100+ instances, single upgrade | AToken.sol, VersionedInitializable.sol |
+| 6 | [ERC-4337 SimpleAccount](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccount.sol) | UUPS for smart wallets — proxy as account abstraction pattern | SimpleAccount.sol, BaseAccount.sol |
+
+**Reading strategy:** Start with OZ to learn the canonical proxy patterns, then study Compound's intentionally different approach (immutable implementation). Move to Aave for the most complex production proxy architecture you'll encounter. Finish with ERC-4337 to see UUPS applied to a completely different domain — smart wallets instead of DeFi protocols.
 
 ---
 
-### 🔗 Cross-Section Concept Links
+### 🔗 Cross-Module Concept Links
 
-**Building on earlier sections:**
-- **← Section 1 (Modern Solidity):** Custom errors in upgradeable contracts, UDVTs across proxy boundaries, `immutable` variables don't live in storage (critical: removing immutables between versions causes slot shifts)
-- **← Section 2 (EVM Changes):** Transient storage (`TSTORE`/`TLOAD`) works correctly through `DELEGATECALL` — the proxy and implementation share transient storage in the same execution context
-- **← Section 3 (Token Approvals):** Permit2's `DOMAIN_SEPARATOR` includes the contract address — for proxies, this is the proxy address (correct), not the implementation address. [EIP-2612](https://eips.ethereum.org/EIPS/eip-2612) permits work correctly with proxies because `address(this)` in a `DELEGATECALL` returns the proxy address
-- **← Section 4 (Account Abstraction):** ERC-4337 smart wallets (like SimpleAccount) use UUPS pattern — the wallet itself is a proxy, enabling account logic upgrades without changing the wallet address
-- **← Section 5 (Foundry):** `forge inspect storage-layout` is the primary tool for verifying upgrade safety. Fork tests verify upgrades against live proxy state. `vm.load` reads EIP-1967 slots in tests
+#### Building on Earlier Modules
 
-**Connecting forward:**
-- **→ Section 7 (Deployment):** `CREATE2` for deterministic proxy deployment, deployment scripts that atomically deploy + initialize, multi-chain deployment with consistent proxy addresses
-- **→ Part 2 (DeFi Protocols):** Aave V3 uses Transparent + Beacon proxies (Module 3), Compound V3 uses custom immutable proxies (Module 3), most vaults (Module 4) are deployed behind UUPS proxies for flexibility
+| Module | Concept | How It Connects |
+|--------|---------|-----------------|
+| [← M1 Modern Solidity](1-solidity-modern.md) | Custom errors | Work normally in upgradeable contracts — selector-based, no storage impact |
+| [← M1 Modern Solidity](1-solidity-modern.md) | UDVTs | Cross proxy boundaries safely — type wrapping has zero storage footprint |
+| [← M1 Modern Solidity](1-solidity-modern.md) | `immutable` variables | **Critical:** not in storage — removing immutables between versions causes slot shifts |
+| [← M2 EVM Changes](2-evm-changes.md) | Transient storage | `TSTORE`/`TLOAD` works through `DELEGATECALL` — proxy and implementation share transient context |
+| [← M3 Token Approvals](3-token-approvals.md) | EIP-2612 permits | `DOMAIN_SEPARATOR` uses `address(this)` = proxy address (correct), not implementation |
+| [← M3 Token Approvals](3-token-approvals.md) | Permit2 integration | Permit2 approvals target the proxy address — survives implementation upgrades |
+| [← M4 Account Abstraction](4-account-abstraction.md) | ERC-4337 wallets | SimpleAccount uses UUPS — wallet is a proxy, enabling logic upgrades without address change |
+| [← M5 Foundry](5-foundry.md) | `forge inspect` | Primary tool for verifying storage layout compatibility before upgrades |
+| [← M5 Foundry](5-foundry.md) | Fork testing | Verify upgrades against live proxy state with `vm.load` for EIP-1967 slots |
+
+#### Connecting Forward
+
+| Module | Concept | How It Connects |
+|--------|---------|-----------------|
+| [→ M7 Deployment](7-deployment.md) | `CREATE2` deployment | Deterministic proxy addresses across chains |
+| [→ M7 Deployment](7-deployment.md) | Atomic deploy+init | Deployment scripts that deploy proxy and call `initialize()` in one transaction |
+| [→ M7 Deployment](7-deployment.md) | Multi-chain consistency | Same proxy addresses on every chain via `CREATE2` + same nonce |
+
+#### Part 2 Connections
+
+| Part 2 Module | Proxy Pattern | Application |
+|---------------|---------------|-------------|
+| [M1: Token Mechanics](../part2/1-token-mechanics.md) | Beacon proxy | Rebasing tokens (like stETH) use proxy patterns for upgradeable accounting |
+| [M2: AMMs](../part2/2-amms.md) | Immutable core | Uniswap V4 PoolManager is immutable — trust minimization for AMM math |
+| [M4: Lending](../part2/4-lending.md) | Transparent + Beacon | Aave V3 uses Transparent for Pool, Beacon for aTokens (100+ instances) |
+| [M4: Lending](../part2/4-lending.md) | Custom immutable | Compound V3 (Comet) uses custom proxy with immutable implementation |
+| [M5: Flash Loans](../part2/5-flash-loans.md) | UUPS periphery | Flash loan routers behind UUPS for upgradeable routing logic |
+| [M6: Stablecoins](../part2/6-stablecoins-cdps.md) | Timelock + proxy | Governance controls proxy upgrades via timelock — upgrade authorization |
+| [M8: Security](../part2/8-defi-security.md) | Exploit patterns | Uninitialized proxies and storage collisions are top audit findings |
+| [M9: Integration](../part2/9-integration-capstone.md) | Full architecture | Capstone combines proxy deployment, initialization, and upgrade testing |
 
 ---
 
@@ -776,4 +810,4 @@ function initialize(IPoolAddressesProvider provider) external initializer {
 
 ---
 
-**Navigation:** [← Previous: Section 5 - Foundry](5-foundry.md) | [Next: Section 7 - Deployment →](7-deployment.md)
+**Navigation:** [← Module 5: Foundry](5-foundry.md) | [Module 7: Deployment →](7-deployment.md)

@@ -15,7 +15,7 @@ import {
     ArithmeticOptimized,
     ShortCircuitUnoptimized,
     ShortCircuitOptimized
-} from "../../../src/part1/section5/GasOptimization.sol";
+} from "../../../src/part1/module5/GasOptimization.sol";
 
 /// @notice Tests for gas optimization patterns.
 /// @dev DO NOT MODIFY THIS FILE. Fill in GasOptimization.sol instead.

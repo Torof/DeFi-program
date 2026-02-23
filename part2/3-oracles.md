@@ -3,12 +3,38 @@
 **Duration:** ~3 days (3–4 hours/day)
 **Prerequisites:** Modules 1–2 complete (token mechanics, AMM math and architecture)
 **Pattern:** Concept → Read production integrations → Build safe consumer → Attack and defend
-**Builds on:** Module 2 (TWAP oracle from AMM price accumulators), Part 1 Section 5 (fork testing with real Chainlink feeds)
-**Used by:** Module 4 (lending collateral valuation, liquidation triggers), Module 6 (CDP liquidation triggers), Module 9 (integration capstone)
+**Builds on:** Module 2 (TWAP oracle from AMM price accumulators), Part 1 Module 5 (fork testing with real Chainlink feeds)
+**Used by:** Module 4 (lending collateral valuation, liquidation triggers), Module 5 (flash loan attack surface), Module 6 (CDP liquidation triggers, Oracle Security Module), Module 8 (oracle manipulation threat modeling), Module 9 (integration capstone), Part 3 Module 2 (Pyth for perpetuals), Part 3 Module 7 (L2 sequencer-aware oracles)
 
 ---
 
-## Why Oracles Matter for Protocol Builders
+## 📚 Table of Contents
+
+**Oracle Fundamentals and Chainlink Architecture**
+- [The Oracle Problem](#oracle-problem)
+- [Types of Price Oracles](#oracle-types)
+- [Chainlink Architecture Deep Dive](#chainlink-architecture)
+- [Alternative Oracle Networks](#alternative-oracles)
+- [Read: AggregatorV3Interface](#read-aggregator-v3)
+- [Build: Safe Chainlink Consumer](#build-chainlink-consumer)
+
+**TWAP Oracles and On-Chain Price Sources**
+- [TWAP: Time-Weighted Average Price](#twap)
+- [When to Use TWAP vs Chainlink](#twap-vs-chainlink)
+- [Build: TWAP Oracle](#build-twap)
+
+**Oracle Manipulation Attacks**
+- [The Attack Surface](#attack-surface)
+- [Spot Price Manipulation via Flash Loan](#spot-manipulation)
+- [TWAP Manipulation (Multi-Block)](#twap-manipulation)
+- [Stale Oracle Exploitation](#stale-oracle)
+- [Donation/Direct Balance Manipulation](#donation-manipulation)
+- [Defense Patterns](#defense-patterns)
+- [Build: Oracle Manipulation Lab](#build-oracle-lab)
+
+---
+
+## 💡 Why Oracles Matter for Protocol Builders
 
 **Why this matters:** DeFi protocols that only swap tokens can derive prices from their own reserves. But the moment you build anything that references the value of an asset — lending (what's the collateral worth?), derivatives (what's the settlement price?), stablecoins (is this position undercollateralized?) — you need external price data.
 
@@ -21,7 +47,7 @@
 - [Polter Finance](https://rekt.news/polter-finance-rekt/) ($12M, July 2024) — Chainlink-Uniswap adapter exploit
 - [Cream Finance](https://rekt.news/cream-rekt-2/) ($130M, October 2021) — oracle price manipulation via yUSD
 - [Harvest Finance](https://rekt.news/harvest-finance-rekt/) ($24M, October 2020) — TWAP manipulation via flash loans
-- [Inverse Finance](https://rekt.news/inverse-rekt/) ($15M, June 2022) — oracle manipulation via Curve pool
+- [Inverse Finance](https://rekt.news/inverse-finance-rekt/) ($15M, June 2022) — oracle manipulation via Curve pool
 
 If you're building a protocol that uses price data, oracle security is not optional — it's existential.
 
@@ -29,9 +55,23 @@ This module teaches you to consume oracle data safely and understand the attack 
 
 ---
 
-## Day 1: Oracle Fundamentals and Chainlink Architecture
+## Oracle Fundamentals and Chainlink Architecture
 
-### The Oracle Problem
+💻 **Quick Try:**
+
+On a mainnet fork, read a live Chainlink feed in 30 seconds:
+```solidity
+// In a Foundry test with --fork-url:
+AggregatorV3Interface feed = AggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
+(, int256 answer, , uint256 updatedAt, ) = feed.latestRoundData();
+// answer = ETH/USD price with 8 decimals (e.g., 300000000000 = $3,000.00)
+// updatedAt = timestamp of last update
+// How old is this price? block.timestamp - updatedAt = ??? seconds
+// That staleness is the gap your protocol must handle.
+```
+
+<a id="oracle-problem"></a>
+### 💡 The Oracle Problem
 
 **Why this matters:** Smart contracts execute deterministically — given the same state and input, they always produce the same output. This is a feature (consensus depends on it), but it means contracts can't natively access off-chain data like asset prices, weather, sports scores, or API results.
 
@@ -41,7 +81,8 @@ An oracle is any mechanism that feeds external data into a smart contract. The c
 
 ---
 
-### Types of Price Oracles
+<a id="oracle-types"></a>
+### 💡 Types of Price Oracles
 
 **1. Centralized oracles** — A single entity publishes price data on-chain. Simple, fast, but a single point of failure. If the entity goes down, gets hacked, or acts maliciously, every protocol depending on it breaks.
 
@@ -57,7 +98,7 @@ An oracle is any mechanism that feeds external data into a smart contract. The c
 
 **Trade-off:** The price lags behind the real market, which can be exploited during high volatility.
 
-> **Used by:** [MakerDAO OSM](https://github.com/makerdao/osm) (Oracle Security Module) uses 1-hour delayed medianized TWAP, [Reflexer RAI](https://github.com/reflexer-labs/geb) uses Uniswap V2 TWAP, [Liquity LUSD](https://github.com/liquity/dev) uses Chainlink + Tellor fallback.
+> **Used by:** [MakerDAO OSM](https://github.com/sky-ecosystem/osm) (Oracle Security Module) uses 1-hour delayed medianized TWAP, [Reflexer RAI](https://github.com/reflexer-labs/geb) uses Uniswap V2 TWAP, [Liquity LUSD](https://github.com/liquity/dev) uses Chainlink + Tellor fallback.
 
 **4. Decentralized oracle networks (Chainlink, Pyth, Redstone)** — Multiple independent nodes fetch prices from multiple data sources, aggregate them, and publish the result on-chain.
 
@@ -67,7 +108,8 @@ An oracle is any mechanism that feeds external data into a smart contract. The c
 
 ---
 
-### Chainlink Architecture Deep Dive
+<a id="chainlink-architecture"></a>
+### 💡 Chainlink Architecture Deep Dive
 
 **Why this matters:** [Chainlink](https://chain.link/) is the dominant oracle provider in DeFi, securing hundreds of billions in value. Understanding its architecture is essential.
 
@@ -75,7 +117,7 @@ An oracle is any mechanism that feeds external data into a smart contract. The c
 
 **Layer 1: Data providers** — Premium data aggregators (e.g., [CoinGecko](https://www.coingecko.com/), [CoinMarketCap](https://coinmarketcap.com/), [Kaiko](https://www.kaiko.com/), [Amberdata](https://www.amberdata.io/)) aggregate raw price data from centralized and decentralized exchanges, filtering for outliers, wash trading, and stale data.
 
-**Layer 2: Chainlink nodes** — Independent node operators fetch data from multiple providers. Each node produces its own price observation. Nodes are selected for reputation, reliability, and stake. The node set for a given feed (e.g., [ETH/USD](https://data.chain.link/ethereum/mainnet/crypto-usd/eth-usd)) typically includes 15–31 nodes.
+**Layer 2: Chainlink nodes** — Independent node operators fetch data from multiple providers. Each node produces its own price observation. Nodes are selected for reputation, reliability, and stake. The node set for a given feed (e.g., [ETH/USD](https://data.chain.link/feeds/ethereum/mainnet/eth-usd)) typically includes 15–31 nodes.
 
 **Layer 3: On-chain aggregation** — Nodes submit observations to an on-chain Aggregator contract. The contract computes the **median** of all observations and publishes it as the feed's answer.
 
@@ -85,6 +127,51 @@ An oracle is any mechanism that feeds external data into a smart contract. The c
 
 > **Deep dive:** [OCR documentation](https://docs.chain.link/architecture-overview/off-chain-reporting), [OCR 2.0 announcement](https://blog.chain.link/off-chain-reporting-live-on-mainnet/) (April 2021)
 
+#### 🔍 Deep Dive: Chainlink Architecture — End to End
+
+```
+Off-chain                                     On-chain
+─────────                                     ────────
+
+┌──────────────┐
+│ Data Sources │   CoinGecko, Kaiko, Amberdata, exchange APIs
+│ (many)       │   Each provides raw price data
+└──────┬───────┘
+       │ fetch
+       ▼
+┌──────────────┐
+│ Chainlink    │   15-31 independent node operators
+│ Nodes (many) │   Each produces its own price observation
+└──────┬───────┘
+       │ OCR: nodes agree off-chain,
+       │ submit ONE aggregated report
+       ▼
+┌──────────────┐
+│ Aggregator   │   AccessControlledOffchainAggregator
+│ (on-chain)   │   Computes MEDIAN of all observations
+└──────┬───────┘   (resistant to minority of compromised nodes)
+       │
+       ▼
+┌──────────────┐
+│ Proxy        │   EACAggregatorProxy
+│ (on-chain)   │   Stable address — allows Aggregator upgrades
+└──────┬───────┘   ← YOUR PROTOCOL POINTS HERE
+       │
+       ▼
+┌──────────────┐
+│ Your Oracle  │   OracleConsumer.sol / AaveOracle.sol
+│ Wrapper      │   Staleness checks, decimal normalization,
+└──────┬───────┘   fallback logic, sanity bounds
+       │
+       ▼
+┌──────────────┐
+│ Your Core    │   Lending, CDP, vault, derivatives...
+│ Protocol     │   Uses price for collateral valuation,
+└──────────────┘   liquidation, settlement
+```
+
+**Key trust assumptions:** You trust that (1) >50% of Chainlink nodes are honest (median protects against minority), (2) data sources provide accurate prices (nodes cross-reference multiple sources), (3) the Proxy points to a legitimate Aggregator (Chainlink governance controls this).
+
 **Update triggers:**
 
 Feeds don't update continuously. They update when either condition is met:
@@ -93,7 +180,34 @@ Feeds don't update continuously. They update when either condition is met:
 
 > **Common pitfall:** Assuming Chainlink prices are real-time. The on-chain price can be up to [deviation threshold] stale at any moment. Your protocol MUST account for this.
 
-> **Example:** [ETH/USD feed](https://data.chain.link/ethereum/mainnet/crypto-usd/eth-usd) has 0.5% deviation threshold and 1-hour heartbeat. If ETH price is stable, the feed may not update for the full hour. If ETH drops 0.4%, the feed won't update until the heartbeat expires or deviation crosses 0.5%.
+> **Example:** [ETH/USD feed](https://data.chain.link/feeds/ethereum/mainnet/eth-usd) has 0.5% deviation threshold and 1-hour heartbeat. If ETH price is stable, the feed may not update for the full hour. If ETH drops 0.4%, the feed won't update until the heartbeat expires or deviation crosses 0.5%.
+
+#### 🔍 Deep Dive: Chainlink Update Trigger Timing
+
+```
+Real ETH price vs on-chain Chainlink price over time:
+
+Price
+$3,030 │          ·  real price
+$3,020 │        ·  ·
+$3,015 │      ·      · ← deviation hits 0.5% → UPDATE ①
+$3,010 │    ·          ─────────── on-chain price jumps to $3,015
+$3,000 │──·─────────────           ·  ·  ·  real price stays flat
+       │  ↑ on-chain                              · · · ·  · ·
+$2,990 │  (stale until
+       │   trigger)                                ↑ heartbeat expires
+       │                                           UPDATE ② (even though
+       └───────────────────────────────────────     price hasn't moved 0.5%)
+       0    5min   10min   15min  ...  55min  60min
+
+Two triggers (whichever comes FIRST):
+  ① Deviation: |real_price - on_chain_price| / on_chain_price > 0.5%
+  ② Heartbeat: time since last update > 1 hour
+
+Your MAX_STALENESS should be: heartbeat + buffer
+  ETH/USD: 3600s + 900s = 4500s (1h15m)
+  Why buffer? Network congestion can delay the heartbeat update.
+```
 
 **On-chain contract structure:**
 
@@ -113,9 +227,23 @@ The [Proxy layer](https://docs.chain.link/architecture-overview/architecture-dec
 
 ---
 
-### Read: AggregatorV3Interface
+<a id="alternative-oracles"></a>
+### 💡 Alternative Oracle Networks (Awareness)
 
-**Source:** [@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol](https://github.com/smartcontractkit/chainlink/blob/develop/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol)
+Chainlink dominates, but other oracle networks are gaining traction:
+
+**Pyth Network** — Originally built for Solana, now cross-chain. Key difference: **pull-based** model. Instead of oracle nodes pushing updates on-chain (Chainlink's model), Pyth publishes price updates to an off-chain data store. Your protocol *pulls* the latest price and posts it on-chain when needed. This means fresher prices (sub-second updates available) and lower cost (you only pay for updates you actually use). Trade-off: your transaction must include the price update, adding calldata cost and complexity. Used by many perp DEXes (GMX, Synthetix on Optimism).
+
+**Redstone** — Modular oracle with three modes: Classic (Chainlink-like push), Core (data attached to transaction calldata — similar to Pyth's pull model), and X (for MEV-protected price delivery). Gaining adoption on L2s. Redstone's Core model is particularly gas-efficient because it avoids on-chain storage of price data between reads.
+
+**Chronicle** — MakerDAO's in-house oracle network. Previously exclusive to MakerDAO, now opening to other protocols. Uses Schnorr signatures for efficient on-chain verification. The most battle-tested oracle for MakerDAO's specific needs, but limited ecosystem adoption outside of Maker/Sky.
+
+> **🔗 Connection:** Part 3 Module 2 (Perpetuals) covers Pyth in depth — perp protocols need sub-second price updates that Chainlink's heartbeat model can't provide. Part 3 Module 7 (L2 DeFi) discusses pull-based oracles as a better fit for L2 gas economics.
+
+<a id="read-aggregator-v3"></a>
+### 📖 Read: AggregatorV3Interface
+
+**Source:** [@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol](https://github.com/smartcontractkit/chainlink/blob/contracts-v1.3.0/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol)
 
 The interface your protocol will use:
 
@@ -149,7 +277,7 @@ interface AggregatorV3Interface {
 - `roundId` — the round identifier. Used for historical data lookups.
 - `decimals()` — the number of decimal places in `answer`. Do NOT hardcode this. Different feeds use different decimals (most price feeds use 8, but ETH-denominated feeds use 18).
 
-> **Common pitfall:** Hardcoding `decimals` to 8. Some feeds use 18 decimals (e.g., [ETH/BTC](https://data.chain.link/ethereum/mainnet/crypto-eth/btc-eth)). Always call `decimals()` dynamically.
+> **Common pitfall:** Hardcoding `decimals` to 8. Some feeds use 18 decimals (e.g., [ETH/BTC](https://data.chain.link/feeds/ethereum/mainnet/btc-eth)). Always call `decimals()` dynamically.
 
 > **Used by:** [Aave V3 AaveOracle](https://github.com/aave/aave-v3-core/blob/master/contracts/misc/AaveOracle.sol#L107), [Compound V3 price feeds](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol#L1095), [Synthetix ExchangeRates](https://github.com/Synthetixio/synthetix/blob/develop/contracts/ExchangeRates.sol)
 
@@ -171,7 +299,8 @@ When reading how a production protocol consumes oracle data:
 
 ---
 
-### Build: Safe Chainlink Consumer
+<a id="build-chainlink-consumer"></a>
+### 🛠️ Build: Safe Chainlink Consumer
 
 **Exercise 1: Build an `OracleConsumer.sol`** that reads Chainlink price feeds with proper safety checks:
 
@@ -210,7 +339,7 @@ function getPrice(address feed) public view returns (uint256) {
 
 > **Common pitfall:** Setting `MAX_STALENESS` too loosely. If the feed heartbeat is 1 hour, setting `MAX_STALENESS = 24 hours` defeats the purpose. Use `heartbeat + buffer` (e.g., 1 hour + 15 minutes = 4500 seconds).
 
-**Exercise 2: Multi-feed price derivation.** Build a function that computes ETH/EUR by combining [ETH/USD](https://data.chain.link/ethereum/mainnet/crypto-usd/eth-usd) and [EUR/USD](https://data.chain.link/ethereum/mainnet/fiat-usd/eur-usd) feeds. Handle decimal normalization (both feeds may have different `decimals()` values).
+**Exercise 2: Multi-feed price derivation.** Build a function that computes ETH/EUR by combining [ETH/USD](https://data.chain.link/feeds/ethereum/mainnet/eth-usd) and [EUR/USD](https://data.chain.link/feeds/ethereum/mainnet/eur-usd) feeds. Handle decimal normalization (both feeds may have different `decimals()` values).
 
 ```solidity
 // Compute ETH/EUR from ETH/USD and EUR/USD
@@ -256,7 +385,7 @@ function isSequencerUp(address sequencerFeed) internal view returns (bool) {
 
 > **Used by:** [Aave V3 on Arbitrum](https://github.com/aave/aave-v3-core/blob/master/contracts/misc/AaveOracle.sol) checks sequencer uptime, [GMX V2](https://github.com/gmx-io/gmx-synthetics) on Arbitrum and Avalanche
 
-**Exercise 4: Foundry tests using mainnet fork.** Fork Ethereum mainnet with `forge test --fork-url <RPC>` and read real Chainlink feeds. Verify your consumer returns sane values for [ETH/USD](https://data.chain.link/ethereum/mainnet/crypto-usd/eth-usd), [BTC/USD](https://data.chain.link/ethereum/mainnet/crypto-usd/btc-usd). Use `vm.warp()` to simulate staleness conditions and verify your checks revert correctly.
+**Exercise 4: Foundry tests using mainnet fork.** Fork Ethereum mainnet with `forge test --fork-url <RPC>` and read real Chainlink feeds. Verify your consumer returns sane values for [ETH/USD](https://data.chain.link/feeds/ethereum/mainnet/eth-usd), [BTC/USD](https://data.chain.link/feeds/ethereum/mainnet/btc-usd). Use `vm.warp()` to simulate staleness conditions and verify your checks revert correctly.
 
 ```solidity
 function testStalenessCheck() public {
@@ -276,11 +405,47 @@ function testStalenessCheck() public {
 }
 ```
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What checks do you perform when reading a Chainlink price feed?"**
+   - Good answer: Check that the price is positive and the data isn't stale
+   - Great answer: Four mandatory checks: (1) `answer > 0` — invalid/negative prices crash your math, (2) `updatedAt > 0` — round is complete, (3) `block.timestamp - updatedAt < heartbeat + buffer` — staleness, (4) `answeredInRound >= roundId` — stale round. On L2, also check the sequencer uptime feed and enforce a grace period after restart. Set `MAX_STALENESS` based on the specific feed's heartbeat, not a generic value.
+
+2. **"Why can't you use a DEX spot price as an oracle?"**
+   - Good answer: It can be manipulated with a flash loan
+   - Great answer: A flash loan gives any attacker unlimited temporary capital at zero cost. They can move the spot price `reserve1/reserve0` by any amount within a single transaction, exploit your protocol's reaction to that price, and restore it — all atomically. The cost is just gas. Chainlink is immune because its price is aggregated off-chain across multiple data sources. TWAPs resist single-block manipulation because the attacker needs to sustain the price across the entire window.
+
+**Interview Red Flags:**
+- 🚩 Not checking staleness on Chainlink feeds (the most commonly missed check)
+- 🚩 Hardcoding `decimals` to 8 (some feeds use 18)
+- 🚩 Not knowing about L2 sequencer uptime feeds when discussing L2 deployments
+- 🚩 Using `balanceOf` or DEX reserves as a price source
+
+**Pro tip:** In a security review or interview, the first thing to check in any protocol is the oracle integration. Trace where prices come from, what validations exist, and what happens when the oracle fails. If you can identify a missing staleness check or a spot-price dependency, you've found the most common class of DeFi vulnerabilities.
+
 ---
 
-## Day 2: TWAP Oracles and On-Chain Price Sources
+### 📋 Summary: Oracle Fundamentals & Chainlink
 
-### TWAP: Time-Weighted Average Price
+**✓ Covered:**
+- The oracle problem: blockchains can't access external data natively
+- Oracle types: centralized, on-chain (DEX spot), TWAP, decentralized networks (Chainlink)
+- Chainlink architecture: data providers → node operators → OCR aggregation → proxy → consumer
+- Update triggers: deviation threshold + heartbeat (not real-time!)
+- `AggregatorV3Interface`: `latestRoundData()`, mandatory safety checks (positive, complete, fresh)
+- L2 sequencer uptime feeds and grace period pattern
+- Code reading strategy for oracle integrations in production
+
+**Next:** TWAP oracles — how they work, when to use them vs Chainlink, and dual-oracle patterns
+
+---
+
+## TWAP Oracles and On-Chain Price Sources
+
+<a id="twap"></a>
+### 💡 TWAP: Time-Weighted Average Price
 
 You studied TWAP briefly in Module 2 (Uniswap V2's cumulative price accumulators). Now let's go deeper into when and how to use TWAP oracles.
 
@@ -311,7 +476,7 @@ TWAP = (priceCumulative(t2) - priceCumulative(t1)) / (t2 - t1)
 - The cumulative values are designed to overflow safely (unsigned integer wrapping)
 - External contracts must snapshot these values at two points in time and compute the difference
 
-> **Used by:** [MakerDAO OSM](https://github.com/makerdao/osm) uses medianized V2 TWAP, [Reflexer RAI](https://github.com/reflexer-labs/geb-fsm) uses V2 TWAP with 1-hour delay
+> **Used by:** [MakerDAO OSM](https://github.com/sky-ecosystem/osm) uses medianized V2 TWAP, [Reflexer RAI](https://github.com/reflexer-labs/geb-fsm) uses V2 TWAP with 1-hour delay
 
 **Uniswap V3 TWAP:**
 - More sophisticated: uses an [`observations` array](https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/Oracle.sol) (ring buffer) storing `(timestamp, tickCumulative, liquidityCumulative)`
@@ -324,12 +489,13 @@ TWAP = (priceCumulative(t2) - priceCumulative(t1)) / (t2 - t1)
 > **Deep dive:** [Uniswap V3 oracle documentation](https://docs.uniswap.org/concepts/protocol/oracle), [V3 Math Primer Part 2](https://blog.uniswap.org/uniswap-v3-math-primer-2)
 
 **V4 TWAP:**
-- V4 removed the built-in oracle. TWAP is now implemented via hooks (e.g., the [Geomean Oracle hook](https://github.com/Uniswap/v4-periphery/blob/main/src/hooks/examples/GeomeanOracle.sol)).
+- V4 removed the built-in oracle. TWAP is now implemented via hooks (e.g., the [Geomean Oracle hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/GeomeanOracle.sol)).
 - This gives more flexibility but means protocols need to find or build the appropriate hook.
 
 ---
 
-### When to Use TWAP vs Chainlink
+<a id="twap-vs-chainlink"></a>
+### 📋 When to Use TWAP vs Chainlink
 
 | Factor | Chainlink | TWAP |
 |--------|-----------|------|
@@ -342,11 +508,12 @@ TWAP = (priceCumulative(t2) - priceCumulative(t1)) / (t2 - t1)
 
 **The production pattern:** Most serious protocols use Chainlink as the primary oracle and TWAP as a secondary check or fallback. If Chainlink reports a price that deviates significantly from the TWAP, the protocol can pause or flag the discrepancy.
 
-> **Used by:** [Liquity](https://github.com/liquity/dev/blob/main/packages/contracts/contracts/PriceFeed.sol) uses Chainlink primary + Tellor fallback, [Maker's OSM](https://github.com/makerdao/osm) uses delayed TWAP, [Euler](https://github.com/euler-xyz/euler-contracts/blob/master/contracts/modules/EulDistributor.sol) used Uniswap V3 TWAP (before Euler relaunch).
+> **Used by:** [Liquity](https://github.com/liquity/dev/blob/main/packages/contracts/contracts/PriceFeed.sol) uses Chainlink primary + Tellor fallback, [Maker's OSM](https://github.com/sky-ecosystem/osm) uses delayed TWAP, [Euler](https://github.com/euler-xyz/euler-contracts/blob/master/contracts/modules/RiskManager.sol) used Uniswap V3 TWAP (before Euler relaunch).
 
 ---
 
-### Build: TWAP Oracle
+<a id="build-twap"></a>
+### 🛠️ Build: TWAP Oracle
 
 **Exercise 1: Build a TWAP oracle contract** that:
 - Stores periodic price observations (price, timestamp) from a Uniswap V2 pair
@@ -435,11 +602,62 @@ This dual-oracle pattern is used in production by protocols like [Liquity](https
 
 > **Deep dive:** [Liquity PriceFeed.sol](https://github.com/liquity/dev/blob/main/packages/contracts/contracts/PriceFeed.sol) — implements Chainlink primary, Tellor fallback, with deviation checks
 
+#### 🔍 Deep Dive: Liquity's Oracle State Machine (5 States)
+
+Liquity's `PriceFeed.sol` is the most thorough oracle fallback implementation in DeFi. It manages 5 states:
+
+```
+                    ┌─────────────────────────┐
+                    │  0: chainlinkWorking     │ ← Normal operation
+                    │  Use: Chainlink price    │
+                    └───────┬──────────┬───────┘
+                            │          │
+            Chainlink breaks│          │Chainlink & Tellor
+            Tellor works    │          │both break
+                            ▼          ▼
+              ┌──────────────┐   ┌──────────────────┐
+              │ 1: usingTellor│   │ 2: bothUntrusted │
+              │ Use: Tellor   │   │ Use: last good   │
+              └──────┬────────┘   │      price       │
+                     │            └────────┬─────────┘
+        Chainlink    │                     │ Either oracle
+        recovers     │                     │ recovers
+                     ▼                     ▼
+              ┌──────────────────────────────┐
+              │  Back to state 0 or 1        │
+              │  (with freshness checks)     │
+              └──────────────────────────────┘
+
+State transitions triggered by:
+  - Chainlink returning 0 or negative price
+  - Chainlink stale (updatedAt too old)
+  - Chainlink price deviates >50% from previous
+  - Tellor frozen (no update in 4+ hours)
+  - Tellor price deviates >50% from Chainlink
+```
+
+**Why this matters:** Most protocols have one oracle and hope it works. Liquity's state machine handles every combination of oracle failure gracefully. When you build your Part 3 capstone stablecoin, you'll need similar robustness.
+
 ---
 
-## Day 3: Oracle Manipulation Attacks
+### 📋 Summary: TWAP Oracles & On-Chain Price Sources
 
-### The Attack Surface
+**✓ Covered:**
+- TWAP mechanics: cumulative price accumulators, window-based average computation
+- Uniswap V2 TWAP (UQ112.112 fixed-point), V3 TWAP (geometric mean in tick space), V4 (hook-based)
+- Geometric vs arithmetic mean: why geometric mean is harder to manipulate
+- TWAP vs Chainlink trade-offs: manipulation resistance, latency, coverage, centralization
+- Dual-oracle pattern: Chainlink primary + TWAP secondary with deviation check and fallback
+- Production patterns: Liquity (Chainlink + Tellor), MakerDAO OSM (delayed TWAP)
+
+**Next:** Oracle manipulation attacks — spot price, TWAP, stale data, donation — and defense patterns
+
+---
+
+## Oracle Manipulation Attacks
+
+<a id="attack-surface"></a>
+### ⚠️ The Attack Surface
 
 **Why this matters:** Oracle manipulation is a category of attacks where the attacker corrupts the price data that a protocol relies on, then exploits the protocol's reaction to the false price. The protocol code executes correctly — it just operates on poisoned inputs.
 
@@ -447,7 +665,8 @@ This dual-oracle pattern is used in production by protocols like [Liquity](https
 
 ---
 
-### Attack Pattern 1: Spot Price Manipulation via Flash Loan
+<a id="spot-manipulation"></a>
+### ⚠️ Attack Pattern 1: Spot Price Manipulation via Flash Loan
 
 **This is the most common oracle attack.** The target: any protocol that reads spot price from a DEX pool.
 
@@ -468,7 +687,7 @@ This dual-oracle pattern is used in production by protocols like [Liquity](https
 
 > **Real impact:** [Cream Finance](https://rekt.news/cream-rekt-2/) ($130M, October 2021) — attacker flash-loaned yUSD, manipulated Curve pool price oracle that Cream used for collateral valuation, borrowed against inflated collateral. Loss: $130M.
 
-> **Real impact:** [Inverse Finance](https://rekt.news/inverse-rekt/) ($15M, June 2022) — attacker manipulated Curve pool oracle (used by Inverse for collateral pricing), deposited INV at inflated value, borrowed stables. Loss: $15.6M.
+> **Real impact:** [Inverse Finance](https://rekt.news/inverse-finance-rekt/) ($15M, June 2022) — attacker manipulated Curve pool oracle (used by Inverse for collateral pricing), deposited INV at inflated value, borrowed stables. Loss: $15.6M.
 
 **Example code (VULNERABLE):**
 
@@ -488,7 +707,8 @@ function getCollateralValue(address token, uint256 amount) public view returns (
 
 ---
 
-### Attack Pattern 2: TWAP Manipulation (Multi-Block)
+<a id="twap-manipulation"></a>
+### ⚠️ Attack Pattern 2: TWAP Manipulation (Multi-Block)
 
 TWAP oracles resist single-block attacks, but they're not immune. An attacker with sufficient capital (or who can bribe block producers) can sustain a manipulated price across the TWAP window.
 
@@ -500,16 +720,54 @@ TWAP oracles resist single-block attacks, but they're not immune. An attacker wi
 
 > **Deep dive:** [Flashbots MEV research](https://github.com/flashbots/mev-research), [Multi-block MEV](https://collective.flashbots.net/t/multi-block-mev/457)
 
+#### 🔍 Deep Dive: TWAP Manipulation Cost — Step by Step
+
+```
+Scenario: Manipulate a 30-minute TWAP by 10% on a $10M TVL pool
+
+Pool: ETH/USDC, $5M ETH + $5M USDC
+Target: make TWAP report ETH at $3,300 instead of $3,000 (10% inflation)
+Window: 30 minutes = 150 blocks (at 12s/block)
+
+To sustain 10% price deviation for the ENTIRE 30-minute window:
+  1. Need to move spot price to ~$3,300
+     → Swap ~$454K USDC into the pool (constant product math)
+     → Pool now: $4.55M USDC + $5.45M ETH worth ≈ spot $3,300
+
+  2. Hold that position for 150 blocks
+     → Arbitrageurs see the mispricing and trade against you
+     → Each block, arbs take ~$3K profit restoring the price
+     → You must re-swap each block to maintain $3,300
+
+  3. Cost per block: ~$3,000 (lost to arbitrageurs)
+     Cost for 150 blocks: ~$450,000
+     Plus: initial capital at risk (~$454K in the pool)
+     Plus: gas for 150 re-swap transactions
+
+Total attack cost: ~$500,000-900,000 to shift a 30-min TWAP by 10%
+
+Is it worth it?
+  The attacker needs to extract MORE than $500K-900K from the victim
+  protocol during the TWAP manipulation window. For a $10M TVL pool,
+  this is extremely expensive relative to potential gain.
+
+  For a $100K TVL pool? Cost drops ~100x → TWAP manipulation is viable.
+  This is why TWAP oracles are only safe for sufficiently liquid pools.
+```
+
+> **🔗 Connection:** Multi-block MEV (Part 3 Module 5) makes TWAP manipulation cheaper if a block builder controls consecutive blocks. This is an active area of concern for TWAP-dependent protocols.
+
 ---
 
-### Attack Pattern 3: Stale Oracle Exploitation
+<a id="stale-oracle"></a>
+### ⚠️ Attack Pattern 3: Stale Oracle Exploitation
 
 If a Chainlink feed hasn't updated (due to network congestion, gas price spikes, or feed misconfiguration), the on-chain price may lag significantly behind the real market price. An attacker can exploit the stale price:
 
 - If the real price of ETH has dropped 20% but the oracle still shows the old price, the attacker can deposit ETH as collateral at the stale (higher) valuation and borrow against it
 - When the oracle finally updates, the position is undercollateralized, and the protocol absorbs the loss
 
-**This is why your staleness check from Day 1 is critical.**
+**This is why your staleness check from the Oracle Fundamentals section is critical.**
 
 > **Real impact:** [Venus Protocol on BSC](https://rekt.news/venus-blizz-rekt/) ($11M, May 2023) — Binance Smart Chain network issues caused Chainlink oracles to stop updating for hours. Attacker borrowed against stale collateral prices. When prices updated, positions were deeply undercollateralized. Loss: $11M.
 
@@ -517,9 +775,10 @@ If a Chainlink feed hasn't updated (due to network congestion, gas price spikes,
 
 ---
 
-### Attack Pattern 4: Donation/Direct Balance Manipulation
+<a id="donation-manipulation"></a>
+### ⚠️ Attack Pattern 4: Donation/Direct Balance Manipulation
 
-Some protocols calculate prices based on internal token balances (e.g., vault share prices based on `totalAssets() / totalShares()`). An attacker can send tokens directly to the contract (bypassing `deposit()`), inflating the perceived value per share. This is related to the "inflation attack" on ERC-4626 vaults (covered in Module 7).
+Some protocols calculate prices based on internal token balances (e.g., vault share prices based on `totalAssets() / totalShares()`). An attacker can send tokens directly to the contract (bypassing `deposit()`), inflating the perceived value per share. This is related to the "inflation attack" on [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) vaults (covered in Module 7).
 
 > **Real impact:** [Euler Finance](https://rekt.news/euler-rekt/) ($197M, March 2023) — though primarily a donation attack exploiting incorrect health factor calculations, demonstrated how direct balance manipulation can bypass protocol accounting. Loss: $197M.
 
@@ -538,7 +797,8 @@ Attacker can donate tokens directly, inflating `totalAssets` without minting sha
 
 ---
 
-### Defense Patterns
+<a id="defense-patterns"></a>
+### 🛡️ Defense Patterns
 
 **1. Never use DEX spot price as an oracle.** This is the single most important rule. If your protocol reads `reserve1 / reserve0` as a price, it will be exploited.
 
@@ -587,7 +847,8 @@ require(timeElapsed >= MINIMUM_WINDOW, "Window too short"); // e.g., 1800 second
 
 ---
 
-### Build: Oracle Manipulation Lab
+<a id="build-oracle-lab"></a>
+### 🛠️ Build: Oracle Manipulation Lab
 
 **Exercise 1: Build the vulnerable protocol.** Create a simple lending contract that reads spot price from a Uniswap V2 pool. Deploy the pool, the lending contract, and demonstrate the attack:
 - Fund the pool with initial liquidity
@@ -624,7 +885,7 @@ contract Attacker {
 }
 ```
 
-**Exercise 2: Fix the vulnerability.** Replace the spot price oracle with your Chainlink consumer from Day 1. Re-run the attack — it should fail because Chainlink's price doesn't move in response to the attacker's DEX swap.
+**Exercise 2: Fix the vulnerability.** Replace the spot price oracle with your Chainlink consumer from the Oracle Fundamentals section. Re-run the attack — it should fail because Chainlink's price doesn't move in response to the attacker's DEX swap.
 
 ```solidity
 // ✅ FIXED: Using Chainlink
@@ -635,7 +896,7 @@ function getCollateralValue(address token, uint256 amount) public view returns (
 }
 ```
 
-**Exercise 3: TWAP attack cost analysis.** Using your TWAP oracle from Day 2, calculate (on paper or in a test): how much capital would an attacker need to sustain a 10% price manipulation over a 30-minute window, given a pool with $10 million TVL? How much would they lose to arbitrageurs? This exercise builds intuition for TWAP security margins.
+**Exercise 3: TWAP attack cost analysis.** Using your TWAP oracle from the TWAP Oracles section, calculate (on paper or in a test): how much capital would an attacker need to sustain a 10% price manipulation over a 30-minute window, given a pool with $10 million TVL? How much would they lose to arbitrageurs? This exercise builds intuition for TWAP security margins.
 
 **Exercise 4: Stale price exploit.** Using a mainnet fork, mock a Chainlink feed going stale (use `vm.mockCall` to return old `updatedAt`). Show how a protocol without staleness checks can be exploited when the real market price has moved significantly.
 
@@ -661,7 +922,40 @@ function testStaleOracleExploit() public {
 
 ---
 
-## Key Takeaways for Protocol Builders
+### 📋 Summary: Oracle Manipulation Attacks
+
+**✓ Covered:**
+- Four attack patterns: spot price manipulation (flash loan), TWAP manipulation (multi-block), stale oracle exploitation, donation/balance manipulation
+- Real exploits: Harvest ($24M), Cream ($130M), Inverse ($15M), Venus ($11M), Euler ($197M)
+- Eight defense patterns: no spot price, use Chainlink, staleness checks, sanity validation, dual oracle, circuit breakers, minimum TWAP window, virtual offsets
+- Built vulnerable protocol and fixed it with Chainlink
+- Stale price exploit simulation with `vm.mockCall`
+
+**Complete:** You now understand oracles as both infrastructure (how to consume safely) and attack surface (how manipulation works and how to defend).
+
+#### 💼 Job Market Context — Module-Level Interview Prep
+
+**What DeFi teams expect you to know:**
+
+1. **"Design the oracle system for a new lending protocol"**
+   - Good answer: Use Chainlink price feeds with staleness checks
+   - Great answer: Primary: Chainlink feeds per asset with per-feed staleness thresholds based on heartbeat. Secondary: on-chain TWAP as cross-check — if Chainlink and TWAP disagree by >5%, pause new borrows and flag for review. Circuit breaker: if price moves >20% in a single update, require manual governance confirmation. For L2: sequencer uptime feed + grace period. Fallback: if Chainlink is stale beyond threshold, fall back to TWAP if it passes its own quality checks, otherwise pause. For LST collateral (wstETH): chain exchange rate oracle × ETH/USD from Chainlink, with a secondary market-price check.
+
+2. **"Walk through how the Harvest Finance exploit worked"**
+   - Good answer: They manipulated a Curve pool price with a flash loan
+   - Great answer: The attacker flash-loaned USDT/USDC, made massive swaps in Curve's Y pool to temporarily move the stablecoin ratios, then deposited into Harvest's vault which read the manipulated Curve pool as its price oracle for share price calculation. The vault minted shares at the inflated price. The attacker unwound the Curve swap, restoring the true price, and withdrew their shares at the correct (lower) price — netting $24M. The fix: never use any pool's spot state as a price source.
+
+**Interview Red Flags:**
+- 🚩 Proposing a single oracle source without a fallback strategy
+- 🚩 Not knowing the difference between arithmetic and geometric mean TWAPs
+- 🚩 Thinking Chainlink is "real-time" (it updates on deviation threshold + heartbeat)
+- 🚩 Not considering oracle failure modes in protocol design
+
+**Pro tip:** Oracle architecture is a senior-level topic that separates protocol designers from protocol consumers. If you can draw the full oracle flow (data sources → Chainlink nodes → OCR → proxy → your wrapper → your core logic) and explain what can go wrong at each layer, you demonstrate the systems-level thinking that DeFi teams value most.
+
+---
+
+## 📋 Key Takeaways for Protocol Builders
 
 **1. The oracle is your protocol's weakest link.** A perfectly written smart contract using bad price data is just as exploitable as a buggy contract. Oracle choice and integration deserve as much attention as your core logic.
 
@@ -685,7 +979,58 @@ uint256 price = chainlinkFeed.latestRoundData().answer;
 
 ---
 
-## Resources
+## 📖 Production Study Order
+
+Study these codebases in order — each builds on the previous one's patterns:
+
+| # | Repository | Why Study This | Key Files |
+|---|-----------|----------------|-----------|
+| 1 | [Chainlink Contracts](https://github.com/smartcontractkit/chainlink) | Understand the interface your protocol consumes — `AggregatorV3Interface`, proxy pattern, OCR aggregation | `contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol`, `contracts/src/v0.8/shared/interfaces/AggregatorProxyInterface.sol` |
+| 2 | [Aave V3 AaveOracle](https://github.com/aave/aave-v3-core/blob/master/contracts/misc/AaveOracle.sol) | The standard Chainlink wrapper pattern — per-asset feed mapping, fallback sources, decimal normalization | `contracts/misc/AaveOracle.sol`, `contracts/protocol/libraries/logic/GenericLogic.sol` |
+| 3 | [Liquity PriceFeed](https://github.com/liquity/dev/blob/main/packages/contracts/contracts/PriceFeed.sol) | The most thorough dual-oracle implementation — 5-state fallback machine, Chainlink + Tellor, automatic switching | `packages/contracts/contracts/PriceFeed.sol` |
+| 4 | [MakerDAO OSM](https://github.com/sky-ecosystem/osm) | Delayed oracle pattern — 1-hour price lag for governance reaction time, medianized TWAP | `src/OSM.sol`, `src/Median.sol` |
+| 5 | [Compound V3 Comet](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol) | Minimal oracle integration — how a lean lending protocol reads prices with built-in fallback | `contracts/Comet.sol` (search `getPrice`), `contracts/CometConfiguration.sol` |
+| 6 | [Uniswap V3 Oracle Library](https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/Oracle.sol) | On-chain TWAP mechanics — ring buffer observations, geometric mean in tick space, `observe()` | `contracts/libraries/Oracle.sol`, `contracts/UniswapV3Pool.sol` (oracle functions) |
+
+**Reading strategy:** Start with Chainlink's interface (it's only 5 functions). Then study Aave's wrapper to see how production protocols consume it. Move to Liquity to understand fallback design. MakerDAO shows the delayed oracle pattern. Compound shows the lean alternative. Finally, V3's Oracle library shows the on-chain TWAP internals.
+
+---
+
+## 🔗 Cross-Module Concept Links
+
+### ← Backward References (Part 1 + Modules 1–2)
+
+| Source | Concept | How It Connects |
+|--------|---------|-----------------|
+| Part 1 §1 | `mulDiv` / fixed-point math | Decimal normalization when combining feeds with different `decimals()` values (e.g., ETH/USD × EUR/USD) |
+| Part 1 §1 | Custom errors | Production oracle wrappers use custom errors for staleness, invalid price, sequencer down |
+| Part 1 §2 | Transient storage | V4 oracle hooks can use TSTORE for gas-efficient observation caching within a transaction |
+| Part 1 §5 | Fork testing | Essential for testing oracle integrations against real Chainlink feeds on mainnet forks |
+| Part 1 §5 | `vm.mockCall` / `vm.warp` | Simulating stale feeds, sequencer downtime, and oracle failure modes in Foundry tests |
+| Part 1 §6 | Proxy pattern | Chainlink's EACAggregatorProxy allows aggregator upgrades without breaking consumer addresses |
+| Module 1 | Token decimals handling | Oracle `decimals()` must be reconciled with token decimals when computing collateral values |
+| Module 2 | TWAP accumulators | V2 `price0CumulativeLast`, V3 `observations` ring buffer — the on-chain data TWAP oracles read |
+| Module 2 | Price impact / spot price | `reserve1/reserve0` spot price is trivially manipulable — the core reason Chainlink exists |
+| Module 2 | Flash accounting (V4) | V4 hooks can integrate oracle reads into the flash accounting settlement flow |
+
+### → Forward References (Modules 4–9 + Part 3)
+
+| Target | Concept | How Oracle Knowledge Applies |
+|--------|---------|------------------------------|
+| Module 4 (Lending) | Collateral valuation / liquidation | Oracle prices determine health factors and liquidation triggers — the #1 consumer of oracle data |
+| Module 5 (Flash Loans) | Flash loan attack surface | Flash loans make spot price manipulation free — reinforces why Chainlink/TWAP are necessary |
+| Module 6 (Stablecoins) | Oracle Security Module (OSM) | MakerDAO delays price feeds by 1 hour; CDP liquidation triggered by oracle price vs safety margin |
+| Module 7 (Yield/Vaults) | Share price manipulation | Donation attacks on ERC-4626 vaults are an oracle problem — protocols reading vault prices need defense |
+| Module 8 (Security) | Oracle threat modeling | Oracle manipulation as a primary threat model for invariant testing and security reviews |
+| Module 9 (Integration) | Full-stack oracle design | Capstone requires end-to-end oracle architecture: feed selection, fallback, circuit breakers |
+| Part 3 Module 1 (Liquid Staking) | LST pricing | Chaining exchange rate oracles (wstETH/stETH) with ETH/USD feeds for accurate LST collateral valuation |
+| Part 3 Module 2 (Perpetuals) | Pyth pull-based oracles | Sub-second price feeds for funding rate calculation; oracle vs mark price divergence |
+| Part 3 Module 5 (MEV) | Multi-block MEV | Validator-controlled consecutive blocks make TWAP manipulation cheaper — active research area |
+| Part 3 Module 7 (L2 DeFi) | Sequencer uptime feeds | L2-specific oracle concerns: grace periods after restart, sequencer-aware price consumers |
+
+---
+
+## 📚 Resources
 
 **Chainlink documentation:**
 - [Data Feeds overview](https://docs.chain.link/data-feeds)
@@ -713,7 +1058,7 @@ uint256 price = chainlinkFeed.latestRoundData().answer;
 - [Aave V3 AaveOracle.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/misc/AaveOracle.sol) — Chainlink primary, fallback logic
 - [Compound V3 Comet.sol](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol) — price feed integration
 - [Liquity PriceFeed.sol](https://github.com/liquity/dev/blob/main/packages/contracts/contracts/PriceFeed.sol) — Chainlink + Tellor dual oracle
-- [MakerDAO OSM](https://github.com/makerdao/osm) — delayed medianized TWAP
+- [MakerDAO OSM](https://github.com/sky-ecosystem/osm) — delayed medianized TWAP
 
 **Hands-on:**
 - [Oracle manipulation walkthrough (Foundry)](https://github.com/calvwang9/oracle-manipulation)
@@ -723,16 +1068,16 @@ uint256 price = chainlinkFeed.latestRoundData().answer;
 - [Polter Finance postmortem](https://rekt.news/polter-finance-rekt/) — $12M Chainlink-Uniswap adapter exploit
 - [Cream Finance postmortem](https://rekt.news/cream-rekt-2/) — $130M oracle manipulation
 - [Harvest Finance postmortem](https://rekt.news/harvest-finance-rekt/) — $24M flash loan TWAP manipulation
-- [Inverse Finance postmortem](https://rekt.news/inverse-rekt/) — $15M Curve oracle manipulation
+- [Inverse Finance postmortem](https://rekt.news/inverse-finance-rekt/) — $15M Curve oracle manipulation
 - [Venus Protocol postmortem](https://rekt.news/venus-blizz-rekt/) — $11M stale oracle exploit
 - [Euler Finance postmortem](https://rekt.news/euler-rekt/) — $197M donation attack
 
 ---
 
-## Practice Challenges
+## 🎯 Practice Challenges
 
 - **[Damn Vulnerable DeFi #7 "Compromised"](https://www.damnvulnerabledefi.xyz/)** — An oracle whose private keys are leaked, enabling price manipulation. Tests your understanding of oracle trust models and the consequences of compromised price feeds.
 
 ---
 
-*Next module: Lending & Borrowing — supply/borrow model, collateral factors, interest rate curves, health factors, liquidation mechanics. This module will heavily use everything you've learned about oracles.*
+**Navigation:** [← Module 2: AMMs](2-amms.md) | [Module 4: Lending →](4-lending.md)

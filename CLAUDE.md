@@ -30,7 +30,7 @@ Only proceed when you receive clear, explicit approval:
 
 ### 3. Work in Small Increments
 
-- Complete **one module/section at a time**
+- Complete **one module at a time**
 - After completing each piece of work, **stop and ask** what to do next
 - Never assume the next step - even if it seems obvious
 - Check in frequently to avoid going down the wrong path
@@ -89,7 +89,7 @@ The user learns best through:
 
 ## Critical Review Framework
 
-When reviewing/building any section, evaluate against these criteria:
+When reviewing/building any module, evaluate against these criteria:
 
 ### 1. Depth vs Breadth
 **Question:** Is this challenging enough for an 8-year Solidity dev targeting DeFi roles?
@@ -337,19 +337,19 @@ Before diving into [complex production code], let's build [simpler version]:
 **Why this matters:** [Connection to production pattern]
 ```
 
-## Section Structure Template
+## Module Structure Template
 
-Every major section should follow this structure:
+Every major module should follow this structure:
 
 ```markdown
-# Section X: [Topic] (~Y days)
+# Module X: [Topic] (~Y days)
 
 ## 📚 Table of Contents
 [TOC with working anchor links]
 
 ---
 
-## Day 1: [Subtopic]
+## [Subtopic]
 
 <a id="concept-id"></a>
 ### 💡 Concept: [Concept Name]
@@ -388,7 +388,7 @@ Every major section should follow this structure:
 ---
 
 <a id="dayX-exercise"></a>
-## 🎯 Day X Build Exercise
+## 🎯 Build Exercise: [ExerciseName]
 
 **Workspace:** [Links to starter files and tests]
 
@@ -398,16 +398,16 @@ Every major section should follow this structure:
 
 ---
 
-## 📋 Day X Summary
+## 📋 Summary: [Topic]
 
 **✓ Covered:**
 - [Bullet list of concepts]
 
-**Next:** [Preview of next day/section]
+**Next:** [Preview of next topic]
 
 ---
 
-[Repeat for Day 2, etc.]
+[Repeat for each topic group]
 
 ---
 
@@ -418,20 +418,20 @@ Every major section should follow this structure:
 
 ---
 
-**Navigation:** [Previous: Section X] | [Next: Section Y]
+**Navigation:** [Previous: Module X] | [Next: Module Y]
 ```
 
-## Examples From Section 1
+## Examples From Module 1
 
 ### Example: Math Deep Dive
-See Section 1's `mulDiv` explanation:
+See Module 1's `mulDiv` explanation:
 - Visual 512-bit diagram
 - Plain English before code
 - Step-by-step why it works
 - Real DeFi usage examples (vaults, AMMs)
 
 ### Example: Bit Manipulation
-See Section 1's `BalanceDelta` explanation:
+See Module 1's `BalanceDelta` explanation:
 - Memory layout diagram
 - Step-by-step packing code
 - Step-by-step unpacking code
@@ -439,22 +439,22 @@ See Section 1's `BalanceDelta` explanation:
 - Testing examples
 
 ### Example: DeFi Patterns
-See Section 1's connections:
+See Module 1's connections:
 - Checked arithmetic → vault math, AMMs, rebasing tokens
 - Custom errors → error propagation in aggregators
 - UDVTs → preventing wrong token bugs
 - Transient storage → flash accounting
 
 ### Example: Job Market
-See Section 1's interview prep:
+See Module 1's interview prep:
 - Specific questions with tiered answers
 - Red flags to avoid
 - Pro tips per concept
 - Hot topics (e.g., Uniswap V4 flash accounting)
 
-## Checklist for Every Section
+## Checklist for Every Module
 
-Before considering a section "done":
+Before considering a module "done":
 
 - [ ] Math/bit operations have visual diagrams
 - [ ] Complex concepts have step-by-step breakdowns
@@ -477,7 +477,7 @@ Before considering a section "done":
 
 Before considering a Part "done":
 
-- [ ] All sections complete per section checklist
+- [ ] All modules complete per module checklist
 - [ ] Capstone project designed
 - [ ] Capstone integrates 3-4+ major concepts
 - [ ] Capstone has architectural guidance (not full solution)
@@ -507,7 +507,7 @@ Before considering a Part "done":
 
 ## Workspace Exercises
 
-**Critical Component:** Every section must have hands-on exercises that the user codes themselves.
+**Critical Component:** Every module must have hands-on exercises that the user codes themselves.
 
 ### Exercise Design Principles
 
@@ -538,7 +538,7 @@ Before considering a Part "done":
 ### Exercise Structure
 
 ```solidity
-// workspace/src/part1/section1/Concept.sol
+// workspace/src/part1/module1/Concept.sol
 
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
@@ -547,7 +547,7 @@ pragma solidity 0.8.28;
 import {SomeType} from "./types/SomeType.sol";
 
 /// @notice [Brief description of what this contract demonstrates]
-/// @dev Exercise for Section X: [Concept Name]
+/// @dev Exercise for Module X: [Concept Name]
 contract ConceptExercise {
     // State variables and types already defined
 
@@ -563,7 +563,7 @@ contract ConceptExercise {
 ### Test Structure
 
 ```solidity
-// workspace/test/part1/section1/Concept.t.sol
+// workspace/test/part1/module1/Concept.t.sol
 
 contract ConceptTest is Test {
     // Setup already provided
@@ -620,7 +620,7 @@ The intended flow:
 
 ## Capstone Projects
 
-**Integration Component:** Each Part (not section) ends with a capstone project.
+**Integration Component:** Each Part (not module) ends with a capstone project.
 
 ### Capstone Purpose
 
@@ -685,4 +685,4 @@ The intended flow:
 
 ---
 
-**This guide should be referenced when creating or reviewing every section in the curriculum.**
+**This guide should be referenced when creating or reviewing every module in the curriculum.**

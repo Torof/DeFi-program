@@ -15,7 +15,7 @@ pragma solidity ^0.8.19;
 // ============================================================================
 
 import "forge-std/Script.sol";
-import {SimpleVault} from "../src/part1/section5/SimpleVault.sol";
+import {SimpleVault} from "../src/part1/module5/SimpleVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @notice Deployment script for SimpleVault.

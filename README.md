@@ -16,7 +16,7 @@ The curriculum is split into three parts, progressing from foundational mechanic
 
 Catching up on Solidity 0.8.x language changes, EVM-level upgrades (Dencun, Pectra), modern token approval patterns, account abstraction, Foundry testing workflows, proxy patterns, and deployment operations.
 
-| # | Section | Duration | Status |
+| # | Module | Duration | Status |
 |---|---------|----------|--------|
 | 1 | Solidity 0.8.x Modern Features | ~2 days | ⬜ |
 | 2 | EVM-Level Changes (EIP-1153, EIP-4844, EIP-7702) | ~2 days | ⬜ |
@@ -42,17 +42,21 @@ The core primitives of decentralized finance. Each module follows a consistent p
 | 8 | DeFi Security | ~4 days | ⬜ |
 | 9 | Integration Capstone | ~2-3 days | ⬜ |
 
-### Part 3 — Modern DeFi Stack (~3-4 weeks)
+### Part 3 — Modern DeFi Stack & Advanced Verticals (~6-7 weeks)
 
-Advanced patterns and a capstone project designing a multi-collateral stablecoin protocol from scratch.
+DeFi verticals (liquid staking, perpetuals, yield tokenization), trading infrastructure (aggregation, MEV), multi-chain reality (bridges, L2), governance, and a capstone project designing a multi-collateral stablecoin protocol from scratch.
 
 | # | Module | Duration | Status |
 |---|--------|----------|--------|
-| 9 | DEX Aggregation & Intents | ~3 days | ⬜ |
-| 10 | MEV Deep Dive | ~4 days | ⬜ |
-| 11 | Cross-Chain & Bridges | ~3 days | ⬜ |
-| 12 | Governance & DAOs | ~3 days | ⬜ |
-| 13 | Capstone: Multi-Collateral Stablecoin | ~5-7 days | ⬜ |
+| 1 | Liquid Staking & Restaking | ~4 days | ⬜ |
+| 2 | Perpetuals & Derivatives | ~5 days | ⬜ |
+| 3 | Yield Tokenization | ~3 days | ⬜ |
+| 4 | DEX Aggregation & Intents | ~4 days | ⬜ |
+| 5 | MEV Deep Dive | ~4 days | ⬜ |
+| 6 | Cross-Chain & Bridges | ~4 days | ⬜ |
+| 7 | L2-Specific DeFi | ~3 days | ⬜ |
+| 8 | Governance & DAOs | ~3 days | ⬜ |
+| 9 | Capstone: Multi-Collateral Stablecoin | ~5-7 days | ⬜ |
 
 ## Learning Approach
 
@@ -76,39 +80,49 @@ Time estimates assume 3-4 hours per day with no hard deadline.
 
 ## Key Protocols Studied
 
-Uniswap (V2, V3, V4) · Aave V3 · Compound V3 · MakerDAO · Balancer · Chainlink · Permit2 · ERC-4626 · UniswapX · ERC-4337
+Uniswap (V2, V3, V4) · Aave V3 · Compound V3 · MakerDAO · Balancer · Chainlink · Permit2 · ERC-4626 · UniswapX · ERC-4337 · Lido · Rocket Pool · EigenLayer · GMX · Synthetix · Pendle · 1inch · CoW Protocol · Flashbots · LayerZero · Chainlink CCIP · Curve · Velodrome
 
 ## Project Structure
 
 ### Curriculum docs
 
-Each part's learning material is organized into section/module folders for easy navigation and extensibility:
+Each part's learning material is organized as flat module files:
 
 ```
 defi-auto-program/
 ├── README.md                         # This file
 ├── part1/                            # Curriculum docs for Part 1
-│   ├── README.md                     # Overview, section table, checklist
-│   ├── section1-solidity-modern/     # Solidity 0.8.x features
-│   ├── section2-evm-changes/         # EIP-1153, EIP-4844, EIP-7702
-│   ├── section3-token-approvals/     # EIP-2612 Permit, Permit2
-│   ├── section4-account-abstraction/ # ERC-4337, paymasters
-│   ├── section5-foundry/             # Fuzz, invariant, fork testing
-│   ├── section6-proxy-patterns/      # UUPS, transparent, beacon
-│   └── section7-deployment/          # Scripts, verification, multisig
-└── part2/                            # Curriculum docs for Part 2
-    ├── module1-token-mechanics.md
-    ├── module2-amms.md
-    ├── module3-oracles.md
-    ├── module4-lending.md
-    ├── module5-flash-loans.md
-    ├── module6-stablecoins-cdps.md
-    ├── module7-vaults-yield.md
-    ├── module8-defi-security.md
-    └── module9-integration-capstone.md
+│   ├── README.md                     # Overview, module table, checklist
+│   ├── 1-solidity-modern.md          # Solidity 0.8.x features
+│   ├── 2-evm-changes.md              # EIP-1153, EIP-4844, EIP-7702
+│   ├── 3-token-approvals.md          # EIP-2612 Permit, Permit2
+│   ├── 4-account-abstraction.md      # ERC-4337, paymasters
+│   ├── 5-foundry.md                  # Fuzz, invariant, fork testing
+│   ├── 6-proxy-patterns.md           # UUPS, transparent, beacon
+│   └── 7-deployment.md               # Scripts, verification, multisig
+├── part2/                            # Curriculum docs for Part 2
+│   ├── 1-token-mechanics.md
+│   ├── 2-amms.md
+│   ├── 3-oracles.md
+│   ├── 4-lending.md
+│   ├── 5-flash-loans.md
+│   ├── 6-stablecoins-cdps.md
+│   ├── 7-vaults-yield.md
+│   ├── 8-defi-security.md
+│   └── 9-integration-capstone.md
+└── part3/                            # Curriculum docs for Part 3
+    ├── 1-liquid-staking.md
+    ├── 2-perpetuals.md
+    ├── 3-yield-tokenization.md
+    ├── 4-dex-aggregation.md
+    ├── 5-mev.md
+    ├── 6-cross-chain.md
+    ├── 7-l2-defi.md
+    ├── 8-governance.md
+    └── 9-capstone.md
 ```
 
-Each section folder contains the main content file plus space for additional exercises, links, and notes.
+Each module file contains the full content for that topic.
 
 ### Code workspace
 
@@ -118,13 +132,13 @@ Single unified Foundry project for all exercises. This structure allows sharing 
 workspace/                        # Unified Foundry project
 ├── src/
 │   ├── part1/                    # Solidity, EVM & Modern Tooling
-│   │   ├── section1/             # UDVTs, transient storage exercises
-│   │   ├── section2/             # EIP-1153, 4844, 7702 exercises
-│   │   ├── section3/             # Permit, Permit2 vaults
-│   │   ├── section4/             # Smart accounts, paymasters
-│   │   ├── section5/             # Fuzz, invariant, fork tests
-│   │   ├── section6/             # Proxy patterns, upgradeability
-│   │   └── section7/             # Deployment scripts
+│   │   ├── module1/              # UDVTs, transient storage exercises
+│   │   ├── module2/              # EIP-1153, 4844, 7702 exercises
+│   │   ├── module3/              # Permit, Permit2 vaults
+│   │   ├── module4/              # Smart accounts, paymasters
+│   │   ├── module5/              # Fuzz, invariant, fork tests
+│   │   ├── module6/              # Proxy patterns, upgradeability
+│   │   └── module7/              # Deployment scripts
 │   ├── part2/                    # DeFi Foundations
 │   │   ├── module1/              # Token vault, SafeERC20 exercises
 │   │   ├── module2/              # AMM pools (constant product, CLAMM)

@@ -9,10 +9,10 @@ import {
     InsufficientBalance,
     TransferFailed,
     InvalidDeadline
-} from "../../../src/part1/section3/PermitVault.sol";
+} from "../../../src/part1/module3/PermitVault.sol";
 
 /// @notice Tests for EIP-2612 Permit Vault exercise.
-/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/section3/PermitVault.sol instead.
+/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/module3/PermitVault.sol instead.
 contract PermitVaultTest is Test {
     PermitVault vault;
     PermitToken token;

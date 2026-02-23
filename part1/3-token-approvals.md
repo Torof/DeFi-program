@@ -1,28 +1,28 @@
-# Section 3: Modern Token Approval Patterns (~3 days)
+# Module 3: Modern Token Approval Patterns (~3 days)
 
 ## 📚 Table of Contents
 
-**Day 5: The Approval Problem**
+**The Approval Problem**
 - [Why Traditional Approvals Are Broken](#traditional-approvals-broken)
 - [EIP-2612 — Permit](#eip-2612-permit)
 - [OpenZeppelin ERC20Permit](#openzeppelin-erc20permit)
-- [Day 5 Build Exercise](#day5-exercise)
+- [Build Exercise: PermitVault](#day5-exercise)
 
-**Day 6: Permit2**
+**Permit2**
 - [How Permit2 Works](#how-permit2-works)
 - [SignatureTransfer vs AllowanceTransfer](#signature-vs-allowance-transfer)
 - [Permit2 Design Details](#permit2-design-details)
 - [Reading Permit2 Source Code](#permit2-source-code)
-- [Day 6-7 Build Exercise](#day6-exercise)
+- [Build Exercise: Permit2Vault](#day6-exercise)
 
-**Day 7: Security**
+**Security**
 - [Permit Attack Vectors](#permit-attack-vectors)
 - [Safe Permit Patterns](#safe-permit-patterns)
-- [Day 7 Build Exercise](#day7-exercise)
+- [Build Exercise: SafePermit](#day7-exercise)
 
 ---
 
-## Day 5: The Approval Problem and EIP-2612
+## The Approval Problem and EIP-2612
 
 <a id="traditional-approvals-broken"></a>
 ### 💡 Concept: Why Traditional Approvals Are Broken
@@ -256,7 +256,7 @@ Most modern tokens implement EIP-2612:
        uint8 v, bytes32 r, bytes32 s
    ) external;
    ```
-   Aave's Pool contract calls `IERC20Permit(asset).permit(...)` then `safeTransferFrom` — same pattern you'll build in the Day 5 exercise.
+   Aave's Pool contract calls `IERC20Permit(asset).permit(...)` then `safeTransferFrom` — same pattern you'll build in the PermitVault exercise.
 
 2. **Uniswap V2 LP Token Removal**
    - Uniswap V2 LP tokens implement EIP-2612
@@ -267,9 +267,9 @@ Most modern tokens implement EIP-2612:
    - Wrapped tokens (like WETH alternatives) use permit for gasless wrapping
    - `depositFor` with permit = wrap + deposit atomically
 
-**The limitation that led to Permit2:** All these only work if the token itself implements EIP-2612. For tokens like USDT, WETH (mainnet), and thousands of pre-2021 tokens — you're back to two transactions. This gap is exactly what Permit2 fills (Day 6).
+**The limitation that led to Permit2:** All these only work if the token itself implements EIP-2612. For tokens like USDT, WETH (mainnet), and thousands of pre-2021 tokens — you're back to two transactions. This gap is exactly what Permit2 fills (next topic).
 
-> **Connection to Section 1:** The EIP-712 typed data signing uses `abi.encode` for struct hashing — the same encoding you studied with `abi.encodeCall`. Custom errors (Section 1) are also critical here: permit failures need clear error messages for debugging.
+> **Connection to Module 1:** The EIP-712 typed data signing uses `abi.encode` for struct hashing — the same encoding you studied with `abi.encodeCall`. Custom errors (Module 1) are also critical here: permit failures need clear error messages for debugging.
 
 #### 💼 Job Market Context
 
@@ -333,9 +333,9 @@ bytes32 digest = buildPermitDigest(owner, spender, value, nonce, deadline);
 ---
 
 <a id="day5-exercise"></a>
-## 🎯 Day 5 Build Exercise
+## 🎯 Build Exercise: PermitVault
 
-**Workspace:** [`workspace/src/part1/section3/`](../workspace/src/part1/section3/) — starter file: [`PermitVault.sol`](../workspace/src/part1/section3/PermitVault.sol), tests: [`PermitVault.t.sol`](../workspace/test/part1/section3/PermitVault.t.sol)
+**Workspace:** [`workspace/src/part1/module3/`](../workspace/src/part1/module3/) — starter file: [`PermitVault.sol`](../workspace/src/part1/module3/PermitVault.sol), tests: [`PermitVault.t.sol`](../workspace/test/part1/module3/PermitVault.t.sol)
 
 1. Create an ERC-20 token with EIP-2612 permit support (extend OpenZeppelin's `ERC20Permit`)
 2. Write a `Vault` contract that accepts deposits via permit—a single function that calls `permit()` then `transferFrom()` in one transaction
@@ -374,7 +374,7 @@ function testDepositWithPermit() public {
 
 ---
 
-## 📋 Day 5 Summary
+## 📋 Summary: The Approval Problem
 
 **✓ Covered:**
 - Traditional approval problems — 2 transactions, infinite approvals, no expiration
@@ -382,11 +382,11 @@ function testDepositWithPermit() public {
 - EIP-712 typed data — domain separators prevent replay attacks
 - Token compatibility — not all tokens support permit
 
-**Next:** Day 6 — Permit2, the universal approval infrastructure used by Uniswap V4, UniswapX, and modern DeFi
+**Next:** Permit2, the universal approval infrastructure used by Uniswap V4, UniswapX, and modern DeFi
 
 ---
 
-## Day 6: Permit2 — Universal Approval Infrastructure
+## Permit2 — Universal Approval Infrastructure
 
 <a id="how-permit2-works"></a>
 ### 💡 Concept: How Permit2 Works
@@ -456,7 +456,7 @@ function depositWithPermit2(
 1. **Uniswap V4** — all token transfers go through Permit2
    - The PoolManager doesn't call `transferFrom` on tokens directly
    - Permit2 is the single token ingress/egress point
-   - Combined with flash accounting (Section 2), this means: sign once, swap through multiple pools, settle once
+   - Combined with flash accounting (Module 2), this means: sign once, swap through multiple pools, settle once
 
 2. **UniswapX** — intent-based trading built on witness data
    - Users sign a Permit2 permit that includes swap order details as witness
@@ -474,7 +474,7 @@ function depositWithPermit2(
 
 **The pattern:** If you're building a DeFi protocol in 2025-2026, Permit2 integration is expected. Protocols that still require direct approve are considered legacy.
 
-> **Connection to Section 2:** Permit2 + transient storage = Uniswap V4's entire token flow. Users sign Permit2 permits, the PoolManager tracks deltas in transient storage (flash accounting), and settlement happens once at the end.
+> **Connection to Module 2:** Permit2 + transient storage = Uniswap V4's entire token flow. Users sign Permit2 permits, the PoolManager tracks deltas in transient storage (flash accounting), and settlement happens once at the end.
 
 #### 💼 Job Market Context
 
@@ -495,7 +495,7 @@ function depositWithPermit2(
 - 🚩 Not knowing the difference between SignatureTransfer and AllowanceTransfer
 - 🚩 Can't explain why Permit2 uses bitmap nonces instead of sequential
 
-**Pro tip:** Mention that Permit2 is deployed at the same address on every EVM chain (`0x000000000022D473030F116dDEE9F6B43aC78BA3`) using CREATE2. This detail shows you understand deployment patterns and cross-chain consistency — topics covered in Section 7.
+**Pro tip:** Mention that Permit2 is deployed at the same address on every EVM chain (`0x000000000022D473030F116dDEE9F6B43aC78BA3`) using CREATE2. This detail shows you understand deployment patterns and cross-chain consistency — topics covered in Module 7.
 
 ---
 
@@ -712,7 +712,7 @@ struct PackedAllowance {
 - At 1 permit per second: lasts 8.9 million years
 - In practice, a user might use a few thousand nonces in their lifetime
 
-**Comparison to Section 1's BalanceDelta:**
+**Comparison to Module 1's BalanceDelta:**
 | | BalanceDelta | PackedAllowance |
 |---|---|---|
 | **Total size** | 256 bits | 256 bits |
@@ -720,7 +720,7 @@ struct PackedAllowance {
 | **Purpose** | Two token amounts | Amount + time + counter |
 | **Access pattern** | Bit shifting | Struct packing (Solidity handles it) |
 
-> **Connection to Section 1:** This is the same slot-packing optimization you studied with `BalanceDelta` in Section 1, but here Solidity's struct packing handles the bit manipulation automatically — no manual shifting needed.
+> **Connection to Module 1:** This is the same slot-packing optimization you studied with `BalanceDelta` in Module 1, but here Solidity's struct packing handles the bit manipulation automatically — no manual shifting needed.
 
 **3. Witness data (permitWitnessTransferFrom):**
 
@@ -848,7 +848,7 @@ Look at how `V3SwapRouter` calls `permit2.permitTransferFrom` to pull tokens fro
 
 5. **Study `SignatureVerification.sol`** — the signature validation library
    - Handles three signature types: standard (65 bytes), compact EIP-2098 (64 bytes), and EIP-1271 (smart contract)
-   - This connects directly to Section 4's account abstraction — smart wallets use EIP-1271
+   - This connects directly to Module 4's account abstraction — smart wallets use EIP-1271
 
 **Don't get stuck on:** The assembly optimizations in the verification library. Understand the concept first (verify signature → check nonce → transfer tokens), then revisit the low-level details.
 
@@ -860,9 +860,9 @@ Look at how `V3SwapRouter` calls `permit2.permitTransferFrom` to pull tokens fro
 ---
 
 <a id="day6-exercise"></a>
-## 🎯 Day 6-7 Build Exercise
+## 🎯 Build Exercise: Permit2Vault
 
-**Workspace:** [`workspace/src/part1/section3/`](../workspace/src/part1/section3/) — starter file: [`Permit2Vault.sol`](../workspace/src/part1/section3/Permit2Vault.sol), tests: [`Permit2Vault.t.sol`](../workspace/test/part1/section3/Permit2Vault.t.sol)
+**Workspace:** [`workspace/src/part1/module3/`](../workspace/src/part1/module3/) — starter file: [`Permit2Vault.sol`](../workspace/src/part1/module3/Permit2Vault.sol), tests: [`Permit2Vault.t.sol`](../workspace/test/part1/module3/Permit2Vault.t.sol)
 
 Build a Vault contract that integrates with Permit2 for both transfer modes:
 
@@ -917,7 +917,7 @@ The tests pin a specific block number (`19_000_000`) so results are deterministi
 
 ---
 
-## 📋 Day 6 Summary
+## 📋 Summary: Permit2
 
 **✓ Covered:**
 - Permit2 architecture — SignatureTransfer vs AllowanceTransfer
@@ -926,11 +926,11 @@ The tests pin a specific block number (`19_000_000`) so results are deterministi
 - Witness data — binding extra context to permit signatures
 - Real usage — 80% of Uniswap swaps use Permit2
 
-**Next:** Day 7 — Security considerations and attack vectors
+**Next:** Security considerations and attack vectors
 
 ---
 
-## Day 7: Security Considerations and Edge Cases
+## Security Considerations and Edge Cases
 
 <a id="permit-attack-vectors"></a>
 ### 💡 Concept: Permit/Permit2 Attack Vectors
@@ -1011,7 +1011,7 @@ An attacker can call Permit2's `invalidateNonces` on behalf of any user to revok
 
 4. **Smart Contract Wallet Compatibility**
    - EOAs sign with `ecrecover` (v, r, s)
-   - Smart wallets (ERC-4337, Section 4) sign with EIP-1271 (`isValidSignature`)
+   - Smart wallets (ERC-4337, Module 4) sign with EIP-1271 (`isValidSignature`)
    - Permit2's `SignatureVerification` handles both → future-proof
    - Your protocol must not assume signatures always come from EOAs
 
@@ -1137,9 +1137,9 @@ try IERC20Permit(token).permit(...) {
 ---
 
 <a id="day7-exercise"></a>
-## 🎯 Day 7 Build Exercise
+## 🎯 Build Exercise: SafePermit
 
-**Workspace:** [`workspace/src/part1/section3/`](../workspace/src/part1/section3/) — starter file: [`SafePermit.sol`](../workspace/src/part1/section3/SafePermit.sol), tests: [`SafePermit.t.sol`](../workspace/test/part1/section3/SafePermit.t.sol)
+**Workspace:** [`workspace/src/part1/module3/`](../workspace/src/part1/module3/) — starter file: [`SafePermit.sol`](../workspace/src/part1/module3/SafePermit.sol), tests: [`SafePermit.t.sol`](../workspace/test/part1/module3/SafePermit.t.sol)
 
 1. **Write a test demonstrating permit front-running:**
    - User signs and submits permit
@@ -1172,7 +1172,7 @@ try IERC20Permit(token).permit(...) {
 
 ---
 
-## 📋 Day 7 Summary
+## 📋 Summary: Security
 
 **✓ Covered:**
 - Signature replay protection — domain separators, nonces, deadlines
@@ -1182,11 +1182,59 @@ try IERC20Permit(token).permit(...) {
 
 **Key takeaway:** Permit and Permit2 enable amazing UX but require defensive coding. Always use try/catch, validate signatures carefully, and never trust user-submitted permit data without verification.
 
-**🔗 Concept links:**
-- **← Section 1:** Custom errors for permit failures, `abi.encodeCall` for type-safe permit calls, UDVTs for type-safe token types
-- **← Section 2:** Transient storage + Permit2 = Uniswap V4's flash accounting model
-- **→ Section 4:** EIP-1271 signature validation enables smart wallets to use Permit2 — the `SignatureVerification` library you studied handles both EOA and contract signatures
-- **→ Part 2:** Permit2 is the standard token ingress for DEX protocols, lending platforms, and yield vaults you'll build
+---
+
+## 🔗 Cross-Module Concept Links
+
+**Backward references (← concepts from earlier modules):**
+
+| Module 3 Concept | Builds on | Where |
+|---|---|---|
+| EIP-712 typed data signing | `abi.encode` for struct hashing, `abi.encodeCall` for type safety | [M1 — abi.encodeCall](1-solidity-modern.md#abi-encodecall) |
+| Permit failure errors | Custom errors for clear revert reasons | [M1 — Custom Errors](1-solidity-modern.md#custom-errors) |
+| Packed AllowanceTransfer storage | BalanceDelta slot packing, bit manipulation | [M1 — BalanceDelta](1-solidity-modern.md#balance-delta) |
+| Permit2 + flash accounting | Transient storage for Uniswap V4 token flow | [M2 — Transient Storage](2-evm-changes.md#transient-storage-deep-dive) |
+| Temporary approvals via transient storage | EIP-1153 use cases beyond reentrancy guards | [M2 — DeFi Use Cases](2-evm-changes.md#transient-storage-deep-dive) |
+
+**Forward references (→ concepts you'll use later):**
+
+| Module 3 Concept | Used in | Where |
+|---|---|---|
+| EIP-1271 signature validation | Smart wallet permit support, account abstraction | [M4 — Account Abstraction](4-account-abstraction.md) |
+| EIP-712 domain separators | Test signature construction in Foundry | [M5 — Foundry](5-foundry.md) |
+| Permit2 singleton deployment | CREATE2 deterministic addresses, cross-chain consistency | [M7 — Deployment](7-deployment.md) |
+| Safe permit try/catch pattern | Proxy upgrade safety, defensive coding patterns | [M6 — Proxy Patterns](6-proxy-patterns.md) |
+
+**Part 2 connections:**
+
+| Module 3 Concept | Part 2 Module | How it connects |
+|---|---|---|
+| Token approval hygiene | [M1 — Token Mechanics](../part2/1-token-mechanics.md) | Weird ERC-20 behaviors (fee-on-transfer, rebasing) interact with approval flows |
+| Permit2 SignatureTransfer | [M2 — AMMs](../part2/2-amms.md) | Uniswap V4 token ingress — all swaps flow through Permit2 |
+| Bitmap nonces + witness data | [M2 — AMMs](../part2/2-amms.md) | UniswapX intent-based trading relies on parallel signature collection |
+| Permit2 AllowanceTransfer | [M4 — Lending](../part2/4-lending.md) | Lending protocols use time-bounded allowances for recurring deposits |
+| Permit2 integration patterns | [M5 — Flash Loans](../part2/5-flash-loans.md) | Flash loan protocols integrate Permit2 for token sourcing |
+| Permit phishing + front-running | [M8 — DeFi Security](../part2/8-defi-security.md) | $314M lost in 2024 — signature-based attack surface analysis |
+| Full Permit2 integration | [M9 — Integration Capstone](../part2/9-integration-capstone.md) | Capstone project requires Permit2 as token ingress path |
+
+---
+
+## 📖 Production Study Order
+
+Read these files in order to build progressive understanding of signature-based approvals in production:
+
+| # | File | Why | Lines |
+|---|------|-----|-------|
+| 1 | [OZ Nonces.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Nonces.sol) | Simplest nonce pattern — sequential counter for replay protection | ~20 |
+| 2 | [OZ EIP712.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/EIP712.sol) | Domain separator construction — the security anchor for all typed signing | ~80 |
+| 3 | [OZ ERC20Permit.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC20Permit.sol) | Complete EIP-2612 implementation — see how Nonces + EIP712 compose | ~40 |
+| 4 | [Permit2 ISignatureTransfer.sol](https://github.com/Uniswap/permit2/blob/main/src/interfaces/ISignatureTransfer.sol) | Interface-first — understand the mental model before implementation | ~60 |
+| 5 | [Permit2 SignatureTransfer.sol](https://github.com/Uniswap/permit2/blob/main/src/SignatureTransfer.sol) | One-time permits + bitmap nonces — the core innovation | ~120 |
+| 6 | [Permit2 AllowanceTransfer.sol](https://github.com/Uniswap/permit2/blob/main/src/AllowanceTransfer.sol) | Persistent allowances with packed storage — compare with SignatureTransfer | ~150 |
+| 7 | [OZ SafeERC20.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/utils/SafeERC20.sol) | Try/catch permit pattern — the defensive standard for production code | ~100 |
+| 8 | [UniswapX ResolvedOrder.sol](https://github.com/Uniswap/UniswapX/blob/main/src/base/ResolvedOrder.sol) | Witness data in production — how intent-based trading binds order params to signatures | ~80 |
+
+**Reading strategy:** Files 1–3 build EIP-2612 understanding from primitives. Files 4–6 cover Permit2's two modes. File 7 is the defensive pattern every protocol needs. File 8 shows the cutting edge — witness data powering intent-based DeFi.
 
 ---
 
@@ -1208,7 +1256,7 @@ try IERC20Permit(token).permit(...) {
 ### Security
 - [OpenZeppelin SafeERC20](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/utils/SafeERC20.sol) — safe permit handling patterns
 - [Revoke.cash](https://revoke.cash/) — check your active approvals
-- [EIP-1271 specification](https://eips.ethereum.org/EIPS/eip-1271) — signature validation for smart accounts (covered in Section 4)
+- [EIP-1271 specification](https://eips.ethereum.org/EIPS/eip-1271) — signature validation for smart accounts (covered in Module 4)
 
 ### Advanced Topics
 - [UniswapX ResolvedOrder](https://github.com/Uniswap/UniswapX/blob/main/src/base/ResolvedOrder.sol) — witness data in production
@@ -1216,4 +1264,4 @@ try IERC20Permit(token).permit(...) {
 
 ---
 
-**Navigation:** [← Previous: Section 2 - EVM Changes](2-evm-changes.md) | [Next: Section 4 - Account Abstraction →](4-account-abstraction.md)
+**Navigation:** [← Module 2: EVM Changes](2-evm-changes.md) | [Module 4: Account Abstraction →](4-account-abstraction.md)

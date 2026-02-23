@@ -14,9 +14,9 @@ This part gets you current. Everything here feeds directly into Part 2 — you'l
 
 ---
 
-## Sections
+## Modules
 
-| # | Section | Duration | File |
+| # | Module | Duration | File |
 |---|---------|----------|------|
 | 1 | [Solidity 0.8.x Modern Features](1-solidity-modern.md) | ~2 days | `1-solidity-modern.md` |
 | 2 | [EVM-Level Changes ([EIP-1153](https://eips.ethereum.org/EIPS/eip-1153), [EIP-4844](https://eips.ethereum.org/EIPS/eip-4844), [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702))](2-evm-changes.md) | ~2 days | `2-evm-changes.md` |

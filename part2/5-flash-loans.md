@@ -3,12 +3,37 @@
 **Duration:** ~3 days (3–4 hours/day)
 **Prerequisites:** Modules 1–4 (especially AMMs and lending)
 **Pattern:** Concept → Read provider implementations → Build multi-step compositions → Security analysis
-**Builds on:** Module 2 (AMM swaps for arbitrage), Module 4 (liquidation mechanics for flash loan liquidation)
-**Used by:** Module 8 (flash-loan-amplified attack patterns), Module 9 (integration capstone flash liquidation bot)
+**Builds on:** Module 2 (AMM swaps for arbitrage), Module 3 (oracle manipulation threat model), Module 4 (liquidation mechanics for flash loan liquidation)
+**Used by:** Module 6 (DAI flash mint, Liquidation 2.0 composability), Module 8 (flash-loan-amplified attack patterns), Module 9 (integration capstone flash liquidation bot), Part 3 Module 5 (MEV searcher strategies)
 
 ---
 
-## Why Flash Loans Are a Foundational Primitive
+## 📚 Table of Contents
+
+**Flash Loan Mechanics**
+- [The Atomic Guarantee](#atomic-guarantee)
+- [Flash Loan Providers](#flash-loan-providers)
+- [Read: Aave FlashLoanLogic.sol](#read-aave-flash)
+- [Read: Balancer FlashLoans](#read-balancer-flash)
+- [Exercises](#day1-exercises)
+
+**Composing Flash Loan Strategies**
+- [Strategy 1: DEX Arbitrage](#dex-arbitrage)
+- [Strategy 2: Flash Loan Liquidation](#flash-liquidation)
+- [Strategy 3: Collateral Swap](#collateral-swap)
+- [Strategy 4: Leverage/Deleverage](#leverage-deleverage)
+- [Exercises](#day2-exercises)
+
+**Security, Anti-Patterns, and the Bigger Picture**
+- [Flash Loan Security for Protocol Builders](#flash-security)
+- [Flash Loan Receiver Security](#receiver-security)
+- [Flash Loans vs Flash Accounting](#flash-vs-accounting)
+- [Governance Attacks via Flash Loans](#governance-attacks)
+- [Exercises](#day3-exercises)
+
+---
+
+## 💡 Why Flash Loans Are a Foundational Primitive
 
 Flash loans are DeFi's most counterintuitive innovation: uncollateralized loans of unlimited size that must be repaid within a single transaction. If repayment fails, the entire transaction reverts — as if nothing happened.
 
@@ -18,9 +43,22 @@ Flash loans are also the primary tool used in oracle manipulation attacks (Modul
 
 ---
 
-## Day 1: Flash Loan Mechanics
+## Flash Loan Mechanics
 
-### The Atomic Guarantee
+💻 **Quick Try:**
+
+Before diving into providers and callbacks, feel the atomic guarantee on a mainnet fork:
+```solidity
+// In a Foundry test:
+// 1. Flash-borrow 1M USDC from Balancer Vault (0x BA12222222228d8Ba445958a75a0704d566BF2C8)
+// 2. In the callback, check your USDC balance — you're a temporary millionaire
+// 3. Transfer amount back to the Vault
+// 4. Watch it succeed. Now try returning 1 USDC less — watch the entire tx revert
+// That revert IS the atomic guarantee. The million dollars never moved.
+```
+
+<a id="atomic-guarantee"></a>
+### 💡 The Atomic Guarantee
 
 A flash loan works because of Ethereum's transaction model: either every operation in a transaction succeeds, or the entire transaction reverts. The flash loan provider transfers tokens to your contract, calls your callback function, then checks that the tokens (plus a fee) have been returned. If the check fails, the whole transaction unwinds.
 
@@ -36,7 +74,47 @@ A flash loan works because of Ethereum's transaction model: either every operati
 
 The key insight: from the blockchain's perspective, if repayment fails, the loan never happened. No tokens moved. No state changed. The borrower only pays gas for the failed transaction.
 
-### Flash Loan Providers
+#### 🔍 Deep Dive: The Flash Loan Callback Flow
+
+```
+                     Single Ethereum Transaction
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│  Your Contract              Flash Loan Provider             │
+│  ────────────              ───────────────────              │
+│       │                           │                         │
+│  ①    │──── flashLoan(amount) ───→│                         │
+│       │                           │                         │
+│       │    ② Provider transfers   │                         │
+│       │←──── amount tokens ───────│                         │
+│       │                           │                         │
+│       │    ③ Provider calls       │                         │
+│       │←── your callback() ───────│                         │
+│       │                           │                         │
+│  ④    │  ┌─────────────────────┐  │                         │
+│       │  │ YOUR LOGIC HERE:    │  │                         │
+│       │  │ • Swap on DEX       │  │                         │
+│       │  │ • Liquidate on Aave │  │                         │
+│       │  │ • Collateral swap   │  │                         │
+│       │  │ • Anything atomic   │  │                         │
+│       │  └─────────────────────┘  │                         │
+│       │                           │                         │
+│  ⑤    │── approve(amount + fee) ─→│                         │
+│       │                           │                         │
+│       │    ⑥ Provider pulls       │                         │
+│       │    amount + fee           │                         │
+│       │    ✓ Repaid → tx succeeds │                         │
+│       │    ✗ Short → ENTIRE TX    │                         │
+│       │      REVERTS (steps 1-5   │                         │
+│       │      never happened)      │                         │
+│       │                           │                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**The critical property:** Steps ②-⑤ all happen within a single EVM call stack. The provider checks repayment at ⑥ — if it fails, the EVM unwinds everything. This is why flash loans are "risk-free" for the provider: they either get repaid or the loan never existed.
+
+<a id="flash-loan-providers"></a>
+### 💡 Flash Loan Providers
 
 **Aave V3** — The original and most widely used.
 
@@ -92,7 +170,21 @@ V4 doesn't have a dedicated "flash loan" function. Instead, flash loans are a na
 
 You can effectively "borrow" by creating a negative delta, using the tokens, then settling. This is more flexible than a dedicated flash loan function because it composes natively with swaps and liquidity operations — all within the same unlock context. No separate fee for the flash component; you pay whatever fees apply to the operations you perform.
 
-### Read: Aave FlashLoanLogic.sol
+**ERC-3156: The Flash Loan Standard**
+
+[ERC-3156](https://eips.ethereum.org/EIPS/eip-3156) standardizes the flash loan interface so borrowers can write provider-agnostic code:
+- `flashLoan(receiver, token, amount, data)` on the lender
+- `onFlashLoan(initiator, token, amount, fee, data)` callback on the receiver
+- `maxFlashLoan(token)` and `flashFee(token, amount)` for discovery
+
+Not all providers implement ERC-3156 (Aave and Balancer have their own interfaces), but it's the standard for simpler flash loan providers.
+
+**DAI Flash Mint** — MakerDAO's `DssFlash` module lets anyone mint *unlimited* DAI via flash loan — not from a pool, but minted from thin air and burned at the end. This is unique: the liquidity isn't constrained by pool deposits. DAI is minted in the Vat, used, and burned within the same tx. Fee: 0%. This is possible because DAI is protocol-issued (see Module 6 — CDPs mint stablecoins into existence).
+
+> **🔗 Connection:** The flash mint concept connects to Module 6 — a CDP stablecoin can offer infinite flash liquidity because the protocol controls issuance. Your Part 3 Module 9 capstone stablecoin will include a flash mint feature.
+
+<a id="read-aave-flash"></a>
+### 📖 Read: Aave FlashLoanLogic.sol
 
 **Source:** `aave-v3-core/contracts/protocol/libraries/logic/FlashLoanLogic.sol`
 
@@ -110,7 +202,8 @@ Trace `executeFlashLoanSimple()`:
 
 Also read `executeFlashLoan()` (the multi-asset version). Note the `modes[]` parameter: mode 0 = repay, mode 1 = open variable debt, mode 2 = open stable debt. This enables a pattern where you flash-borrow an asset and convert it into a collateralized borrow in the same transaction — useful for collateral swaps and leverage.
 
-### Read: Balancer FlashLoans
+<a id="read-balancer-flash"></a>
+### 📖 Read: Balancer FlashLoans
 
 **Source:** Balancer V2 Vault `flashLoan()` implementation.
 
@@ -135,7 +228,8 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 
 **Don't get stuck on:** Aave's referral code system or Balancer's internal token accounting beyond the flash loan flow. Focus on the borrow → callback → repay cycle.
 
-### Exercise
+<a id="day1-exercises"></a>
+### 🛠️ Exercises: Flash Loan Mechanics
 
 **Exercise 1:** Build a minimal Aave V3 flash loan receiver. On a mainnet fork:
 - Flash-borrow 1,000,000 USDC
@@ -147,11 +241,44 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 
 **Exercise 3:** Build a Uniswap V2 flash swap receiver. Flash-borrow WETH from a WETH/USDC pair. In the callback, verify you received the WETH, then send USDC (equivalent value + 0.3% fee) back to the pair. Verify the invariant is maintained.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"Explain the flash loan callback pattern"**
+   - Good answer: Provider sends tokens, calls your callback, then verifies repayment
+   - Great answer: It's a borrow-callback-verify pattern where atomicity guarantees zero risk for the provider. The key differences between providers: Aave uses `transferFrom` (you must approve), Balancer checks its own balance increased, Uniswap V2 verifies the constant product invariant. Aave's `modes[]` parameter lets you convert a flash loan into a collateralized borrow — that's how collateral swaps work.
+
+2. **"How do you choose between flash loan providers?"**
+   - Good answer: Compare fees — Balancer is free, Aave is 5 bps
+   - Great answer: Fee is just one factor. Balancer V2 is cheapest (0%) but liquidity depends on pool composition. Aave has the deepest liquidity for major assets. Uniswap V2 is expensive (~0.3%) but available per-pair without pool dependencies. V4 flash accounting is the most flexible — no separate flash loan needed, it composes natively with swaps. For production, you'd check available liquidity across providers and route to the cheapest with sufficient depth.
+
+**Interview Red Flags:**
+- 🚩 Thinking flash loans create risk for the provider (they're zero-risk by construction)
+- 🚩 Not knowing Balancer offers zero-fee flash loans
+- 🚩 Confusing Uniswap V2 flash swaps with Aave-style flash loans (different repayment mechanics)
+
+**Pro tip:** In interviews, emphasize that flash loans aren't just about arbitrage — they're a composability primitive. The collateral swap pattern (flash borrow → repay debt → withdraw → swap → redeposit → re-borrow → repay flash) is the most interview-relevant use case because it demonstrates deep understanding of lending mechanics.
+
 ---
 
-## Day 2: Composing Flash Loan Strategies
+### 📋 Summary: Flash Loan Mechanics
 
-### Strategy 1: DEX Arbitrage
+**✓ Covered:**
+- The atomic guarantee: borrow → callback → repay or entire tx reverts
+- Four providers: Aave V3 (0.05%), Balancer V2 (0%), Uniswap V2 (~0.3%), Uniswap V4 (flash accounting)
+- Callback interfaces: `executeOperation` (Aave), `receiveFlashLoan` (Balancer), `uniswapV2Call` (V2)
+- Code reading strategy for flash loan provider internals
+- Aave's `modes[]` parameter: repay vs convert to debt position
+
+**Next:** Composing multi-step strategies — arbitrage, liquidation, collateral swap, leverage
+
+---
+
+## Composing Flash Loan Strategies
+
+<a id="dex-arbitrage"></a>
+### 💡 Strategy 1: DEX Arbitrage
 
 The classic flash loan use case: a price discrepancy between two DEXes.
 
@@ -201,7 +328,51 @@ contract SimpleArbitrage is IFlashLoanSimpleReceiver {
 
 Test on a mainnet fork by deploying two Uniswap V2 pools with deliberately different prices. Execute the arbitrage and verify profit.
 
-### Strategy 2: Flash Loan Liquidation
+#### 🔍 Deep Dive: Arbitrage Profit Calculation
+
+```
+Scenario: WETH is $2,000 on DEX1 and $2,020 on DEX2 (1% discrepancy)
+Flash borrow: 100 WETH from Balancer (0% fee)
+
+Step 1: Sell 100 WETH on DEX2 (expensive side)
+  → Receive: 100 × $2,020 = $202,000 USDC
+  → After 0.3% swap fee: $202,000 × 0.997 = $201,394 USDC
+
+Step 2: Buy WETH on DEX1 (cheap side) with enough to repay
+  → Need: 100 WETH to repay flash loan
+  → Cost: 100 × $2,000 = $200,000 USDC
+  → After 0.3% swap fee: $200,000 / 0.997 = $200,601 USDC
+
+Step 3: Repay flash loan
+  → Return: 100 WETH to Balancer (0 fee)
+
+Profit = $201,394 - $200,601 = $793 USDC
+Gas cost ≈ ~$5-50 (depending on network)
+Net profit ≈ ~$743-788
+
+Reality check:
+  - Slippage on 100 WETH ($200K) would be significant
+  - MEV bots detect this in milliseconds
+  - Real arb opportunities are usually < 0.1% and last < 1 block
+  - Most profit goes to MEV searchers via Flashbots bundles
+```
+
+> **🔗 Connection:** MEV extraction from these opportunities is covered in depth in Part 3 Module 5 (MEV). Searchers, builders, and the PBS supply chain determine who actually captures this profit.
+
+#### 💡 How MEV Searchers Actually Use Flash Loans
+
+In practice, profitable flash loan arbitrage isn't done by humans submitting transactions to the mempool:
+
+1. **Searchers** run bots that monitor pending transactions and DEX state for opportunities
+2. They build a **bundle**: flash borrow → arb swaps → repay → profit, as a single transaction
+3. They submit the bundle to **Flashbots Protect** or block builders directly (not the public mempool)
+4. They bid most of the profit to the builder as a **tip** (often 90%+)
+5. The builder includes the bundle in their block
+
+The searcher keeps a thin margin. The builder captures most of the MEV. This is why the arbitrage profit from the example above ($793) would net the searcher maybe $50-100 after builder tips. The economics only work at scale with hundreds of opportunities per day.
+
+<a id="flash-liquidation"></a>
+### 💡 Strategy 2: Flash Loan Liquidation
 
 You built a basic liquidation in Module 4. Now do it with zero capital:
 
@@ -228,7 +399,8 @@ Test on mainnet fork:
 - Execute the flash loan liquidation
 - Verify: profit = (collateral seized × collateral price × (1 + liquidation bonus)) - debt repaid - swap fees
 
-### Strategy 3: Collateral Swap
+<a id="collateral-swap"></a>
+### 💡 Strategy 3: Collateral Swap
 
 A user has ETH collateral backing a USDC loan on Aave, but wants to switch to WBTC collateral without closing the position.
 
@@ -249,7 +421,8 @@ This is Aave's "liquidity switch" pattern — one of the primary production uses
 
 Implement and test. This is the most complex composition: it touches lending (repay, withdraw, deposit, borrow) and swapping, all within a single flash loan callback.
 
-### Strategy 4: Leverage/Deleverage in One Transaction
+<a id="leverage-deleverage"></a>
+### 💡 Strategy 4: Leverage/Deleverage in One Transaction
 
 **Leveraging up:** A user wants 3x long ETH exposure.
 1. Flash-borrow ETH
@@ -264,7 +437,8 @@ In practice, you calculate the exact amounts needed for the desired leverage rat
 
 **Deleveraging:** Reverse the process — flash-borrow to repay debt, withdraw collateral, swap to repay the flash loan.
 
-### Exercise
+<a id="day2-exercises"></a>
+### 🛠️ Exercises: Flash Loan Strategies
 
 **Exercise:** Build at least two of the four strategies above. For each, write tests that verify:
 - The flash loan is fully repaid
@@ -274,9 +448,23 @@ In practice, you calculate the exact amounts needed for the desired leverage rat
 
 ---
 
-## Day 3: Security, Anti-Patterns, and the Bigger Picture
+### 📋 Summary: Flash Loan Strategies
 
-### Flash Loan Security for Protocol Builders
+**✓ Covered:**
+- Four composition strategies: DEX arbitrage, flash loan liquidation, collateral swap, leverage/deleverage
+- Arbitrage: flash borrow → swap on DEX1 → swap on DEX2 → repay → keep profit
+- Liquidation: flash borrow debt asset → liquidate on Aave → swap collateral → repay
+- Collateral swap: flash borrow → repay debt → withdraw old collateral → swap → deposit new → re-borrow → repay flash
+- Leverage: flash borrow → deposit → borrow → swap → deposit more → final borrow covers repayment
+
+**Next:** Security considerations — both for protocol builders and flash loan receiver authors
+
+---
+
+## Security, Anti-Patterns, and the Bigger Picture
+
+<a id="flash-security"></a>
+### ⚠️ Flash Loan Security for Protocol Builders
 
 Flash loans don't create vulnerabilities — they *democratize access to capital* for exploiting existing vulnerabilities. But as a protocol builder, you need to design for a world where any attacker has access to unlimited capital within a single transaction.
 
@@ -292,7 +480,32 @@ Flash loans don't create vulnerabilities — they *democratize access to capital
 
 **Rule 4: Use reentrancy guards on functions that manipulate critical state.** Flash loans involve external calls (the callback). If your protocol interacts with flash-loaned funds, ensure reentrant calls can't exploit intermediate states.
 
-### Flash Loan Receiver Security
+#### 🔍 Deep Dive: The bZx Attacks (February 2020) — Flash Loans' Debut
+
+The bZx attacks were the first major flash loan exploits, demonstrating what "unlimited capital in one tx" means for protocol security:
+
+```
+Attack 1 ($350K, Feb 14, 2020):
+┌──────────────────────────────────────────────────────────┐
+│ 1. Flash-borrow 10,000 ETH from dYdX                    │
+│ 2. Deposit 5,500 ETH in Compound as collateral           │
+│ 3. Borrow 112 WBTC from Compound                         │
+│ 4. Send 1,300 ETH to bZx to open 5x short ETH/BTC      │
+│    → bZx swaps on Uniswap, crashing ETH/BTC price       │
+│ 5. Swap 112 WBTC → ETH on Uniswap at the crashed price  │
+│    → Got MORE ETH than 112 WBTC was worth before         │
+│ 6. Repay Compound, repay dYdX, keep profit               │
+└──────────────────────────────────────────────────────────┘
+
+What went wrong: bZx used Uniswap spot price as its oracle.
+The attacker manipulated that price with borrowed capital.
+Cost to attacker: gas only (~$8). Profit: $350,000.
+```
+
+**The lesson for protocol builders:** This attack didn't exploit a bug in flash loans — it exploited bZx's reliance on a spot price oracle (Rule 1 above). Flash loans just made it free to execute. Every oracle manipulation attack you'll see in Module 3 postmortems follows this pattern: flash borrow → manipulate price → exploit protocol → repay.
+
+<a id="receiver-security"></a>
+### ⚠️ Flash Loan Receiver Security
 
 When building flash loan receivers (your callback contracts), guard against:
 
@@ -316,7 +529,8 @@ function executeOperation(
 
 **Parameter validation:** The `params` bytes are arbitrary and user-controlled. If you decode them into addresses or amounts, validate everything. An attacker could craft params that route funds to their own address.
 
-### Flash Loans vs Flash Accounting: The Evolution
+<a id="flash-vs-accounting"></a>
+### 💡 Flash Loans vs Flash Accounting: The Evolution
 
 Flash loans (Aave, Balancer V2) are a specific feature: borrow tokens, use them, return them.
 
@@ -325,11 +539,12 @@ Flash accounting (Uniswap V4, Balancer V3) is a generalized pattern: all operati
 The evolution:
 - **2020:** Flash loans introduced by Aave — revolutionary but limited to borrow-use-repay
 - **2021-23:** Uniswap V2/V3 flash swaps — flash loans built into DEX operations
-- **2024-25:** V4 flash accounting + EIP-1153 transient storage — the pattern becomes the architecture. No separate "flash loan" feature needed; the entire interaction model is flash-native
+- **2024-25:** V4 flash accounting + [EIP-1153](https://eips.ethereum.org/EIPS/eip-1153) transient storage — the pattern becomes the architecture. No separate "flash loan" feature needed; the entire interaction model is flash-native
 
 As a protocol builder, flash accounting is the pattern to understand deeply. It's more gas-efficient, more composable, and more flexible than dedicated flash loan functions. You'll see this pattern adopted by more protocols going forward.
 
-### Governance Attacks via Flash Loans
+<a id="governance-attacks"></a>
+### ⚠️ Governance Attacks via Flash Loans
 
 Some governance tokens allow voting based on current token holdings at the time of the vote. An attacker can:
 1. Flash-borrow governance tokens
@@ -343,7 +558,7 @@ Some governance tokens allow voting based on current token holdings at the time 
 
 Most modern governance systems (OpenZeppelin Governor, Compound Governor Bravo) use snapshot voting, making this attack vector largely mitigated. But be aware of it when evaluating protocols with simpler governance.
 
-### Flash Loan Fee Comparison
+### 📋 Flash Loan Fee Comparison
 
 | Provider | Fee | Multi-asset | Liquidity Source | Fee Waiver |
 |----------|-----|-------------|-----------------|------------|
@@ -355,9 +570,40 @@ Most modern governance systems (OpenZeppelin Governor, Compound Governor Bravo) 
 
 **Practical choice:** For pure flash loans, Balancer V2 (zero fee) is optimal when it has sufficient liquidity in the asset you need. Aave V3 for maximum liquidity and multi-asset borrows. Uniswap V4 flash accounting for operations that combine swaps with temporary borrowing.
 
-### Exercise
+#### 🔍 Deep Dive: Provider Repayment Mechanisms Compared
 
-**Exercise 1: Build the vulnerable protocol, then defend it.** Create a simple vault contract that calculates share price as `totalAssets() / totalShares()`. Show how an attacker can use a flash loan to donate assets, inflate the share price, and exploit a protocol that reads this vault's share price. Then fix it with virtual shares/assets offset (the standard ERC-4626 defense).
+```
+How each provider verifies you repaid:
+
+Aave V3:
+  callback returns → Pool calls transferFrom(receiver, pool, amount+premium)
+  You MUST approve the Pool before callback returns.
+  Premium goes to: aToken holders (suppliers) + protocol treasury.
+
+Balancer V2:
+  callback returns → Vault checks: balanceOf(vault) ≥ pre_balance + feeAmount
+  You MUST transfer tokens TO the Vault inside your callback.
+  No approval needed — direct transfer.
+
+Uniswap V2:
+  callback returns → Pair verifies: k_new ≥ k_old (constant product with fee)
+  You can repay in EITHER token (flash swap).
+  The 0.3% fee is implicit in the invariant check.
+
+Uniswap V4 / Balancer V3:
+  unlockCallback returns → Manager checks: all deltas == 0
+  You settle via PoolManager.settle() or Vault.settle().
+  No separate "flash loan" — it's native to the delta system.
+
+Key difference:
+  Aave/Balancer V2: explicit "flash loan" as a feature
+  V4/Balancer V3: flash borrowing is emergent from the accounting model
+```
+
+<a id="day3-exercises"></a>
+### 🛠️ Exercises: Flash Loan Security
+
+**Exercise 1: Build the vulnerable protocol, then defend it.** Create a simple vault contract that calculates share price as `totalAssets() / totalShares()`. Show how an attacker can use a flash loan to donate assets, inflate the share price, and exploit a protocol that reads this vault's share price. Then fix it with virtual shares/assets offset (the standard [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) defense).
 
 **Exercise 2: Governance attack simulation.** Deploy a simple governance contract with non-snapshot voting. Show how a flash loan can pass a malicious proposal. Then deploy an OpenZeppelin Governor with snapshot voting and verify the attack fails.
 
@@ -368,6 +614,40 @@ Most modern governance systems (OpenZeppelin Governor, Compound Governor Bravo) 
 - Repays both flash loans
 
 This tests your ability to nest or chain flash loans from different providers. Note: nesting callbacks requires careful tracking of which repayment is owed to which provider.
+
+---
+
+### 📋 Summary: Flash Loan Security
+
+**✓ Covered:**
+- Protocol builder security: never use spot prices, beware same-tx state manipulation, time-based defenses
+- Receiver security: validate `msg.sender`, validate `initiator`, never store funds in receiver
+- Flash loans → flash accounting evolution (Aave/Balancer V2 → Uniswap V4/Balancer V3)
+- Governance flash loan attacks and defenses (snapshot voting, timelocks)
+- Fee comparison across all providers
+- Vulnerable protocol exercise: donation attack + ERC-4626 defense
+
+**Complete:** You now understand flash loans as both a tool (arbitrage, liquidation, leverage) and a threat model (any attacker has unlimited temporary capital).
+
+#### 💼 Job Market Context — Module-Level Interview Prep
+
+**What DeFi teams expect you to know:**
+
+1. **"How should your protocol defend against flash loan attacks?"**
+   - Good answer: Use TWAP oracles instead of spot prices
+   - Great answer: Flash loans don't create vulnerabilities — they eliminate capital barriers for exploiting existing ones. The defense framework: (1) never rely on values that can be manipulated within a single tx (spot prices, balanceOf, share ratios), (2) use values established in previous blocks (TWAPs, snapshots), (3) for governance, snapshot voting power at proposal creation block, (4) for vaults, use virtual shares/assets offset to prevent donation-based share inflation. Design assuming every user has infinite temporary capital.
+
+2. **"Walk through a flash loan liquidation end to end"**
+   - Good answer: Borrow the debt asset, repay the position, receive collateral, sell it, repay the loan
+   - Great answer: Flash borrow USDC from Balancer (0 fee). Call `Pool.liquidationCall(collateral, debt, user, debtToCover, receiveAToken=false)` — this repays the user's debt and sends you the collateral at the liquidation bonus discount. Swap collateral → USDC via Uniswap V3 exact input. Repay Balancer. Profit = `collateral × price × (1 + bonus) - debtRepaid - swapFees`. The key insight: you choose Balancer over Aave to save 5 bps, and you set `receiveAToken=false` to get the underlying directly for the swap.
+
+**Interview Red Flags:**
+- 🚩 Thinking flash loans are only useful for arbitrage (most production uses are liquidation and collateral management)
+- 🚩 Not knowing that flash accounting (V4/Balancer V3) is replacing dedicated flash loan functions
+- 🚩 Building a protocol without considering flash-loan-amplified attack vectors in the threat model
+- 🚩 Storing funds in a flash loan receiver contract (griefing vector)
+
+**Pro tip:** If asked to design a liquidation system in an interview, mention that flash loan compatibility is a feature, not a bug. MakerDAO Liquidation 2.0 was explicitly designed to be flash-loan compatible — Dutch auctions with instant settlement let liquidators use flash loans, which means more competition, better prices, and less bad debt. A protocol that's "flash loan resistant" for liquidations is actually worse off.
 
 ---
 
@@ -385,7 +665,58 @@ This tests your ability to nest or chain flash loans from different providers. N
 
 ---
 
-## Resources
+## 📖 Production Study Order
+
+Study these codebases in order — each builds on the previous one's patterns:
+
+| # | Repository | Why Study This | Key Files |
+|---|-----------|----------------|-----------|
+| 1 | [Aave V3 FlashLoanLogic](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/FlashLoanLogic.sol) | The most widely used flash loan provider — premium calculation, callback verification, `modes[]` parameter | `contracts/protocol/libraries/logic/FlashLoanLogic.sol`, `contracts/flashloan/base/FlashLoanSimpleReceiverBase.sol` |
+| 2 | [Balancer V2 Vault](https://github.com/balancer/balancer-v2-monorepo/tree/master/pkg/vault) | Zero-fee flash loans from consolidated vault liquidity — simpler callback, balance-based verification | `pkg/vault/contracts/Vault.sol` (search `flashLoan`), `pkg/interfaces/contracts/vault/IFlashLoanRecipient.sol` |
+| 3 | [Uniswap V2 Pair](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol) | Flash swaps — optimistic transfers with constant product verification; repay in either token | `contracts/UniswapV2Pair.sol` (search `swap`, `uniswapV2Call`) |
+| 4 | [MakerDAO DssFlash](https://github.com/makerdao/dss-flash) | Flash mint pattern — unlimited DAI minted from thin air, burned at end of tx; zero-fee | `src/flash.sol` |
+| 5 | [Uniswap V4 PoolManager](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) | Flash accounting — no dedicated flash loan, borrowing is emergent from delta tracking + transient storage | `src/PoolManager.sol` (search `unlock`, `settle`), `src/libraries/TransientStateLibrary.sol` |
+| 6 | [ERC-3156 Reference](https://github.com/albertocuestacanada/ERC3156) | The flash loan standard interface — provider-agnostic borrower code | `contracts/interfaces/IERC3156FlashLender.sol`, `contracts/interfaces/IERC3156FlashBorrower.sol` |
+
+**Reading strategy:** Start with Aave's FlashLoanLogic — trace `executeFlashLoanSimple()` to understand the canonical borrow → callback → verify pattern. Then Balancer for the simpler balance-check approach. Uniswap V2 shows flash swaps (repay in a different token). MakerDAO's DssFlash shows flash minting — a fundamentally different model. V4's PoolManager shows the future: flash borrowing as emergent behavior from delta accounting.
+
+---
+
+## 🔗 Cross-Module Concept Links
+
+### ← Backward References (Part 1 + Modules 1–4)
+
+| Source | Concept | How It Connects |
+|--------|---------|-----------------|
+| Part 1 §1 | Custom errors | Flash loan receivers use custom errors for initiator validation, repayment failures |
+| Part 1 §2 | Transient storage / [EIP-1153](https://eips.ethereum.org/EIPS/eip-1153) | V4 flash accounting uses TSTORE/TLOAD for delta tracking — flash loans become emergent from the accounting model |
+| Part 1 §3 | Permit / Permit2 | Gasless approvals in flash loan callbacks — approve repayment without separate tx |
+| Part 1 §5 | Fork testing / `vm.mockCall` | Essential for testing flash loan strategies against real Aave/Balancer/Uniswap liquidity on mainnet forks |
+| Part 1 §6 | Proxy patterns | Aave Pool proxy delegates to FlashLoanLogic library; Balancer Vault is a single immutable entry point |
+| Module 1 | SafeERC20 / token transfers | Safe token handling in callbacks — approve patterns differ between providers (Aave: approve, Balancer: transfer) |
+| Module 2 | AMM swaps / price impact | DEX swaps are the core operation inside most flash loan strategies (arbitrage, liquidation collateral disposal) |
+| Module 2 | Flash accounting (V4) | V4 doesn't have dedicated flash loans — flash borrowing is emergent from the delta tracking system |
+| Module 3 | Oracle manipulation threat model | Flash loans make spot price manipulation free — the entire oracle attack surface assumes flash loan access |
+| Module 3 | TWAP / Chainlink defense | Time-based oracles resist flash loan manipulation because they span multiple blocks |
+| Module 4 | Liquidation mechanics / health factor | Flash loan liquidation: borrow debt asset → liquidate → swap collateral → repay — zero-capital liquidation |
+| Module 4 | Collateral swap / leverage | Flash borrow → repay debt → withdraw → swap → redeposit → re-borrow → repay flash — Aave's "liquidity switch" |
+
+### → Forward References (Modules 6–9 + Part 3)
+
+| Target | Concept | How Flash Loan Knowledge Applies |
+|--------|---------|----------------------------------|
+| Module 6 (Stablecoins) | DAI flash mint | Unlimited flash minting from CDP-issued stablecoins — infinite liquidity because the protocol controls issuance |
+| Module 6 (Stablecoins) | Liquidation 2.0 | MakerDAO Dutch auctions designed for flash loan compatibility — more competition, better prices, less bad debt |
+| Module 7 (Yield/Vaults) | ERC-4626 inflation attack | Flash loans amplify donation attacks on vault share prices — virtual shares/assets offset is the defense |
+| Module 8 (Security) | Attack simulation | Flash-loan-amplified attack scenarios as primary threat model for invariant testing |
+| Module 9 (Integration) | Liquidation bot | Capstone includes a flash-loan-powered liquidation bot combining lending + AMM + oracle components |
+| Part 3 Module 5 (MEV) | Searcher strategies | Flash loan arbitrage profits captured by MEV searchers via Flashbots bundles; builder tips consume 90%+ of profit |
+| Part 3 Module 8 (Governance) | Governance attacks | Flash loan voting attacks and snapshot-based voting defense; quorum requirements |
+| Part 3 Module 9 (Capstone) | Flash mint feature | Your stablecoin protocol includes flash mint functionality — CDP-issued tokens can offer infinite flash liquidity |
+
+---
+
+## 📚 Resources
 
 **Aave flash loans:**
 - [Developer guide](https://aave.com/docs/aave-v3/guides/flash-loans)
@@ -407,7 +738,7 @@ This tests your ability to nest or chain flash loans from different providers. N
 
 ---
 
-## Practice Challenges
+## 🎯 Practice Challenges
 
 Flash loans are a key component in many CTF challenges. These are directly relevant:
 
@@ -418,4 +749,4 @@ Flash loans are a key component in many CTF challenges. These are directly relev
 
 ---
 
-*Next module: Stablecoins & CDPs (~4 days) — MakerDAO/DAI mechanics, collateralized debt positions, stability fees, liquidation auctions, algorithmic vs overcollateralized stablecoins, and the Peg Stability Module.*
+**Navigation:** [← Module 4: Lending](4-lending.md) | [Module 6: Stablecoins & CDPs →](6-stablecoins-cdps.md)

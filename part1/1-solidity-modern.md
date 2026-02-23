@@ -1,24 +1,24 @@
-# Section 1: Solidity 0.8.x — What Changed (~2 days)
+# Module 1: Solidity 0.8.x — What Changed (~2 days)
 
 ## 📚 Table of Contents
 
-**Day 1: Language-Level Changes**
+**Language-Level Changes**
 - [Checked Arithmetic (0.8.0)](#checked-arithmetic)
 - [Custom Errors (0.8.4+)](#custom-errors)
 - [User-Defined Value Types (0.8.8+)](#user-defined-value-types)
 - [abi.encodeCall (0.8.11+)](#abi-encodecall)
 - [Other Notable Changes](#other-notable-changes)
-- [Day 1 Build Exercise](#day1-exercise)
+- [Build Exercise: ShareMath](#day1-exercise)
 
-**Day 2: The Bleeding Edge**
+**The Bleeding Edge**
 - [Transient Storage (0.8.24+)](#transient-storage)
 - [Pectra/Prague EVM (0.8.30+)](#pectra-prague-evm)
 - [Solidity 0.9.0 Deprecations](#solidity-09-deprecations)
-- [Day 2 Build Exercise](#day2-exercise)
+- [Build Exercise: TransientGuard](#day2-exercise)
 
 ---
 
-## Day 1: Language-Level Changes That Matter for DeFi
+## Language-Level Changes That Matter for DeFi
 
 <a id="checked-arithmetic"></a>
 ### 💡 Concept: Checked Arithmetic (0.8.0)
@@ -139,7 +139,7 @@ If `a * b < 2^512` (virtually always true) AND `c != 0`, the result fits in uint
 1. **Vault Share Math ([ERC-4626](https://eips.ethereum.org/EIPS/eip-4626))**
    - Pre-0.8: Every vault needed SafeMath for `shares = (assets * totalSupply) / totalAssets`
    - Post-0.8: Built-in safety, cleaner code
-   - You'll implement this in the Day 1 exercise
+   - You'll implement this in the ShareMath exercise below
 
 2. **AMM Pricing** (Uniswap, Curve, Balancer)
    - Constant product formula: `x * y = k`
@@ -501,6 +501,7 @@ Understanding UDVTs is essential for reading V4 code. They use them extensively:
 - [`Currency.sol`](https://github.com/Uniswap/v4-core/blob/d153b048868a60c2403a3ef5b2301bb247884d46/src/types/Currency.sol) — `type Currency is address`, unifies native ETH and [ERC-20](https://eips.ethereum.org/EIPS/eip-20) handling with custom comparison operators
 - [`BalanceDelta.sol`](https://github.com/Uniswap/v4-core/blob/d153b048868a60c2403a3ef5b2301bb247884d46/src/types/BalanceDelta.sol) — `type BalanceDelta is int256`, packs two `int128` values using bit manipulation with custom `+`, `-`, `==`, `!=` operators
 
+<a id="balance-delta"></a>
 #### 🔍 Deep Dive: Understanding `BalanceDelta` Bit-Packing
 
 This is the advanced pattern you'll see in production DeFi. Let's break it down step-by-step.
@@ -644,7 +645,7 @@ using { add as + } for BalanceDelta global;
 3. **Vault Shares vs Assets**
    - `type Shares is uint256` vs `type Assets is uint256`
    - Prevents: `shares + assets` (meaningless operation caught at compile time)
-   - You'll implement this in the Day 1 exercise
+   - You'll implement this in the ShareMath exercise below
 
 **The pattern:** Use UDVTs for domain-specific identifiers (PoolId, TokenId, OrderId) and values that shouldn't be mixed (Shares vs Assets, Price vs Quantity).
 
@@ -758,6 +759,29 @@ The compiler knows `IERC20.transfer` expects `(address, uint256)` and will rejec
 - Building multicall batches
 - Encoding data for cross-chain messages
 - Anywhere you previously used `abi.encodeWithSelector`
+
+💻 **Quick Try:**
+
+Test the type-safety difference in Remix or Foundry:
+```solidity
+interface IERC20 {
+    function transfer(address to, uint256 amount) external returns (bool);
+}
+
+function testEncoding() external pure returns (bytes memory safe, bytes memory unsafe) {
+    address recipient = address(0xBEEF);
+    uint256 amount = 100e18;
+
+    // ✅ Type-safe: compiler verifies (address, uint256) match
+    safe = abi.encodeCall(IERC20.transfer, (recipient, amount));
+
+    // ❌ No type checking: swapping args compiles fine — silent bug!
+    unsafe = abi.encodeWithSelector(IERC20.transfer.selector, amount, recipient);
+
+    // Both produce 4-byte selector + args, but only encodeCall catches the swap
+}
+```
+Try swapping `(recipient, amount)` to `(amount, recipient)` in the `encodeCall` line — the compiler rejects it immediately. The `encodeWithSelector` version silently produces wrong calldata.
 
 #### 🔗 DeFi Pattern Connection
 
@@ -903,9 +927,9 @@ This pattern dominates [Uniswap V4's codebase](https://github.com/Uniswap/v4-cor
 ---
 
 <a id="day1-exercise"></a>
-## 🎯 Day 1 Build Exercise
+## 🎯 Build Exercise: ShareMath
 
-**Workspace:** [`workspace/src/part1/section1/`](../workspace/src/part1/section1/) — starter files: [`ShareMath.sol`](../workspace/src/part1/section1/ShareMath.sol), tests: [`ShareMath.t.sol`](../workspace/test/part1/section1/ShareMath.t.sol)
+**Workspace:** [`workspace/src/part1/module1/`](../workspace/src/part1/module1/) — starter files: [`ShareMath.sol`](../workspace/src/part1/module1/ShareMath.sol), tests: [`ShareMath.t.sol`](../workspace/test/part1/module1/ShareMath.t.sol)
 
 Build a **vault share calculator** — the exact math that underpins every ERC-4626 vault, lending pool, and LP token in DeFi:
 
@@ -932,7 +956,7 @@ Build a **vault share calculator** — the exact math that underpins every ERC-4
 
 ---
 
-## 📋 Day 1 Summary
+## 📋 Summary: Language-Level Changes
 
 **✓ Covered:**
 - Checked arithmetic by default (0.8.0) — no more SafeMath needed
@@ -943,11 +967,11 @@ Build a **vault share calculator** — the exact math that underpins every ERC-4
 - OpenZeppelin v5 patterns — `_update()` hook
 - Free functions and global `using for` — Uniswap V4 style
 
-**Next:** Day 2 — Transient storage, bleeding edge features, and what's coming in 0.9.0
+**Next:** Transient storage, bleeding edge features, and what's coming in 0.9.0
 
 ---
 
-## Day 2: Solidity 0.8.24+ — The Bleeding Edge
+## Solidity 0.8.24+ — The Bleeding Edge
 
 <a id="transient-storage"></a>
 ### 💡 Concept: Transient Storage Support (0.8.24+)
@@ -1270,9 +1294,9 @@ You should already be avoiding all of these in new code, but you'll encounter th
 ---
 
 <a id="day2-exercise"></a>
-## 🎯 Day 2 Build Exercise
+## 🎯 Build Exercise: TransientGuard
 
-**Workspace:** [`workspace/src/part1/section1/`](../workspace/src/part1/section1/) — starter files: [`TransientGuard.sol`](../workspace/src/part1/section1/TransientGuard.sol), tests: [`TransientGuard.t.sol`](../workspace/test/part1/section1/TransientGuard.t.sol)
+**Workspace:** [`workspace/src/part1/module1/`](../workspace/src/part1/module1/) — starter files: [`TransientGuard.sol`](../workspace/src/part1/module1/TransientGuard.sol), tests: [`TransientGuard.t.sol`](../workspace/test/part1/module1/TransientGuard.t.sol)
 
 1. **Implement `TransientReentrancyGuard`** using the `transient` keyword (0.8.28+ syntax)
 2. **Implement the same guard** using raw `tstore`/`tload` assembly (0.8.24+ syntax)
@@ -1288,7 +1312,7 @@ You should already be avoiding all of these in new code, but you'll encounter th
 
 ---
 
-## 📋 Day 2 Summary
+## 📋 Summary: Bleeding Edge Features
 
 **✓ Covered:**
 - Transient storage (0.8.24+) — 50-200x cheaper than regular storage
@@ -1297,6 +1321,47 @@ You should already be avoiding all of these in new code, but you'll encounter th
 - Solidity 0.9.0 deprecations — what to avoid in new code
 
 **Key takeaway:** Transient storage is the biggest gas optimization since EIP-2929. Understanding it is essential for reading modern DeFi code (especially Uniswap V4) and building gas-efficient protocols.
+
+---
+
+## 🔗 Cross-Module Concept Links
+
+**→ Forward to Part 1 (where these concepts appear next):**
+- **Module 2 (EVM Changes):** TSTORE/TLOAD opcodes underpin the `transient` keyword; EVM target versioning affects available opcodes
+- **Module 3 (Token Approvals):** Permit/Permit2 build on the approve model covered here; EIP-712 signatures introduced in this module
+- **Module 4 (Account Abstraction):** EIP-7702 delegate transactions use `abi.encodeCall` for type-safe calldata encoding
+- **Module 5 (Foundry):** All exercises in this module use Foundry; fork testing and gas snapshots for the transient storage comparison
+- **Module 6 (Proxy Patterns):** `delegatecall` encoding uses `abi.encodeCall`; storage layout awareness connects to UDVTs and bit-packing
+- **Module 7 (Deployment):** Compiler `--evm-version` setting connects to Pectra/Prague target discussion
+
+**→ Forward to Part 2 (where these patterns become foundational):**
+
+| Concept from Module 1 | Where it appears in Part 2 | How it's used |
+|---|---|---|
+| `unchecked` + `mulDiv` | **M2** (AMMs) — Uniswap FullMath | 512-bit math for constant product calculations, LP share minting |
+| UDVTs + BalanceDelta | **M2** (AMMs) — Uniswap V4 | PoolId, Currency, BalanceDelta throughout the V4 codebase |
+| Transient storage / flash accounting | **M2** (AMMs) — Uniswap V4 | Delta tracking across multi-hop swaps, settled at end of tx |
+| ERC-4626 share math | **M7** (Vaults & Yield) | `convertToShares` / `convertToAssets` uses mulDiv rounding |
+| Custom errors | **M1** (Token Mechanics) — SafeERC20 | Error propagation in cross-protocol token interactions |
+| `abi.encodeCall` | **M5** (Flash Loans) | Flash loan callback encoding, multicall batch construction |
+
+---
+
+## 📖 Production Study Order
+
+Read these in order to build understanding progressively:
+
+| Order | File | What to study | Lines |
+|-------|------|--------------|-------|
+| 1 | [OZ Math.sol — `mulDiv`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol) | Clean `mulDiv` implementation — understand the concept without assembly optimizations | ~50 lines |
+| 2 | [Uniswap V4 FullMath.sol](https://github.com/Uniswap/v4-core/blob/main/src/libraries/FullMath.sol) | Assembly-optimized `mulDiv` — compare with OZ version, note the `unchecked` blocks | ~120 lines |
+| 3 | [Uniswap V4 PoolId.sol](https://github.com/Uniswap/v4-core/blob/main/src/types/PoolId.sol) | Simplest UDVT — `type PoolId is bytes32`, one function | ~10 lines |
+| 4 | [Uniswap V4 Currency.sol](https://github.com/Uniswap/v4-core/blob/main/src/types/Currency.sol) | UDVT with custom operators — `type Currency is address`, native ETH handling | ~40 lines |
+| 5 | [Uniswap V4 BalanceDelta.sol](https://github.com/Uniswap/v4-core/blob/main/src/types/BalanceDelta.sol) | Advanced UDVT — bit-packed int128 pair with custom `+`, `-`, `==` operators | ~60 lines |
+| 6 | [OZ ReentrancyGuardTransient.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/ReentrancyGuardTransient.sol) | Production transient storage — compare with classic ReentrancyGuard.sol | ~30 lines |
+| 7 | [Aave V3 Errors.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/helpers/Errors.sol) | Centralized error library — 60+ custom errors, see the organizational pattern | ~100 lines |
+
+**Don't get stuck on:** Assembly optimizations in FullMath — understand the mulDiv concept from OZ first, then see how Uniswap optimizes it.
 
 ---
 
@@ -1344,4 +1409,4 @@ You should already be avoiding all of these in new code, but you'll encounter th
 
 ---
 
-**Navigation:** [Next: Section 2 - EVM Changes →](2-evm-changes.md)
+**Navigation:** Start of Part 1 | [Next: Module 2 - EVM Changes →](2-evm-changes.md)

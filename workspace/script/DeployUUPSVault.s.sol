@@ -10,14 +10,14 @@ pragma solidity ^0.8.19;
 // - Ownership transfer to Safe multisig
 // - Comprehensive logging for production use
 //
-// Day 16: Master production deployment workflows.
+// Master production deployment workflows.
 //
 // Simulate: forge script script/DeployUUPSVault.s.sol --rpc-url $SEPOLIA_RPC
 // Deploy:   forge script script/DeployUUPSVault.s.sol --rpc-url $SEPOLIA_RPC --broadcast --verify
 // ============================================================================
 
 import "forge-std/Script.sol";
-import {VaultV1, VaultV2} from "../src/part1/section6/UUPSVault.sol";
+import {VaultV1, VaultV2} from "../src/part1/module6/UUPSVault.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -121,7 +121,7 @@ contract DeployUUPSVault is Script {
         // console.log("Proxy:", proxy);
         // console.log("\n=== Next Steps ===");
         // console.log("1. Verify contracts on Etherscan:");
-        // console.log("   forge verify-contract", implementation, "src/part1/section6/UUPSVault.sol:VaultV1 --chain sepolia");
+        // console.log("   forge verify-contract", implementation, "src/part1/module6/UUPSVault.sol:VaultV1 --chain sepolia");
         // console.log("2. Test the vault:");
         // console.log("   cast call", proxy, "\"owner()\" --rpc-url $SEPOLIA_RPC");
         // console.log("3. Transfer ownership to Safe multisig (if needed):");

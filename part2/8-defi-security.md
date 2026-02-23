@@ -8,7 +8,38 @@
 
 ---
 
-## Why This Module Matters
+## 📚 Table of Contents
+
+**DeFi-Specific Attack Patterns**
+- [Read-Only Reentrancy](#read-only-reentrancy)
+- [Cross-Contract Reentrancy](#cross-contract-reentrancy)
+- [Price Manipulation Taxonomy](#price-manipulation)
+- [Frontrunning and MEV](#frontrunning-mev)
+- [Composability Risk](#composability-risk)
+
+**Invariant Testing with Foundry**
+- [Why Invariant Testing Is the Most Powerful DeFi Testing Tool](#why-invariant-testing)
+- [Foundry Invariant Testing Setup](#invariant-setup)
+- [Handler Contracts](#handler-contracts)
+- [What Invariants to Test for Each DeFi Primitive](#invariant-catalog)
+
+**Reading Audit Reports**
+- [How to Read an Audit Report](#how-read-audit)
+- [Report 1: Aave V3 Core](#report-aave)
+- [Report 2: A Smaller Protocol](#report-smaller)
+- [Report 3: Immunefi Bug Bounty Writeup](#report-immunefi)
+- [Exercise: Self-Audit](#self-audit)
+
+**Security Tooling & Audit Preparation**
+- [Static Analysis Tools](#static-analysis)
+- [Formal Verification (Awareness)](#formal-verification)
+- [The Security Checklist](#security-checklist)
+- [Audit Preparation](#audit-preparation)
+- [Building Security-First](#security-first)
+
+---
+
+## 💡 Why This Module Matters
 
 DeFi protocols lost over $3.1 billion in the first half of 2025 alone. Roughly 70% of major exploits in 2024 hit contracts that had been professionally audited. The OWASP Smart Contract Top 10 (2025 edition) ranks access control as the #1 vulnerability for the second year running, followed by reentrancy, logic errors, and oracle manipulation — all patterns you've encountered throughout Part 2.
 
@@ -16,7 +47,7 @@ This module focuses on the DeFi-specific attack patterns and defense methodologi
 
 ---
 
-## Quick Reference: Fundamentals You Already Know
+## 📋 Quick Reference: Fundamentals You Already Know
 
 These patterns should be second nature. This box is a refresher, not a learning section.
 
@@ -32,9 +63,10 @@ If any of these feel unfamiliar, review Part 1 and the OpenZeppelin documentatio
 
 ---
 
-## Day 1: DeFi-Specific Attack Patterns
+## DeFi-Specific Attack Patterns
 
-### Read-Only Reentrancy
+<a id="read-only-reentrancy"></a>
+### ⚠️ Read-Only Reentrancy
 
 The most subtle reentrancy variant. No state modification needed — just reading at the wrong time.
 
@@ -56,14 +88,15 @@ function joinPool() external {
 
 If a lending protocol calls `pool.getRate()` during step 2, it gets an inflated price. The attacker deposits the overpriced BPT as collateral and borrows against it.
 
-**Real-world impact:** Multiple protocols have been hit by read-only reentrancy through Balancer and Curve pool interactions. The Sentiment protocol lost ~$1M in April 2023 to exactly this pattern.
+**Real-world impact:** Multiple protocols have been hit by read-only reentrancy through Balancer and Curve pool interactions. The [Sentiment protocol lost ~$1M in April 2023](https://rekt.news/sentiment-rekt/) to exactly this pattern. See also the [Balancer read-only reentrancy advisory](https://forum.balancer.fi/t/reentrancy-vulnerability-scope-expanded/4345).
 
 **Defense:**
 - Never trust external `view` functions during your own state transitions
-- Check reentrancy locks on external protocols before reading their rates (Balancer V2 pools have a `getPoolTokens` that reverts if the vault is in a reentrancy state — use it)
+- Check reentrancy locks on external protocols before reading their rates ([Balancer V2 Vault](https://github.com/balancer/balancer-v2-monorepo/blob/master/pkg/vault/contracts/Vault.sol) pools have a `getPoolTokens` that reverts if the vault is in a reentrancy state — use it)
 - Use time-delayed or externally-sourced rates instead of live pool calculations
 
-### Cross-Contract Reentrancy in DeFi Compositions
+<a id="cross-contract-reentrancy"></a>
+### ⚠️ Cross-Contract Reentrancy in DeFi Compositions
 
 When your protocol interacts with multiple external protocols, reentrancy can occur across trust boundaries:
 
@@ -74,7 +107,8 @@ Your Protocol → Uniswap (swap) → token transfer → receiver fallback → Yo
 
 **Defense:** Apply `nonReentrant` globally (not per-function) when your protocol makes external calls that could trigger callbacks. For protocols that interact with many external contracts, a single transient storage lock covering all entry points is the cleanest approach.
 
-### Price Manipulation Taxonomy
+<a id="price-manipulation"></a>
+### 📋 Price Manipulation Taxonomy
 
 This consolidates oracle attacks from Module 3 with flash loan amplification from Module 5:
 
@@ -82,7 +116,7 @@ This consolidates oracle attacks from Module 3 with flash loan amplification fro
 - Borrow → swap on DEX → manipulate price → exploit protocol reading spot price → swap back → repay
 - Cost: gas only (flash loan is free if profitable)
 - Defense: never use DEX spot prices, use Chainlink or TWAP
-- Real example: Polter Finance (2024) — flash-loaned BOO tokens, drained SpookySwap pools, deposited minimal BOO valued at $1.37 trillion
+- Real example: [Polter Finance (2024)](https://rekt.news/polter-finance-rekt/) — flash-loaned BOO tokens, drained SpookySwap pools, deposited minimal BOO valued at $1.37 trillion
 
 **Category 2: TWAP manipulation**
 - Sustain price manipulation across the TWAP window
@@ -94,18 +128,104 @@ This consolidates oracle attacks from Module 3 with flash loan amplification fro
 - Affects: vault share prices (Module 7 inflation attack), reward calculations, any logic using `balanceOf`
 - Defense: internal accounting, virtual shares/assets
 
-**Category 4: ERC-4626 exchange rate manipulation**
+**Category 4: [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) exchange rate manipulation**
 - Inflate vault token exchange rate, use overvalued vault tokens as collateral
-- Venus Protocol lost 86 WETH in February 2025 to exactly this attack
-- Resupply protocol exploited via the same vector in 2025
+- [Venus Protocol lost 86 WETH](https://rekt.news/venus-protocol-rekt2/) in February 2025 to exactly this attack
+- [Resupply protocol exploited](https://rekt.news/resupply-rekt/) via the same vector in 2025
 - Defense: time-weighted exchange rates, external oracles for vault tokens, rate caps, virtual shares
 
 **Category 5: Governance manipulation via flash loan**
 - Flash-borrow governance tokens, vote on malicious proposal, return tokens
 - Defense: snapshot-based voting (power based on past block), timelocks, quorum requirements
-- Most modern governance (OpenZeppelin Governor, Compound Governor Bravo) already uses snapshot voting
+- Most modern governance ([OpenZeppelin Governor](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/governance/Governor.sol), [Compound Governor Bravo](https://github.com/compound-finance/compound-governance/blob/master/contracts/GovernorBravoDelegate.sol)) already uses snapshot voting
 
-### Frontrunning and MEV
+#### 🔍 Deep Dive: Flash Loan Attack P&L Walkthrough
+
+**Scenario:** A lending protocol uses Uniswap V2 spot prices for collateral valuation. An attacker exploits this with a flash loan.
+
+**Setup:**
+- Uniswap V2 ETH/USDC pool: 1,000 ETH + 2,000,000 USDC (spot price = $2,000/ETH)
+- Lending protocol: 500,000 USDC available to borrow, requires 150% collateralization
+- Attacker starts with: 0 capital (uses flash loan)
+
+**Step-by-step P&L:**
+
+```
+Step 1: Flash borrow 5,000 ETH from Balancer (0 fee)
+┌──────────────────────────────────────────────────┐
+│  Attacker: 5,000 ETH                             │
+│  Cost so far: 0 (flash loan is free if repaid)   │
+└──────────────────────────────────────────────────┘
+
+Step 2: Swap 4,000 ETH → USDC on Uniswap V2
+  Pool before: 1,000 ETH / 2,000,000 USDC (k = 2,000,000,000)
+  Pool after:  5,000 ETH / 400,000 USDC   (k preserved)
+  Attacker receives: 1,600,000 USDC
+  New spot price: 400,000 / 5,000 = $80/ETH (manipulated!)
+
+┌──────────────────────────────────────────────────┐
+│  Attacker: 1,000 ETH + 1,600,000 USDC           │
+│  Uniswap spot price: $80/ETH (was $2,000)        │
+│  Real market price: still ~$2,000/ETH             │
+└──────────────────────────────────────────────────┘
+
+Step 3: Deposit 1,000 ETH as collateral into lending protocol
+  Protocol reads Uniswap spot: 1,000 ETH × $80 = $80,000 collateral value
+  Wait — this is LESS than before. The attacker needs the price HIGH, not low!
+
+  ⚠️ CORRECTION: The attacker actually swaps the OTHER direction.
+  Let's redo with the correct attack vector:
+```
+
+**Correct attack — inflate ETH price:**
+
+```
+Step 2 (corrected): Swap 1,500,000 USDC → ETH on Uniswap V2
+  (Attacker first flash-borrows USDC, or uses ETH to buy USDC elsewhere)
+
+  Actually, let's use the simplest real pattern:
+
+Step 1: Flash borrow 1,500,000 USDC from Balancer
+Step 2: Swap 1,500,000 USDC → ETH on Uniswap V2
+  Pool before: 1,000 ETH / 2,000,000 USDC (k = 2B)
+  Pool after:  571 ETH / 3,500,000 USDC
+  Attacker receives: 429 ETH
+  New spot price: 3,500,000 / 571 = $6,130/ETH (inflated 3x!)
+
+┌──────────────────────────────────────────────────┐
+│  Attacker: 429 ETH (worth ~$858,000 at real price)│
+│  Uniswap spot: $6,130/ETH (was $2,000)           │
+└──────────────────────────────────────────────────┘
+
+Step 3: Deposit 100 ETH as collateral into lending protocol
+  Protocol reads Uniswap spot: 100 × $6,130 = $613,000 collateral value
+  At 150% collateralization: can borrow up to $408,666 USDC
+  Attacker borrows: 400,000 USDC
+
+Step 4: Swap 329 ETH → USDC on Uniswap (reverse the manipulation)
+  Receives roughly: ~1,120,000 USDC (price recovering toward normal)
+
+Step 5: Repay flash loan: 1,500,000 USDC
+
+┌──────────────────────────────────────────────────┐
+│  Profit/Loss:                                     │
+│  Received: 400,000 (borrowed) + 1,120,000 (swap) │
+│  = 1,520,000 USDC                                │
+│  Paid: 1,500,000 (flash loan repay)              │
+│  = +20,000 USDC profit                           │
+│  Still "owe": 100 ETH collateral (never repaying) │
+│  = additional ~$200,000 in real value extracted   │
+│  Total profit: ~$220,000                          │
+│  Cost: gas only                                   │
+└──────────────────────────────────────────────────┘
+```
+
+**Why this works:** The lending protocol trusts Uniswap's instantaneous spot price as the truth. But spot price is just the ratio of reserves — trivially manipulable with enough capital. The attacker has unlimited capital via flash loans.
+
+**Why Chainlink prevents this:** Chainlink prices come from off-chain aggregation of multiple exchanges. A swap on one Uniswap pool doesn't affect the Chainlink price. Even TWAP oracles resist this because the manipulation must be sustained across the averaging window (expensive for deep-liquidity pools).
+
+<a id="frontrunning-mev"></a>
+### ⚠️ Frontrunning and MEV
 
 **Sandwich attacks:** Attacker sees your pending swap in the mempool. They front-run (buy before you, pushing price up), your swap executes at the worse price, they back-run (sell after you, profiting from the difference).
 
@@ -115,7 +235,8 @@ Defense: slippage protection (`amountOutMin` in Uniswap swaps), private transact
 
 **Liquidation MEV:** When a position becomes liquidatable, MEV searchers race to execute the liquidation (and capture the bonus). For protocol builders: ensure your liquidation mechanism is MEV-aware and that the bonus isn't so large it incentivizes price manipulation to trigger liquidations.
 
-### Composability Risk
+<a id="composability-risk"></a>
+### ⚠️ Composability Risk
 
 DeFi's composability means your protocol interacts with others in ways you can't fully predict:
 - Your vault accepts aTokens as collateral → aTokens interact with Aave → Aave interacts with Chainlink → Chainlink relies on external data providers
@@ -127,7 +248,7 @@ DeFi's composability means your protocol interacts with others in ways you can't
 - Use interface types (not concrete contracts) and validate return values
 - Implement circuit breakers that pause the protocol if unexpected conditions are detected
 
-### Exercise
+### 🛠️ Exercise
 
 **Exercise 1: Read-only reentrancy exploit.** Build a mock vault whose `getSharePrice()` returns an inflated value during a `deposit()` that makes an external callback. Build a lending protocol that reads this value. Show how an attacker can deposit during the callback to get overvalued collateral. Fix it by checking the vault's reentrancy state.
 
@@ -141,37 +262,74 @@ DeFi's composability means your protocol interacts with others in ways you can't
 
 Then fix the lending protocol to use Chainlink and verify the attack fails.
 
-**Exercise 3: Sandwich attack simulation.** On a Uniswap V2 fork:
+**Exercise 3: Sandwich attack simulation.** (See also Module 2 MEV/sandwich section.) On a Uniswap V2 fork:
 - Set up a pool with known liquidity
 - Execute a large swap without slippage protection
 - Show how a sandwich captures value
 - Add slippage protection and show the sandwich becomes unprofitable
 
-### Practice Challenges
+### 🎯 Practice Challenges
 
 - **Damn Vulnerable DeFi #1 "Unstoppable"** — Flash loan griefing via donation
 - **Damn Vulnerable DeFi #7 "Compromised"** — Oracle manipulation
 - **Damn Vulnerable DeFi #10 "Free Rider"** — Flash swap exploitation
 - **Ethernaut #21 "Shop"** — Read-only reentrancy concept
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know about attack patterns:**
+
+1. **"Walk me through a read-only reentrancy attack."**
+   - Good answer: Explains that a view function reads inconsistent state during an external call's callback
+   - Great answer: Gives the Balancer BPT / Sentiment example — pool has received tokens but hasn't minted BPT yet, so `getRate()` is inflated. Mentions that the defense is checking the vault's reentrancy lock *before* reading the rate, and that this class of bug is extremely common in DeFi compositions
+
+2. **"How would you prevent price manipulation in a lending protocol?"**
+   - Good answer: Use Chainlink instead of spot prices, add staleness checks
+   - Great answer: Describes the full taxonomy — spot manipulation (flash loan + swap), TWAP manipulation (capital × time), donation attacks (`balanceOf` inflation), ERC-4626 exchange rate attacks. Explains that defense is layered: primary oracle + TWAP fallback + rate caps + circuit breakers. Mentions that even "safe" oracles like Chainlink need staleness checks, L2 sequencer checks, and zero-price validation
+
+3. **"What's the most underestimated attack vector in DeFi right now?"**
+   - Strong answer: Composability risk / cross-protocol interactions. Any time your protocol reads state from another protocol, you inherit their entire attack surface. Read-only reentrancy is one example, but there's also governance manipulation, oracle dependency chains, and the risk of external protocol upgrades changing behavior. The defense is documenting every external dependency and its failure modes
+
+**Interview red flags:**
+- ❌ Only knowing about classic reentrancy (state-modifying) but not read-only reentrancy
+- ❌ Saying "just use Chainlink" without mentioning staleness checks, L2 sequencer, or multi-oracle patterns
+- ❌ Not knowing about flash-loan-amplified attacks (thinking flash loans are just for arbitrage)
+
+**Pro tip:** In security-focused interviews, employers care less about memorizing every exploit and more about your *systematic thinking*. Show that you have a mental taxonomy of attack classes and can map any new vulnerability into it. That's what separates a protocol engineer from a developer.
+
+### 📋 Summary: DeFi-Specific Attack Patterns
+
+**✓ Covered:**
+- Read-only reentrancy — the subtle variant where `view` functions read inconsistent state during callbacks
+- Cross-contract reentrancy — trust boundary violations across multi-protocol compositions
+- Price manipulation taxonomy — 5 categories from spot manipulation to governance attacks
+- Frontrunning / MEV — sandwich attacks, JIT liquidity, liquidation MEV
+- Composability risk — the cascading dependency problem in DeFi
+
+**Key insight:** Most DeFi exploits are *compositions* of known patterns. The attacker combines a flash loan (free capital) with a price manipulation (create mispricing) and a protocol assumption violation (exploit the mispricing). Thinking in attack chains, not isolated vulnerabilities, is what separates effective security reviewers.
+
+**Next:** Invariant testing — the most powerful methodology for finding the multi-step bugs that unit tests miss.
+
 ---
 
-## Day 2: Invariant Testing with Foundry
+## Invariant Testing with Foundry
 
-### Why Invariant Testing Is the Most Powerful DeFi Testing Tool
+<a id="why-invariant-testing"></a>
+### 💡 Why Invariant Testing Is the Most Powerful DeFi Testing Tool
 
 Unit tests verify specific scenarios you think of. Fuzz tests verify single functions with random inputs. Invariant tests verify that properties hold across random *sequences* of function calls — finding edge cases no human would think to test.
 
 For DeFi protocols, invariants encode the fundamental properties your protocol must maintain:
 
-- "Total supply of shares equals sum of all balances" (ERC-20)
+- "Total supply of shares equals sum of all balances" ([ERC-20](https://eips.ethereum.org/EIPS/eip-20))
 - "Sum of all deposits minus withdrawals equals total assets" (Vault)
 - "No user can withdraw more than they deposited plus their share of yield" (Vault)
 - "A position with health factor > 1 cannot be liquidated" (Lending)
 - "Total borrowed ≤ total supplied" (Lending)
 - "Every vault has collateral ratio ≥ minimum OR is being liquidated" (CDP)
 
-### Foundry Invariant Testing Setup
+<a id="invariant-setup"></a>
+### 🔧 Foundry Invariant Testing Setup
 
 ```solidity
 import {Test} from "forge-std/Test.sol";
@@ -211,7 +369,8 @@ contract VaultInvariantTest is StdInvariant, Test {
 }
 ```
 
-### Handler Contracts: The Key to Effective Invariant Testing
+<a id="handler-contracts"></a>
+### 🔧 Handler Contracts: The Key to Effective Invariant Testing
 
 The handler wraps your protocol's functions with bounded inputs and realistic constraints:
 
@@ -261,7 +420,7 @@ contract VaultHandler is Test {
 
 **Bounded inputs** ensure the fuzzer generates realistic values (not amounts greater than the user's balance, not zero addresses).
 
-### Configuration
+### ⚙️ Configuration
 
 ```toml
 # foundry.toml
@@ -273,7 +432,8 @@ fail_on_revert = false  # Don't fail on expected reverts
 
 Higher depth = longer call sequences = more likely to find complex multi-step bugs. For production, use `runs = 1000+` and `depth = 100+`.
 
-### What Invariants to Test for Each DeFi Primitive
+<a id="invariant-catalog"></a>
+### 📋 What Invariants to Test for Each DeFi Primitive
 
 **For a vault/ERC-4626:**
 - Total assets ≥ sum of all shares × share price (no phantom assets)
@@ -299,7 +459,64 @@ Higher depth = longer call sequences = more likely to find complex multi-step bu
 - Total stablecoin supply = sum of all vault debt
 - Stability fee index only increases
 
-### Exercise
+#### 🔍 Deep Dive: Writing Good Invariants — A Mental Model
+
+Coming up with invariants can feel abstract. Here's a systematic approach:
+
+**Step 1: Ask "What must ALWAYS be true?"**
+
+Think about your protocol from the perspective of conservation laws:
+- **Conservation of value:** tokens in = tokens out (no creation or destruction)
+- **Conservation of accounting:** internal records match actual balances
+- **Conservation of solvency:** the protocol can always meet its obligations
+
+**Step 2: Ask "What must NEVER happen?"**
+
+Flip it — think about what would be catastrophic:
+- A user withdraws more than they deposited + earned
+- Total borrowed exceeds total supplied
+- A liquidation makes the protocol *less* solvent
+- Share price goes to 0 (or infinity)
+
+**Step 3: Map actions to state transitions**
+
+For each function in your protocol, trace what changes:
+
+```
+deposit(amount):
+  BEFORE: totalAssets = X,  userShares = S,  totalShares = T
+  AFTER:  totalAssets = X+amount,  userShares = S+newShares,  totalShares = T+newShares
+  INVARIANT: newShares ≤ amount * T / X  (rounding down protects vault)
+```
+
+**Step 4: Add ghost variables for cumulative tracking**
+
+On-chain state only shows the *current* state. Ghost variables track the *history*:
+
+```
+ghost_totalDeposited += amount    // in handler's deposit()
+ghost_totalWithdrawn += amount    // in handler's withdraw()
+
+// Invariant: totalAssets ≈ ghost_totalDeposited - ghost_totalWithdrawn + yieldAccrued
+```
+
+**Step 5: Think adversarially**
+
+What if one actor calls functions in an unexpected order? What if they:
+- Deposit 0? Deposit type(uint256).max?
+- Withdraw immediately after depositing?
+- Deposit, transfer shares to another address, both withdraw?
+- Call functions during a callback?
+
+The handler's `bound()` function handles invalid inputs, but the *sequence* of valid calls is where real bugs hide.
+
+**Common invariant testing pitfalls:**
+- Writing invariants that are too loose (always pass, catch nothing)
+- Not having enough actors (single-actor tests miss multi-user edge cases)
+- Not tracking ghost variables (can't verify cumulative properties)
+- Setting `depth` too low (complex bugs need 20+ step sequences)
+
+### 🛠️ Exercise
 
 Write a comprehensive invariant test suite for your SimpleLendingPool from Module 4:
 
@@ -316,21 +533,36 @@ Write a comprehensive invariant test suite for your SimpleLendingPool from Modul
 
 4. Run with `depth = 50, runs = 500`. If any invariant breaks, you have a bug — fix it and re-run.
 
-### Practice Challenges
+### 🎯 Practice Challenges
 
 - **Damn Vulnerable DeFi #4 "Side Entrance"** — The invariant "totalAssets == sum of deposits - withdrawals" is violated by a flash loan that counts as both
 - **Damn Vulnerable DeFi #3 "Truster"** — Approval via flash loan callback — write an invariant that catches the unexpected allowance
 - **Ethernaut #20 "Denial"** — Gas griefing that breaks withdrawal invariants
 
+### 📋 Summary: Invariant Testing with Foundry
+
+**✓ Covered:**
+- Why invariant testing beats unit/fuzz testing for DeFi protocols
+- Foundry invariant testing setup — `StdInvariant`, `targetContract`
+- Handler contracts — bounded inputs, actor management, `useActor` modifier
+- Ghost variables — tracking cumulative state (`ghost_totalDeposited`, etc.)
+- Configuration — `runs`, `depth`, `fail_on_revert`
+- Invariant catalog for vaults, lending, AMMs, and CDPs
+
+**Key insight:** The handler contract is the heart of invariant testing. It doesn't just wrap functions — it defines the *realistic action space* of your protocol. A well-designed handler with ghost variables and multiple actors will find bugs that thousands of unit tests miss, because it explores *sequences* of actions that no human would think to test.
+
+**Next:** Reading audit reports — extracting maximum learning from expert security reviews.
+
 ---
 
-## Day 3: Reading Audit Reports
+## Reading Audit Reports
 
-### Why This Skill Matters
+### 💡 Why This Skill Matters
 
 Audit reports are the densest source of real-world vulnerability knowledge. A single report can contain 10-20 findings, each one a potential exploit pattern you might encounter in your own code. Learning to read them efficiently — understanding severity classifications, root cause analysis, and recommended fixes — is one of the highest-ROI activities for a protocol builder.
 
-### How to Read an Audit Report
+<a id="how-read-audit"></a>
+### 📖 How to Read an Audit Report
 
 **Structure of a typical report:**
 - **Executive summary** — Protocol description, scope, methodology
@@ -349,7 +581,7 @@ Audit reports are the densest source of real-world vulnerability knowledge. A si
 
 2. **Read Critical and High findings deeply** — For each one: read the description, then STOP. Before reading the impact/PoC, ask yourself: "How would I exploit this?" Try to construct the attack mentally. Then read the auditor's impact assessment and PoC. Compare your thinking to theirs — this builds attacker intuition.
 
-3. **Classify each finding into your mental taxonomy** — Is it reentrancy? Oracle manipulation? Access control? Logic error? Rounding? Map each finding to the attack patterns from Day 1. Over time, you'll see the same categories appear across every audit. This is the pattern recognition that makes you faster at finding bugs.
+3. **Classify each finding into your mental taxonomy** — Is it reentrancy? Oracle manipulation? Access control? Logic error? Rounding? Map each finding to the attack patterns from the DeFi-Specific Attack Patterns section. Over time, you'll see the same categories appear across every audit. This is the pattern recognition that makes you faster at finding bugs.
 
 4. **Read the fix, then evaluate it** — Does the fix address the root cause or just the symptom? Would you have fixed it differently? Sometimes the auditor's recommendation is a patch, but a better fix involves rearchitecting. Forming your own opinion on fixes is where you develop design judgment.
 
@@ -357,9 +589,11 @@ Audit reports are the densest source of real-world vulnerability knowledge. A si
 
 **Don't get stuck on:** Reading every finding in a 50+ finding report. Focus on Critical/High first, skim Medium, read Informational titles only. A single Critical finding teaches more than ten Informational ones.
 
-### Report 1: Aave V3 Core (OpenZeppelin, Trail of Bits)
+<a id="report-aave"></a>
+### 📖 Report 1: Aave V3 Core (OpenZeppelin, SigmaPrime)
 
-**Source:** Search for "Aave V3 audit report OpenZeppelin" or "Aave V3 audit Trail of Bits" — both are publicly available.
+**Source code:** [aave-v3-core](https://github.com/aave/aave-v3-core)
+**Audits:** [OpenZeppelin](https://blog.openzeppelin.com/aave-v3-core-audit) | [SigmaPrime](https://github.com/aave/aave-v3-core/blob/master/audits/27-01-2022_SigmaPrime_AaveV3.pdf) — both publicly available.
 
 **What to look for:**
 - How auditors analyze the interest rate model for edge cases
@@ -368,16 +602,17 @@ Audit reports are the densest source of real-world vulnerability knowledge. A si
 - Any findings related to the aToken/debtToken accounting system
 
 **Exercise:** Read the findings list. For each High/Medium finding, determine:
-1. Which vulnerability class does it belong to? (from the taxonomy in Day 1)
+1. Which vulnerability class does it belong to? (from the DeFi-Specific Attack Patterns taxonomy)
 2. Would your SimpleLendingPool from Module 4 be vulnerable to the same issue?
 3. If yes, how would you fix it?
 
-### Report 2: A Smaller Protocol With Critical Findings
+<a id="report-smaller"></a>
+### 📖 Report 2: A Smaller Protocol With Critical Findings
 
 **Recommended options** (publicly available):
-- Any Cyfrin audit with critical findings (search "Cyfrin audit reports" on their blog)
-- Trail of Bits public audits on GitHub: https://github.com/trailofbits/publications/tree/master/reviews
-- Spearbit reports: search for DeFi protocol audits
+- Any [Cyfrin audit with critical findings](https://www.cyfrin.io/blog) (search their blog for audit reports)
+- [Trail of Bits public audits on GitHub](https://github.com/trailofbits/publications/tree/master/reviews)
+- [Spearbit reports](https://cantina.xyz/) — many DeFi protocol audits available
 
 Pick one report for a protocol similar to what you've built (lending, AMM, or vault). Read the critical findings.
 
@@ -386,9 +621,10 @@ Pick one report for a protocol similar to what you've built (lending, AMM, or va
 2. Implement the fix
 3. Write a test that passes before the fix and fails after (regression test)
 
-### Report 3: Immunefi Bug Bounty Writeup
+<a id="report-immunefi"></a>
+### 📖 Report 3: Immunefi Bug Bounty Writeup
 
-**Source:** https://medium.com/immunefi (search for "bug bounty writeup") or https://immunefi.com/explore/
+**Source:** [Immunefi Medium](https://medium.com/immunefi) (search for "bug bounty writeup") or [Immunefi Explore](https://immunefi.com/explore/)
 
 Bug bounty writeups show attacker thinking — the process of discovering a vulnerability, not just the final finding. This is the perspective you need to develop.
 
@@ -397,7 +633,8 @@ Bug bounty writeups show attacker thinking — the process of discovering a vuln
 2. How did the researcher escalate from "suspicious" to "exploitable"?
 3. What defense would have prevented it?
 
-### Exercise: Self-Audit
+<a id="self-audit"></a>
+### 🛠️ Exercise: Self-Audit
 
 Take your SimpleLendingPool from Module 4 and apply a structured review:
 
@@ -413,20 +650,35 @@ Take your SimpleLendingPool from Module 4 and apply a structured review:
    - [ ] Slippage protection on all swaps
    - [ ] Return values of external calls are checked
 
+### 📋 Summary: Reading Audit Reports
+
+**✓ Covered:**
+- Why audit reports are the densest source of vulnerability knowledge
+- How to read an audit report — structure, severity levels, what to focus on
+- Building attacker intuition — try to construct the exploit *before* reading the PoC
+- Classifying findings into your mental taxonomy
+- Studying 3 report types: major protocol audit, smaller critical-findings audit, and bug bounty writeup
+- Self-audit methodology — threat model, trust assumptions, structured checklist
+
+**Key insight:** The highest-ROI way to read an audit report is to pause after the vulnerability description and ask "How would I exploit this?" before reading the PoC. This builds the attacker intuition that turns a good developer into a strong security reviewer. Make reading 1-2 reports per month a permanent habit.
+
+**Next:** Security tooling and audit preparation — static analysis, formal verification, and the operational checklist for deployment.
+
 ---
 
-## Day 4: Security Tooling & Audit Preparation
+## Security Tooling & Audit Preparation
 
-### Static Analysis Tools
+<a id="static-analysis"></a>
+### 🛠️ Static Analysis Tools
 
-**Slither** — Trail of Bits' static analyzer. Detects reentrancy, uninitialized variables, incorrect visibility, unchecked return values, and many more patterns. Run in CI/CD on every commit.
+**[Slither](https://github.com/crytic/slither)** — Trail of Bits' static analyzer. Detects reentrancy, uninitialized variables, incorrect visibility, unchecked return values, and many more patterns. Run in CI/CD on every commit.
 
 ```bash
 pip install slither-analyzer
 slither . --json slither-report.json
 ```
 
-**Aderyn** — Cyfrin's Rust-based analyzer. Faster than Slither for large codebases, catches Solidity-specific patterns. Good complement to Slither (different detectors).
+**[Aderyn](https://github.com/Cyfrin/aderyn)** — Cyfrin's Rust-based analyzer. Faster than Slither for large codebases, catches Solidity-specific patterns. Good complement to Slither (different detectors).
 
 ```bash
 cargo install aderyn
@@ -435,9 +687,46 @@ aderyn .
 
 Both tools produce false positives. The skill is triaging results: understanding which findings are real vulnerabilities vs. informational or stylistic.
 
-### Formal Verification (Awareness)
+💻 **Quick Try:**
 
-**Certora Prover** — Used by Aave, Compound, and other major protocols. You write properties in CVL (Certora Verification Language), and the prover mathematically verifies they hold for all possible inputs and states — not just random samples like fuzzing, but *all* of them.
+Save this vulnerable contract as `Vulnerable.sol` and run Slither on it:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract VulnerableVault {
+    mapping(address => uint256) public balances;
+
+    function deposit() external payable {
+        balances[msg.sender] += msg.value;
+    }
+
+    function withdraw(uint256 amount) external {
+        require(balances[msg.sender] >= amount, "Insufficient");
+        // Bug: external call before state update (CEI violation)
+        (bool ok, ) = msg.sender.call{value: amount}("");
+        require(ok, "Transfer failed");
+        balances[msg.sender] -= amount;
+    }
+
+    function getBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+}
+```
+
+```bash
+pip install slither-analyzer   # if not installed
+slither Vulnerable.sol
+```
+
+Slither should flag the reentrancy in `withdraw()` — the external call before the state update. See how it identifies the exact vulnerability pattern? Now fix the contract (move `balances[msg.sender] -= amount` before the call) and re-run Slither to confirm the finding disappears. That's the feedback loop: write code → analyze → fix → verify.
+
+<a id="formal-verification"></a>
+### 🔍 Formal Verification (Awareness)
+
+**[Certora Prover](https://docs.certora.com)** — Used by Aave, Compound, and other major protocols. You write properties in CVL (Certora Verification Language), and the prover mathematically verifies they hold for all possible inputs and states — not just random samples like fuzzing, but *all* of them.
 
 ```
 // Certora rule example
@@ -453,7 +742,8 @@ rule depositIncreasesBalance {
 
 Formal verification is expensive ($200,000+ for complex protocols) but provides the highest confidence level. For production DeFi protocols managing significant TVL, it's increasingly expected. You don't need to master CVL now, but understand that it exists and what it provides.
 
-### The Security Checklist
+<a id="security-checklist"></a>
+### ✅ The Security Checklist
 
 Before any deployment:
 
@@ -485,7 +775,8 @@ Before any deployment:
 - [ ] Incident response plan documented
 - [ ] Bug bounty program (Immunefi or similar)
 
-### Audit Preparation
+<a id="audit-preparation"></a>
+### 📋 Audit Preparation
 
 Auditors are a final validation, not a substitute for your own security work. Protocols that arrive at audit with comprehensive tests and clear documentation get significantly more value from the audit.
 
@@ -501,7 +792,8 @@ Auditors are a final validation, not a substitute for your own security work. Pr
 - Re-audit significant code changes (even "minor" fixes can introduce new vulnerabilities)
 - Don't deploy code that differs from what was audited
 
-### Building Security-First
+<a id="security-first"></a>
+### 💡 Building Security-First
 
 The security mindset isn't a checklist — it's a way of thinking about code:
 
@@ -513,7 +805,7 @@ The security mindset isn't a checklist — it's a way of thinking about code:
 
 **Simplify.** The most secure protocol is the simplest one that achieves the goal. Every line of code is a potential vulnerability. MakerDAO's Vat is ~300 lines. Uniswap V2 core is ~400 lines. Compound V3's Comet is ~4,300 lines. Complexity is the enemy of security.
 
-### Exercise
+### 🛠️ Exercise
 
 **Exercise 1: Full security review.** Run Slither and Aderyn on your SimpleLendingPool from Module 4 and your SimpleCDP from Module 6. Triage every finding: real vulnerability, informational, or false positive. Fix any real vulnerabilities found.
 
@@ -524,12 +816,12 @@ The security mindset isn't a checklist — it's a way of thinking about code:
 - Identify the trust assumptions (oracle, governance, collateral token behavior)
 - For each trust assumption, describe the failure scenario
 
-**Exercise 3: Invariant test your CDP.** Apply the Day 2 invariant testing methodology to your SimpleCDP:
+**Exercise 3: Invariant test your CDP.** Apply the Invariant Testing methodology to your SimpleCDP:
 - Handler with: openVault, addCollateral, generateStablecoin, repay, withdrawCollateral, liquidate, updateOraclePrice
 - Invariants: every vault safe or liquidatable, total stablecoin ≤ total vault debt × rate, debt ceiling not exceeded
 - Run with high depth and runs
 
-### Practice Challenges
+### 🎯 Practice Challenges
 
 Complete any remaining Damn Vulnerable DeFi and Ethernaut challenges not yet attempted:
 
@@ -543,9 +835,124 @@ Complete any remaining Damn Vulnerable DeFi and Ethernaut challenges not yet att
 - #16 "Preservation" — Delegatecall storage collision
 - #24 "Puzzle Wallet" — Proxy + delegatecall exploit
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know about security tooling and process:**
+
+1. **"What does your security workflow look like before deployment?"**
+   - Good answer: Unit tests, fuzz tests, Slither, get an audit
+   - Great answer: Describes a layered approach — unit tests → fuzz tests → invariant tests (with handlers and ghost variables) → static analysis (Slither + Aderyn, triage false positives) → self-audit with threat model → comprehensive documentation → external audit → fix cycle → re-audit changes → bug bounty program. Mentions that the test suite and documentation quality directly affect audit ROI
+
+2. **"Invariant testing vs fuzz testing — what's the difference and when do you use each?"**
+   - Good answer: Fuzz tests random inputs to one function; invariant tests random sequences of calls and check properties hold
+   - Great answer: Fuzz tests verify per-function behavior (`testFuzz_depositReturnsCorrectShares`). Invariant tests verify protocol-wide properties across arbitrary call sequences — they find multi-step bugs like "deposit → accrue → withdraw → accrue → deposit creates phantom assets." The handler contract is key: it bounds inputs, manages actors, and tracks ghost state. For DeFi, invariant tests are essential because most real exploits involve multi-step interactions, not single-function edge cases
+
+3. **"Have you ever found a real bug with invariant testing?"**
+   - This is a strong signal question. Having a concrete story (even from practice protocols) demonstrates real experience. If you haven't yet: run invariant tests on your Module 4 and Module 6 exercises with high depth — you'll likely find rounding edge cases or state inconsistencies worth discussing
+
+**Hot topics (2025-26):**
+- AI-assisted auditing (LLM-powered code review as a complement to manual audit)
+- Formal verification becoming more accessible (Certora, Halmos)
+- Security-as-a-service platforms (continuous monitoring, not just one-time audits)
+- MEV-aware protocol design as a first-class security concern
+- Cross-chain bridge security (still the largest single-exploit category by dollar value)
+
+### 📋 Summary: Security Tooling & Audit Preparation
+
+**✓ Covered:**
+- Static analysis tooling — Slither (Python-based, broad detectors) and Aderyn (Rust-based, fast, complementary)
+- Formal verification awareness — Certora Prover, CVL rules, when it's worth the cost
+- The deployment security checklist — code-level, testing, and operational requirements
+- Audit preparation — what to provide auditors and what to do after
+- Security-first design philosophy — assume hostile inputs, design for failure, minimize trust, simplify
+
+**Key insight:** Security isn't a phase — it's a design philosophy. The security checklist at the end of this day should be internalized as second nature, not treated as a pre-launch checkbox. The protocols that get exploited aren't the ones that skip audits — they're the ones that treat security as someone else's job.
+
 ---
 
-## Key Takeaways
+## ⚠️ Common Mistakes
+
+**Mistake 1: Trusting external `view` functions during state transitions**
+
+```solidity
+// WRONG: reading price during a callback
+function _callback() internal {
+    uint256 price = externalPool.getRate(); // ← stale/manipulated during reentrancy
+    _updateCollateralValue(price);
+}
+```
+
+```solidity
+// CORRECT: verify the external protocol isn't mid-transaction
+function _callback() internal {
+    // Check Balancer's reentrancy lock before reading
+    IVault(balancerVault).manageUserBalance(new IVault.UserBalanceOp[](0));
+    // If we get here, Balancer isn't in a reentrant state
+    uint256 price = externalPool.getRate();
+    _updateCollateralValue(price);
+}
+```
+
+**Mistake 2: Checking oracle staleness with too-generous thresholds**
+
+```solidity
+// WRONG: 24-hour staleness window is way too long for DeFi
+(, int256 price, , uint256 updatedAt, ) = priceFeed.latestRoundData();
+require(block.timestamp - updatedAt < 24 hours, "Stale price");
+```
+
+```solidity
+// CORRECT: match staleness to the feed's heartbeat (varies per asset)
+(, int256 price, , uint256 updatedAt, ) = priceFeed.latestRoundData();
+require(block.timestamp - updatedAt < HEARTBEAT + GRACE_PERIOD, "Stale price");
+require(price > 0, "Invalid price");
+// On L2: also check sequencer uptime feed
+```
+
+**Mistake 3: Writing invariant tests without a handler contract**
+
+```solidity
+// WRONG: letting Foundry call the vault directly with random calldata
+function setUp() public {
+    targetContract(address(vault)); // ← Foundry sends garbage inputs, everything reverts
+}
+```
+
+```solidity
+// CORRECT: handler bounds inputs and manages actors
+function setUp() public {
+    handler = new VaultHandler(vault, token);
+    targetContract(address(handler)); // ← realistic, bounded interactions
+}
+```
+
+**Mistake 4: Using `balanceOf` for critical accounting**
+
+```solidity
+// WRONG: total assets = token balance (manipulable via direct transfer)
+function totalAssets() public view returns (uint256) {
+    return token.balanceOf(address(this));
+}
+```
+
+```solidity
+// CORRECT: track deposits/withdrawals internally
+function totalAssets() public view returns (uint256) {
+    return _totalManagedAssets; // updated only by deposit/withdraw/harvest
+}
+```
+
+**Mistake 5: Assuming audited means secure**
+
+An audit is a snapshot — it covers specific code at a specific time. Common traps:
+- Deploying code that differs from what was audited (even "minor" changes)
+- Adding new integrations post-audit (new external dependencies = new attack surface)
+- Not re-auditing after fixing audit findings (fixes can introduce new bugs)
+- Treating a clean audit as permanent (the protocol evolves, dependencies change, new attack patterns emerge)
+
+---
+
+## 📋 Key Takeaways
 
 1. **DeFi-specific attacks go beyond basic Solidity security.** Read-only reentrancy, flash-loan-amplified price manipulation, and ERC-4626 exchange rate attacks are patterns that don't appear in generic smart contract security guides. You need to know them specifically.
 
@@ -559,7 +966,95 @@ Complete any remaining Damn Vulnerable DeFi and Ethernaut challenges not yet att
 
 ---
 
-## Resources
+## 💼 Security Career Paths
+
+Security knowledge opens multiple career paths beyond "protocol developer." Understanding where the demand is helps you position yourself.
+
+**Path 1: Protocol Security Engineer**
+- Role: Build protocols with security as a core responsibility
+- Day-to-day: Threat modeling, invariant test suites, security-aware architecture
+- Compensation: Premium over general Solidity devs (~$180-300k+ for senior roles)
+- Signal: Invariant tests in your portfolio, security-first design decisions, audit participation
+
+**Path 2: Smart Contract Auditor**
+- Role: Review other teams' code for vulnerabilities
+- Day-to-day: Code review, writing findings, PoC construction, client communication
+- Entry: Audit competitions ([Code4rena](https://code4rena.com/), [Sherlock](https://www.sherlock.xyz/), [CodeHawks](https://codehawks.cyfrin.io/)) → audit firm → independent
+- Compensation: Highly variable — competitive auditors earn $200-500k+ annually
+- Signal: Audit competition track record, published findings, Immunefi bug bounties
+
+**Path 3: Security Researcher / Bug Hunter**
+- Role: Find vulnerabilities in deployed protocols for bounties
+- Day-to-day: Reading code, building attack PoCs, submitting to Immunefi/bug bounty programs
+- Compensation: Per-bounty ($10k-$10M+ for critical findings)
+- Signal: Immunefi profile, published writeups, responsible disclosure track record
+
+**Path 4: Security Tooling Developer**
+- Role: Build the static analyzers, formal verification tools, and monitoring systems
+- Day-to-day: Compiler theory, abstract interpretation, SMT solvers, protocol monitoring
+- Companies: Trail of Bits (Slither), Certora (Prover), Cyfrin (Aderyn), Forta, OpenZeppelin
+- Signal: Contributions to open-source security tools, research publications
+
+**How this module prepares you:** Every path above requires the fundamentals covered here — attack pattern taxonomy, invariant testing, audit report reading, and tooling familiarity. The exercises in this module build the portfolio evidence that differentiates you in any of these directions.
+
+---
+
+## 🔗 Cross-Module Concept Links
+
+### Backward References (concepts from earlier modules used here)
+
+| Source | Concept | How It Connects |
+|---|---|---|
+| **Part 1 §1** | Custom errors | Security checklist requires typed errors for all revert paths — error taxonomy from §1 |
+| **Part 1 §2** | Transient storage reentrancy guard | Global `nonReentrant` via transient storage is the recommended cross-contract reentrancy defense |
+| **Part 1 §5** | Fork testing | Flash loan attack exercises require mainnet fork setup from §5 |
+| **Part 1 §5** | Invariant / fuzz testing | The Invariant Testing section builds directly on foundry fuzz patterns from §5 |
+| **Part 1 §6** | Proxy patterns | Security checklist covers upgradeable contract risks — initializer, storage gap from §6 |
+| **M1** | SafeERC20 / `balanceOf` pitfalls | Donation attack (Category 3) exploits `balanceOf`-based accounting — internal tracking from M1 is the defense |
+| **M1** | Fee-on-transfer / rebasing tokens | Security Tooling section checklist: these break naive vault and lending accounting |
+| **M2** | AMM spot price / MEV / sandwich | Price manipulation Category 1 uses DEX swaps; sandwich attacks from M2's MEV section |
+| **M2** | Read-only reentrancy (Balancer) | The Attack Patterns section's read-only reentrancy uses Balancer pool `getRate()` manipulation during join/exit |
+| **M3** | Oracle manipulation taxonomy | The Attack Patterns section's 5-category taxonomy extends M3's Chainlink/TWAP/dual-oracle patterns |
+| **M3** | Staleness checks / L2 sequencer | Security checklist oracle safety requirements come directly from M3 |
+| **M4** | Lending / liquidation mechanics | Invariant catalog for lending protocols; SimpleLendingPool as invariant test target |
+| **M5** | Flash loans as capital amplifier | Flash loans make price manipulation free — the core enabler for Categories 1, 4, 5 |
+| **M6** | CDP mechanics / governance params | Invariant catalog for CDPs; governance manipulation (Category 5) targets stability fees and debt ceilings |
+| **M7** | ERC-4626 inflation attack | Price manipulation Category 4 — exchange rate manipulation, virtual shares defense |
+| **M7** | Profit unlocking (anti-sandwich) | The Attack Patterns sandwich defense references M7's `profitMaxUnlockTime` pattern |
+
+### Forward References (where these concepts lead)
+
+| Target | Concept | How It Connects |
+|---|---|---|
+| **M9** | Self-audit methodology | Apply the Reading Audit Reports threat model + security checklist to the integration capstone |
+| **M9** | Invariant test suite | Capstone requires comprehensive invariant tests using the Invariant Testing handler/ghost pattern |
+| **M9** | Stress testing | Capstone stress tests combine flash loan attacks + oracle manipulation from the Attack Patterns section |
+| **Part 3 M1** | Upgradeable security | Proxy-specific security patterns (storage collision, initializer) expand on the checklist |
+| **Part 3 M2** | Governance security | Timelock, multisig, and governance attack defenses build on Category 5 |
+| **Part 3 M5** | Formal verification | Certora awareness from the Security Tooling section becomes hands-on specification writing |
+| **Part 3 M8** | Deployment security | Operational checklist items (monitoring, circuit breakers, incident response) become deployment scripts |
+| **Part 3 M9** | Production monitoring | Runtime anomaly detection operationalizes the invariants from the Invariant Testing section |
+
+---
+
+## 📖 Production Study Order
+
+Study these security resources in order — each builds on the previous:
+
+| # | Repository / Resource | Why Study This | Key Files / Sections |
+|---|---|---|---|
+| 1 | [Slither](https://github.com/crytic/slither) | The most widely-used static analyzer — learn its detector categories and how to triage false positives | `slither/detectors/` (detector implementations), README (usage), [detector docs](https://github.com/crytic/slither/wiki/Detector-Documentation) |
+| 2 | [Aderyn](https://github.com/Cyfrin/aderyn) | Rust-based complement to Slither — faster, catches different patterns, understand the overlap | `src/` (detector implementations), compare output against Slither on the same codebase |
+| 3 | [a16z ERC-4626 Property Tests](https://github.com/a16z/ERC4626-property-tests) | The gold standard for vault invariant testing — study how they encode properties as handler-based tests | `ERC4626.prop.sol` (all properties), README (integration guide) |
+| 4 | [Aave V3 Audit — OpenZeppelin](https://blog.openzeppelin.com/aave-v3-core-audit) | Major protocol audit from a top firm — study finding structure, severity classification, root cause analysis | Focus on Critical/High findings, trace each to the attack taxonomy |
+| 5 | [Trail of Bits Public Audits](https://github.com/trailofbits/publications/tree/master/reviews) | Dozens of real audit reports — build your finding taxonomy across protocols | Pick 3 DeFi audits, classify every High finding into the Attack Patterns categories |
+| 6 | [Certora Tutorials](https://github.com/Certora/tutorials) | Introduction to formal verification — write CVL specs for simple protocols | `01.Lesson_GettingStarted/`, `02.Lesson_InvariantChecking/`, example specs |
+
+**Reading strategy:** Start with Slither (1) and Aderyn (2) by running both on your own exercise code — compare findings and learn to triage. Study the a16z property tests (3) to understand professional invariant test design. Then read the Aave audit (4) deeply using the Reading Audit Reports methodology. Browse Trail of Bits reports (5) to build breadth across protocol types. Finally, explore Certora tutorials (6) if you want to pursue formal verification.
+
+---
+
+## 📚 Resources
 
 **Vulnerability references:**
 - [OWASP Smart Contract Top 10 (2025)](https://owasp.org/www-project-smart-contract-top-10/)
@@ -594,4 +1089,4 @@ Complete any remaining Damn Vulnerable DeFi and Ethernaut challenges not yet att
 
 ---
 
-*Next module: Module 9 — Integration Capstone. Wire your AMM, lending pool, oracle, flash loans, and vault together into a single system and stress-test it.*
+**Navigation:** [← Module 7: Vaults & Yield](7-vaults-yield.md) | [Module 9: Integration Capstone →](9-integration-capstone.md)

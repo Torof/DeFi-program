@@ -4,11 +4,41 @@
 **Prerequisites:** Modules 1–5 (especially oracles and lending)
 **Pattern:** Concept → Read MakerDAO/Sky core contracts → Build simplified CDP → Compare stablecoin designs
 **Builds on:** Module 3 (oracle integration for collateral pricing), Module 4 (interest rate models, health factor math, liquidation mechanics)
-**Used by:** Module 8 (threat modeling and invariant testing your CDP), Module 9 (integration capstone)
+**Used by:** Module 8 (threat modeling and invariant testing your CDP), Module 9 (integration capstone), Part 3 Module 9 (capstone: multi-collateral stablecoin)
 
 ---
 
-## Why Stablecoins Are Different from Lending
+## 📚 Table of Contents
+
+**The CDP Model and MakerDAO/Sky Architecture**
+- [How CDPs Work](#how-cdps-work)
+- [MakerDAO Contract Architecture](#maker-architecture)
+- [The Full Flow: Opening a Vault](#opening-vault-flow)
+- [Read: Vat.sol](#read-vat)
+- [Exercises](#day1-exercises)
+
+**Liquidations, PSM, and DAI Savings Rate**
+- [Liquidation 2.0: Dutch Auctions](#liquidation-auctions)
+- [Peg Stability Module (PSM)](#psm)
+- [Dai Savings Rate (DSR)](#dsr)
+- [Read: Dog.sol and Clipper.sol](#read-dog-clipper)
+- [Exercises](#day2-exercises)
+
+**Build a Simplified CDP Engine**
+- [SimpleCDP.sol](#simple-cdp)
+
+**Stablecoin Landscape and Design Trade-offs**
+- [Taxonomy of Stablecoins](#stablecoin-taxonomy)
+- [Liquity: A Different CDP Design](#liquity)
+- [The Algorithmic Stablecoin Failure Pattern](#algo-failure)
+- [Ethena (USDe): The Delta-Neutral Model](#ethena)
+- [crvUSD: Curve's Soft-Liquidation Model](#crvusd)
+- [The Fundamental Trilemma](#stablecoin-trilemma)
+- [Exercises](#day4-exercises)
+
+---
+
+## 💡 Why Stablecoins Are Different from Lending
 
 On the surface, a CDP (Collateralized Debt Position) looks like a lending protocol — deposit collateral, borrow an asset. But there's a fundamental difference: in a lending protocol, borrowers withdraw *existing* tokens from a pool that suppliers deposited. In a CDP system, the borrowed stablecoin is **minted into existence** when the user opens a position. There are no suppliers. The protocol *is* the issuer.
 
@@ -18,9 +48,10 @@ MakerDAO (now rebranded to Sky Protocol) pioneered CDPs and remains the largest 
 
 ---
 
-## Day 1: The CDP Model and MakerDAO/Sky Architecture
+## The CDP Model and MakerDAO/Sky Architecture
 
-### How CDPs Work
+<a id="how-cdps-work"></a>
+### 💡 How CDPs Work
 
 The core lifecycle:
 
@@ -32,7 +63,8 @@ The core lifecycle:
 
 The critical insight: DAI's value comes from the guarantee that every DAI in circulation is backed by more than $1 of collateral, and that the system can liquidate under-collateralized positions to maintain this backing.
 
-### MakerDAO Contract Architecture
+<a id="maker-architecture"></a>
+### 📖 MakerDAO Contract Architecture
 
 MakerDAO's codebase (called "dss" — Dai Stablecoin System) uses a unique naming convention inherited from formal verification traditions. The core contracts:
 
@@ -54,6 +86,73 @@ Vat stores:
 
 **Normalized debt:** The Vat stores `art` (normalized debt), not actual DAI owed. Actual debt = `art × rate`. The `rate` accumulator increases over time based on the stability fee. This is the same index pattern from Module 4 (lending), applied to stability fees instead of borrow rates.
 
+#### 🔍 Deep Dive: MakerDAO Precision Scales (WAD / RAY / RAD)
+
+MakerDAO uses three fixed-point precision scales throughout its codebase. Understanding these is essential for reading any dss code:
+
+```
+WAD = 10^18  (18 decimals) — used for token amounts
+RAY = 10^27  (27 decimals) — used for rates and ratios
+RAD = 10^45  (45 decimals) — used for internal DAI accounting (= WAD × RAY)
+
+Why three scales?
+┌──────────────────────────────────────────────────────────┐
+│  ink (collateral)  = WAD   e.g., 10.5 ETH = 10.5e18     │
+│  art (norm. debt)  = WAD   e.g., 5000 units = 5000e18   │
+│  rate (fee accum.) = RAY   e.g., 1.05 = 1.05e27         │
+│  spot (price/LR)   = RAY   e.g., $1333 = 1333e27        │
+│                                                          │
+│  Actual debt = art × rate = WAD × RAY = RAD (10^45)      │
+│  Vault check = ink × spot  vs  art × rate                │
+│                WAD × RAY      WAD × RAY                  │
+│                = RAD           = RAD        ← same scale! │
+└──────────────────────────────────────────────────────────┘
+```
+
+**Why RAY for rates?** 18 decimals isn't enough precision for per-second compounding. A 5% annual stability fee is ~1.0000000015 per second — you need 27 decimals to represent that accurately.
+
+**Why RAD?** When you multiply a WAD amount by a RAY rate, you get a 45-decimal number. Rather than truncating, the Vat keeps the full precision for internal accounting. External DAI (the [ERC-20](https://eips.ethereum.org/EIPS/eip-20)) uses WAD.
+
+#### 🔍 Deep Dive: Vault Safety Check — Step by Step
+
+Let's trace a real example to understand how the Vat checks if a vault is safe:
+
+```
+Scenario: User deposits 10 ETH, mints 15,000 DAI
+  ETH price:     $2,000
+  Liquidation ratio: 150% (so LR = 1.5)
+
+Step 1: Compute spot (price with safety margin baked in)
+  spot = oracle_price / liquidation_ratio
+  spot = $2,000 / 1.5 = $1,333.33
+  In RAY: 1333.33e27
+
+Step 2: Store vault state
+  ink = 10e18  (10 ETH in WAD)
+  art = 15000e18  (15,000 normalized debt in WAD)
+  rate = 1.0e27  (fresh vault, no fees yet — 1.0 in RAY)
+
+Step 3: Safety check — is ink × spot ≥ art × rate?
+  Left side:  10e18 × 1333.33e27 = 13,333.3e45 (RAD)
+  Right side: 15000e18 × 1.0e27  = 15,000e45  (RAD)
+  13,333 < 15,000 → ❌ UNSAFE! Vault would be rejected.
+
+  The user can only mint up to:
+  max_art = ink × spot / rate = 10 × 1333.33 / 1.0 = 13,333 DAI
+
+Step 4: After 1 year with 5% stability fee
+  rate increases: 1.0e27 → 1.05e27
+  Actual debt: art × rate = 15000 × 1.05 = 15,750 DAI
+  (User now owes 750 DAI more in stability fees)
+
+  Safety check with same ink and spot:
+  ink × spot = 13,333 (unchanged)
+  art × rate = 15000 × 1.05 = 15,750
+  Even more unsafe → liquidation trigger!
+```
+
+> **🔗 Connection:** This is the same index-based accounting from Module 4 (Aave's liquidity index, Compound's borrow index). The pattern: store a normalized amount, multiply by a growing rate to get the actual amount. No per-user updates needed — only the global rate changes.
+
 **Spot** — The Oracle Security Module (OSM) interface. Computes the collateral price with the safety margin (liquidation ratio) baked in: `spot = oracle_price / liquidation_ratio`. The Vat uses this directly: a Vault is safe if `ink × spot ≥ art × rate`.
 
 **Jug** — The stability fee module. Calls `Vat.fold()` to update the rate accumulator for each collateral type. The stability fee (an annual percentage) is converted to a per-second rate and compounds continuously.
@@ -66,6 +165,27 @@ Vat stores:
 
 **CDP Manager** — A convenience layer that lets a single address own multiple Vaults via proxy contracts (UrnHandlers). Without it, one address can only have one Urn per Ilk.
 
+#### 🎓 Intermediate Example: Simplified Vault Accounting
+
+Before diving into the full Vat flow (which uses terse formal-verification naming), let's see the same logic with readable names:
+
+```solidity
+// The core CDP check, readable version:
+function isSafe(address user) public view returns (bool) {
+    uint256 collateralValue = collateralAmount[user] * oraclePrice / PRECISION;
+    uint256 debtValue = normalizedDebt[user] * stabilityFeeRate / PRECISION;
+    uint256 minCollateral = debtValue * liquidationRatio / PRECISION;
+    return collateralValue >= minCollateral;
+}
+
+// The Vat does exactly this, but in one line:
+//   ink × spot ≥ art × rate
+// where spot = oraclePrice / liquidationRatio (safety margin baked in)
+```
+
+This is the same check. The Vat just pre-computes `spot = price / LR` so the safety check is a single comparison. Once you see this, the Vat code becomes readable.
+
+<a id="opening-vault-flow"></a>
 ### The Full Flow: Opening a Vault
 
 1. User calls `GemJoin.join()` — transfers ETH (via WETH) to GemJoin, credits internal `gem` balance in Vat
@@ -74,9 +194,24 @@ Vat stores:
 4. Vat credits `dai` to the user's internal balance
 5. User calls `DaiJoin.exit()` — converts internal `dai` to external DAI ERC-20 tokens
 
-### Read: Vat.sol
+💻 **Quick Try:**
 
-**Source:** `dss/src/vat.sol` (github.com/makerdao/dss)
+On a mainnet fork, read MakerDAO state directly:
+```solidity
+IVat vat = IVat(0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B);
+(uint256 Art, uint256 rate, uint256 spot, uint256 line, uint256 dust) = vat.ilks("ETH-A");
+// Art = total normalized debt for ETH-A vaults
+// rate = stability fee accumulator (starts at 1.0 RAY, grows over time)
+// spot = ETH price / liquidation ratio (in RAY)
+// Actual total debt = Art * rate (in RAD)
+```
+
+Observe that `rate` is > 1.0e27 — that difference from 1.0 represents all accumulated stability fees since ETH-A was created. Every vault's actual debt is `art × rate`.
+
+<a id="read-vat"></a>
+### 📖 Read: Vat.sol
+
+**Source:** `dss/src/vat.sol` (github.com/sky-ecosystem/dss)
 
 This is one of the most important contracts in DeFi. Focus on:
 - The `frob()` function — understand each check and state modification
@@ -102,7 +237,8 @@ The dss codebase is one of DeFi's most important — and one of the hardest to r
 
 **Don't get stuck on:** The formal verification annotations in comments. The dss codebase was designed for formal verification (which is why the naming is so terse — it maps to mathematical specifications). You can ignore the verification proofs and focus on the logic.
 
-### Exercise
+<a id="day1-exercises"></a>
+### 🛠️ Exercises: CDP Model and MakerDAO
 
 **Exercise 1:** On a mainnet fork, trace a complete Vault lifecycle:
 - Join WETH as collateral via GemJoin
@@ -114,13 +250,88 @@ The dss codebase is one of DeFi's most important — and one of the hardest to r
 
 **Exercise 2:** Read the Jug contract. Calculate the per-second rate for a 5% annual stability fee. Call `Jug.drip()` on a mainnet fork and verify the rate accumulator updates correctly. Compute how much more DAI a Vault owes after 1 year of accrued fees.
 
+#### 🔍 Deep Dive: Stability Fee Per-Second Rate
+
+A 5% annual fee needs to be converted to a per-second compound rate:
+
+```
+Annual rate: 1.05 (5%)
+Seconds per year: 365.25 × 24 × 60 × 60 = 31,557,600
+
+Per-second rate = 1.05 ^ (1 / 31,557,600)
+               ≈ 1.000000001547125957...
+
+In RAY (27 decimals): 1000000001547125957000000000
+
+Verification: 1.000000001547125957 ^ 31,557,600 ≈ 1.05 ✓
+
+This is stored in Jug as the `duty` parameter per ilk.
+Each time drip() is called:
+  rate_new = rate_old × (per_second_rate ^ seconds_elapsed)
+```
+
+> **🔗 Connection:** This is the same continuous compounding from Module 4 — Aave and Compound use the same per-second rate accumulator for borrow interest. The math is identical; only the context differs (stability fee vs borrow rate).
+
 ---
 
-## Day 2: Liquidations, PSM, and DAI Savings Rate
+### 📋 Summary: CDP Model and MakerDAO
 
-### Liquidation 2.0: Dutch Auctions
+**✓ Covered:**
+- CDP model: mint stablecoins against collateral (not lending from a pool)
+- MakerDAO architecture: Vat (accounting), Jug (fees), Join adapters, CDP Manager
+- Precision scales: WAD (18), RAY (27), RAD (45) and why each exists
+- Vault safety check: `ink × spot ≥ art × rate` with step-by-step example
+- Normalized debt and rate accumulator pattern (same as Module 4 lending indexes)
+- Code reading strategy for the terse dss codebase
+
+**Next:** Liquidation 2.0 (Dutch auctions), PSM for peg stability, and DSR/SSR for DAI demand
+
+---
+
+## Liquidations, PSM, and DAI Savings Rate
+
+<a id="liquidation-auctions"></a>
+### 💡 Liquidation 2.0: Dutch Auctions
 
 MakerDAO's original liquidation system (Liquidation 1.2) used English auctions — participants bid DAI in increasing amounts, with capital locked for the duration. This was slow and capital-inefficient, and it catastrophically failed on "Black Thursday" (March 12, 2020) when network congestion prevented liquidation bots from bidding, allowing attackers to win auctions for $0 and causing $8.3 million in bad debt.
+
+#### 🔍 Deep Dive: Black Thursday Timeline (March 12, 2020)
+
+```
+Timeline (UTC):
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 06:00  ETH at ~$193. Markets stable. MakerDAO holds $700M+ in vaults. │
+│                                                                         │
+│ 08:00  COVID panic sell-off begins. ETH starts sliding.                │
+│                                                                         │
+│ 10:00  ETH drops below $170. First liquidations trigger.               │
+│        ⚠ Ethereum gas prices spike 10-20x (>200 gwei)                 │
+│                                                                         │
+│ 12:00  ETH hits $130. Massive cascade of vault liquidations.           │
+│        ⚠ Network congestion: liquidation bots can't get txs mined     │
+│        ⚠ Keeper bids fail with "out of gas" or stuck in mempool       │
+│                                                                         │
+│ 13:00  KEY MOMENT: Auctions complete with ZERO bids.                   │
+│        → Attackers win collateral for 0 DAI                            │
+│        → Protocol takes 100% loss on those vaults                      │
+│        → English auction requires active bidders — none could bid      │
+│                                                                         │
+│ 14:00  ETH bottoms near $88. Total of 1,200+ vaults liquidated.       │
+│        $8.3 million in DAI left unbacked (bad debt).                   │
+│                                                                         │
+│ Post-  MakerDAO auctions MKR tokens to cover the deficit.             │
+│ crisis Governance votes for Liquidation 2.0 redesign.                  │
+│        English auctions → Dutch auctions (no bidders needed)           │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Root causes:
+  1. English auction REQUIRES competing bidders — no bidders = $0 wins
+  2. Network congestion prevented keeper bots from submitting bids
+  3. Capital lockup: bids locked DAI for auction duration → less liquidity
+  4. No circuit breakers: all liquidations fired simultaneously
+```
+
+**Why this matters for protocol designers:** Any mechanism that relies on external participants acting in real-time (bidding, liquidating, updating) can fail when the network is congested — which is exactly when these mechanisms are needed most. This is the "coincidence of needs" problem in DeFi crisis design.
 
 Liquidation 2.0 replaced English auctions with **Dutch auctions**:
 
@@ -140,6 +351,41 @@ Liquidation 2.0 replaced English auctions with **Dutch auctions**:
 - `LinearDecrease` — price drops linearly over time
 - `StairstepExponentialDecrease` — price drops in discrete steps (e.g., 1% every 90 seconds)
 
+#### 🔍 Deep Dive: Dutch Auction Price Decrease
+
+```
+Price
+  │
+  │ ●  Starting price = oracle × buf (e.g., 120% of oracle)
+  │  \
+  │   \  LinearDecrease: straight line to zero
+  │    \
+  │     \
+  │      \        StairstepExponentialDecrease:
+  │  ─────●       drops 1% every 90 seconds
+  │       │───●
+  │            │───●
+  │                 │───●
+  │                      │───●  ← "cusp" floor (e.g., 40%)
+  │ · · · · · · · · · · · · · · · · · ← tail (max duration)
+  └───────────────────────────────────────── Time
+  0     5min    10min    15min    20min
+
+Liquidator perspective:
+  - At t=0: price is ABOVE market → unprofitable, nobody buys
+  - Price falls... falls... falls...
+  - At some point: price = market price → breakeven
+  - Price keeps falling → increasingly profitable
+  - Rational liquidator buys when: auction_price × (1 - gas%) > market_price
+  - First buyer wins → no gas wars like in English auctions
+```
+
+Why Dutch auctions fix Black Thursday:
+- **No capital lockup** — buy instantly, no bidding rounds
+- **Flash loan compatible** — borrow DAI → buy collateral → sell collateral → repay
+- **Natural price discovery** — the falling price finds the market clearing level
+- **MEV-compatible** — composable with other DeFi operations (→ Module 5 flash loans)
+
 **Circuit breakers:**
 - `tail` — maximum auction duration before reset required
 - `cusp` — minimum price (% of starting price) before reset required
@@ -147,7 +393,8 @@ Liquidation 2.0 replaced English auctions with **Dutch auctions**:
 
 The Dutch auction design fixes Black Thursday's problems: no capital lockup means participants can use flash loans, settlement is instant (composable with other DeFi operations), and the decreasing price naturally finds the market clearing level.
 
-### Peg Stability Module (PSM)
+<a id="psm"></a>
+### 💡 Peg Stability Module (PSM)
 
 The PSM allows 1:1 swaps between DAI and approved stablecoins (primarily USDC) with a small fee (typically 0%). It serves as the primary peg maintenance mechanism:
 
@@ -158,15 +405,16 @@ The PSM is controversial because it makes DAI heavily dependent on USDC (a centr
 
 **Contract architecture:** The PSM is essentially a special Vault type that accepts USDC (or other stablecoins) as collateral at a 100% collateral ratio and auto-generates DAI. The `tin` (fee in) and `tout` (fee out) parameters control the swap fees in each direction.
 
-### Dai Savings Rate (DSR)
+<a id="dsr"></a>
+### 💡 Dai Savings Rate (DSR)
 
 The DSR lets DAI holders earn interest by locking DAI in the `Pot` contract. The interest comes from stability fees paid by Vault owners — it's a mechanism to increase DAI demand (and thus support the peg) by making holding DAI attractive.
 
 **Pot contract:** Users call `Pot.join()` to lock DAI and `Pot.exit()` to withdraw. Accumulated interest is tracked via a rate accumulator (same pattern as stability fees). The DSR is set by governance as a monetary policy tool.
 
-**Sky Savings Rate (SSR):** The Sky rebrand introduced a parallel savings rate for USDS using an ERC-4626 vault (sUSDS). This is significant because ERC-4626 is the standard vault interface — meaning sUSDS is natively composable with any protocol that supports ERC-4626.
+**Sky Savings Rate (SSR):** The Sky rebrand introduced a parallel savings rate for USDS using an [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) vault (sUSDS). This is significant because ERC-4626 is the standard vault interface — meaning sUSDS is natively composable with any protocol that supports ERC-4626.
 
-### The Sky Rebrand: What Changed
+### 💡 The Sky Rebrand: What Changed
 
 In September 2024, MakerDAO rebranded to Sky Protocol. Key changes:
 - DAI → USDS (1:1 convertible, both remain active)
@@ -177,7 +425,8 @@ In September 2024, MakerDAO rebranded to Sky Protocol. Key changes:
 
 The underlying protocol mechanics (Vat, Dog, Clipper, etc.) remain the same. For this module, we'll use the original MakerDAO naming since that's what the codebase uses.
 
-### Read: Dog.sol and Clipper.sol
+<a id="read-dog-clipper"></a>
+### 📖 Read: Dog.sol and Clipper.sol
 
 **Source:** `dss/src/dog.sol` and `dss/src/clip.sol`
 
@@ -206,7 +455,8 @@ In `Clipper.kick()`, trace:
 
 **Don't get stuck on:** The `redo()` function initially — it's for restarting stale auctions. Understand `bark()` → `kick()` → `take()` first, then come back to `redo()` and the edge cases.
 
-### Exercise
+<a id="day2-exercises"></a>
+### 🛠️ Exercises: Liquidations and PSM
 
 **Exercise 1:** On a mainnet fork, simulate a liquidation:
 - Open a Vault with ETH collateral near the liquidation ratio
@@ -217,11 +467,45 @@ In `Clipper.kick()`, trace:
 
 **Exercise 2:** Read the PSM contract. Execute a USDC → DAI swap through the PSM on a mainnet fork. Verify the 1:1 conversion and fee application.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"Why did MakerDAO switch from English to Dutch auctions?"**
+   - Good answer: English auctions were slow and required capital lockup
+   - Great answer: Black Thursday proved English auctions fail under network congestion — bots couldn't bid, allowing $0 wins and $8.3M bad debt. Dutch auctions fix this: instant settlement, flash-loan compatible, no bidding rounds. The falling price naturally finds the market clearing level.
+
+2. **"What's the trade-off of the PSM?"**
+   - Good answer: It stabilizes the peg but makes DAI dependent on USDC
+   - Great answer: The PSM creates a hard peg floor/ceiling but at the cost of centralization — at peak, >50% of DAI was backed by USDC through the PSM. This is the stablecoin trilemma in action: DAI chose stability over decentralization. The Sky rebrand introduced USDS with a freeze function, pushing further toward the centralized end.
+
+**Interview Red Flags:**
+- 🚩 Not knowing how CDPs differ from lending (minting vs redistributing)
+- 🚩 Confusing normalized debt (`art`) with actual debt (`art × rate`)
+- 🚩 Thinking liquidation auctions are the same as in traditional finance
+
+**Pro tip:** If you can trace a `frob()` call through the Vat's safety checks and explain each parameter, you demonstrate deeper protocol knowledge than 95% of DeFi developers. MakerDAO's architecture shows up directly in interview questions at top DeFi teams.
+
 ---
 
-## Day 3: Build a Simplified CDP Engine
+### 📋 Summary: Liquidations, PSM, and DSR
 
-### SimpleCDP.sol
+**✓ Covered:**
+- Liquidation 2.0: Dutch auctions (Dog + Clipper), why they replaced English auctions
+- Auction price functions: LinearDecrease vs StairstepExponentialDecrease
+- Circuit breakers: tail, cusp, Hole/hole — preventing liquidation cascades
+- PSM: 1:1 peg stability, centralization trade-off, tin/tout fees
+- DSR/SSR: demand-side lever for peg maintenance
+- Sky rebrand: DAI→USDS, MKR→SKY, sUSDS as ERC-4626
+
+**Next:** Building a simplified CDP engine from scratch
+
+---
+
+## Build a Simplified CDP Engine
+
+<a id="simple-cdp"></a>
+### 🛠️ SimpleCDP.sol
 
 Build a minimal CDP system that captures the essential mechanisms:
 
@@ -283,9 +567,21 @@ uint256 public Line;  // global debt ceiling
 
 ---
 
-## Day 4: Stablecoin Landscape and Design Trade-offs
+### 📋 Summary: SimpleCDP
 
-### Taxonomy of Stablecoins
+**✓ Covered:**
+- Building the core CDP contracts: SimpleVat, SimpleJug, SimpleDog, SimplePSM
+- Implementing the vault safety check, stability fee accumulator, and liquidation trigger
+- Testing: full lifecycle, fee accrual, liquidation, debt ceiling, dust check, multi-collateral
+
+**Next:** Comparing stablecoin designs across the landscape — overcollateralized, algorithmic, delta-neutral
+
+---
+
+## Stablecoin Landscape and Design Trade-offs
+
+<a id="stablecoin-taxonomy"></a>
+### 💡 Taxonomy of Stablecoins
 
 **1. Fiat-backed (USDC, USDT)** — Centralized issuer holds bank deposits or T-bills equal to the stablecoin supply. Simple, stable, but requires trust in the issuer and is subject to censorship (addresses can be blacklisted).
 
@@ -295,7 +591,8 @@ uint256 public Line;  // global debt ceiling
 
 **4. Delta-neutral / yield-bearing (USDe by Ethena)** — Holds crypto collateral and hedges price exposure using perpetual futures short positions. The yield comes from positive funding rates. Novel design but carries exchange counterparty risk and funding rate reversal risk.
 
-### Liquity: A Different CDP Design
+<a id="liquity"></a>
+### 💡 Liquity: A Different CDP Design
 
 Liquity (LUSD) takes a minimalist approach compared to MakerDAO:
 
@@ -309,7 +606,8 @@ Liquity (LUSD) takes a minimalist approach compared to MakerDAO:
 
 **Liquity V2 (2024-25):** Introduces user-set interest rates (borrowers bid their own rate), multi-collateral support (LSTs like wstETH, rETH), and a modified redemption mechanism.
 
-### The Algorithmic Stablecoin Failure Pattern
+<a id="algo-failure"></a>
+### ⚠️ The Algorithmic Stablecoin Failure Pattern
 
 UST/LUNA (Terra, May 2022) is the canonical example. The mechanism:
 - UST was pegged to $1 via an arbitrage loop with LUNA
@@ -320,29 +618,96 @@ The death spiral: when confidence in UST dropped, holders rushed to redeem UST f
 
 **The lesson:** Without external collateral backing, algorithmic stablecoins rely on reflexive confidence. When confidence breaks, there's nothing to stop the spiral. Every algorithmic stablecoin that relies purely on its own governance/seigniorage token for backing has either failed or abandoned that model.
 
-### Ethena (USDe): The Delta-Neutral Model
+<a id="ethena"></a>
+### 💡 Ethena (USDe): The Delta-Neutral Model
 
 Ethena mints USDe against crypto collateral (primarily staked ETH) and simultaneously opens a short perpetual futures position of equal size. The net exposure is zero (delta-neutral), meaning the collateral value doesn't change with ETH price movements.
 
-Revenue comes from: staking yield (stETH earns ~3-4%) + funding rate payments from shorts (positive funding = shorts get paid, historically ~8-15% on average).
+**How it works:**
+1. User deposits stETH (or ETH, which gets staked)
+2. Ethena opens an equal-sized short perpetual position on centralized exchanges
+3. ETH price goes up → collateral gains, short loses → net zero
+4. ETH price goes down → collateral loses, short gains → net zero
+5. Revenue: staking yield (~3-4%) + funding rate income (shorts get paid when funding is positive)
 
-Risks: funding rates can go negative (shorts pay longs) during bear markets, exchange counterparty risk (positions are on centralized exchanges via custodians), and potential basis risk between spot and futures.
+**Revenue breakdown:**
+- Staking yield: ~3-4% APR (consistent)
+- Funding rate: historically ~8-15% APR average, but highly variable
+- Combined: sUSDe has offered 15-30%+ APR at times
 
-This model doesn't require overcollateralization and generates high yields, but it introduces off-chain dependencies that pure CDP models avoid.
+**Risk factors:**
+- **Funding rate reversal:** In bear markets, funding rates go negative (shorts PAY longs). Ethena's insurance fund covers short periods, but prolonged negative funding would erode backing. During the 2022 bear market, funding was negative for months.
+- **Exchange counterparty risk:** Positions are on centralized exchanges (Binance, Bybit, Deribit) via custodians (Copper, Ceffu). If an exchange fails or freezes, positions can't be managed.
+- **Basis risk:** Spot price and futures price can diverge, creating temporary unbacking.
+- **Custodian risk:** Assets held in "off-exchange settlement" custody, not directly on exchanges.
+- **Insurance fund:** ~$50M+ reserve for negative funding periods. If depleted, USDe backing degrades.
+
+> **🔗 Connection:** The funding rate mechanics here connect directly to Part 3 Module 2 (Perpetuals), where you'll study how funding rates work in detail. Ethena is essentially using a DeFi primitive (perpetual funding) as a stablecoin backing mechanism.
+
+### 💡 GHO: Aave's Native Stablecoin
+
+GHO is a decentralized stablecoin minted directly within Aave V3. It extends the lending protocol with stablecoin issuance — users who already have collateral in Aave can mint GHO against it without removing their collateral from the lending pool.
+
+**Key design choices:**
+- **No separate CDP system** — GHO uses Aave V3's existing collateral and liquidation infrastructure
+- **Facilitators** — entities authorized to mint/burn GHO. Aave V3 Pool is the primary facilitator, but others can be added (e.g., a flash mint facilitator)
+- **Interest rate is governance-set** — not algorithmic. MakerDAO's stability fee is also governance-set, but Aave's rate doesn't depend on utilization since there's no supply pool
+- **stkAAVE discount** — AAVE stakers get a discount on GHO borrow rates (incentivizes AAVE staking)
+- **Built on existing battle-tested infrastructure** — Aave's oracle, liquidation, and risk management systems
+
+**Why it matters:** GHO shows how a lending protocol can evolve into a stablecoin issuer without building separate infrastructure. Since you studied Aave V3 in Module 4, GHO is a natural extension of that knowledge.
+
+<a id="crvusd"></a>
+### 💡 crvUSD: Curve's Soft-Liquidation Model (LLAMMA)
+
+Curve's stablecoin crvUSD introduces a novel liquidation mechanism called LLAMMA (Lending-Liquidating AMM Algorithm) that replaces the traditional discrete liquidation threshold with continuous soft liquidation.
+
+**How LLAMMA works:**
+- Collateral is deposited into a special AMM (not a regular lending pool)
+- As collateral price drops, the AMM automatically converts collateral to crvUSD (soft liquidation)
+- As price recovers, the AMM converts back from crvUSD to collateral (de-liquidation)
+- No sudden liquidation event — instead, a gradual, continuous transition
+- Borrower keeps their position throughout (unless price drops too far)
+
+**Why it's novel:**
+- Traditional CDPs: price hits threshold → entire position liquidated → penalty applied → user loses collateral
+- LLAMMA: price drops → collateral gradually converts → price recovers → collateral converts back
+- Reduces liquidation losses for borrowers (no penalty on soft liquidation)
+- Reduces bad debt risk for the protocol (continuous adjustment vs sudden cascade)
+
+**Trade-offs:**
+- During soft liquidation, the AMM-converted position earns less than holding pure collateral (similar to impermanent loss in an LP position)
+- More complex than traditional liquidation — harder to reason about and audit
+- LLAMMA pools need liquidity to function properly
+
+> **🔗 Connection:** crvUSD's LLAMMA is essentially an AMM (Module 2) repurposed as a liquidation mechanism (Module 4). It shows how DeFi primitives can be combined in unexpected ways.
+
+### 💡 FRAX: The Evolution from Algorithmic to Fully Backed
+
+FRAX started as a "fractional-algorithmic" stablecoin — partially backed by collateral (USDC) and partially by its governance token (FXS). The collateral ratio would adjust algorithmically based on market conditions.
+
+**The evolution:**
+1. **V1 (2020):** Fractional-algorithmic — e.g., 85% USDC + 15% FXS backing
+2. **V2 (2022):** Moved toward 100% collateral ratio after algorithmic stablecoins collapsed (Terra)
+3. **V3 / frxETH (2023+):** Pivoted to liquid staking (frxETH, sfrxETH) and became fully collateralized
+
+**The lesson:** The algorithmic component was abandoned because it created the same reflexive risk as Terra — when confidence drops, the algorithmic portion amplifies the problem. FRAX's evolution mirrors the industry's consensus: full collateral backing is necessary.
+
+> **🔗 Connection:** frxETH and sfrxETH are liquid staking tokens covered in Part 3 Module 1. FRAX's pivot illustrates how stablecoin protocols evolve toward safety.
 
 ### Design Trade-off Matrix
 
-| Property | DAI/USDS | LUSD | USDC | USDe |
-|----------|----------|------|------|------|
-| Decentralization | Medium (governance, PSM USDC dependency) | High (immutable, ETH-only) | Low (centralized issuer) | Low (centralized exchanges) |
-| Capital efficiency | Low (150%+ collateral) | Medium (110% collateral) | 1:1 | ~1:1 (hedged) |
-| Peg stability | Strong (PSM) | Good (redemptions) | Very strong (fiat reserves) | Good (arbitrage) |
-| Yield | DSR/SSR (variable) | No native yield | No native yield | High (staking + funding) |
-| Censorship resistance | Medium | High | Low (freeze function) | Low |
-| Scalability | Limited by collateral demand | Limited by ETH demand | Unlimited (with reserves) | Limited by futures OI |
-| Failure mode | Bad debt from collateral crash | Same, but simpler | Issuer insolvency / regulatory | Funding rate reversal, exchange failure |
+| Property | DAI/USDS | LUSD | GHO | crvUSD | USDe | USDC |
+|----------|----------|------|-----|--------|------|------|
+| Decentralization | Medium | High | Medium | Medium | Low | Low |
+| Capital efficiency | Low (150%+) | Medium (110%) | Low (Aave LTVs) | Medium (soft liq.) | ~1:1 | 1:1 |
+| Peg stability | Strong (PSM) | Good (redemptions) | Moderate | Moderate | Good | Very strong |
+| Yield | DSR/SSR | None | Discount for stkAAVE | None | High (15%+) | None |
+| Liquidation | Dutch auction | Stability Pool | Aave standard | Soft (LLAMMA) | N/A | N/A |
+| Failure mode | Bad debt, USDC dep. | Bad debt | Same as Aave | LLAMMA IL | Funding reversal | Regulatory |
 
-### The Fundamental Trilemma
+<a id="stablecoin-trilemma"></a>
+### 💡 The Fundamental Trilemma
 
 Stablecoins face a trilemma between:
 1. **Decentralization** — no central point of failure or censorship
@@ -353,11 +718,53 @@ No design achieves all three. DAI sacrifices efficiency for decentralization and
 
 Understanding this trilemma is essential for evaluating any stablecoin design you encounter or build.
 
-### Exercise
+#### 🔍 Deep Dive: Peg Mechanism Comparison
+
+How does each stablecoin actually maintain its $1 peg? The mechanisms are fundamentally different:
+
+```
+                        When price > $1                    When price < $1
+                        (too much demand)                  (too much supply)
+┌──────────┬───────────────────────────────┬───────────────────────────────────┐
+│ DAI/USDS │ PSM: swap USDC → DAI at 1:1  │ PSM: swap DAI → USDC at 1:1     │
+│          │ ↑ supply → price falls        │ ↓ supply → price rises          │
+│          │ Also: lower stability fee →   │ Also: raise stability fee →     │
+│          │ more vaults open → more DAI   │ vaults close → less DAI         │
+├──────────┼───────────────────────────────┼───────────────────────────────────┤
+│ LUSD     │ Anyone can open vault at 110% │ Redemption: burn 1 LUSD →       │
+│          │ cheap to mint → more supply   │ get $1 of ETH from riskiest     │
+│          │ (soft ceiling at $1.10)       │ vault (hard floor at $1.00)     │
+├──────────┼───────────────────────────────┼───────────────────────────────────┤
+│ GHO      │ Governance lowers borrow rate │ Governance raises borrow rate   │
+│          │ → more minting → more supply  │ → repayment → less supply      │
+│          │ (slower response than PSM)    │ (slower response than PSM)      │
+├──────────┼───────────────────────────────┼───────────────────────────────────┤
+│ crvUSD   │ Minting via LLAMMA pools     │ PegKeeper contracts buy crvUSD  │
+│          │ + PegKeepers sell crvUSD      │ from pools, reducing supply     │
+│          │ into Curve pools              │ (automated, no governance)      │
+├──────────┼───────────────────────────────┼───────────────────────────────────┤
+│ USDe     │ Arbitrage: mint USDe at $1,  │ Arbitrage: buy USDe < $1,       │
+│          │ sell at market for > $1       │ redeem for $1 of backing        │
+│          │ (requires whitelisting)       │ (requires whitelisting)         │
+├──────────┼───────────────────────────────┼───────────────────────────────────┤
+│ USDC     │ Circle mints new USDC for $1 │ Circle redeems USDC for $1 bank │
+│          │ bank deposit                 │ transfer                        │
+│          │ (centralized, instant)       │ (centralized, 1-3 business days)│
+└──────────┴───────────────────────────────┴───────────────────────────────────┘
+
+Speed of peg restoration:
+  USDC ≈ PSM (DAI) > Redemption (LUSD) > PegKeeper (crvUSD) > Arb (USDe) > Governance (GHO)
+  ← faster                                                            slower →
+```
+
+**The pattern:** Faster peg restoration requires either centralization (USDC, PSM's USDC dependency) or capital lock-up (Liquity's 110% CR). Slower mechanisms preserve decentralization but risk prolonged depegs during stress.
+
+<a id="day4-exercises"></a>
+### 🛠️ Exercises: Stablecoin Design Trade-offs
 
 **Exercise 1: Liquity analysis.** Read Liquity's `TroveManager.sol` and `StabilityPool.sol`. Compare the liquidation mechanism (Stability Pool absorption) to MakerDAO's Dutch auctions. Which is simpler? Which handles edge cases better? Write a comparison document.
 
-**Exercise 2: Peg stability simulation.** Using your SimpleCDP from Day 3, simulate peg pressure scenarios:
+**Exercise 2: Peg stability simulation.** Using your SimpleCDP from the Build exercise, simulate peg pressure scenarios:
 - What happens when collateral prices crash 30%? Model the liquidation volume and its impact.
 - What happens when demand for the stablecoin exceeds Vault creation? The price goes above $1. Show how the PSM resolves this.
 - What happens if the PSM's USDC reserves are depleted? The stablecoin trades above $1 with no easy correction.
@@ -369,40 +776,150 @@ Understanding this trilemma is essential for evaluating any stablecoin design yo
 
 Map out the feedback loops. This is how decentralized monetary policy works.
 
+#### 💼 Job Market Context — Module-Level Interview Prep
+
+**What DeFi teams expect you to know:**
+
+1. **"Explain the stablecoin trilemma and where DAI sits"**
+   - Good answer: DAI trades off capital efficiency for decentralization and stability
+   - Great answer: DAI started decentralized (ETH-only collateral) but the PSM made it USDC-dependent for better stability. The Sky rebrand pushed further toward centralization with USDS's freeze function. Liquity V1 sits at the opposite extreme — fully decentralized and immutable, but less capital-efficient and narrower collateral. No design achieves all three.
+
+2. **"How does crvUSD's LLAMMA differ from traditional liquidation?"**
+   - Good answer: It gradually converts collateral instead of a sudden liquidation event
+   - Great answer: LLAMMA is essentially an AMM where your collateral IS the liquidity. As price drops, the AMM sells your collateral for crvUSD automatically. If price recovers, it buys back. This eliminates the discrete liquidation penalty but introduces AMM-like impermanent loss during soft liquidation. It's a fundamentally different paradigm — continuous adjustment vs threshold-triggered liquidation.
+
+3. **"What's the main risk with Ethena's USDe?"**
+   - Good answer: Funding rates can go negative
+   - Great answer: Three correlated risks: (1) prolonged negative funding drains the insurance fund and erodes backing, (2) centralized exchange counterparty risk — positions are on Binance/Bybit/Deribit via custodians, (3) during a black swan, all three risks compound simultaneously (funding reversal + exchange stress + basis blowout). The model works great in bull markets with positive funding but hasn't been tested through a severe extended downturn with the current AUM.
+
+**Interview Red Flags:**
+- 🚩 Thinking algorithmic stablecoins without external collateral can work (Terra killed this thesis)
+- 🚩 Not knowing the difference between a CDP and a lending protocol
+- 🚩 Inability to explain how stability fees act as monetary policy
+- 🚩 Not recognizing that MakerDAO's terse naming convention exists (demonstrates you haven't read the code)
+
+**Pro tip:** The stablecoin landscape is one of the most interview-relevant DeFi topics because it touches everything — oracles, liquidation, governance, monetary policy, risk management. Being able to compare MakerDAO vs Liquity vs Ethena design trade-offs demonstrates systems-level thinking that teams value highly.
+
+---
+
+### 📋 Summary: Stablecoin Landscape
+
+**✓ Covered:**
+- Stablecoin taxonomy: fiat-backed, overcollateralized, algorithmic, delta-neutral
+- MakerDAO vs Liquity: governance vs immutability, Dutch auction vs Stability Pool
+- GHO: stablecoin built on existing lending infrastructure (Aave V3)
+- crvUSD: novel soft-liquidation via LLAMMA (AMM-based continuous adjustment)
+- FRAX evolution: fractional-algorithmic → fully collateralized (lesson from Terra)
+- Ethena USDe: delta-neutral hedging with funding rate revenue and its risks
+- The fundamental trilemma: decentralization vs capital efficiency vs stability
+- Terra collapse as the definitive failure case for uncollateralized algorithmic designs
+
+**Next:** Module 7 — ERC-4626 tokenized vaults, yield aggregation, inflation attacks
+
 ---
 
 ## Key Takeaways
 
 1. **CDPs mint money.** Unlike lending protocols that redistribute existing assets, CDP systems create new stablecoins backed by collateral. This is closer to how central banks work than how commercial banks work.
 
-2. **The Vat is the source of truth.** Every DAI that exists can be traced back to a `frob()` call that created debt in the Vat. Understanding the Vat means understanding the entire system.
+2. **The Vat is the source of truth.** Every DAI that exists can be traced back to a `frob()` call that created debt in the Vat. Understanding the Vat means understanding the entire system. The normalized debt pattern (`art × rate`) is the same index-based accounting from Module 4.
 
-3. **Liquidation design is existential.** Black Thursday proved that auction mechanics can fail under stress. Dutch auctions (Liquidation 2.0) and Stability Pool absorption (Liquity) are the two dominant solutions.
+3. **Liquidation design is existential.** Black Thursday proved that auction mechanics can fail under stress. Three dominant approaches exist: Dutch auctions (MakerDAO Liquidation 2.0), Stability Pool absorption (Liquity), and continuous soft-liquidation via AMM (crvUSD LLAMMA). Each has different failure modes.
 
 4. **Peg stability requires trade-offs.** The PSM makes DAI's peg extremely stable but introduces centralization risk. Liquity's redemption mechanism maintains the peg purely through crypto-native arbitrage but is less capital-efficient. Every design choice has consequences.
 
-5. **Algorithmic stablecoins without external collateral fail.** The Terra collapse is the definitive case study. Any stablecoin design you encounter that relies on its own token for backing should be treated with extreme skepticism.
+5. **Algorithmic stablecoins without external collateral fail.** Terra's $40B collapse is the definitive case study. FRAX abandoned its algorithmic component. Any design relying on its own token for backing should be treated with extreme skepticism.
+
+6. **The landscape is diversifying.** GHO extends lending into issuance. crvUSD reinvents liquidation with AMMs. Ethena hedges with perps. Each approach shows how DeFi primitives from other modules (AMMs, oracles, lending, perps) can be recombined into stablecoin designs.
+
+7. **Stablecoins are the ultimate integration test.** A stablecoin protocol touches every DeFi primitive: oracles (pricing), lending (collateral), liquidation (solvency), governance (monetary policy), AMMs (liquidity). This is why your Part 3 capstone IS a stablecoin.
 
 ---
 
-## Resources
+## 📖 Production Study Order
+
+Study these codebases in order — each builds on the previous one's patterns:
+
+| # | Repository | Why Study This | Key Files |
+|---|-----------|----------------|-----------|
+| 1 | [MakerDAO dss (Vat)](https://github.com/sky-ecosystem/dss) | The foundational CDP engine — normalized debt, rate accumulator, `frob()` as the atomic vault operation | `src/vat.sol` |
+| 2 | [MakerDAO Jug](https://github.com/sky-ecosystem/dss/blob/master/src/jug.sol) | Stability fee accumulator — per-second compounding via `drip()`, same index pattern as lending protocols | `src/jug.sol` |
+| 3 | [MakerDAO Dog + Clipper](https://github.com/sky-ecosystem/dss/blob/master/src/clip.sol) | Liquidation 2.0 — Dutch auction mechanics, circuit breakers, keeper incentives (post-Black Thursday redesign) | `src/dog.sol`, `src/clip.sol`, `src/abaci.sol` |
+| 4 | [MakerDAO PSM](https://github.com/sky-ecosystem/dss-psm) | Peg Stability Module — 1:1 stablecoin swaps, `tin`/`tout` fee mechanism, centralization trade-off | `src/psm.sol` |
+| 5 | [Liquity V1](https://github.com/liquity/dev/blob/main/packages/contracts/contracts/) | Alternative CDP: no governance, 110% CR, Stability Pool instant liquidation, redemption mechanism | `contracts/TroveManager.sol`, `contracts/StabilityPool.sol`, `contracts/BorrowerOperations.sol` |
+| 6 | [crvUSD LLAMMA](https://github.com/curvefi/curve-stablecoin) | Novel soft-liquidation via AMM — continuous collateral conversion, PegKeeper for peg maintenance | `contracts/AMM.sol`, `contracts/Controller.sol` |
+
+**Reading strategy:** Start with the Vat — memorize the glossary (ilk, urn, ink, art, gem, dai, sin) and read `frob()` line by line. Then Jug for the fee accumulator. Dog + Clipper show the Dutch auction (trace `bark()` → `kick()` → `take()`). PSM is short and shows the peg mechanism. Liquity shows a radically different CDP design (no governance). crvUSD shows the frontier: AMM-based soft liquidation.
+
+---
+
+## 🔗 Cross-Module Concept Links
+
+### ← Backward References (Part 1 + Modules 1–5)
+
+| Source | Concept | How It Connects |
+|--------|---------|-----------------|
+| Part 1 §1 | `mulDiv` / fixed-point math | WAD/RAY/RAD arithmetic throughout the Vat; `rmul`/`rpow` for stability fee compounding |
+| Part 1 §1 | Custom errors | Production CDP contracts use custom errors for vault safety violations, ceiling breaches |
+| Part 1 §2 | Transient storage | Modern CDP implementations can use TSTORE for reentrancy guards during liquidation callbacks |
+| Part 1 §5 | Fork testing / `vm.mockCall` | Essential for testing against live MakerDAO state and simulating oracle price drops for liquidation |
+| Part 1 §5 | Invariant testing | Property-based testing for CDP invariants: total debt ≤ total DAI, all vaults safe, rate monotonicity |
+| Part 1 §6 | Proxy patterns | MakerDAO's authorization system (`wards`/`can`) and join adapter pattern for upgradeable periphery |
+| Module 1 | SafeERC20 / token decimals | Join adapters bridge external ERC-20 tokens to Vat's internal accounting; decimal handling critical for multi-collateral |
+| Module 1 | Fee-on-transfer awareness | Collateral join adapters must handle non-standard token behavior; PSM must handle USDC's blacklist |
+| Module 2 | AMM / Curve StableSwap | PSM uses 1:1 swap; crvUSD's LLAMMA repurposes AMM as liquidation mechanism; Curve pools for peg monitoring |
+| Module 3 | Oracle Security Module (OSM) | MakerDAO delays oracle prices by 1 hour via OSM — gives governance reaction time before liquidations |
+| Module 3 | Chainlink / staleness checks | Collateral pricing for vault safety checks; oracle failure triggers emergency shutdown |
+| Module 4 | Index-based accounting | Normalized debt (`art × rate`) is the same pattern as Aave's `scaledBalance × liquidityIndex` |
+| Module 4 | Liquidation mechanics | Dutch auction (Dog/Clipper) parallels Aave's direct liquidation; Stability Pool parallels Compound's absorb |
+| Module 5 | Flash loans / flash mint | Dutch auctions designed for flash loan compatibility; DssFlash mints unlimited DAI for flash borrowing |
+
+### → Forward References (Modules 7–9 + Part 3)
+
+| Target | Concept | How Stablecoin/CDP Knowledge Applies |
+|--------|---------|--------------------------------------|
+| Module 7 (Yield/Vaults) | sUSDS as ERC-4626 | Sky Savings Rate packaged as standard vault interface — stablecoin meets tokenized vault |
+| Module 7 (Yield/Vaults) | DSR as yield source | DAI Savings Rate and sUSDS as yield-bearing stablecoin deposits for vault strategies |
+| Module 8 (Security) | CDP invariant testing | Invariant testing SimpleCDP: total debt ≤ ceiling, all active vaults safe, rate accumulator monotonic |
+| Module 8 (Security) | Peg stability threat model | Modeling peg attacks: PSM drain, oracle manipulation, governance parameter manipulation |
+| Module 9 (Integration) | CDP + flash liquidation | Capstone combines CDP liquidation with flash loans and AMM swaps in a production flow |
+| Part 3 Module 1 (Liquid Staking) | LSTs as collateral | wstETH, rETH as CDP collateral types — requires exchange rate oracle chaining |
+| Part 3 Module 2 (Perpetuals) | Funding rate mechanics | Ethena's USDe uses perpetual funding rates as stablecoin backing — studied in depth |
+| Part 3 Module 8 (Governance) | Monetary policy governance | Governor for stability fee, DSR, debt ceiling parameter updates; governance attack surface |
+| Part 3 Module 9 (Capstone) | Multi-collateral stablecoin | Building a complete CDP-based stablecoin protocol from scratch — the curriculum's final integration |
+
+---
+
+## 📚 Resources
 
 **MakerDAO/Sky:**
 - [Technical docs](https://docs.makerdao.com)
-- [Source code (dss)](https://github.com/makerdao/dss)
+- [Source code (dss)](https://github.com/sky-ecosystem/dss)
 - [Vat detailed documentation](https://docs.makerdao.com/smart-contract-modules/core-module/vat-detailed-documentation)
 - [Liquidation 2.0 (Dog & Clipper) documentation](https://docs.makerdao.com/smart-contract-modules/dog-and-clipper-detailed-documentation)
 - [Developer guides](https://github.com/sky-ecosystem/developerguides)
-- [Sky Protocol whitepaper](https://makerdao.com/whitepaper)
+- [Sky Protocol whitepaper](https://makerdao.com/whitepaper/DaiDec17WP.pdf)
 
 **Liquity:**
 - [Documentation](https://docs.liquity.org)
 - [Source code](https://github.com/liquity/dev)
-- [Liquity V2](https://www.liquity.org/v2)
+- [Liquity V2](https://www.liquity.org/bold)
+
+**GHO:**
+- [GHO documentation](https://aave.com/docs/ecosystem/gho)
+- [GHO source code](https://github.com/aave/gho-core)
+
+**crvUSD:**
+- [crvUSD documentation](https://docs.curve.fi/crvUSD/overview/)
+- [LLAMMA explanation](https://docs.curve.fi/crvUSD/amm/)
+- [crvUSD source code](https://github.com/curvefi/curve-stablecoin)
+
+**Ethena:**
+- [Ethena documentation](https://docs.ethena.fi)
+- [Ethena source code](https://github.com/ethena-labs)
 
 **Stablecoin analysis:**
 - [CDP classical design](https://onekey.so/blog/learn/cdp-the-classical-aesthetics-of-stablecoins/)
-- [Ethena documentation](https://docs.ethena.fi)
 - Terra post-mortem: Search "Terra LUNA collapse analysis" for numerous detailed breakdowns
 
 **Black Thursday:**
@@ -411,4 +928,4 @@ Map out the feedback loops. This is how decentralized monetary policy works.
 
 ---
 
-*Next module: Vaults & Yield (~4 days) — ERC-4626 tokenized vaults, yield aggregation (Yearn architecture), vault share math, inflation attacks, and composable yield strategies.*
+**Navigation:** [← Module 5: Flash Loans](5-flash-loans.md) | [Module 7: Vaults & Yield →](7-vaults-yield.md)

@@ -11,10 +11,10 @@ import {
     InvalidSignature,
     CallFailed,
     Unauthorized
-} from "../../../src/part1/section2/EIP7702Delegate.sol";
+} from "../../../src/part1/module2/EIP7702Delegate.sol";
 
 /// @notice Tests for EIP-7702 delegation exercise.
-/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/section2/EIP7702Delegate.sol instead.
+/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/module2/EIP7702Delegate.sol instead.
 contract EIP7702DelegateTest is Test {
     SimpleAccount simpleImpl;
     EIP1271Account eip1271Impl;

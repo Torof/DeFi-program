@@ -11,10 +11,10 @@ import {
     NotOwner,
     InvalidSignature,
     CallFailed
-} from "../../../src/part1/section4/SimpleSmartAccount.sol";
+} from "../../../src/part1/module4/SimpleSmartAccount.sol";
 
 /// @notice Tests for Simple Smart Account (ERC-4337) exercise.
-/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/section4/SimpleSmartAccount.sol instead.
+/// @dev DO NOT MODIFY THIS FILE. Fill in src/part1/module4/SimpleSmartAccount.sol instead.
 contract SimpleSmartAccountTest is Test {
     MockEntryPoint entryPoint;
     SimpleSmartAccount account;
