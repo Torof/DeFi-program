@@ -3,7 +3,7 @@
 **Duration:** ~7 days (3–4 hours/day)
 **Prerequisites:** Modules 1–3 (tokens, AMMs, oracles)
 **Pattern:** Math → Read Aave V3 → Read Compound V3 → Build simplified protocol → Liquidation deep dive
-**Builds on:** Module 1 (SafeERC20), Module 3 (Chainlink consumer, staleness checks), Part 1 Module 5 (invariant testing, fork testing)
+**Builds on:** Module 1 (SafeERC20), Module 3 (Chainlink consumer, staleness checks), Part 1 Section 5 (invariant testing, fork testing)
 **Used by:** Module 5 (flash loan liquidation), Module 6 (stablecoin CDPs share index math), Module 7 (vault share pricing uses same index pattern), Module 8 (invariant testing your lending pool), Module 9 (integration capstone), Part 3 Module 1 (governance attacks on lending params), Part 3 Module 5 (cross-chain lending)
 
 ---
@@ -15,6 +15,8 @@
 - [Key Parameters](#key-parameters)
 - [Interest Rate Models: The Kinked Curve](#interest-rate-models)
 - [Interest Accrual: Indexes and Scaling](#interest-accrual)
+- [Deep Dive: RAY Arithmetic](#ray-arithmetic)
+- [Deep Dive: Compound Interest Approximation](#compound-interest-approx)
 - [Exercise: Build the Math](#build-lending-math)
 
 **Aave V3 Architecture — Supply and Borrow**
@@ -30,6 +32,7 @@
 - [Isolation Mode](#isolation-mode)
 - [Supply and Borrow Caps](#supply-borrow-caps)
 - [Read: Configuration Bitmap](#config-bitmap)
+- [Deep Dive: Bitmap Encoding/Decoding](#bitmap-deep-dive)
 
 **Compound V3 (Comet) — A Different Architecture**
 - [The Single-Asset Model](#single-asset-model)
@@ -51,7 +54,8 @@
 - [Architectural Comparison: Aave V3 vs Compound V3](#arch-comparison)
 - [Bad Debt and Protocol Solvency](#bad-debt)
 - [The Liquidation Cascade Problem](#liquidation-cascade)
-- [Emerging Patterns](#emerging-patterns)
+- [Emerging Patterns (Morpho Blue, Euler V2)](#emerging-patterns)
+- [Aave V3.1 / V3.2 / V3.3 Updates](#aave-updates)
 
 ---
 
@@ -63,7 +67,7 @@
 
 > **Real impact — exploits:** Lending protocols have been the target of some of DeFi's largest hacks:
 - [Euler Finance](https://rekt.news/euler-rekt/) ($197M, March 2023) — donation attack bypassing health checks
-- [Radiant Capital](https://rekt.news/radiant-capital-rekt/) ($58M, January 2024) — flash loan price manipulation
+- [Radiant Capital](https://rekt.news/radiant-capital-rekt/) ($4.5M, January 2024) — flash loan rounding exploit on newly activated empty market
 - [Rari Capital/Fuse](https://rekt.news/rari-capital-rekt/) ($80M, May 2022) — reentrancy in pool withdrawals
 - [Cream Finance](https://rekt.news/cream-rekt-2/) ($130M, October 2021) — oracle manipulation
 - [Hundred Finance](https://rekt.news/agave-hundred-rekt/) ($7M, March 2022) — [ERC-777](https://eips.ethereum.org/EIPS/eip-777) reentrancy
@@ -257,8 +261,8 @@ Slope2 is dramatically steeper than Slope1. This creates a sharp increase in rat
 Borrow Rate
 (APR)
   │
-  │                                          ╱  ← Slope2 (e.g., 300%)
-80%│                                        ╱     Steep! Forces borrowers
+110%│                                          ╱  ← Slope2 (100%)
+  │                                        ╱     Steep! Forces borrowers
   │                                      ╱       to repay, restoring
   │                                    ╱         utilization below kink
   │                                  ╱
@@ -271,7 +275,7 @@ Borrow Rate
   │                    ╱·│
  8%│                  ╱···│
   │                ╱·····│
-  │              ╱·······│  ← Slope1 (e.g., 8%)
+  │              ╱·······│  ← Slope1 (8%)
   │            ╱·········│    Gentle: borrowing is cheap
   │          ╱···········│    when liquidity is ample
   │        ╱·············│
@@ -283,6 +287,9 @@ Borrow Rate
   0%                    80%                100%
                     "The Kink"
                 (Optimal Utilization)
+
+Note: Production values vary by asset. Stablecoins often use Slope2 = 60-80%,
+volatile assets 200-300%+. The table below uses moderate values for clarity.
 ```
 
 **Reading the curve with numbers (USDC-like parameters):**
@@ -311,6 +318,24 @@ SupplyRate = BorrowRate × U × (1 - ReserveFactor)
 ```
 
 Suppliers earn a fraction of what borrowers pay, reduced by utilization (not all capital is lent out) and the reserve factor (the protocol's cut).
+
+**Numeric example (USDC-like parameters):**
+```
+Pool state: $100M supplied, $80M borrowed → U = 80%
+Borrow rate at 80% utilization (from kinked curve) = 10% APR
+Reserve factor = 15%
+
+SupplyRate = 10% × 0.80 × (1 - 0.15)
+           = 10% × 0.80 × 0.85
+           = 6.8% APR
+
+Where the interest goes:
+  Borrowers pay:        $80M × 10% = $8M/year
+  Suppliers receive:    $100M × 6.8% = $6.8M/year
+  Protocol treasury:    $8M - $6.8M = $1.2M/year  (= reserve factor's cut)
+```
+
+**Why suppliers earn less than borrowers pay:** Two factors compound — not all supplied capital is borrowed (utilization < 100%), and the protocol takes a cut (reserve factor). This "spread" funds the protocol treasury and bad debt reserves.
 
 > **Common pitfall:** Expecting supply rate to equal borrow rate. Suppliers always earn less due to utilization < 100% and reserve factor. If U = 80% and reserve factor = 15%, suppliers earn only `BorrowRate × 0.8 × 0.85 = 68%` of the gross borrow rate.
 
@@ -394,6 +419,146 @@ This is the same math behind [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626)
 
 > **Deep dive:** [Aave V3 MathUtils.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/math/MathUtils.sol) — compound interest calculation
 
+<a id="ray-arithmetic"></a>
+#### 🔍 Deep Dive: RAY Arithmetic — Why 27 Decimals?
+
+**The problem:** Solidity has no floating point. Lending protocols need to represent per-second interest rates like `0.000000001585489599` (5% APR / 31,536,000 seconds). With 18-decimal WAD precision, this would be `1585489599` — losing 9 digits of precision. Over a year of compounding, those lost digits accumulate into significant errors.
+
+**The solution:** RAY uses 27 decimals (`1e27 = 1 RAY`), giving 9 extra digits of precision compared to WAD:
+
+```
+WAD (18 decimals): 1.000000000000000000
+RAY (27 decimals): 1.000000000000000000000000000
+
+5% APR per-second rate:
+  As WAD: 0.000000001585489599 → 1585489599 (10 significant digits)
+  As RAY: 0.000000001585489599000000000 → 1585489599000000000 (19 significant digits)
+```
+
+**How `rayMul` and `rayDiv` work:**
+
+```solidity
+// From Aave V3 WadRayMath.sol
+uint256 constant RAY = 1e27;
+uint256 constant HALF_RAY = 0.5e27;
+
+// rayMul: multiply two RAY values, round to nearest
+function rayMul(uint256 a, uint256 b) internal pure returns (uint256) {
+    return (a * b + HALF_RAY) / RAY;
+}
+
+// rayDiv: divide two RAY values, round to nearest
+function rayDiv(uint256 a, uint256 b) internal pure returns (uint256) {
+    return (a * RAY + b / 2) / b;
+}
+```
+
+**Step-by-step example — computing Alice's aToken balance:**
+
+```
+supplyIndex = 1.025 RAY = 1_025_000_000_000_000_000_000_000_000
+Alice's scaledBalance = 1000e6 (1,000 USDC, 6 decimals)
+
+// balanceOf() calls: scaledBalance.rayMul(currentIndex)
+// rayMul(1000e6, 1.025e27)
+
+a = 1_000_000_000                           // 1000 USDC in 6-decimal
+b = 1_025_000_000_000_000_000_000_000_000   // 1.025 RAY
+
+a * b = 1_025_000_000_000_000_000_000_000_000_000_000_000
++ HALF_RAY = ... + 500_000_000_000_000_000_000_000_000
+/ RAY      = 1_025_000_000                  // 1,025 USDC ✓
+```
+
+**Rounding direction matters for protocol solvency:**
+
+| Operation | Round Direction | Why |
+|-----------|----------------|-----|
+| Deposit → scaledBalance | Round **down** | Fewer shares = less claim on pool |
+| Withdraw → actual amount | Round **down** | User gets slightly less |
+| Borrow → scaledDebt | Round **up** | More debt recorded |
+| Repay → remaining debt | Round **up** | Slightly more left to repay |
+
+**The rule:** Always round *against the user, in favor of the protocol*. This prevents rounding-based drain attacks where millions of tiny operations each round in the user's favor, slowly bleeding the pool.
+
+> **Used by:** [WadRayMath.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/math/WadRayMath.sol) — Aave's core math library. Compound V3 uses a simpler approach with `BASE_INDEX_SCALE = 1e15`.
+
+<a id="compound-interest-approx"></a>
+#### 🔍 Deep Dive: Compound Interest Approximation
+
+**The problem:** True compound interest requires computing `(1 + r)^n` where `r` is the per-second rate and `n` is seconds elapsed. Exponentiation is expensive on-chain — and `n` can be millions (months of elapsed time).
+
+**Aave's solution:** Use a [Taylor series expansion](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/math/MathUtils.sol#L28) truncated at 3 terms:
+
+```
+(1 + r)^n ≈ 1 + n·r + n·(n-1)·r²/2 + n·(n-1)·(n-2)·r³/6
+              ↑        ↑                ↑
+           linear   quadratic         cubic
+           term     correction        correction
+```
+
+**Why this works:** Per-second rates are *tiny* (on the order of `1e-9` to `1e-8`). When `r` is small:
+- `r²` is vanishingly small (~`1e-18`)
+- `r³` is essentially zero (~`1e-27`)
+- Three terms give accuracy to 27+ decimal places — well within RAY precision
+
+**Numeric example — 10% APR over 30 days:**
+
+```
+r = 10% / 31,536,000 = 3.170979198e-9 per second
+n = 30 × 86,400 = 2,592,000 seconds
+
+3-term approx: 1 + n·r + n·(n-1)·r²/2 + n·(n-1)·(n-2)·r³/6
+
+Term 1 (linear):    n × r                    = 0.008219178...
+Term 2 (quadratic): n×(n-1) × r² / 2         = 0.000033778...
+Term 3 (cubic):     n×(n-1)×(n-2) × r³ / 6   = 0.000000092...
+
+3-term approximation: 1.008253048...
+True compound value:  (1 + r)^n = 1.008253048...  ← essentially identical!
+Simple interest:      1 + n×r   = 1.008219178...  ← 0.003% lower (missing quadratic+cubic)
+```
+
+The 3-term approximation matches the true compound value to ~10 decimal places. The 4th term (`n(n-1)(n-2)(n-3)·r⁴/24`) is on the order of `1e-10` — negligible at RAY precision. This is why Aave stops at 3 terms.
+
+**Why not just use `n × r` (simple interest)?** Over long periods, the quadratic term matters:
+
+```
+10% APR over 1 year:
+  Simple interest (1 term):    1.10000  (+10.0%)
+  Aave approximation (3 terms): 1.10517  (+10.517%)
+  True compound:               1.10517  (+10.517%)
+  Error: <0.001% — the 3-term approximation matches!
+
+  Simple interest error: 0.517% — real money at $18B TVL
+```
+
+**In code** ([MathUtils.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/math/MathUtils.sol#L28)):
+
+```solidity
+function calculateCompoundedInterest(uint256 rate, uint40 lastUpdateTimestamp, uint256 currentTimestamp)
+    internal pure returns (uint256)
+{
+    uint256 exp = currentTimestamp - lastUpdateTimestamp;
+    if (exp == 0) return RAY;
+
+    uint256 expMinusOne = exp - 1;
+    uint256 expMinusTwo = exp > 2 ? exp - 2 : 0;
+
+    uint256 basePowerTwo = rate.rayMul(rate);           // r²
+    uint256 basePowerThree = basePowerTwo.rayMul(rate);  // r³
+
+    uint256 secondTerm = exp * expMinusOne * basePowerTwo / 2;
+    uint256 thirdTerm = exp * expMinusOne * expMinusTwo * basePowerThree / 6;
+
+    return RAY + (rate * exp) + secondTerm + thirdTerm;
+}
+```
+
+**Key insight:** This function runs on every `supply()`, `borrow()`, `repay()`, and `withdraw()` call. Using a 3-term approximation instead of iterative exponentiation saves thousands of gas per interaction — across millions of transactions, this is a significant optimization.
+
+> **Compound V3's approach:** [Comet uses simple interest per-period](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol#L313) (`index × (1 + rate × elapsed)`), which is slightly less accurate for long gaps but even cheaper. The difference is negligible because `accrueInternal()` is called frequently.
+
 ---
 
 <a id="build-lending-math"></a>
@@ -454,8 +619,10 @@ contract KinkedInterestRate {
 - How DeFi lending works: overcollateralization → interest accrual → liquidation loop
 - Key parameters: LTV, Liquidation Threshold, Health Factor, Liquidation Bonus, Reserve Factor, Close Factor
 - Interest rate models: the two-slope kinked curve and why slope2 is steep (self-correcting mechanism)
-- Supply rate derivation from borrow rate, utilization, and reserve factor
+- Supply rate derivation from borrow rate, utilization, and reserve factor (with numeric example)
 - Index-based interest accrual: global index pattern that scales to millions of users
+- RAY arithmetic: why 27 decimals, rayMul/rayDiv mechanics, rounding direction conventions
+- Compound interest approximation: 3-term Taylor expansion, accuracy vs gas trade-off, Aave's MathUtils implementation
 
 **Key insight:** The kinked curve is *mechanism design* — it uses price signals (rates) to automatically rebalance supply and demand without human intervention.
 
@@ -608,7 +775,7 @@ The Aave V3 codebase is ~15,000+ lines across many libraries. Here's how to appr
 
 5. **Then read ValidationLogic.sol** — This is where all the safety checks live: health factor validation, borrow cap checks, E-Mode constraints. Read `validateBorrow()` to understand every condition that must pass before a borrow succeeds.
 
-**Don't get stuck on:** The configuration bitmap encoding initially. It's clever bit manipulation (Part 1 Module 1 territory) but you can treat `getters` as black boxes on first pass. Focus on the flow: entry point → logic library → state update → token operations.
+**Don't get stuck on:** The configuration bitmap encoding initially. It's clever bit manipulation (Part 1 Section 1 territory) but you can treat `getters` as black boxes on first pass. Focus on the flow: entry point → logic library → state update → token operations.
 
 ---
 
@@ -758,6 +925,97 @@ Bit 63:     Flashloaning enabled
 
 > **Deep dive:** [ReserveConfiguration.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/configuration/ReserveConfiguration.sol) — read the getter/setter library functions to understand bitwise manipulation patterns used throughout production DeFi.
 
+<a id="bitmap-deep-dive"></a>
+#### 🔍 Deep Dive: Encoding and Decoding the Configuration Bitmap
+
+**The problem:** Each reserve in Aave V3 has ~20 configuration parameters (LTV, liquidation threshold, bonus, decimals, flags, caps, e-mode category, etc.). Storing each in a separate `uint256` storage slot would cost 20 × 2,100 gas for a cold read. Packing them into a single `uint256` costs just one 2,100 gas SLOAD.
+
+**The bitmap layout (first 64 bits):**
+
+```
+Bit position:  63      56 55    48 47     32 31     16 15      0
+              ┌────────┬────────┬─────────┬─────────┬─────────┐
+              │ flags  │decimals│  bonus  │   LT    │   LTV   │
+              │ 8 bits │ 8 bits │ 16 bits │ 16 bits │ 16 bits │
+              └────────┴────────┴─────────┴─────────┴─────────┘
+
+Example for USDC on Aave V3 Ethereum:
+  LTV = 77%              → stored as 7700   (bits 0-15)
+  LT  = 80%              → stored as 8000   (bits 16-31)
+  Bonus = 104.5% (4.5%)  → stored as 10450  (bits 32-47)
+  Decimals = 6           → stored as 6      (bits 48-55)
+```
+
+**Reading LTV (bits 0-15) — mask the lower 16 bits:**
+
+```solidity
+uint256 constant LTV_MASK = 0xFFFF;  // = 65535 = 16 bits of 1s
+
+function getLtv(uint256 config) internal pure returns (uint256) {
+    return config & LTV_MASK;
+}
+
+// Example:
+// config = ...0001_1110_0001_0100_0010_1000_1110_0010_0001_0001_0100  (binary)
+//                                                      └─────────────┘
+//                                                      LTV = 7700 (77%)
+// config & 0xFFFF = 7700  ✓
+```
+
+**Reading Liquidation Threshold (bits 16-31) — shift right, then mask:**
+
+```solidity
+uint256 constant LIQUIDATION_THRESHOLD_START_BIT_POSITION = 16;
+
+function getLiquidationThreshold(uint256 config) internal pure returns (uint256) {
+    return (config >> 16) & 0xFFFF;
+}
+
+// Step by step:
+// 1. config >> 16  →  shifts right 16 bits, LTV bits fall off
+//    Now LT occupies bits 0-15
+// 2. & 0xFFFF      →  masks to get just those 16 bits
+// Result: 8000 (80%)
+```
+
+**Writing LTV — clear the old bits, then set new ones:**
+
+```solidity
+uint256 constant LTV_MASK = 0xFFFF;
+
+function setLtv(uint256 config, uint256 ltv) internal pure returns (uint256) {
+    // Step 1: Clear bits 0-15 (set them to 0)
+    //   ~LTV_MASK = 0xFFFF...FFFF0000 (all 1s except bits 0-15)
+    //   config & ~LTV_MASK zeroes out the LTV field
+    // Step 2: OR in the new value
+    return (config & ~LTV_MASK) | (ltv & LTV_MASK);
+}
+
+// Example — changing LTV from 7700 to 8050:
+// Before: ...0001_1110_0001_0100  (7700 in bits 0-15)
+// After:  ...0001_1111_0111_0010  (8050 in bits 0-15)
+// All other bits unchanged ✓
+```
+
+**Reading a single-bit flag (e.g., "Active" at bit 56):**
+
+```solidity
+uint256 constant ACTIVE_MASK = 1 << 56;
+
+function getActive(uint256 config) internal pure returns (bool) {
+    return (config & ACTIVE_MASK) != 0;
+}
+
+function setActive(uint256 config, bool active) internal pure returns (uint256) {
+    if (active) return config | ACTIVE_MASK;     // set bit 56 to 1
+    else        return config & ~ACTIVE_MASK;    // set bit 56 to 0
+}
+```
+
+**Why this matters for DeFi development:** This bitmap pattern appears everywhere — Uniswap V3/V4 tick bitmaps, Compound V3's `assetsIn` field, governance proposal states. Once you understand the mask-shift-or pattern, you can read any packed configuration in production code.
+
+> **Connection:** Part 1 Section 1 covers bit manipulation fundamentals. This is the production application of those patterns.
+
 ---
 
 ### 🛠️ Exercise
@@ -785,6 +1043,40 @@ Bit 63:     Flashloaning enabled
 ---
 
 ## Compound V3 (Comet) — A Different Architecture
+
+💻 **Quick Try:**
+
+Before reading Comet's architecture, see how differently it stores state compared to Aave. On a mainnet fork:
+
+```solidity
+interface IComet {
+    function getUtilization() external view returns (uint256);
+    function getSupplyRate(uint256 utilization) external view returns (uint64);
+    function getBorrowRate(uint256 utilization) external view returns (uint64);
+    function totalSupply() external view returns (uint256);
+    function totalBorrow() external view returns (uint256);
+    function baseTrackingSupplySpeed() external view returns (uint256);
+}
+
+function testReadCometState() public {
+    IComet comet = IComet(0xc3d688B66703497DAA19211EEdff47f25384cdc3); // USDC market
+
+    uint256 util = comet.getUtilization();
+    uint64 supplyRate = comet.getSupplyRate(util);
+    uint64 borrowRate = comet.getBorrowRate(util);
+
+    // Rates are per-second, scaled by 1e18. Convert to APR:
+    emit log_named_uint("Utilization (1e18 = 100%)", util);
+    emit log_named_uint("Supply APR (bps)", uint256(supplyRate) * 365 days / 1e14);
+    emit log_named_uint("Borrow APR (bps)", uint256(borrowRate) * 365 days / 1e14);
+    emit log_named_uint("Total Supply (USDC)", comet.totalSupply() / 1e6);
+    emit log_named_uint("Total Borrow (USDC)", comet.totalBorrow() / 1e6);
+}
+```
+
+Run with `forge test --match-test testReadCometState --fork-url $ETH_RPC_URL -vv`. Compare the rates and utilization with Aave's USDC market — you'll see they're in the same ballpark but computed independently.
+
+---
 
 ### 💡 Why Study Both Aave and Compound
 
@@ -930,6 +1222,50 @@ Comet is dramatically simpler than Aave — one contract, ~4,300 lines. This mak
 ---
 
 ## Liquidation Mechanics
+
+💻 **Quick Try:**
+
+Before diving into liquidation theory, find a real position close to liquidation on Aave V3. On a mainnet fork:
+
+```solidity
+interface IPool {
+    function getUserAccountData(address user) external view returns (
+        uint256 totalCollateralBase,    // in USD (8 decimals, base currency units)
+        uint256 totalDebtBase,
+        uint256 availableBorrowsBase,
+        uint256 currentLiquidationThreshold,  // percentage (4 decimals: 8250 = 82.50%)
+        uint256 ltv,
+        uint256 healthFactor              // 18 decimals: 1e18 = HF of 1.0
+    );
+}
+
+function testReadHealthFactor() public {
+    IPool pool = IPool(0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2);
+
+    // Pick any active Aave borrower from Etherscan or Dune
+    // Or use your own address if you have an Aave position
+    address borrower = 0x...; // replace with a real borrower
+
+    (
+        uint256 collateral, uint256 debt, uint256 available,
+        uint256 lt, uint256 ltvVal, uint256 hf
+    ) = pool.getUserAccountData(borrower);
+
+    emit log_named_uint("Collateral (USD, 8 dec)", collateral);
+    emit log_named_uint("Debt (USD, 8 dec)", debt);
+    emit log_named_uint("Health Factor (18 dec)", hf);
+    emit log_named_uint("Liquidation Threshold (bps)", lt);
+
+    // Manually verify: HF = (collateral × LT / 10000) / debt
+    uint256 manualHF = (collateral * lt / 10000) * 1e18 / debt;
+    emit log_named_uint("Manual HF calc", manualHF);
+    // These should match (within rounding)
+}
+```
+
+Run with `forge test --match-test testReadHealthFactor --fork-url $ETH_RPC_URL -vv`. Seeing real health factors brings the abstraction to life — a number printed on screen is someone's real money at risk.
+
+---
 
 <a id="why-liquidation"></a>
 ### 💡 Why Liquidation Exists
@@ -1100,6 +1436,28 @@ After absorption, the protocol holds seized collateral. Anyone can buy this coll
 
 **Key insight:** Compound V3's absorb/auction split is architecturally elegant — it prevents sandwich attacks on liquidations and decouples "remove the risk" from "find the best price for collateral."
 
+#### 💼 Job Market Context — Liquidation Mechanics
+
+**What DeFi teams expect you to know about liquidation:**
+
+1. **"Design a liquidation bot. What's your architecture?"**
+   - Good answer: Monitor health factors, submit liquidation tx when HF < 1, use flash loans for capital efficiency
+   - Great answer: Discusses mempool monitoring vs on-chain event listening, Flashbots bundles to avoid front-running, priority gas auction dynamics, the economics of when liquidation is profitable (bonus vs gas + flash loan fee + swap slippage), and multi-protocol monitoring (Aave + Compound + Euler simultaneously)
+
+2. **"A user reports they were liquidated unfairly. How do you investigate?"**
+   - Good answer: Check oracle prices at the liquidation block, verify HF was actually < 1
+   - Great answer: Trace the full sequence — was the oracle price stale? Was the sequencer down (L2)? Was there a price manipulation in the same block? Did the liquidator front-run an oracle update? Check if the liquidation bonus was correctly applied and the close factor respected. This is a real scenario teams face in post-mortems.
+
+3. **"Compare Aave's direct liquidation with Compound V3's absorb/auction model."**
+   - Great answer: Aave's model is simpler — one atomic transaction, liquidator bears price risk. Compound's two-step model (absorb → buyCollateral) separates urgency from price discovery — absorption happens immediately (protocol takes bad debt), then Dutch auction finds optimal price for seized collateral. Trade-off: Compound's model socializes losses temporarily but gets better execution prices; Aave's model relies on liquidator speed and can suffer from sandwich attacks.
+
+**Interview red flags:**
+- Not knowing that liquidation is permissionless (anyone can call it)
+- Thinking flash loan liquidations are "cheating" (they're essential for market health)
+- Not understanding why close factor exists (prevent cascade selling)
+
+**Pro tip:** If asked about liquidation in an interview, mention the **Euler V1 exploit** — the attacker used `donateToReserves()` to manipulate health factors, bypassing the standard liquidation check. This shows you understand how liquidation edge cases create attack surfaces.
+
 **Next:** Build a simplified lending protocol (SimpleLendingPool) that integrates everything from the previous sections.
 
 ---
@@ -1236,11 +1594,63 @@ Write comprehensive Foundry tests:
 <a id="emerging-patterns"></a>
 ### 💡 Emerging Patterns
 
-**[Morpho](https://github.com/morpho-org/morpho-blue):** A lending protocol that optimizes rates by matching suppliers and borrowers peer-to-peer when possible, falling back to Aave/Compound pools for unmatched liquidity. Uses Aave/Compound as a "backstop pool."
+<a id="morpho-blue"></a>
+**[Morpho Blue](https://github.com/morpho-org/morpho-blue) — The Minimalist Lending Core:**
 
-**[Euler V2](https://docs.euler.finance):** Modular architecture where each vault has its own risk parameters. Vaults can connect to each other, creating a graph of lending relationships rather than a single pool.
+Morpho Blue (deployed January 2024) represents a radical departure from both Aave and Compound. The core contract is **~650 lines of Solidity** — smaller than most ERC-20 tokens with governance.
 
-**Variable liquidation incentives:** Some protocols adjust the liquidation bonus dynamically based on how far underwater a position is, how much collateral is being liquidated, and current market conditions.
+**Key architectural insight:** Instead of one big pool with many assets (Aave) or one contract per base asset (Compound), Morpho Blue creates **isolated markets defined by 5 immutable parameters:** loan token, collateral token, oracle, interest rate model (IRM), and LTV. Anyone can create a market — no governance vote needed.
+
+```
+Traditional (Aave/Compound):        Morpho Blue:
+┌─────────────────────────┐         ┌─────────────┐  ┌─────────────┐
+│  One Pool / One Market  │         │ Market A     │  │ Market B     │
+│  ETH, USDC, DAI, WBTC  │         │ USDC/ETH     │  │ DAI/wstETH   │
+│  all cross-collateral   │         │ 86% LTV      │  │ 94.5% LTV    │
+│  shared risk params     │         │ Oracle X     │  │ Oracle Y     │
+└─────────────────────────┘         └─────────────┘  └─────────────┘
+                                    Each market is fully isolated
+                                    Parameters immutable at creation
+```
+
+**Why ~650 lines?** Morpho Blue pushes complexity to the edges:
+- No governance, no upgradeability, no admin functions — parameters are immutable
+- No interest rate model built in — it's an external contract passed at market creation
+- No oracle built in — it's an external contract passed at market creation
+- No token wrappers (no aTokens) — balances are tracked as simple mappings
+- The result: a minimal, auditable core that's extremely hard to exploit
+
+**The MetaMorpho layer:** On top of Morpho Blue, [MetaMorpho vaults](https://github.com/morpho-org/metamorpho) (ERC-4626 vaults managed by curators) allocate capital across multiple Morpho Blue markets. This separates *lending logic* (Morpho Blue, immutable) from *risk management* (MetaMorpho, managed).
+
+> **Real impact:** Morpho Blue crossed [$3B+ TVL](https://defillama.com/protocol/morpho-blue) within its first year. Its market creation is permissionless — over 1,000 unique markets created by Q4 2024.
+
+> **📖 How to study:** Read [Morpho.sol](https://github.com/morpho-org/morpho-blue/blob/main/src/Morpho.sol) — it's short enough to read entirely in one sitting. Focus on `supply()`, `borrow()`, and `liquidate()`. Compare the simplicity with Aave's 15,000 lines.
+
+**[Euler V2](https://docs.euler.finance):** Modular architecture where each vault has its own risk parameters. Vaults can connect to each other via a "connector" system, creating a graph of lending relationships rather than a single pool. Represents the same "modular lending" trend as Morpho Blue but with different trade-offs (more flexibility, more complexity).
+
+**Variable liquidation incentives:** Some protocols adjust the liquidation bonus dynamically based on how far underwater a position is, how much collateral is being liquidated, and current market conditions. This optimizes between "enough incentive to liquidate quickly" and "not so much that borrowers are unfairly punished."
+
+<a id="aave-updates"></a>
+#### 💡 Aave V3.1 / V3.2 / V3.3 — Recent Updates (Awareness)
+
+Aave continues evolving within the V3 framework. These updates are important to know about even if you study the V3 base code:
+
+**Aave V3.1 (April 2024):**
+- **Liquid eMode:** Each asset can belong to *multiple* E-Mode categories simultaneously (previously limited to one). A user can activate the category that best matches their position. This increases capital efficiency for LST/LRT positions.
+- **Stateful interest rate model:** The [DefaultReserveInterestRateStrategyV2](https://github.com/aave/aave-v3-core/blob/master/contracts/misc/DefaultReserveInterestRateStrategyV2.sol) can adjust the base rate based on recent utilization history, making the curve adaptive rather than static.
+
+**Aave V3.2 (July 2024):**
+- **Umbrella (Safety Module replacement):** Replaces the staked-AAVE backstop with a more flexible insurance system. Individual "aToken umbrellas" protect specific reserves, allowing targeted risk coverage rather than one-size-fits-all protection.
+- **Virtual accounting enforced:** The virtual balance layer (internal balance tracking vs `balanceOf()`) is now the default, not optional. This hardens all reserves against donation attacks.
+
+**Aave V3.3 (February 2025):**
+- **Deficit handling mechanism:** Automated bad debt handling where governance can write off accumulated deficits across reserves, replacing manual proposals with a standardized process.
+- **Deprecation of stable rate borrowing:** The stable rate mode is fully removed from new deployments, simplifying the codebase.
+
+**GHO — Aave's Native Stablecoin:**
+[GHO](https://github.com/aave/gho-core) is minted directly through Aave V3 borrowing (a "facilitator" pattern). Users borrow GHO instead of withdrawing existing assets from the pool. This means Aave acts as both a lending protocol *and* a stablecoin issuer — connecting Module 4 directly to Module 6 (Stablecoins).
+
+> **Why this matters for interviews:** Knowing about V3.1+ updates signals that you follow the space actively. Mentioning Liquid eMode or Umbrella shows you're beyond textbook knowledge.
 
 ---
 
@@ -1250,7 +1660,7 @@ Write comprehensive Foundry tests:
 
 **Exercise 2: Bad debt scenario.** Configure your pool with a very volatile collateral. Use `vm.warp` and `vm.mockCall` to simulate a 50% price crash in a single block (too fast for liquidation). Show the resulting bad debt. Implement a `handleBadDebt()` function that socializes the loss across suppliers.
 
-**Exercise 3: Read Morpho's matching engine.** Skim the [Morpho Blue codebase](https://github.com/morpho-org/morpho-blue). Focus on how the matching works: when does a user get peer-to-peer rates vs pool rates? How does this differ from Aave/Compound's architecture? No build — just analysis.
+**Exercise 3: Read Morpho Blue's minimal core.** Read [Morpho.sol](https://github.com/morpho-org/morpho-blue/blob/main/src/Morpho.sol) (~650 lines). Focus on: how are markets created (the 5 immutable parameters)? How does `supply()` / `borrow()` / `liquidate()` work without aTokens or debt tokens? How does the architecture achieve risk isolation without Aave's E-Mode/Isolation Mode complexity? Compare the simplicity with Aave's 15,000 lines. No build — just analysis.
 
 ---
 
@@ -1260,7 +1670,9 @@ Write comprehensive Foundry tests:
 - Architectural comparison: Aave V3 (multi-asset, composable, complex) vs Compound V3 (single-asset, isolated, simple)
 - Bad debt mechanics: Aave's Safety Module (staked AAVE backstop) vs Compound's absorb/auction socialization
 - Liquidation cascades: the positive feedback loop and defenses (close factor, bonus calibration, oracle smoothing, caps)
-- Emerging protocols: Morpho (peer-to-peer matching), Euler V2 (modular vaults), variable liquidation incentives
+- Emerging protocols: Morpho Blue (~650-line minimal core, permissionless isolated markets), Euler V2 (modular vaults), variable liquidation incentives
+- Aave V3.1/V3.2/V3.3 updates: Liquid eMode, Umbrella, virtual accounting enforcement, deficit handling, stable rate deprecation
+- GHO stablecoin: Aave as both lending protocol and stablecoin issuer via facilitator pattern
 
 **Key insight:** The Aave vs Compound architectural trade-off is a core interview topic. Being able to articulate *why* each design was chosen (not just *what* it does) separates senior DeFi engineers from juniors.
 
@@ -1362,6 +1774,29 @@ Write comprehensive Foundry tests:
    ```
    **Impact:** Partial liquidation that leaves a dust position still underwater → no one can liquidate the remainder profitably → bad debt.
 
+6. **Not handling `type(uint256).max` for full repayment**
+   ```solidity
+   // WRONG — user passes type(uint256).max to mean "repay all"
+   // but interest accrues between tx submission and execution
+   function repay(uint256 amount) external {
+       token.transferFrom(msg.sender, address(this), amount);
+       userDebt[msg.sender] -= amount;
+       // If amount > actual debt → underflow revert
+       // If amount < actual debt → dust remains
+   }
+
+   // CORRECT — handle the "repay everything" case explicitly
+   function repay(uint256 amount) external {
+       accrueInterest();
+       uint256 currentDebt = getDebt(msg.sender);
+       uint256 repayAmount = amount == type(uint256).max ? currentDebt : amount;
+       require(repayAmount <= currentDebt, "repay exceeds debt");
+       token.transferFrom(msg.sender, address(this), repayAmount);
+       userDebt[msg.sender] -= repayAmount;
+   }
+   ```
+   **Impact:** Without the `type(uint256).max` pattern, users can never fully repay their debt because interest accrues between the time they calculate the amount and when the transaction executes. This leaves tiny dust debts that accumulate across thousands of users. [Aave V3 handles this explicitly](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/BorrowLogic.sol#L116).
+
 ---
 
 ## 📖 Production Study Order
@@ -1374,7 +1809,7 @@ Study these codebases in order — each builds on the previous one's patterns:
 | 2 | [Aave V3 Core](https://github.com/aave/aave-v3-core) | The dominant lending architecture — library pattern, aTokens, debt tokens, index accrual | `contracts/protocol/pool/Pool.sol`, `contracts/protocol/libraries/logic/SupplyLogic.sol`, `contracts/protocol/libraries/logic/BorrowLogic.sol` |
 | 3 | [Aave V3 LiquidationLogic](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/LiquidationLogic.sol) | Production liquidation: close factor, collateral seizure, minimum position rules | `contracts/protocol/libraries/logic/LiquidationLogic.sol` |
 | 4 | [Aave V3 Interest Rate Strategy](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/pool/DefaultReserveInterestRateStrategy.sol) | The kinked curve in production — parameter encoding, compound interest approximation in MathUtils | `contracts/protocol/pool/DefaultReserveInterestRateStrategy.sol`, `contracts/protocol/libraries/math/MathUtils.sol` |
-| 5 | [Morpho Blue](https://github.com/morpho-org/morpho-blue) | Minimal lending core (~500 lines) — peer-to-peer matching, isolated markets, modular design | `src/Morpho.sol`, `src/libraries/` |
+| 5 | [Morpho Blue](https://github.com/morpho-org/morpho-blue) | Minimal lending core (~650 lines) — permissionless isolated markets, no governance, no upgradeability | `src/Morpho.sol`, `src/libraries/` |
 | 6 | [Liquity V1](https://github.com/liquity/dev/blob/main/packages/contracts/contracts/) | CDP-style lending with zero governance — redemption mechanism, stability pool, recovery mode | `contracts/BorrowerOperations.sol`, `contracts/TroveManager.sol`, `contracts/StabilityPool.sol` |
 
 **Reading strategy:** Start with Compound V3 (smallest codebase, single file). Then Aave V3 — trace one flow end-to-end (supply → index update → aToken mint). Study liquidation separately. Read the interest rate strategy to see the kinked curve in production. Morpho Blue shows the minimalist alternative. Liquity shows CDP-style lending with no governance dependency.
@@ -1389,14 +1824,14 @@ Study these codebases in order — each builds on the previous one's patterns:
 
 | Source | Concept | How It Connects |
 |--------|---------|-----------------|
-| Part 1 §1 | Bit manipulation / UDVTs | Aave's `ReserveConfigurationMap` packs all risk params into a single `uint256` bitmap — production example of §1 patterns |
-| Part 1 §1 | `mulDiv` / fixed-point math | RAY (27-decimal) arithmetic for index calculations; `rayMul`/`rayDiv` used in every balance computation |
-| Part 1 §1 | Custom errors | Aave V3 uses custom errors for revert reasons; Compound V3 uses custom errors throughout Comet |
-| Part 1 §2 | Transient storage | Reentrancy guards in lending pools; V4-era lending integrations can use TSTORE for flash accounting |
-| Part 1 §3 | Permit / Permit2 | Gasless approvals for supply/repay operations; Compound V3 supports EIP-2612 permit natively |
-| Part 1 §5 | Fork testing / `vm.mockCall` | Essential for testing against live Aave/Compound state and simulating oracle price movements |
-| Part 1 §5 | Invariant / fuzz testing | Property-based testing for lending invariants: total debt ≤ total supply, HF checks, index monotonicity |
-| Part 1 §6 | Proxy patterns | Both Aave V3 (Pool proxy + logic libraries) and Compound V3 (Comet proxy + CometExt fallback) use proxy architecture |
+| Part 1 Section 1 | Bit manipulation / UDVTs | Aave's `ReserveConfigurationMap` packs all risk params into a single `uint256` bitmap — production example of Section 1 patterns |
+| Part 1 Section 1 | `mulDiv` / fixed-point math | RAY (27-decimal) arithmetic for index calculations; `rayMul`/`rayDiv` used in every balance computation |
+| Part 1 Section 1 | Custom errors | Aave V3 uses custom errors for revert reasons; Compound V3 uses custom errors throughout Comet |
+| Part 1 Section 2 | Transient storage | Reentrancy guards in lending pools; V4-era lending integrations can use TSTORE for flash accounting |
+| Part 1 Section 3 | Permit / Permit2 | Gasless approvals for supply/repay operations; Compound V3 supports EIP-2612 permit natively |
+| Part 1 Section 5 | Fork testing / `vm.mockCall` | Essential for testing against live Aave/Compound state and simulating oracle price movements |
+| Part 1 Section 5 | Invariant / fuzz testing | Property-based testing for lending invariants: total debt ≤ total supply, HF checks, index monotonicity |
+| Part 1 Section 6 | Proxy patterns | Both Aave V3 (Pool proxy + logic libraries) and Compound V3 (Comet proxy + CometExt fallback) use proxy architecture |
 | Module 1 | SafeERC20 / token decimals | Safe transfers for supply/withdraw/liquidate; decimal normalization when computing collateral values across different tokens |
 | Module 2 | Constant product / mechanism design | AMMs use `x × y = k` to set prices; lending uses kinked curves to set rates — both replace human market-makers with math |
 | Module 2 | DEX liquidity for liquidation | Liquidators sell seized collateral on AMMs; pool depth determines liquidation feasibility for illiquid assets |
@@ -1431,6 +1866,12 @@ Study these codebases in order — each builds on the previous one's patterns:
 
 **5. Architectural trade-offs are real.** Aave's multi-asset pools offer flexibility and composability (yield-bearing aTokens). Compound's single-asset markets offer simplicity and risk isolation. Neither is strictly better — your choice depends on what you're building.
 
+**6. RAY precision and rounding direction are protocol-critical.** 27-decimal precision prevents compounding errors over time. Rounding against the user (down for deposits, up for debt) prevents drain attacks across millions of tiny operations.
+
+**7. Modular lending is the emerging trend.** Morpho Blue (~650 lines), Euler V2 vault graphs, and Aave's own V3.1+ updates all point toward smaller, composable, permissionless market creation — away from monolithic pools governed by token votes.
+
+**8. The `type(uint256).max` pattern solves the dust problem.** Because interest accrues between tx submission and execution, users can never calculate the exact repayment amount. The "max repay" pattern is a production necessity, not a convenience.
+
 ---
 
 ## 📚 Resources
@@ -1453,14 +1894,16 @@ Study these codebases in order — each builds on the previous one's patterns:
 - [RareSkills — Aave/Compound interest rate models](https://rareskills.io/post/aave-interest-rate-model)
 - [Aave interest rate strategy contracts](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/pool/DefaultReserveInterestRateStrategy.sol) (on-chain)
 
-**Advanced:**
-- [Morpho Blue](https://github.com/morpho-org/morpho-blue) — peer-to-peer optimization layer
-- [Euler V2](https://docs.euler.finance) — modular vault architecture
+**Advanced / Emerging:**
+- [Morpho Blue](https://github.com/morpho-org/morpho-blue) — minimal lending core (~650 lines), permissionless market creation
+- [MetaMorpho](https://github.com/morpho-org/metamorpho) — ERC-4626 vault layer on top of Morpho Blue
+- [Euler V2](https://docs.euler.finance) — modular vault architecture with connector system
+- [GHO stablecoin](https://github.com/aave/gho-core) — Aave's native stablecoin via facilitator pattern
 - [Berkeley DeFi MOOC — Lending protocols](https://berkeley-defi.github.io)
 
 **Exploits and postmortems:**
 - [Euler Finance postmortem](https://rekt.news/euler-rekt/) — $197M donation attack
-- [Radiant Capital postmortem](https://rekt.news/radiant-capital-rekt/) — $58M flash loan manipulation
+- [Radiant Capital postmortem](https://rekt.news/radiant-capital-rekt/) — $4.5M flash loan rounding exploit
 - [Rari Capital/Fuse postmortem](https://rekt.news/rari-capital-rekt/) — $80M reentrancy
 - [Cream Finance postmortem](https://rekt.news/cream-rekt-2/) — $130M oracle manipulation
 - [Hundred Finance postmortem](https://rekt.news/agave-hundred-rekt/) — $7M [ERC-777](https://eips.ethereum.org/EIPS/eip-777) reentrancy
@@ -1473,7 +1916,7 @@ Study these codebases in order — each builds on the previous one's patterns:
 ## 🎯 Practice Challenges
 
 - **[Damn Vulnerable DeFi #2 "Naive Receiver"](https://www.damnvulnerabledefi.xyz/)** — A flash loan receiver that can be drained by anyone initiating loans on its behalf. Tests your understanding of flash loan receiver security (directly relevant to Module 5).
-- **[Ethernaut #16 "Preservation"](https://ethernaut.openzeppelin.com/level/0x97E982a15FbB1C28F6B8ee971BEc15C78b3d263F)** — Delegatecall with storage collision. Relevant to understanding how proxy patterns (Part 1 Module 6) can go wrong in lending protocol upgrades.
+- **[Ethernaut #16 "Preservation"](https://ethernaut.openzeppelin.com/level/0x97E982a15FbB1C28F6B8ee971BEc15C78b3d263F)** — Delegatecall with storage collision. Relevant to understanding how proxy patterns (Part 1 Section 6) can go wrong in lending protocol upgrades.
 
 ---
 

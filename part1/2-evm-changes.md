@@ -354,27 +354,31 @@ Before Dencun, L2s posted transaction data to L1 as expensive calldata (~16 gas/
 
 **The blob fee formula:**
 
-Blobs use an **independent fee market** from regular gas. The blob base fee adjusts based on how many blobs are used per block:
+Blobs use an **independent fee market** from regular gas. The blob base fee adjusts based on cumulative excess blob gas:
 
 ```
-blob_base_fee(block_n+1) = blob_base_fee(block_n) × e^((excess_blobs) / BLOB_BASE_FEE_UPDATE_FRACTION)
+blob_base_fee = MIN_BLOB_BASE_FEE × e^(excess_blob_gas / BLOB_BASE_FEE_UPDATE_FRACTION)
 
 Where:
-- Target: 3 blobs per block
-- Maximum: 6 blobs per block
-- excess_blobs = total_blobs_in_block - target_blobs
-- BLOB_BASE_FEE_UPDATE_FRACTION = 3,338,477 (~1/e when excess = target)
+- Each blob = 131,072 blob gas
+- Target: 3 blobs per block = 393,216 blob gas
+- Maximum: 6 blobs per block = 786,432 blob gas
+- excess_blob_gas accumulates across blocks:
+    excess(block_n) = max(0, excess(block_n-1) + blob_gas_used - 393,216)
+- BLOB_BASE_FEE_UPDATE_FRACTION = 3,338,477
+- MIN_BLOB_BASE_FEE = 1 wei
 ```
 
 **Step-by-step calculation:**
 
-1. **Block has 3 blobs (target)**: `excess_blobs = 0` → fee stays the same
-2. **Block has 6 blobs (max)**: `excess_blobs = 3` → fee increases by ~e^(3/3,338,477) ≈ 1.0000009
-3. **Block has 0 blobs**: `excess_blobs = -3` → fee decreases
+1. **Block has 3 blobs (target)**: excess_blob_gas unchanged → fee stays the same
+2. **Block has 6 blobs (max)**: excess_blob_gas increases by 393,216 → fee multiplies by e^(393,216/3,338,477) ≈ **1.125** (~12.5% increase per max block)
+3. **Block has 0 blobs**: excess_blob_gas decreases by up to 393,216 → fee drops
+4. **After ~8.5 consecutive max blocks**: excess accumulates enough for fee to roughly triple (e^1 ≈ 2.718)
 
 **Why this matters:**
 
-Unlike EIP-1559 (which targets 50% full blocks), blob pricing targets near-zero excess. This keeps blob fees **very low** most of the time.
+The fee adjusts gradually — it takes many consecutive full blocks to drive fees up significantly. In practice, blob demand rarely sustains max capacity for long, so blob fees stay **very low** most of the time.
 
 **Real cost comparison with actual protocols:**
 
@@ -406,15 +410,25 @@ At 20 gwei L1 gas price and $3,000 ETH:
 ```
 Blob size: 128 KB = 131,072 bytes
 Blobs needed: 200,000 / 131,072 ≈ 2 blobs
-Blob fee: ~1 wei per blob (when not congested)
-Cost = 2 blobs × 131,072 bytes × 1 gas/byte = 262,144 gas
-At 20 gwei L1 gas price and $3,000 ETH:
-= 262,144 × 20 × 10^-9 × $3,000
-= $15.73 per batch
-= $0.016 per transaction
+
+Two separate costs (blobs have their OWN fee market):
+
+1. Blob fee (priced in blob gas, NOT regular gas):
+   Blob gas = 2 blobs × 131,072 = 262,144 blob gas
+   At minimum blob price (~1 wei per blob gas):
+   = 262,144 wei ≈ $0.0000008 (essentially free)
+
+2. L1 transaction overhead (regular gas for the Type 3 tx):
+   ~50,000 gas for tx base + versioned hash calldata
+   At 20 gwei and $3,000 ETH:
+   = 50,000 × 20 × 10^-9 × $3,000 = $3.00
+
+Total ≈ $3.00 per batch = $0.003 per transaction
 ```
 
-**Savings: 92% reduction ($192 → $15.73)**
+**Savings: ~98% reduction ($192 → ~$3)**
+
+The blob data itself is nearly free — the remaining cost is just the L1 transaction overhead. During blob fee spikes (high demand), the blob portion increases, but typical post-Dencun costs match the real-world figures in the table above.
 
 💻 **Quick Try:**
 

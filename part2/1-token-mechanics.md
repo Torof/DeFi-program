@@ -1,9 +1,9 @@
 # Part 2 — Module 1: Token Mechanics in Practice
 
 **Duration:** ~2 days (3–4 hours/day)
-**Prerequisites:** Part 1 complete (including Permit and Permit2 from Module 3), Foundry installed
+**Prerequisites:** Part 1 complete (including Permit and Permit2 from Section 3), Foundry installed
 **Pattern:** Concept → Read production code → Build → Extend
-**Builds on:** Part 1 Module 3 (Permit/Permit2), Part 1 Module 5 (Foundry)
+**Builds on:** Part 1 Section 3 (Permit/Permit2), Part 1 Section 5 (Foundry)
 **Used by:** Every subsequent module — SafeERC20, balance-before-after, and WETH patterns are foundational
 
 ---
@@ -23,6 +23,7 @@
 - [Token Listing Patterns](#token-listing-patterns)
 - [Token Evaluation Checklist](#token-evaluation-checklist)
 - [Build: Token Interaction Test Suite](#build-token-test-suite)
+- [Practice Challenges](#practice-challenges)
 
 ---
 
@@ -32,7 +33,7 @@
 
 > **Real impact:** [Hundred Finance hack](https://rekt.news/hundred-rekt2/) ($7M, April 2023) — exploited lending pool that didn't account for [ERC-777](https://eips.ethereum.org/EIPS/eip-777) [reentrancy hooks](https://github.com/d-xo/weird-erc20#reentrant-calls). [SushiSwap MISO incident](https://www.coindesk.com/tech/2021/09/17/3m-in-ether-stolen-from-sushiswap-token-launchpad/) ($3M, September 2021) — malicious token with transfer() that silently failed but returned true, draining auction funds.
 
-> **Note:** Permit ([EIP-2612](https://eips.ethereum.org/EIPS/eip-2612)) and [Permit2](https://github.com/Uniswap/permit2) patterns are covered in Part 1 Module 3. This module focuses on the ERC-20 edge cases and safe integration patterns that will affect every protocol you build in Part 2.
+> **Note:** Permit ([EIP-2612](https://eips.ethereum.org/EIPS/eip-2612)) and [Permit2](https://github.com/Uniswap/permit2) patterns are covered in Part 1 Section 3. This module focuses on the ERC-20 edge cases and safe integration patterns that will affect every protocol you build in Part 2.
 
 ---
 
@@ -63,7 +64,7 @@ Every DeFi protocol you'll ever build begins here. [Uniswap V2](https://github.c
 1. **AMMs (Module 2):** Uniswap V2's "pull" pattern — users approve the Router, Router calls `transferFrom` to move tokens into Pair contracts. V4 replaces this with flash accounting
 2. **Lending (Module 4):** Users approve the Pool contract to pull collateral. Aave V3 and Compound V3 both use this for deposits
 3. **Vaults (Module 7):** [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) vaults call `transferFrom` on deposit — the entire vault standard is built on this two-step pattern
-4. **Alternative:** Permit (Part 1 §3) eliminates the separate approve transaction by using [EIP-712](https://eips.ethereum.org/EIPS/eip-712) signatures
+4. **Alternative:** Permit (Part 1 Section 3) eliminates the separate approve transaction by using [EIP-712](https://eips.ethereum.org/EIPS/eip-712) signatures
 
 ---
 
@@ -120,7 +121,7 @@ uint256 price = uint256(answer) * 10**(18 - feedDecimals);
 uint256 internal immutable baseScale; // = 10 ** baseToken.decimals()
 ```
 
-> **Real impact:** The [Warp Finance exploit](https://rekt.news/warp-finance-rekt/) ($8M, December 2020) involved oracle price manipulation partly enabled by incorrect decimal assumptions when calculating collateral values. Multiple audits have flagged decimal handling bugs as critical — it's among the top findings in [Code4rena contests](https://code4rena.com/).
+> **Real impact:** Decimal bugs are among the most common critical findings in [Code4rena contests](https://code4rena.com/). A recurring pattern: protocol assumes 18 decimals for all tokens, then someone deposits USDC (6 decimals) or WBTC (8 decimals) and the math is off by factors of 10^10 or 10^12 — either giving away funds or locking them. [Midas Finance](https://rekt.news/midas-capital-rekt/) ($660K, January 2023) was exploited partly because a newly listed collateral token's decimal handling wasn't properly validated.
 
 💻 **Quick Try:**
 
@@ -139,7 +140,7 @@ uint256 normWBTC = oneWBTC * 1e10;  // 1e8 * 1e10 = 1e18 ✓
 assertEq(normUSDC, oneDAI);  // Both represent "1 token" at 18 decimals
 ```
 
-> **Deep dive:** [OpenZeppelin Math.mulDiv](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol) — when scaling involves multiplication that could overflow, use `mulDiv` for safe precision handling. Covered in Part 1 Module 1.
+> **Deep dive:** [OpenZeppelin Math.mulDiv](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol) — when scaling involves multiplication that could overflow, use `mulDiv` for safe precision handling. Covered in Part 1 Section 1.
 
 ---
 
@@ -248,7 +249,7 @@ If Alice has approved 100 tokens to a spender, and then calls `approve(200)`, th
 **Solutions:**
 - USDT's brute-force: "approve to zero first" requirement
 - Better: use `increaseAllowance`/`decreaseAllowance` (removed from OZ v5 core but still available in extensions)
-- Best: use [Permit (EIP-2612)](https://eips.ethereum.org/EIPS/eip-2612) or [Permit2](https://github.com/Uniswap/permit2) (covered in Part 1 Module 3)
+- Best: use [Permit (EIP-2612)](https://eips.ethereum.org/EIPS/eip-2612) or [Permit2](https://github.com/Uniswap/permit2) (covered in Part 1 Section 3)
 
 > **Common pitfall:** Calling `approve(newAmount)` directly without first checking if existing approval is non-zero. With USDT, this reverts. Use `forceApprove` which handles the zero-first pattern automatically.
 
@@ -643,6 +644,39 @@ uint256 votes = votingToken.getPastVotes(msg.sender, block.number - 1);
 
 > **Deep dive:** Flash loans and flash mints are covered extensively in Module 5. Here, the key takeaway is: **never trust current-block balances for security-critical decisions**.
 
+💻 **Quick Try:**
+
+See why `balanceOf` is dangerous for governance in Foundry:
+
+```solidity
+import {ERC20Votes, ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+
+contract GovToken is ERC20Votes {
+    constructor() ERC20("Gov", "GOV") EIP712("Gov", "1") {
+        _mint(msg.sender, 1000e18);
+    }
+    function mint(address to, uint256 amount) external { _mint(to, amount); }
+}
+
+// In your test:
+function test_SnapshotVsBalance() public {
+    GovToken gov = new GovToken();
+    gov.delegate(address(this));  // self-delegate to activate checkpoints
+
+    // Snapshot: 1000 tokens at previous block
+    vm.roll(block.number + 1);
+    assertEq(gov.getPastVotes(address(this), block.number - 1), 1000e18);
+
+    // Now simulate a "flash mint" — balance spikes but snapshot is safe
+    gov.mint(address(this), 1_000_000e18);  // sudden 1M tokens
+    assertEq(gov.balanceOf(address(this)), 1_001_000e18);  // balanceOf: inflated!
+    assertEq(gov.getPastVotes(address(this), block.number - 1), 1000e18); // snapshot: unchanged ✓
+}
+```
+
+The snapshot still reads 1,000 tokens even though `balanceOf` shows 1,001,000. This is why `getPastVotes` is safe and `balanceOf` is not.
+
 ---
 
 <a id="read-weth"></a>
@@ -965,7 +999,7 @@ shares = convertToShares(received); // Use received, not amount
 
 **8. Recognize the reward-per-token accumulator pattern** — it appears as `rewardPerToken` (Synthetix), `feeGrowthGlobal` (Uniswap V3), and `liquidityIndex` (Aave V3). Whenever you need to distribute value to N users proportionally without iterating, this is the pattern.
 
-> **Examples:** [Aave V3 has an asset listing process](https://aave.com/docs/resources/legacy-versions/v2) (curated allowlist), [Uniswap V3 is permissionless](https://docs.uniswap.org/contracts/v3/guides/providing-liquidity/the-full-contract) (but warns about weird tokens), [Yearn V3 vaults](https://docs.yearn.fi/developers/v3/overview) handle fee-on-transfer explicitly.
+> **Examples:** [Aave V3 has an asset listing process](https://governance.aave.com/) (curated allowlist — governance proposals required per asset), [Uniswap V3 is permissionless](https://docs.uniswap.org/contracts/v3/reference/core/UniswapV3Factory) (anyone can create pools), [Yearn V3 vaults](https://docs.yearn.fi/developers/v3/overview) handle fee-on-transfer explicitly.
 
 ---
 
@@ -975,15 +1009,15 @@ shares = convertToShares(received); // Use received, not amount
 
 | Section | Concept | How It Connects |
 |---------|---------|-----------------|
-| [← §1 Modern Solidity](../part1/1-solidity-modern.md) | Custom errors | Token transfer failure revert data — `InsufficientBalance()` over string messages |
-| [← §1 Modern Solidity](../part1/1-solidity-modern.md) | `unchecked` blocks | Gas-optimized balance math where underflow is impossible (post-require) |
-| [← §1 Modern Solidity](../part1/1-solidity-modern.md) | UDVTs | Prevent mixing up token amounts with share amounts — `type Shares is uint256` |
-| [← §2 EVM Changes](../part1/2-evm-changes.md) | Transient storage | Reentrancy guards for ERC-777 hook protection — `TSTORE`/`TLOAD` pattern |
-| [← §3 Token Approvals](../part1/3-token-approvals.md) | Permit (EIP-2612) | Gasless approve built on the approval mechanics covered in this module |
-| [← §3 Token Approvals](../part1/3-token-approvals.md) | Permit2 | Universal approval manager — extends the approve/transferFrom pattern |
-| [← §5 Foundry](../part1/5-foundry.md) | Fork testing | Test against real mainnet tokens (USDC, USDT, WETH) — catch behaviors mocks miss |
-| [← §5 Foundry](../part1/5-foundry.md) | Fuzz testing | Randomized token amounts and decimal values to catch edge cases |
-| [← §6 Proxy Patterns](../part1/6-proxy-patterns.md) | Upgradeable proxies | USDC/USDT are proxy tokens — same storage layout and upgrade mechanics from §6 |
+| [← Section 1: Modern Solidity](../part1/1-solidity-modern.md) | Custom errors | Token transfer failure revert data — `InsufficientBalance()` over string messages |
+| [← Section 1: Modern Solidity](../part1/1-solidity-modern.md) | `unchecked` blocks | Gas-optimized balance math where underflow is impossible (post-require) |
+| [← Section 1: Modern Solidity](../part1/1-solidity-modern.md) | UDVTs | Prevent mixing up token amounts with share amounts — `type Shares is uint256` |
+| [← Section 2: EVM Changes](../part1/2-evm-changes.md) | Transient storage | Reentrancy guards for ERC-777 hook protection — `TSTORE`/`TLOAD` pattern |
+| [← Section 3: Token Approvals](../part1/3-token-approvals.md) | Permit (EIP-2612) | Gasless approve built on the approval mechanics covered in this module |
+| [← Section 3: Token Approvals](../part1/3-token-approvals.md) | Permit2 | Universal approval manager — extends the approve/transferFrom pattern |
+| [← Section 5: Foundry](../part1/5-foundry.md) | Fork testing | Test against real mainnet tokens (USDC, USDT, WETH) — catch behaviors mocks miss |
+| [← Section 5: Foundry](../part1/5-foundry.md) | Fuzz testing | Randomized token amounts and decimal values to catch edge cases |
+| [← Section 6: Proxy Patterns](../part1/6-proxy-patterns.md) | Upgradeable proxies | USDC/USDT are proxy tokens — same storage layout and upgrade mechanics from Section 6 |
 
 #### Forward to Part 2
 
@@ -991,12 +1025,14 @@ shares = convertToShares(received); // Use received, not amount
 |--------|--------------|-------------|
 | [→ M2: AMMs](2-amms.md) | Balance-before-after | V2's `swap()` uses balance checks, not transfer amounts — handles fee-on-transfer |
 | [→ M2: AMMs](2-amms.md) | WETH in routers | V2/V3 Router wraps ETH → WETH; V4 handles native ETH via flash accounting |
-| [→ M3: Lending](3-lending.md) | SafeERC20 everywhere | Aave V3 supply/borrow/repay all use SafeERC20, decimal normalization via reserveDecimals |
-| [→ M4: Liquidations](4-liquidations.md) | Token listing as risk | Collateral token properties (decimals, pausability) directly affect liquidation mechanics |
+| [→ M3: Oracles](3-oracles.md) | Decimal normalization | Combining token amounts with price feeds requires dynamic `decimals()` handling |
+| [→ M4: Lending](4-lending.md) | SafeERC20 everywhere | Aave V3 supply/borrow/repay all use SafeERC20, decimal normalization via reserveDecimals |
+| [→ M4: Lending](4-lending.md) | Token listing as risk | Collateral token properties (decimals, pausability) directly affect lending risk |
 | [→ M5: Flash Loans](5-flash-loans.md) | Flash-mintable tokens | DAI `flashMint()` and flash loan callbacks as reentrancy vectors |
-| [→ M6: Oracles](6-oracles.md) | Decimal normalization | Combining token amounts with price feeds requires dynamic `decimals()` handling |
-| [→ M7: Governance](7-governance.md) | Reward-per-token | Synthetix StakingRewards pattern reappears in governance staking and gauge systems |
-| [→ M8: Security](8-security.md) | Token attack vectors | ERC-777 reentrancy, flash mint oracle manipulation, fee-on-transfer accounting bugs |
+| [→ M6: Stablecoins & CDPs](6-stablecoins-cdps.md) | Pausable/blacklistable | USDC/USDT freeze risk directly impacts stablecoin protocol design |
+| [→ M7: Vaults & Yield](7-vaults-yield.md) | Reward-per-token | Synthetix StakingRewards pattern reappears in vault yield distribution and gauge systems |
+| [→ M7: Vaults & Yield](7-vaults-yield.md) | Rebasing tokens | ERC-4626 shares/assets pattern solves rebasing token accounting |
+| [→ M8: DeFi Security](8-defi-security.md) | Token attack vectors | ERC-777 reentrancy, flash mint oracle manipulation, fee-on-transfer accounting bugs |
 | [→ M9: Integration](9-integration-capstone.md) | Full token integration | Capstone requires handling all token edge cases in a complete protocol |
 
 ---
@@ -1043,4 +1079,4 @@ shares = convertToShares(received); // Use received, not amount
 
 ---
 
-**Navigation:** [← Part 1 Module 7: Deployment](../part1/7-deployment.md) | [Module 2: AMMs →](2-amms.md)
+**Navigation:** [← Part 1 Section 7: Deployment](../part1/7-deployment.md) | [Module 2: AMMs →](2-amms.md)

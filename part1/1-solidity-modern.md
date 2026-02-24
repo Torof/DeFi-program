@@ -275,7 +275,7 @@ Call this, check the revert data in the console. See the 4-byte selector + ABI-e
 🏗️ **Real usage:**
 
 Two common patterns in production:
-- **Centralized:** [Aave V3's `Errors.sol`](https://github.com/aave/aave-v3-core/blob/ea4867086d39f094303916e72e180f99d8149fd5/contracts/protocol/libraries/helpers/Errors.sol) defines 60+ errors in one library. Easier to maintain, single source of truth.
+- **Centralized:** [Aave V3's `Errors.sol`](https://github.com/aave/aave-v3-core/blob/ea4867086d39f094303916e72e180f99d8149fd5/contracts/protocol/libraries/helpers/Errors.sol) defines 60+ revert reasons in one library using `string public constant` (the pre-custom-error pattern). The principle — single source of truth for all revert reasons — carries forward to custom errors.
 - **Decentralized:** Uniswap V4 defines errors per-contract. More modular, less coupling.
 
 Both work — choose based on your protocol size and organization.
@@ -533,7 +533,9 @@ int256 packed = int256(amount0) << 128;
 // [amount0 in high 128 bits][empty 128 bits with zeros]
 
 // Step 2: OR with amount1 (fills the low 128 bits)
-packed = packed | int256(amount1);
+// ⚠️ Must mask to 128 bits — int256(negative_int128) sign-extends to 256 bits,
+//    which would corrupt the high 128 bits when ORed.
+packed = packed | int256(uint256(uint128(amount1)));
 
 // Final result (binary):
 // [amount0 in bits 128-255][amount1 in bits 0-127]
@@ -563,11 +565,11 @@ int128 amount1 = int128(unwrapped);  // Just truncate (keeps low 128)
 // What does this pack?
 int128 a = -50;
 int128 b = 100;
-int256 packed = (int256(a) << 128) | int256(b);
+int256 packed = (int256(a) << 128) | int256(uint256(uint128(b)));
 
 // Visual representation:
-// High 128 bits: -50 (sign-extended)
-// Low 128 bits:  100
+// High 128 bits: -50 (sign-extended, then shifted — safe)
+// Low 128 bits:  100 (masked to 128 bits before OR — safe)
 // Total: one int256 storing both values
 ```
 
@@ -590,8 +592,8 @@ function add(BalanceDelta a, BalanceDelta b) pure returns (BalanceDelta) {
     int128 sum0 = a0 + b0;
     int128 sum1 = a1 + b1;
 
-    // Pack the result
-    int256 packed = (int256(sum0) << 128) | int256(sum1);
+    // Pack the result (mask sum1 to prevent sign-extension corruption)
+    int256 packed = (int256(sum0) << 128) | int256(uint256(uint128(sum1)));
     return BalanceDelta.wrap(packed);
 }
 

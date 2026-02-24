@@ -353,7 +353,9 @@ Proxy C ─→ Beacon ─→ Implementation V2
 
 **🏗️ DeFi use case:**
 
-[Aave's aToken contracts](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/tokenization/AToken.sol). Every aToken (aUSDC, aWETH, aDAI, etc.) is a beacon proxy pointing to the same implementation. Upgrading the implementation upgrades all aTokens in a single transaction.
+Beacon proxies are ideal when you have many instances sharing the same logic. For example, a protocol with 100+ token wrappers could deploy each as a beacon proxy — upgrading the beacon's implementation address upgrades all instances atomically in a single `SSTORE`.
+
+> **Note:** [Aave V3's aTokens](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/tokenization/AToken.sol) use a similar concept but with individual transparent-style proxies (`InitializableImmutableAdminUpgradeabilityProxy`), not a shared beacon. Each aToken is upgraded individually via [`PoolConfigurator.updateAToken()`](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/pool/PoolConfigurator.sol), which can be batched in a single governance transaction but still requires N separate proxy storage writes.
 
 **📊 Trade-offs:**
 
@@ -392,7 +394,7 @@ The Diamond pattern allows a single proxy to delegate to **multiple** implementa
 
 | Protocol | Pattern | Why |
 |----------|---------|-----|
-| **Aave V3** | Transparent + Beacon | Transparent for core contracts, Beacon for aTokens (100+ instances upgraded at once) |
+| **Aave V3** | Transparent (admin-immutable) | Transparent for core contracts; aTokens use individual proxies upgraded via `PoolConfigurator` (batchable in one governance tx) |
 | **Compound V3 (Comet)** | Custom proxy | Immutable implementation with configurable parameters — minimal proxy overhead |
 | **Uniswap V4** | UUPS (periphery) | Core PoolManager is immutable; only periphery uses UUPS for flexibility |
 | **MakerDAO** | Custom delegation | `delegatecall`-based module system predating EIP standards |
@@ -470,14 +472,14 @@ To allow future inheritance changes, reserve empty slots:
 contract VaultV1 is Initializable {
     uint256 public totalSupply;
     mapping(address => uint256) balances;
-    uint256[47] private __gap;  // ✅ Reserve 47 slots for future use (total 50 slots)
+    uint256[48] private __gap;  // ✅ Reserve 48 slots for future use (total 50 slots)
 }
 
 contract VaultV2 is Initializable {
     uint256 public totalSupply;
     mapping(address => uint256) balances;
     address public owner;                   // ✅ Added 1 new variable
-    uint256[46] private __gap;  // ✅ Reduced gap by 1 (total still 50 slots)
+    uint256[47] private __gap;  // ✅ Reduced gap by 1 (total still 50 slots)
 }
 ```
 

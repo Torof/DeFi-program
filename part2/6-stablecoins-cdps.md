@@ -13,12 +13,14 @@
 **The CDP Model and MakerDAO/Sky Architecture**
 - [How CDPs Work](#how-cdps-work)
 - [MakerDAO Contract Architecture](#maker-architecture)
+  - [Deep Dive: `rpow()` — Exponentiation by Squaring](#how-cdps-work)
 - [The Full Flow: Opening a Vault](#opening-vault-flow)
 - [Read: Vat.sol](#read-vat)
 - [Exercises](#day1-exercises)
 
 **Liquidations, PSM, and DAI Savings Rate**
 - [Liquidation 2.0: Dutch Auctions](#liquidation-auctions)
+  - [Deep Dive: Dutch Auction Liquidation — Numeric Walkthrough](#liquidation-auctions)
 - [Peg Stability Module (PSM)](#psm)
 - [Dai Savings Rate (DSR)](#dsr)
 - [Read: Dog.sol and Clipper.sol](#read-dog-clipper)
@@ -30,10 +32,12 @@
 **Stablecoin Landscape and Design Trade-offs**
 - [Taxonomy of Stablecoins](#stablecoin-taxonomy)
 - [Liquity: A Different CDP Design](#liquity)
+  - [Deep Dive: Liquity Redemption — Numeric Walkthrough](#liquity)
 - [The Algorithmic Stablecoin Failure Pattern](#algo-failure)
 - [Ethena (USDe): The Delta-Neutral Model](#ethena)
 - [crvUSD: Curve's Soft-Liquidation Model](#crvusd)
 - [The Fundamental Trilemma](#stablecoin-trilemma)
+- [Common Mistakes](#common-mistakes)
 - [Exercises](#day4-exercises)
 
 ---
@@ -272,6 +276,54 @@ Each time drip() is called:
 
 > **🔗 Connection:** This is the same continuous compounding from Module 4 — Aave and Compound use the same per-second rate accumulator for borrow interest. The math is identical; only the context differs (stability fee vs borrow rate).
 
+#### 🔍 Deep Dive: `rpow()` — Exponentiation by Squaring
+
+The Jug needs to compute `per_second_rate ^ seconds_elapsed`. With `seconds_elapsed` potentially being millions (weeks between `drip()` calls), you can't loop. MakerDAO uses **exponentiation by squaring** — an O(log n) algorithm:
+
+```
+Goal: compute base^n (in RAY precision)
+
+Standard approach: base × base × base × ... (n multiplications) → O(n) — too expensive
+
+Exponentiation by squaring: O(log n) multiplications
+  Key insight: x^10 = x^8 × x^2  (use binary representation of exponent)
+
+Example: 1.000000001547^(604800)  [1 week in seconds]
+
+  604800 in binary = 10010011101010000000
+
+  Step through each bit (right to left):
+  bit 0 (0): skip                    base = base²
+  bit 1 (0): skip                    base = base²
+  ...
+  For each '1' bit: result *= current base
+  For each bit: base = base × base (square)
+
+  Total: ~20 multiplications instead of 604,800
+```
+
+```solidity
+// Simplified rpow (MakerDAO's actual implementation in jug.sol):
+function rpow(uint256 x, uint256 n, uint256 base) internal pure returns (uint256 z) {
+    assembly {
+        z := base                          // result = 1.0 (in RAY)
+        for {} n {} {
+            if mod(n, 2) {                 // if lowest bit is 1
+                z := div(mul(z, x), base)  // result *= x (RAY multiplication)
+            }
+            x := div(mul(x, x), base)      // x = x² (square the base)
+            n := div(n, 2)                  // shift exponent right
+        }
+    }
+}
+// Jug.drip() calls: rpow(duty, elapsed_seconds, RAY)
+// where duty = per-second rate (e.g., 1.000000001547... in RAY)
+```
+
+**Why assembly?** Two reasons: (1) overflow checks — the intermediate `mul(z, x)` can overflow uint256, and the assembly version handles this via checked division, (2) gas efficiency — this is called frequently and the savings matter.
+
+**Where you'll see this:** Every protocol that compounds per-second rates uses this pattern or a variation. Aave's `MathUtils.calculateCompoundedInterest()` uses a 3-term Taylor approximation instead (see Module 4) — faster but less precise for large exponents.
+
 ---
 
 ### 📋 Summary: CDP Model and MakerDAO
@@ -289,6 +341,28 @@ Each time drip() is called:
 ---
 
 ## Liquidations, PSM, and DAI Savings Rate
+
+💻 **Quick Try:**
+
+Before studying the liquidation architecture, read live auction state on a mainnet fork:
+
+```solidity
+IDog dog = IDog(0x135954d155898D42C90D2a57824C690e0c7BEf1B);
+IClipper clipper = IClipper(0xc67963a226eddd77B91aD8c421630A1b0AdFF270); // ETH-A Clipper
+
+// Check if there are any active auctions
+uint256 count = clipper.count();
+emit log_named_uint("Active ETH-A auctions", count);
+
+// Read the circuit breaker state
+(uint256 Art,,, uint256 line,) = IVat(0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B).ilks("ETH-A");
+(, uint256 chop, uint256 hole, uint256 dirt) = dog.ilks("ETH-A");
+emit log_named_uint("Liquidation penalty (chop, RAY)", chop); // e.g., 1.13e27 = 13% penalty
+emit log_named_uint("Per-ilk auction cap (hole, RAD)", hole);
+emit log_named_uint("DAI currently in auctions (dirt, RAD)", dirt);
+```
+
+Even if `count` is 0 (no active auctions), you'll see the circuit breaker parameters — `hole` caps how much DAI can be raised simultaneously, preventing the cascade that caused Black Thursday.
 
 <a id="liquidation-auctions"></a>
 ### 💡 Liquidation 2.0: Dutch Auctions
@@ -392,6 +466,65 @@ Why Dutch auctions fix Black Thursday:
 - `hole` / `Hole` — maximum total DAI being raised in auctions (per-ilk and global). Prevents runaway liquidation cascades.
 
 The Dutch auction design fixes Black Thursday's problems: no capital lockup means participants can use flash loans, settlement is instant (composable with other DeFi operations), and the decreasing price naturally finds the market clearing level.
+
+#### 🔍 Deep Dive: Dutch Auction Liquidation — Numeric Walkthrough
+
+```
+Setup:
+  Vault: 10 ETH collateral, 15,000 DAI debt (normalized art = 15,000, rate = 1.0)
+  ETH price drops from $2,000 → $1,800
+  Liquidation ratio: 150% → spot = $1,800 / 1.5 = $1,200 (RAY)
+  Safety check: ink × spot = 10 × $1,200 = $12,000 < art × rate = $15,000 → UNSAFE
+
+Step 1: Keeper calls Dog.bark(ETH-A, vault_owner, keeper_address)
+  → Vat.grab() seizes collateral: 10 ETH moved to Clipper, 15,000 DAI of sin created
+  → tab (total to recover) = art × rate × chop = 15,000 × 1.0 × 1.13 = 16,950 DAI
+    (chop = 1.13 RAY = 13% liquidation penalty)
+  → Keeper receives: tip (flat, e.g., 300 DAI) + chip (% of tab, e.g., 0.1% = 16.95 DAI)
+
+Step 2: Clipper.kick() starts Dutch auction
+  → Starting price (top) = oracle_price × buf = $1,800 × 1.20 = $2,160 per ETH
+    (buf = 1.20 = start 20% above oracle to ensure initial price is above market)
+  → lot = 10 ETH (collateral for sale)
+  → tab = 16,950 DAI (amount to recover)
+
+Step 3: Price decreases over time (StairstepExponentialDecrease)
+  → t=0:    price = $2,160  (above market — nobody buys)
+  → t=90s:  price = $2,138  (1% drop per step)
+  → t=180s: price = $2,117
+  → t=270s: price = $2,096
+  → ...
+  → t=900s: price = $1,953  (still above market $1,800)
+  → t=1800s: price = $1,767  (now BELOW market — profitable!)
+    ($2,160 × 0.99^20 = $2,160 × 0.8179 = $1,767)
+
+Step 4: Liquidator calls Clipper.take() at t=1800s (price = $1,767)
+  → Liquidator offers: 16,950 DAI (the full tab)
+  → Collateral received: 16,950 / $1,767 = 9.59 ETH
+  → Remaining: 10 - 9.59 = 0.41 ETH returned to vault owner
+
+  Liquidator P&L (with flash loan from Balancer):
+    Received: 9.59 ETH
+    Sell on DEX at $1,800: 9.59 × $1,800 = $17,262
+    After 0.3% swap fee: $17,262 × 0.997 = $17,210
+    Repay flash loan: 16,950 DAI
+    Profit: $17,210 - $16,950 = $260
+    Gas: ~$10-30
+    Net: ~$230-250
+
+  Vault owner outcome:
+    Lost: 9.59 ETH ($17,262 at market price)
+    Recovered: 0.41 ETH ($738)
+    Penalty paid: 9.59 × $1,800 - 15,000 = $2,262 (~15.1% effective penalty)
+    → The 13% chop + buying below market price = higher effective cost
+
+  Protocol outcome:
+    Recovered: 16,950 DAI (covers 15,000 debt + 1,950 penalty)
+    The 1,950 DAI penalty goes to Vow (protocol surplus buffer)
+    sin (bad debt) cleared via Vat.heal()
+```
+
+**Key insight:** The liquidator doesn't need to wait for the absolute best price — they just need `auction_price < market_price - swap_fees - gas`. The competition between liquidators (and MEV searchers) pushes the buy time earlier, reducing the vault owner's penalty. More competition = better outcomes for everyone except the liquidator margins.
 
 <a id="psm"></a>
 ### 💡 Peg Stability Module (PSM)
@@ -606,6 +739,51 @@ Liquity (LUSD) takes a minimalist approach compared to MakerDAO:
 
 **Liquity V2 (2024-25):** Introduces user-set interest rates (borrowers bid their own rate), multi-collateral support (LSTs like wstETH, rETH), and a modified redemption mechanism.
 
+#### 🔍 Deep Dive: Liquity Redemption — Numeric Walkthrough
+
+```
+Scenario: LUSD trades at $0.97 on DEXes. An arbitrageur spots the opportunity.
+
+System state — all active Troves, sorted by collateral ratio (ascending):
+  Trove A: 2 ETH collateral, 2,800 LUSD debt → CR = (2 × $2,000) / 2,800 = 142.8%
+  Trove B: 3 ETH collateral, 3,500 LUSD debt → CR = (3 × $2,000) / 3,500 = 171.4%
+  Trove C: 5 ETH collateral, 4,000 LUSD debt → CR = (5 × $2,000) / 4,000 = 250.0%
+
+Step 1: Arbitrageur buys 3,000 LUSD on DEX at $0.97
+  Cost: 3,000 × $0.97 = $2,910
+
+Step 2: Call redeemCollateral(3,000 LUSD)
+  System starts with the RISKIEST Trove (lowest CR = Trove A)
+
+  → Trove A: has 2,800 LUSD debt
+    Redeem 2,800 LUSD → receive $2,800 worth of ETH = 2,800 / $2,000 = 1.4 ETH
+    Trove A: CLOSED (0 debt, 0.6 ETH returned to Trove A owner)
+    Remaining to redeem: 3,000 - 2,800 = 200 LUSD
+
+  → Trove B: has 3,500 LUSD debt (next riskiest)
+    Redeem 200 LUSD → receive $200 worth of ETH = 200 / $2,000 = 0.1 ETH
+    Trove B: debt reduced to 3,300, collateral reduced to 2.9 ETH
+    CR now = (2.9 × $2,000) / 3,300 = 175.8% (improved!)
+    Remaining: 0 LUSD ✓
+
+Step 3: Redemption fee (0.5% base, increases with volume)
+  Fee = 0.5% × 3,000 = 15 LUSD (deducted in ETH: 0.0075 ETH)
+  Total ETH received: 1.4 + 0.1 - 0.0075 = 1.4925 ETH
+
+Step 4: Arbitrageur P&L
+  Received: 1.4925 ETH × $2,000 = $2,985
+  Cost: $2,910 (buying LUSD on DEX)
+  Profit: $75 (2.58% return)
+
+  This profit closes the peg gap:
+  - 3,000 LUSD bought on DEX → buying pressure → LUSD price rises toward $1
+  - 3,000 LUSD burned via redemption → supply decreases → further price support
+```
+
+**Why riskiest-first?** It improves system health — the lowest-CR troves pose the most risk. Redemption either closes them or pushes their CR higher. The base fee (0.5%, rising with redemption volume) prevents excessive redemptions that would disrupt healthy vaults.
+
+**The peg guarantee:** Redemptions create a hard floor at ~$1.00 (minus the fee). If LUSD trades at $0.97, anyone can profit by redeeming. This arbitrage force pushes the price back up. The ceiling is softer — at ~$1.10 (the minimum CR), it becomes attractive to open new Troves and sell LUSD.
+
 <a id="algo-failure"></a>
 ### ⚠️ The Algorithmic Stablecoin Failure Pattern
 
@@ -818,6 +996,73 @@ Map out the feedback loops. This is how decentralized monetary policy works.
 
 ---
 
+<a id="common-mistakes"></a>
+### ⚠️ Common Mistakes
+
+**Mistake 1: Confusing normalized debt (`art`) with actual debt (`art × rate`)**
+
+```solidity
+// ❌ WRONG — reading art directly as the debt amount
+(uint256 ink, uint256 art) = vat.urns(ilk, user);
+uint256 debtOwed = art;  // This is NORMALIZED debt, not actual
+
+// ✅ CORRECT — multiply by the rate accumulator
+(uint256 ink, uint256 art) = vat.urns(ilk, user);
+(, uint256 rate,,,) = vat.ilks(ilk);
+uint256 debtOwed = art * rate / RAY;  // Actual debt in WAD
+```
+
+After years of accumulated stability fees, `rate` might be 1.15e27 (15% total fees). Reading `art` directly would understate the debt by 15%. This same mistake applies to Aave's `scaledBalance` vs actual balance.
+
+**Mistake 2: Forgetting to call `drip()` before reading or modifying debt**
+
+```solidity
+// ❌ WRONG — rate is stale (hasn't been updated since last drip)
+(, uint256 rate,,,) = vat.ilks(ilk);
+uint256 debtOwed = art * rate / RAY;  // Could be hours/days stale
+
+// ✅ CORRECT — drip first to update the rate accumulator
+jug.drip(ilk);  // Updates rate to current timestamp
+(, uint256 rate,,,) = vat.ilks(ilk);
+uint256 debtOwed = art * rate / RAY;  // Accurate to this block
+```
+
+If nobody has called `drip()` for a week, the rate is a week stale. Any debt calculation, vault safety check, or liquidation trigger that reads the stale rate will be wrong. In practice, keepers and frontends call `drip()` before state-changing operations. Your contracts should too.
+
+**Mistake 3: PSM decimal mismatch (USDC is 6 decimals, DAI is 18)**
+
+```solidity
+// ❌ WRONG — treating USDC and DAI amounts as the same scale
+uint256 usdcAmount = 1000e18;  // 10^21 base units ÷ 10^6 decimals = 10^15 USDC ($1 quadrillion!)
+psm.sellGem(address(this), usdcAmount);
+
+// ✅ CORRECT — USDC uses 6 decimals
+uint256 usdcAmount = 1000e6;   // 1000 USDC ($1,000)
+psm.sellGem(address(this), usdcAmount);
+// The PSM internally handles the 6→18 decimal conversion via GemJoin
+```
+
+The PSM's GemJoin adapter handles the decimal conversion (`gem_amount * 10^(18-6)`), but you must pass the USDC amount in USDC's native 6-decimal scale. Passing 18-decimal amounts will either overflow or swap vastly more than intended.
+
+**Mistake 4: Not checking the `dust` minimum when partially repaying**
+
+```solidity
+// ❌ WRONG — partial repay leaves vault below dust threshold
+// Vault has 10,000 DAI debt, dust = 5,000 DAI
+vat.frob(ilk, address(this), address(this), address(this), 0, -int256(8000e18));
+// Tries to reduce debt to 2,000 DAI → REVERTS (below dust of 5,000)
+
+// ✅ CORRECT — either repay fully (dart = -art) or keep above dust
+// Option A: Full repay
+vat.frob(ilk, ..., 0, -int256(art));  // Close to 0 debt
+// Option B: Stay above dust
+vat.frob(ilk, ..., 0, -int256(5000e18));  // Leaves 5,000 DAI ≥ dust
+```
+
+The `dust` parameter prevents tiny vaults whose gas costs for liquidation would exceed the recovered value. When a vault has debt, it must be either 0 or ≥ `dust`. This catches developers who try to partially repay without checking.
+
+---
+
 ## Key Takeaways
 
 1. **CDPs mint money.** Unlike lending protocols that redistribute existing assets, CDP systems create new stablecoins backed by collateral. This is closer to how central banks work than how commercial banks work.
@@ -833,6 +1078,10 @@ Map out the feedback loops. This is how decentralized monetary policy works.
 6. **The landscape is diversifying.** GHO extends lending into issuance. crvUSD reinvents liquidation with AMMs. Ethena hedges with perps. Each approach shows how DeFi primitives from other modules (AMMs, oracles, lending, perps) can be recombined into stablecoin designs.
 
 7. **Stablecoins are the ultimate integration test.** A stablecoin protocol touches every DeFi primitive: oracles (pricing), lending (collateral), liquidation (solvency), governance (monetary policy), AMMs (liquidity). This is why your Part 3 capstone IS a stablecoin.
+
+8. **`rpow()` and rate accumulators are the mathematical backbone.** Per-second compounding via exponentiation by squaring (O(log n)) enables gas-efficient fee accumulation across the entire Vat. The same pattern appears in Aave (liquidity index), Compound (borrow index), and every protocol with time-based interest.
+
+9. **Redemptions and PSMs are dual peg mechanisms.** Liquity uses crypto-native redemptions (burn LUSD → get ETH from riskiest vault) creating a hard floor at ~$1. MakerDAO uses the PSM (swap DAI ↔ USDC 1:1) creating a hard peg but introducing USDC dependency. Each makes a different trilemma trade-off.
 
 ---
 
@@ -859,12 +1108,12 @@ Study these codebases in order — each builds on the previous one's patterns:
 
 | Source | Concept | How It Connects |
 |--------|---------|-----------------|
-| Part 1 §1 | `mulDiv` / fixed-point math | WAD/RAY/RAD arithmetic throughout the Vat; `rmul`/`rpow` for stability fee compounding |
-| Part 1 §1 | Custom errors | Production CDP contracts use custom errors for vault safety violations, ceiling breaches |
-| Part 1 §2 | Transient storage | Modern CDP implementations can use TSTORE for reentrancy guards during liquidation callbacks |
-| Part 1 §5 | Fork testing / `vm.mockCall` | Essential for testing against live MakerDAO state and simulating oracle price drops for liquidation |
-| Part 1 §5 | Invariant testing | Property-based testing for CDP invariants: total debt ≤ total DAI, all vaults safe, rate monotonicity |
-| Part 1 §6 | Proxy patterns | MakerDAO's authorization system (`wards`/`can`) and join adapter pattern for upgradeable periphery |
+| Part 1 Section 1 | `mulDiv` / fixed-point math | WAD/RAY/RAD arithmetic throughout the Vat; `rmul`/`rpow` for stability fee compounding |
+| Part 1 Section 1 | Custom errors | Production CDP contracts use custom errors for vault safety violations, ceiling breaches |
+| Part 1 Section 2 | Transient storage | Modern CDP implementations can use TSTORE for reentrancy guards during liquidation callbacks |
+| Part 1 Section 5 | Fork testing / `vm.mockCall` | Essential for testing against live MakerDAO state and simulating oracle price drops for liquidation |
+| Part 1 Section 5 | Invariant testing | Property-based testing for CDP invariants: total debt ≤ total DAI, all vaults safe, rate monotonicity |
+| Part 1 Section 6 | Proxy patterns | MakerDAO's authorization system (`wards`/`can`) and join adapter pattern for upgradeable periphery |
 | Module 1 | SafeERC20 / token decimals | Join adapters bridge external ERC-20 tokens to Vat's internal accounting; decimal handling critical for multi-collateral |
 | Module 1 | Fee-on-transfer awareness | Collateral join adapters must handle non-standard token behavior; PSM must handle USDC's blacklist |
 | Module 2 | AMM / Curve StableSwap | PSM uses 1:1 swap; crvUSD's LLAMMA repurposes AMM as liquidation mechanism; Curve pools for peg monitoring |

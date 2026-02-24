@@ -130,14 +130,14 @@ The token contract itself must implement EIP-2612. Tokens deployed before the st
 
 | Token | Ethereum Mainnet | Polygon | Arbitrum | Optimism |
 |-------|------------------|---------|----------|----------|
-| USDC | ❌ No permit | ✅ Has permit | ✅ Has permit | ✅ Has permit |
+| USDC | ✅ Has permit (V2.2+) | ✅ Has permit | ✅ Has permit | ✅ Has permit |
 | USDT | ❌ No permit | ❌ No permit | ❌ No permit | ❌ No permit |
 | WETH | ❌ No permit | ✅ Has permit | ✅ Has permit | ✅ Has permit |
 | DAI | ✅ Has permit* | ✅ Has permit | ✅ Has permit | ✅ Has permit |
 
-*DAI's permit predates EIP-2612 but inspired it
+*DAI's permit predates EIP-2612 but inspired it. USDC mainnet gained permit support via the FiatToken V2.2 proxy upgrade (domain: `{name: "USDC", version: "2"}`).
 
-> ⚡ **Common pitfall:** Not all "USDC" is the same. USDC on Ethereum mainnet predates EIP-2612 and doesn't support `permit()`. But USDC on Polygon, Arbitrum, and Optimism does. Always check `supportsInterface` or try calling `DOMAIN_SEPARATOR()` before assuming permit support.
+> ⚡ **Common pitfall:** Not all tokens support permit — USDT doesn't on any chain, and WETH on Ethereum mainnet (the original WETH9 contract from 2017) doesn't either. Always check `supportsInterface` or try calling `DOMAIN_SEPARATOR()` before assuming permit support. Even tokens that DO support permit may use different domain versions (e.g., USDC uses `version: "2"`).
 
 💻 **Quick Try:**
 

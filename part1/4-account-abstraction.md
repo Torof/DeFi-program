@@ -205,27 +205,26 @@ An optional component for signature aggregation—multiple UserOperations can sh
 **`validationData` return value — the trickiest packing:**
 
 ```
-┌───────────┬──────────────────────┬──────────────────────┐
-│ sigFailed │     validUntil       │     validAfter       │
-│ (1 bit)   │     (48 bits)        │     (48 bits)        │
-│ 0=valid   │  Expiration timestamp│  Not-before timestamp│
-│ 1=invalid │  0 = no expiration   │  0 = immediately     │
-├───────────┼──────────────────────┼──────────────────────┤
-│  bit 160  │  bits 161-208        │  bits 209-256        │
-└───────────┴──────────────────────┴──────────────────────┘
-Note: bits 0-159 are the aggregator address (0 if none)
-                      uint256 (256 bits)
+┌──────────────────────┬──────────────────────┬──────────────────────────────┐
+│     validUntil       │     validAfter       │  aggregator / sigFailed      │
+│     (48 bits)        │     (48 bits)        │  (160 bits)                  │
+│  Expiration timestamp│  Not-before timestamp│  0 = no aggregator, valid    │
+│  0 = no expiration   │  0 = immediately     │  1 = SIG_VALIDATION_FAILED   │
+├──────────────────────┼──────────────────────┼──────────────────────────────┤
+│  bits 208-255        │  bits 160-207        │  bits 0-159                  │
+└──────────────────────┴──────────────────────┴──────────────────────────────┘
+                              uint256 (256 bits)
 ```
 
 **Common return values:**
 ```solidity
 return 0;    // ✅ Signature valid, no time bounds, no aggregator
-return 1;    // ❌ Signature invalid (sigFailed = 1 in the aggregator field)
+return 1;    // ❌ Signature invalid (SIG_VALIDATION_FAILED in aggregator field)
 
 // With time bounds:
 uint256 validAfter = block.timestamp;
 uint256 validUntil = block.timestamp + 1 hours;
-return (validUntil << 160) | (validAfter << 208);
+return (validAfter << 160) | (validUntil << 208);
 // This creates a 1-hour validity window
 ```
 
@@ -798,7 +797,9 @@ contract VerifyingPaymaster is BasePaymaster {
         uint256 maxCost
     ) external override returns (bytes memory context, uint256 validationData) {
         // Extract signature from paymasterAndData
-        bytes memory signature = userOp.paymasterAndData[20:];  // Skip paymaster address
+        // v0.7 layout: [0:20] paymaster addr, [20:36] verificationGasLimit,
+        //              [36:52] postOpGasLimit, [52:] custom data
+        bytes memory signature = userOp.paymasterAndData[52:];
 
         // Verify backend signed this UserOp
         bytes32 hash = keccak256(abi.encodePacked(userOpHash, block.chainid, address(this)));

@@ -3,7 +3,7 @@
 **Duration:** ~12 days (3–4 hours/day)
 **Prerequisites:** Module 1 complete (token mechanics, SafeERC20)
 **Pattern:** Math → Build minimal version → Read production code → Extend
-**Builds on:** Module 1 (SafeERC20, balance-before-after), Part 1 Module 5 (Foundry, fork testing)
+**Builds on:** Module 1 (SafeERC20, balance-before-after), Part 1 Section 5 (Foundry, fork testing)
 **Used by:** Module 3 (TWAP oracles), Module 4 (liquidation swaps), Module 5 (flash swaps/arbitrage), Module 9 (integration capstone)
 
 ---
@@ -298,14 +298,13 @@ LVR perspective (continuous):
 2. **LVR explains WHY passive LPing loses.** The cost is real-time extraction by informed traders (mostly CEX-DEX arbitrageurs), not just an abstract "the price moved."
 3. **LVR informs protocol design.** Dynamic fee mechanisms (like V4 hooks that increase fees during volatility) are designed to offset LVR, not IL.
 
-**The formula (simplified):**
+**The formula (for full-range CPMM):**
 ```
-LVR ≈ σ² · L · T / 2
+LVR / V ≈ σ² / 8   (annualized, as fraction of pool value)
 
 Where:
   σ = asset volatility (annualized)
-  L = liquidity depth
-  T = time period
+  V = pool value
 ```
 
 LVR scales with the *square* of volatility — which is why volatile pairs are so much more expensive to LP. A 2x increase in volatility → 4x increase in LVR.
@@ -674,12 +673,12 @@ The V3 swap formulas need `√P` everywhere. Instead of computing `√(1.0001^i)
 
 ```
                         sqrtPriceX96
-Price        √Price     = √Price × 2^96
-─────────────────────────────────────────────────
-$1.00        1.0         79,228,162,514,264,337,593
-$2,000       44.72       3,543,191,142,285,914,205,922
-$100,000     316.23      25,054,144,837,504,793,118,641
-$0.001       0.0316      2,505,414,483,750,479,311
+Price        √Price     = √Price × 2^96           (2^96 = 79,228,162,514,264,337,593,543,950,336)
+───────────────────────────────────────────────────────────────────────────
+$1.00        1.0         79,228,162,514,264,337,593,543,950,336
+$2,000       44.72       3,543,191,142,285,914,205,922,034,944
+$100,000     316.23      25,054,144,837,504,793,118,641,380,156
+$0.001       0.0316      2,505,414,483,750,479,311,864,138,816
 
 Note: These are for ETH/USDC where price = USDC per ETH
       token0 = ETH (lower address), token1 = USDC
@@ -737,7 +736,7 @@ function test_TicksAndPrices() public pure {
 }
 ```
 
-Try computing: if ETH is at tick 202,000 relative to USDC, what's the approximate price? (Answer: 1.0001^202000 ≈ $5,900)
+Try computing: if ETH is at tick 86,841 relative to USDC, what's the approximate price? (Answer: 1.0001^86841 ≈ $5,900 — note: each +23,027 ticks ≈ 10× price, so 4 × 23,027 = 92,108 would be ~$10,000)
 
 **The swap loop:**
 
@@ -763,13 +762,14 @@ These formulas are why `√P` is stored directly — they simplify beautifully.
 
 #### 🔍 Deep Dive: V3 Liquidity Math Step-by-Step
 
-**Setup:** An LP wants to provide liquidity for ETH/USDC between $1,800 and $2,200 (current price = $2,000). They're adding `L = 1,000,000` units of liquidity.
+**Setup:** An LP wants to provide liquidity for ETH/USDC between $1,800 and $2,200 (current price = $2,000). To keep the math readable, we'll use abstract price units (not token-decimals-adjusted). The key is understanding the **formulas and ratios**, not the raw numbers.
 
 ```
 Given:
   P_current = 2000,  √P_current = 44.72
   P_lower   = 1800,  √P_lower   = 42.43
   P_upper   = 2200,  √P_upper   = 46.90
+  L = 1,000,000 (abstract units — see note below)
 
 Token amounts needed (price is WITHIN range):
 
@@ -777,13 +777,17 @@ Token amounts needed (price is WITHIN range):
                   = 1,000,000 · (1/44.72 - 1/46.90)
                   = 1,000,000 · (0.02236 - 0.02132)
                   = 1,000,000 · 0.00104
-                  = 1,040 units ≈ 0.001040 ETH (with 18 decimals)
+                  = 1,040
 
   Δtoken1 (USDC) = L · (√P_current - √P_lower)
                   = 1,000,000 · (44.72 - 42.43)
                   = 1,000,000 · 2.29
-                  = 2,290,000 units ≈ 2.29 USDC (with 6 decimals)
+                  = 2,290,000
+
+  Ratio check: 2,290,000 / 1,040 ≈ $2,202 per ETH ✓ (close to current price, as expected)
 ```
+
+> **On-chain units:** In production V3, `L` is a `uint128` representing √(token0_amount × token1_amount) in wei-scale units. A real position providing ~1 ETH + ~2,290 USDC in this range would have L ≈ 1.54 × 10^15. The formulas above use simplified numbers to show the math clearly — the ratios and relationships are identical.
 
 **What happens when price moves OUT of range:**
 ```
@@ -1064,7 +1068,7 @@ The key benefit: multi-hop swaps never move tokens between contracts. All accoun
 
 **2. Flash Accounting ([EIP-1153](https://eips.ethereum.org/EIPS/eip-1153) Transient Storage)**
 
-V4 uses [transient storage](https://eips.ethereum.org/EIPS/eip-1153) (which you studied in Part 1 Module 2) to implement "flash accounting." During a transaction:
+V4 uses [transient storage](https://eips.ethereum.org/EIPS/eip-1153) (which you studied in Part 1 Section 2) to implement "flash accounting." During a transaction:
 
 1. The caller "unlocks" the PoolManager
 2. The caller can perform multiple operations (swaps, liquidity changes) across any pools
@@ -1824,16 +1828,17 @@ Before deploying capital as an LP, you need to estimate whether fees will outpac
 
    Example: ETH/USDC 0.05% pool
    Volume: $200M/day, TVL: $300M
-   Fee APR = ($200M × 0.0005 × 365) / $300M = 121% ← looks great!
+   Fee APR = ($200M × 0.0005 × 365) / $300M = 12.2%
 
-2. Estimated LVR cost = σ² × 365 / 2
-   (as % of position value, for full-range V2-style)
+2. Estimated LVR cost ≈ σ² / 8
+   (annualized, as % of position value, for full-range V2-style CPMM)
 
    ETH annualized volatility: ~80%
-   LVR ≈ 0.80² × 365 / 2 ≈ 116% ← eats most of the fees!
+   LVR ≈ 0.80² / 8 = 8%
 
 3. Net LP return ≈ Fee APR - LVR cost - Gas costs
-   ≈ 121% - 116% - gas ≈ ~5% or less
+   ≈ 12.2% - 8% - gas → marginally positive before gas, but tight.
+   Concentrated ranges boost fee capture but also amplify LVR exposure.
 
 4. Volume/TVL ratio — the single most useful metric
    > 0.5: High fee generation, likely profitable
@@ -1965,13 +1970,13 @@ After 12 days, you should have internalized:
 
 | Source | Concept | How It Connects |
 |--------|---------|-----------------|
-| Part 1 §1 | [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) share math / `mulDiv` | LP token minting uses the same shares-proportional-to-deposit pattern; `Math.sqrt` in V2 parallels vault share math |
-| Part 1 §1 | Unchecked arithmetic | V2/V3 use unchecked blocks for gas-optimized tick and fee math where overflow is intentional |
-| Part 1 §2 | Transient storage | V4 flash accounting uses TSTORE/TLOAD for delta tracking — 20× cheaper than SSTORE |
-| Part 1 §3 | Permit2 | Universal token approvals for V4 PositionManager; aggregator integrations use Permit2 for gasless approvals |
-| Part 1 §5 | Fork testing | Essential for testing AMM integrations against real mainnet liquidity and verifying swap routing |
-| Part 1 §5 | Invariant / fuzz testing | Property-based testing for AMM invariants: `x * y >= k`, tick math boundaries, fee accumulation monotonicity |
-| Part 1 §6 | Immutable core + periphery | V2/V3/V4 all use immutable core contracts with upgradeable periphery routers — the canonical DeFi proxy pattern |
+| Part 1 Section 1 | [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) share math / `mulDiv` | LP token minting uses the same shares-proportional-to-deposit pattern; `Math.sqrt` in V2 parallels vault share math |
+| Part 1 Section 1 | Unchecked arithmetic | V2/V3 use unchecked blocks for gas-optimized tick and fee math where overflow is intentional |
+| Part 1 Section 2 | Transient storage | V4 flash accounting uses TSTORE/TLOAD for delta tracking — 20× cheaper than SSTORE |
+| Part 1 Section 3 | Permit2 | Universal token approvals for V4 PositionManager; aggregator integrations use Permit2 for gasless approvals |
+| Part 1 Section 5 | Fork testing | Essential for testing AMM integrations against real mainnet liquidity and verifying swap routing |
+| Part 1 Section 5 | Invariant / fuzz testing | Property-based testing for AMM invariants: `x * y >= k`, tick math boundaries, fee accumulation monotonicity |
+| Part 1 Section 6 | Immutable core + periphery | V2/V3/V4 all use immutable core contracts with upgradeable periphery routers — the canonical DeFi proxy pattern |
 | Module 1 | SafeERC20 / balance-before-after | V2 implements its own `_safeTransfer`; `mint()`/`burn()` read balances directly — the foundation of composability |
 | Module 1 | Fee-on-transfer tokens | V2's `_update()` syncs reserves from actual balances; V3/V4 don't natively support fee-on-transfer |
 | Module 1 | WETH wrapping | All AMM routers wrap/unwrap ETH; V4 supports native ETH pairs directly |
@@ -1986,7 +1991,7 @@ After 12 days, you should have internalized:
 | Module 5 (Flash Loans) | Flash swaps / flash accounting | V2 flash swaps and V4 flash accounting are specialized flash loan patterns |
 | Module 6 (Stablecoins) | Curve StableSwap | AMM design optimized for peg maintenance; AMM-based depegging detection signals |
 | Module 7 (Yield) | LP fee income | Yield source from trading fees; auto-compounding vaults; LVR framework for LP strategy evaluation |
-| Module 8 (Governance) | Protocol fee switches | V2 `feeTo`, V3 factory owner, V4 hook governance; ve(3,3) gauge voting and bribe markets |
+| Module 8 (DeFi Security) | Protocol fee switches | V2 `feeTo`, V3 factory owner, V4 hook governance; ve(3,3) gauge voting and bribe markets |
 | Module 9 (Integration) | Full-stack capstone | Combining AMM + lending + oracles + yield in a production-grade protocol |
 
 ---

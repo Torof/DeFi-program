@@ -12,8 +12,10 @@
 
 **DeFi-Specific Attack Patterns**
 - [Read-Only Reentrancy](#read-only-reentrancy)
+- [Read-Only Reentrancy — Numeric Walkthrough](#read-only-reentrancy-walkthrough)
 - [Cross-Contract Reentrancy](#cross-contract-reentrancy)
 - [Price Manipulation Taxonomy](#price-manipulation)
+- [Flash Loan Attack P&L Walkthrough](#flash-loan-walkthrough)
 - [Frontrunning and MEV](#frontrunning-mev)
 - [Composability Risk](#composability-risk)
 
@@ -21,6 +23,7 @@
 - [Why Invariant Testing Is the Most Powerful DeFi Testing Tool](#why-invariant-testing)
 - [Foundry Invariant Testing Setup](#invariant-setup)
 - [Handler Contracts](#handler-contracts)
+- [Quick Try: Invariant Testing Catches a Bug](#invariant-quick-try)
 - [What Invariants to Test for Each DeFi Primitive](#invariant-catalog)
 
 **Reading Audit Reports**
@@ -90,6 +93,76 @@ If a lending protocol calls `pool.getRate()` during step 2, it gets an inflated 
 
 **Real-world impact:** Multiple protocols have been hit by read-only reentrancy through Balancer and Curve pool interactions. The [Sentiment protocol lost ~$1M in April 2023](https://rekt.news/sentiment-rekt/) to exactly this pattern. See also the [Balancer read-only reentrancy advisory](https://forum.balancer.fi/t/reentrancy-vulnerability-scope-expanded/4345).
 
+<a id="read-only-reentrancy-walkthrough"></a>
+#### 🔍 Deep Dive: Read-Only Reentrancy — Numeric Walkthrough
+
+Let's trace exactly how the Sentiment/Balancer exploit works with concrete numbers.
+
+**Setup:**
+- Balancer pool: 1,000 WETH + 1,000,000 USDC (BPT total supply: 10,000)
+- `getRate()` = totalPoolValue / BPT supply = ($2M + $1M) / 10,000 = **$300 per BPT**
+- Lending protocol accepts BPT as collateral, reads `pool.getRate()` for valuation
+- Attacker holds 100 BPT (worth $30,000 at fair rate)
+
+```
+Step 1: Attacker calls joinPool() to add 500 ETH ($1M) to the Balancer pool
+────────────────────────────────────────────────────────────────────────────
+
+  Inside joinPool():
+    ① Pool receives 500 ETH from attacker via transferFrom
+       Pool balances now: 1,500 ETH + 1,000,000 USDC
+       BUT BPT not yet minted — still 10,000 BPT outstanding
+
+    ② Pool makes an external callback (e.g., ETH receive hook, or nested call)
+
+    ─── DURING THE CALLBACK (between ① and ③) ───────────────────────
+
+       Pool state is INCONSISTENT:
+         Real pool value: (1,500 × $2,000) + $1,000,000 = $4,000,000
+         BPT supply: 10,000 (unchanged — new BPT not minted yet!)
+
+         getRate() = $4,000,000 / 10,000 = $400 per BPT  ← inflated 33%!
+
+       The attacker's callback:
+         → Deposit 100 BPT into lending protocol as collateral
+         → Lending protocol reads getRate() → sees $400/BPT
+         → Collateral valued at: 100 × $400 = $40,000
+
+         At 150% collateralization, attacker borrows: $40,000 / 1.5 = $26,667
+         Fair value of 100 BPT: 100 × $300 = $30,000
+         Fair borrowing capacity: $30,000 / 1.5 = $20,000
+
+         Excess borrowed: $26,667 - $20,000 = $6,667 stolen
+
+    ───────────────────────────────────────────────────────────────────
+
+    ③ Pool mints new BPT to attacker — getRate() returns to normal
+       BPT minted ≈ 10,000 × (√1.5 - 1) ≈ 2,247  (single-sided join penalty)
+       New BPT supply ≈ 12,247 → getRate() ≈ $4M / 12,247 ≈ $327
+       (Higher than $300 because single-sided join adds value unevenly)
+
+Step 2: Attacker walks away with $6,667 excess borrow
+──────────────────────────────────────────────────────
+  The 100 BPT collateral is worth $30,000 at fair price
+  but backs $26,667 in debt — protocol is under-collateralized.
+  If BPT price dips even slightly, the position becomes bad debt.
+
+  Scale this up 100×: 10,000 BPT + larger join → $666,700 stolen.
+  That's how Sentiment lost ~$1M.
+```
+
+**Why `nonReentrant` on the lending protocol doesn't help:** The lending protocol's `deposit()` isn't being reentered — it's called for the first time during the callback. It's the *Balancer pool* that's in a reentrant state. The lending protocol is just an innocent bystander reading a corrupted view function.
+
+**The fix:** Before reading `getRate()`, verify the pool isn't mid-transaction:
+
+```solidity
+// Call a state-modifying function on Balancer Vault that reverts if locked
+// manageUserBalance with empty array is a no-op but checks the reentrancy lock
+IVault(balancerVault).manageUserBalance(new IVault.UserBalanceOp[](0));
+// If we reach here, the vault isn't in a reentrant state — safe to read
+uint256 rate = pool.getRate();
+```
+
 **Defense:**
 - Never trust external `view` functions during your own state transitions
 - Check reentrancy locks on external protocols before reading their rates ([Balancer V2 Vault](https://github.com/balancer/balancer-v2-monorepo/blob/master/pkg/vault/contracts/Vault.sol) pools have a `getPoolTokens` that reverts if the vault is in a reentrancy state — use it)
@@ -139,6 +212,7 @@ This consolidates oracle attacks from Module 3 with flash loan amplification fro
 - Defense: snapshot-based voting (power based on past block), timelocks, quorum requirements
 - Most modern governance ([OpenZeppelin Governor](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/governance/Governor.sol), [Compound Governor Bravo](https://github.com/compound-finance/compound-governance/blob/master/contracts/GovernorBravoDelegate.sol)) already uses snapshot voting
 
+<a id="flash-loan-walkthrough"></a>
 #### 🔍 Deep Dive: Flash Loan Attack P&L Walkthrough
 
 **Scenario:** A lending protocol uses Uniswap V2 spot prices for collateral valuation. An attacker exploits this with a flash loan.
@@ -148,79 +222,74 @@ This consolidates oracle attacks from Module 3 with flash loan amplification fro
 - Lending protocol: 500,000 USDC available to borrow, requires 150% collateralization
 - Attacker starts with: 0 capital (uses flash loan)
 
-**Step-by-step P&L:**
+**The key insight:** The attacker needs to *inflate* the ETH price on Uniswap, so they buy ETH with USDC. Flash-borrowing USDC and swapping it into the pool pushes the ETH/USDC ratio up.
 
 ```
-Step 1: Flash borrow 5,000 ETH from Balancer (0 fee)
-┌──────────────────────────────────────────────────┐
-│  Attacker: 5,000 ETH                             │
-│  Cost so far: 0 (flash loan is free if repaid)   │
-└──────────────────────────────────────────────────┘
+Step 1: Flash borrow 1,500,000 USDC from Balancer (0 fee)
+─────────────────────────────────────────────────────────
+  ┌──────────────────────────────────────────────────┐
+  │  Attacker: 1,500,000 USDC (borrowed)             │
+  │  Cost so far: 0 (flash loan is free if repaid)   │
+  └──────────────────────────────────────────────────┘
 
-Step 2: Swap 4,000 ETH → USDC on Uniswap V2
-  Pool before: 1,000 ETH / 2,000,000 USDC (k = 2,000,000,000)
-  Pool after:  5,000 ETH / 400,000 USDC   (k preserved)
-  Attacker receives: 1,600,000 USDC
-  New spot price: 400,000 / 5,000 = $80/ETH (manipulated!)
-
-┌──────────────────────────────────────────────────┐
-│  Attacker: 1,000 ETH + 1,600,000 USDC           │
-│  Uniswap spot price: $80/ETH (was $2,000)        │
-│  Real market price: still ~$2,000/ETH             │
-└──────────────────────────────────────────────────┘
-
-Step 3: Deposit 1,000 ETH as collateral into lending protocol
-  Protocol reads Uniswap spot: 1,000 ETH × $80 = $80,000 collateral value
-  Wait — this is LESS than before. The attacker needs the price HIGH, not low!
-
-  ⚠️ CORRECTION: The attacker actually swaps the OTHER direction.
-  Let's redo with the correct attack vector:
-```
-
-**Correct attack — inflate ETH price:**
-
-```
-Step 2 (corrected): Swap 1,500,000 USDC → ETH on Uniswap V2
-  (Attacker first flash-borrows USDC, or uses ETH to buy USDC elsewhere)
-
-  Actually, let's use the simplest real pattern:
-
-Step 1: Flash borrow 1,500,000 USDC from Balancer
 Step 2: Swap 1,500,000 USDC → ETH on Uniswap V2
-  Pool before: 1,000 ETH / 2,000,000 USDC (k = 2B)
-  Pool after:  571 ETH / 3,500,000 USDC
-  Attacker receives: 429 ETH
-  New spot price: 3,500,000 / 571 = $6,130/ETH (inflated 3x!)
+─────────────────────────────────────────────────
+  Pool before: 1,000 ETH / 2,000,000 USDC  (k = 2,000,000,000)
+  New USDC in pool: 2,000,000 + 1,500,000 = 3,500,000
+  New ETH in pool:  2,000,000,000 / 3,500,000 = 571 ETH  (k preserved)
+  ETH received: 1,000 - 571 = 429 ETH
+  New spot price: 3,500,000 / 571 = $6,130/ETH  ← inflated 3×!
 
-┌──────────────────────────────────────────────────┐
-│  Attacker: 429 ETH (worth ~$858,000 at real price)│
-│  Uniswap spot: $6,130/ETH (was $2,000)           │
-└──────────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────────┐
+  │  Attacker: 429 ETH                               │
+  │  Uniswap spot: $6,130/ETH (was $2,000)           │
+  │  Real market price: still ~$2,000/ETH             │
+  └──────────────────────────────────────────────────┘
 
 Step 3: Deposit 100 ETH as collateral into lending protocol
+───────────────────────────────────────────────────────────
   Protocol reads Uniswap spot: 100 × $6,130 = $613,000 collateral value
-  At 150% collateralization: can borrow up to $408,666 USDC
+  At 150% collateralization: can borrow up to $613,000 / 1.5 = $408,667
   Attacker borrows: 400,000 USDC
 
+  ┌──────────────────────────────────────────────────┐
+  │  Attacker: 329 ETH + 400,000 USDC                │
+  │  Lending position: 100 ETH collateral / 400k debt│
+  └──────────────────────────────────────────────────┘
+
 Step 4: Swap 329 ETH → USDC on Uniswap (reverse the manipulation)
-  Receives roughly: ~1,120,000 USDC (price recovering toward normal)
+──────────────────────────────────────────────────────────────────
+  Pool before: 571 ETH / 3,500,000 USDC
+  New ETH in pool: 571 + 329 = 900
+  New USDC in pool: 2,000,000,000 / 900 = 2,222,222
+  USDC received: 3,500,000 - 2,222,222 = 1,277,778 USDC
+
+  ┌──────────────────────────────────────────────────┐
+  │  Attacker: 400,000 + 1,277,778 = 1,677,778 USDC │
+  │  Uniswap spot recovering toward ~$2,222/ETH      │
+  └──────────────────────────────────────────────────┘
 
 Step 5: Repay flash loan: 1,500,000 USDC
+────────────────────────────────────────
 
-┌──────────────────────────────────────────────────┐
-│  Profit/Loss:                                     │
-│  Received: 400,000 (borrowed) + 1,120,000 (swap) │
-│  = 1,520,000 USDC                                │
-│  Paid: 1,500,000 (flash loan repay)              │
-│  = +20,000 USDC profit                           │
-│  Still "owe": 100 ETH collateral (never repaying) │
-│  = additional ~$200,000 in real value extracted   │
-│  Total profit: ~$220,000                          │
-│  Cost: gas only                                   │
-└──────────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────────┐
+  │  ATTACKER P&L:                                    │
+  │  USDC in hand: 1,677,778                         │
+  │  Flash loan repay: -1,500,000                    │
+  │  Net profit: +177,778 USDC                       │
+  │                                                   │
+  │  Plus: 100 ETH locked as collateral, 400k debt   │
+  │  Attacker walks away — never repays the loan.    │
+  │  After price normalizes: 100 ETH = $200,000      │
+  │  but debt = $400,000 → protocol has $200k bad debt│
+  │                                                   │
+  │  Total value extracted: ~$178k (kept) + ~$200k   │
+  │  (bad debt absorbed by protocol/depositors)       │
+  │  Attacker cost: gas only                          │
+  └──────────────────────────────────────────────────┘
 ```
 
-**Why this works:** The lending protocol trusts Uniswap's instantaneous spot price as the truth. But spot price is just the ratio of reserves — trivially manipulable with enough capital. The attacker has unlimited capital via flash loans.
+**Why this works:** The lending protocol trusts Uniswap's instantaneous spot price as the truth. But spot price is just the ratio of reserves — trivially manipulable with enough capital. The attacker has unlimited capital via flash loans. The entire attack — borrow, swap, deposit, borrow, swap back, repay — executes atomically in a single transaction.
 
 **Why Chainlink prevents this:** Chainlink prices come from off-chain aggregation of multiple exchanges. A swap on one Uniswap pool doesn't affect the Chainlink price. Even TWAP oracles resist this because the manipulation must be sustained across the averaging window (expensive for deep-liquidity pools).
 
@@ -431,6 +500,150 @@ fail_on_revert = false  # Don't fail on expected reverts
 ```
 
 Higher depth = longer call sequences = more likely to find complex multi-step bugs. For production, use `runs = 1000+` and `depth = 100+`.
+
+<a id="invariant-quick-try"></a>
+💻 **Quick Try: Invariant Testing Catches a Bug**
+
+Here's a minimal vault with a subtle bug in `withdraw()`. The invariant test finds it — unit tests wouldn't:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+/// @notice Minimal vault with a subtle bug — can you spot it?
+contract BuggyVault is ERC20("Vault", "vTKN") {
+    IERC20 public immutable asset;
+
+    constructor(IERC20 _asset) { asset = _asset; }
+
+    function deposit(uint256 amount) external returns (uint256 shares) {
+        shares = totalSupply() == 0
+            ? amount
+            : amount * totalSupply() / asset.balanceOf(address(this));
+        asset.transferFrom(msg.sender, address(this), amount);
+        _mint(msg.sender, shares);
+    }
+
+    function withdraw(uint256 shares) external returns (uint256 amount) {
+        _burn(msg.sender, shares);
+        // BUG: totalSupply() is now REDUCED — each share redeems more than it should
+        amount = shares * asset.balanceOf(address(this)) / totalSupply();
+        asset.transfer(msg.sender, amount);
+    }
+}
+```
+
+Now write a test that catches it:
+
+```solidity
+// BuggyVaultInvariant.t.sol
+import {StdInvariant} from "forge-std/StdInvariant.sol";
+import {Test} from "forge-std/Test.sol";
+
+contract BuggyVaultHandler is Test {
+    BuggyVault vault;
+    MockERC20 token;
+    address[] public actors;
+    mapping(address => uint256) public ghost_deposited;  // per-actor deposits
+    mapping(address => uint256) public ghost_withdrawn;  // per-actor withdrawals
+
+    constructor(BuggyVault _vault, MockERC20 _token) {
+        vault = _vault;
+        token = _token;
+        for (uint256 i = 0; i < 3; i++) {
+            address actor = makeAddr(string(abi.encodePacked("actor", i)));
+            actors.push(actor);
+            token.mint(actor, 100_000e18);
+            vm.prank(actor);
+            token.approve(address(vault), type(uint256).max);
+        }
+    }
+
+    function deposit(uint256 amount, uint256 actorSeed) external {
+        address actor = actors[bound(actorSeed, 0, actors.length - 1)];
+        amount = bound(amount, 1e18, token.balanceOf(actor));
+        if (amount == 0) return;
+        vm.prank(actor);
+        vault.deposit(amount);
+        ghost_deposited[actor] += amount;
+    }
+
+    function withdraw(uint256 shares, uint256 actorSeed) external {
+        address actor = actors[bound(actorSeed, 0, actors.length - 1)];
+        uint256 bal = vault.balanceOf(actor);
+        shares = bound(shares, 0, bal);
+        if (shares == 0) return;
+        uint256 balBefore = token.balanceOf(actor);
+        vm.prank(actor);
+        vault.withdraw(shares);
+        uint256 balAfter = token.balanceOf(actor);
+        ghost_withdrawn[actor] += (balAfter - balBefore);
+    }
+
+    function actorCount() external view returns (uint256) { return actors.length; }
+}
+
+contract BuggyVaultInvariantTest is StdInvariant, Test {
+    BuggyVault vault;
+    MockERC20 token;
+    BuggyVaultHandler handler;
+
+    function setUp() public {
+        token = new MockERC20();
+        vault = new BuggyVault(token);
+        handler = new BuggyVaultHandler(vault, token);
+        targetContract(address(handler));
+    }
+
+    /// @dev Fairness: no actor withdraws more than they deposited (no yield in this vault)
+    function invariant_noActorProfits() public view {
+        for (uint256 i = 0; i < handler.actorCount(); i++) {
+            address actor = handler.actors(i);
+            uint256 withdrawn = handler.ghost_withdrawn(actor);
+            uint256 deposited = handler.ghost_deposited(actor);
+            assertLe(
+                withdrawn,
+                deposited + 1e18,  // allow 1 token rounding
+                "Fairness violated: actor withdrew more than deposited"
+            );
+        }
+    }
+}
+```
+
+Run with `forge test --match-contract BuggyVaultInvariantTest`. The `invariant_noActorProfits` test will **fail**. Here's why — trace through a deposit/deposit/withdraw sequence:
+
+```
+Actor A deposits 100e18:  shares = 100e18 (first deposit)
+Actor B deposits 100e18:  shares = 100e18 * 100e18 / 100e18 = 100e18
+State: vault balance = 200e18, totalSupply = 200e18, A = 100e18, B = 100e18
+
+Actor A withdraws 100 shares:
+  _burn(A, 100e18)        → totalSupply = 100e18
+  amount = 100e18 * 200e18 / 100e18 = 200e18  ← A drains EVERYTHING!
+  transfer(A, 200e18)     → vault balance = 0
+
+B has 100e18 shares backed by 0 tokens. A stole B's deposit.
+```
+
+The invariant catches it: A deposited 100e18 but withdrew 200e18. Since this is a no-yield vault, no actor should ever profit — `withdrawn > deposited` is a clear fairness violation.
+
+**Why not a conservation invariant?** You might be tempted to check `vault_balance == total_deposits - total_withdrawals`. That's a tautology — if the handler tracks actual token flows, deposits minus withdrawals always equals the balance by construction. The burn-before-calculate bug is a *fairness* bug (it redistributes value between users) not a *conservation* bug (no tokens are created or destroyed). Fairness invariants that track per-actor flows are the right tool here.
+
+**The fix:** Calculate the amount *before* burning shares:
+
+```solidity
+function withdraw(uint256 shares) external returns (uint256 amount) {
+    amount = shares * asset.balanceOf(address(this)) / totalSupply();
+    _burn(msg.sender, shares);  // burn AFTER calculating amount
+    asset.transfer(msg.sender, amount);
+}
+```
+
+This is exactly the kind of ordering bug that unit tests miss — you'd have to think of the exact multi-user interleaving. Invariant tests find it automatically by exploring random call sequences.
 
 <a id="invariant-catalog"></a>
 ### 📋 What Invariants to Test for Each DeFi Primitive
@@ -964,6 +1177,8 @@ An audit is a snapshot — it covers specific code at a specific time. Common tr
 
 5. **Simplify.** The best defense is a smaller attack surface. Every abstraction, every external call, every storage variable is a potential vulnerability. Build the simplest protocol that achieves the goal.
 
+6. **Read-only reentrancy is the most common "new" DeFi exploit pattern.** Your protocol doesn't need to be reentered — just *reading* another protocol's state during its mid-transaction inconsistency is enough. Always verify external protocols aren't mid-execution before trusting their view functions (check their reentrancy locks).
+
 ---
 
 ## 💼 Security Career Paths
@@ -1005,11 +1220,11 @@ Security knowledge opens multiple career paths beyond "protocol developer." Unde
 
 | Source | Concept | How It Connects |
 |---|---|---|
-| **Part 1 §1** | Custom errors | Security checklist requires typed errors for all revert paths — error taxonomy from §1 |
-| **Part 1 §2** | Transient storage reentrancy guard | Global `nonReentrant` via transient storage is the recommended cross-contract reentrancy defense |
-| **Part 1 §5** | Fork testing | Flash loan attack exercises require mainnet fork setup from §5 |
-| **Part 1 §5** | Invariant / fuzz testing | The Invariant Testing section builds directly on foundry fuzz patterns from §5 |
-| **Part 1 §6** | Proxy patterns | Security checklist covers upgradeable contract risks — initializer, storage gap from §6 |
+| **Part 1 Section 1** | Custom errors | Security checklist requires typed errors for all revert paths — error taxonomy from Section 1 |
+| **Part 1 Section 2** | Transient storage reentrancy guard | Global `nonReentrant` via transient storage is the recommended cross-contract reentrancy defense |
+| **Part 1 Section 5** | Fork testing | Flash loan attack exercises require mainnet fork setup from Section 5 |
+| **Part 1 Section 5** | Invariant / fuzz testing | The Invariant Testing section builds directly on foundry fuzz patterns from Section 5 |
+| **Part 1 Section 6** | Proxy patterns | Security checklist covers upgradeable contract risks — initializer, storage gap from Section 6 |
 | **M1** | SafeERC20 / `balanceOf` pitfalls | Donation attack (Category 3) exploits `balanceOf`-based accounting — internal tracking from M1 is the defense |
 | **M1** | Fee-on-transfer / rebasing tokens | Security Tooling section checklist: these break naive vault and lending accounting |
 | **M2** | AMM spot price / MEV / sandwich | Price manipulation Category 1 uses DEX swaps; sandwich attacks from M2's MEV section |

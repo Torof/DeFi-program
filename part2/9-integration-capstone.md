@@ -250,7 +250,7 @@ Is a liquidation profitable? It depends on four factors: the liquidation bonus, 
 - ETH price drops to $2,700 → collateral = $5,400, HF = 5,400 × 0.825 / 5,000 = 0.891 (liquidatable!)
 - Liquidation bonus: 5%
 - Flash loan: Balancer (0 fee) or Aave (0.05% fee)
-- AMM pool: 500 ETH / 1,350,000 USDC ($5M TVL)
+- AMM pool: 500 ETH / 1,350,000 USDC (~$2.7M TVL)
 
 **The math:**
 
@@ -265,19 +265,20 @@ Step 2: Repay 5,000 USDC of borrower's debt
 
 Step 3: Swap 1.944 ETH → USDC on AMM
   AMM reserves: 500 ETH / 1,350,000 USDC
-  Output (constant product): 1,350,000 - (500 × 1,350,000) / (500 + 1.944)
-                            = 1,350,000 - 1,344,759 = 5,241 USDC
-  (Slippage cost: 1.944 × $2,700 = $5,249 real value, got $5,241 → ~$8 slippage)
+  k = 500 × 1,350,000 = 675,000,000
+  New ETH = 501.944 → New USDC = 675,000,000 / 501.944 = 1,344,772
+  Output = 1,350,000 - 1,344,772 = 5,228 USDC
+  (Slippage cost: 1.944 × $2,700 = $5,249 real value, got $5,228 → ~$21 slippage)
 
 Step 4: Repay flash loan
   Owe: 5,000 + 2.50 = 5,002.50 USDC (Aave)
-  Have: 5,241 USDC
+  Have: 5,228 USDC
 
 ┌────────────────────────────────────────────┐
-│  Profit = 5,241 - 5,002.50 = 238.50 USDC  │
+│  Profit = 5,228 - 5,002.50 = 225.50 USDC  │
 │  Minus gas: ~200,000 gas × 30 gwei         │
 │           = 0.006 ETH ≈ $16                │
-│  Net profit: ~$222                         │
+│  Net profit: ~$210                         │
 │  ROI: infinite (started with $0 capital)   │
 └────────────────────────────────────────────┘
 ```
@@ -287,9 +288,10 @@ Step 4: Repay flash loan
 ```
 Break-even: liquidation_bonus_value > slippage + flash_fee + gas
 
-If AMM had only 50 ETH / 135,000 USDC ($270K TVL):
-  Swapping 1.944 ETH → output = only 4,785 USDC
-  Profit = 4,785 - 5,002.50 = -217.50 USDC ← LOSS!
+If AMM had only 20 ETH / 54,000 USDC ($108K TVL):
+  k = 1,080,000. New ETH = 21.944. New USDC = 1,080,000/21.944 = 49,224
+  Swapping 1.944 ETH → output = 54,000 - 49,224 = 4,776 USDC
+  Profit = 4,776 - 5,002.50 = -226.50 USDC ← LOSS!
 
 The liquidation reverts because the flash loan can't be repaid.
 ```
@@ -474,11 +476,11 @@ This capstone project demonstrates exactly the skills DeFi teams hire for. Here'
 
 | Source | Concept | How It Connects |
 |---|---|---|
-| **Part 1 §1** | `mulDiv` / safe math | Health factor calculation uses `mulDiv` with explicit decimal normalization |
-| **Part 1 §1** | Custom errors | Integrated system needs clear typed errors across 5 contracts for debugging |
-| **Part 1 §2** | Transient storage | Cross-contract reentrancy guard across lending pool + flash loan callback |
-| **Part 1 §5** | Fork testing | Flash Liquidation Bot mainnet fork test — flash borrow from real Balancer/Aave |
-| **Part 1 §5** | Invariant testing | Stress Testing section's system-wide invariant suite with 10-operation handler and ghost variables |
+| **Part 1 Section 1** | `mulDiv` / safe math | Health factor calculation uses `mulDiv` with explicit decimal normalization |
+| **Part 1 Section 1** | Custom errors | Integrated system needs clear typed errors across 5 contracts for debugging |
+| **Part 1 Section 2** | Transient storage | Cross-contract reentrancy guard across lending pool + flash loan callback |
+| **Part 1 Section 5** | Fork testing | Flash Liquidation Bot mainnet fork test — flash borrow from real Balancer/Aave |
+| **Part 1 Section 5** | Invariant testing | Stress Testing section's system-wide invariant suite with 10-operation handler and ghost variables |
 | **M1** | Token decimals / SafeERC20 | Decimal normalization (ETH 18 / USDC 6 / Chainlink 8) — the #1 integration bug source |
 | **M2** | ConstantProductPool | AMM for swapping seized collateral → debt asset; slippage determines liquidation profitability |
 | **M2** | MEV / sandwich | Liquidation transactions are MEV targets — Flashbots Protect for submission |

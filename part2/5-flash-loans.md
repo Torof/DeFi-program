@@ -20,8 +20,11 @@
 **Composing Flash Loan Strategies**
 - [Strategy 1: DEX Arbitrage](#dex-arbitrage)
 - [Strategy 2: Flash Loan Liquidation](#flash-liquidation)
+  - [Deep Dive: Liquidation Profit — Numeric Walkthrough](#flash-liquidation)
 - [Strategy 3: Collateral Swap](#collateral-swap)
+  - [Build: CollateralSwap.sol (Code Scaffold)](#collateral-swap)
 - [Strategy 4: Leverage/Deleverage](#leverage-deleverage)
+  - [Deep Dive: Leverage — Numeric Walkthrough](#leverage-deleverage)
 - [Exercises](#day2-exercises)
 
 **Security, Anti-Patterns, and the Bigger Picture**
@@ -29,6 +32,7 @@
 - [Flash Loan Receiver Security](#receiver-security)
 - [Flash Loans vs Flash Accounting](#flash-vs-accounting)
 - [Governance Attacks via Flash Loans](#governance-attacks)
+- [Common Mistakes](#common-mistakes)
 - [Exercises](#day3-exercises)
 
 ---
@@ -177,7 +181,7 @@ You can effectively "borrow" by creating a negative delta, using the tokens, the
 - `onFlashLoan(initiator, token, amount, fee, data)` callback on the receiver
 - `maxFlashLoan(token)` and `flashFee(token, amount)` for discovery
 
-Not all providers implement ERC-3156 (Aave and Balancer have their own interfaces), but it's the standard for simpler flash loan providers.
+Not all providers implement ERC-3156 (Aave and Balancer have their own interfaces), but it's the standard for simpler flash loan providers. In practice, most production flash loan code targets Aave or Balancer directly because they have the deepest liquidity. ERC-3156 is most useful when building provider-agnostic tooling (e.g., a flash loan aggregator that routes to the cheapest available source) or when integrating with smaller lending protocols that implement the standard. [OpenZeppelin provides an ERC-3156 implementation](https://docs.openzeppelin.com/contracts/5.x/api/interfaces#IERC3156FlashLender) you can use as a reference.
 
 **DAI Flash Mint** — MakerDAO's `DssFlash` module lets anyone mint *unlimited* DAI via flash loan — not from a pool, but minted from thin air and burned at the end. This is unique: the liquidity isn't constrained by pool deposits. DAI is minted in the Vat, used, and burned within the same tx. Fee: 0%. This is possible because DAI is protocol-issued (see Module 6 — CDPs mint stablecoins into existence).
 
@@ -276,6 +280,44 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 ---
 
 ## Composing Flash Loan Strategies
+
+💻 **Quick Try:**
+
+Before building arbitrage contracts, see a price discrepancy with your own eyes. On a mainnet fork, query the same swap on two different DEXes:
+
+```solidity
+interface IUniswapV2Router {
+    function getAmountsOut(uint256 amountIn, address[] calldata path)
+        external view returns (uint256[] memory amounts);
+}
+
+function testSpotPriceDifference() public {
+    address WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+
+    IUniswapV2Router uniV2 = IUniswapV2Router(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+    IUniswapV2Router sushi = IUniswapV2Router(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
+
+    address[] memory path = new address[](2);
+    path[0] = WETH;
+    path[1] = USDC;
+
+    uint256 amountIn = 10 ether; // 10 WETH
+
+    uint256[] memory uniOut = uniV2.getAmountsOut(amountIn, path);
+    uint256[] memory sushiOut = sushi.getAmountsOut(amountIn, path);
+
+    emit log_named_uint("Uniswap V2: 10 WETH -> USDC", uniOut[1]);
+    emit log_named_uint("Sushiswap:  10 WETH -> USDC", sushiOut[1]);
+
+    // Any difference here is a potential arbitrage opportunity
+    // In practice, MEV bots keep these within ~0.01% of each other
+}
+```
+
+Run with `forge test --match-test testSpotPriceDifference --fork-url $ETH_RPC_URL -vv`. You'll likely see very similar prices — MEV bots keep them aligned. But during volatility, gaps appear briefly. That's where flash loan arbitrage lives.
+
+---
 
 <a id="dex-arbitrage"></a>
 ### 💡 Strategy 1: DEX Arbitrage
@@ -393,6 +435,46 @@ Implement a contract that:
 - Repays Balancer
 - Sends profit to caller
 
+#### 🔍 Deep Dive: Flash Loan Liquidation Profit — Numeric Walkthrough
+
+```
+Setup:
+  Borrower: 10 ETH collateral ($2,000/ETH = $20,000), 16,500 USDC debt
+  ETH LT = 82.5% → HF = ($20,000 × 0.825) / $16,500 = 1.0 (exactly at threshold)
+  ETH drops to $1,900 → HF = ($19,000 × 0.825) / $16,500 = 0.95 → liquidatable!
+  Liquidation bonus = 5%, Close factor = 50% (HF ≥ 0.95)
+
+Step 1: Flash borrow from Balancer (0% fee)
+  Borrow: 8,250 USDC (50% of $16,500 debt)
+  Cost: $0
+
+Step 2: Call Aave liquidationCall()
+  Repay: 8,250 USDC of borrower's debt
+  Receive: $8,250 × 1.05 / $1,900 = 4.5592 ETH (includes 5% bonus)
+
+Step 3: Swap ETH → USDC on Uniswap V3 (0.3% fee pool)
+  Sell: 4.5592 ETH at $1,900
+  Gross: 4.5592 × $1,900 = $8,662.48
+  After 0.3% swap fee: $8,662.48 × 0.997 = $8,636.49 USDC
+
+Step 4: Repay Balancer flash loan
+  Repay: 8,250 USDC (0% fee)
+
+Profit = $8,636.49 - $8,250 = $386.49 USDC
+Gas cost ≈ ~$5-30
+Net profit ≈ ~$356-381
+
+Breakeven analysis:
+  Minimum liquidation bonus for profitability:
+  bonus > swap_fee / (1 - swap_fee) = 0.003 / 0.997 ≈ 0.3%
+  With Aave's 5% bonus, this is profitable even with significant slippage.
+
+Using Aave flash loan instead (0.05% fee):
+  Flash loan cost = 8,250 × 0.0005 = $4.13
+  Net profit = $386.49 - $4.13 = $382.36
+  Savings from Balancer: only $4.13 — but at scale, this adds up.
+```
+
 Test on mainnet fork:
 - Set up an Aave position near liquidation (supply ETH, borrow USDC at max LTV)
 - Use `vm.mockCall` to drop ETH price below liquidation threshold
@@ -419,7 +501,75 @@ This is Aave's "liquidity switch" pattern — one of the primary production uses
 
 **Build: CollateralSwap.sol**
 
-Implement and test. This is the most complex composition: it touches lending (repay, withdraw, deposit, borrow) and swapping, all within a single flash loan callback.
+This is the most complex composition — and the most interview-relevant. It touches lending (repay, withdraw, deposit, borrow) and swapping, all within a single flash loan callback.
+
+```solidity
+contract CollateralSwap is IFlashLoanSimpleReceiver {
+    IPool public immutable POOL;
+    ISwapRouter public immutable SWAP_ROUTER;
+
+    struct SwapParams {
+        address user;           // Position owner (must have delegated credit)
+        address oldCollateral;  // e.g., WETH
+        address newCollateral;  // e.g., WBTC
+        address debtAsset;      // e.g., USDC
+        uint256 debtAmount;     // Total debt to repay
+        uint24 swapFee;         // Uniswap V3 pool fee tier
+    }
+
+    /// @notice Initiate the collateral swap via flash loan
+    function swapCollateral(SwapParams calldata p) external {
+        // TODO: Encode SwapParams into bytes
+        // TODO: Request flash loan of p.debtAsset for p.debtAmount from Aave
+        // Hint: Use POOL.flashLoanSimple(address(this), p.debtAsset, p.debtAmount, params, 0)
+    }
+
+    function executeOperation(
+        address asset,
+        uint256 amount,
+        uint256 premium,
+        address initiator,
+        bytes calldata params
+    ) external override returns (bool) {
+        require(msg.sender == address(POOL), "Caller must be Pool");
+        require(initiator == address(this), "Initiator must be this contract");
+
+        SwapParams memory p = abi.decode(params, (SwapParams));
+
+        // TODO Step 1: Repay user's entire debt on Aave
+        // Hint: Approve the Pool, then POOL.repay(p.debtAsset, p.debtAmount, 2, p.user)
+        // Note: repay() pulls tokens from msg.sender (this contract). We have them
+        //       from the flash loan. The user doesn't need to approve anything here.
+
+        // TODO Step 2: Transfer user's aTokens to this contract, then withdraw
+        // Hint: aToken.transferFrom(p.user, address(this), aToken.balanceOf(p.user))
+        //       then POOL.withdraw(p.oldCollateral, type(uint256).max, address(this))
+        // Note: withdraw() burns aTokens from msg.sender — so we need to hold them first.
+        //       User must have called aToken.approve(this, amount) beforehand.
+
+        // TODO Step 3: Swap old collateral → new collateral via Uniswap V3
+        // Hint: Use ISwapRouter.exactInputSingle with p.swapFee tier
+
+        // TODO Step 4: Deposit new collateral into Aave for user
+        // Hint: POOL.supply(p.newCollateral, swappedAmount, p.user, 0)
+
+        // TODO Step 5: Borrow debt asset from Aave on behalf of user to repay flash loan
+        // Hint: POOL.borrow(p.debtAsset, amount + premium, 2, 0, p.user)
+        // Note: User must have delegated variable debt credit to this contract
+
+        // TODO Step 6: Approve Pool to pull the flash loan repayment
+        // Hint: IERC20(asset).approve(address(POOL), amount + premium)
+
+        return true;
+    }
+}
+```
+
+**Key prerequisite:** The user must set up two delegations before calling this contract:
+1. `aToken.approve(collateralSwap, amount)` — so the contract can withdraw their collateral
+2. `variableDebtToken.approveDelegation(collateralSwap, amount)` — so the contract can borrow on their behalf
+
+This delegation pattern is critical for interview discussions — it shows you understand Aave's credit delegation system.
 
 <a id="leverage-deleverage"></a>
 ### 💡 Strategy 4: Leverage/Deleverage in One Transaction
@@ -436,6 +586,59 @@ Implement and test. This is the most complex composition: it touches lending (re
 In practice, you calculate the exact amounts needed for the desired leverage ratio and do it in one step rather than looping.
 
 **Deleveraging:** Reverse the process — flash-borrow to repay debt, withdraw collateral, swap to repay the flash loan.
+
+#### 🔍 Deep Dive: Leverage — Numeric Walkthrough
+
+```
+Goal: 3x long ETH exposure starting with 10 ETH ($2,000/ETH = $20,000)
+Aave ETH: max LTV = 80% (borrow limit), LT = 82.5% (liquidation threshold)
+Remember: you BORROW up to max LTV, but HF uses LT (see Module 4).
+
+Without flash loans (manual looping):
+  Round 1: Deposit 10 ETH → Borrow $16,000 USDC → Buy 8 ETH
+  Round 2: Deposit 8 ETH → Borrow $12,800 USDC → Buy 6.4 ETH
+  Round 3: Deposit 6.4 ETH → Borrow $10,240 USDC → Buy 5.12 ETH
+  ... (converges after many rounds, each with gas + swap fees)
+
+With flash loans (one transaction):
+  Target: 30 ETH total exposure (3x of 10 ETH)
+  Need to deposit: 30 ETH
+  Need to borrow: 20 ETH worth of USDC = $40,000 USDC
+  Borrow check: $40,000 / $60,000 = 66.7% < 80% max LTV ✓ (within borrow limit)
+  Health factor: ($60,000 × 0.825) / $40,000 = 1.24 ✓ (healthy)
+
+Step 1: Flash-borrow 20 ETH from Balancer (0% fee)
+  Now holding: 10 (own) + 20 (borrowed) = 30 ETH
+
+Step 2: Deposit all 30 ETH into Aave
+  Collateral: 30 ETH ($60,000)
+
+Step 3: Borrow $40,000 USDC from Aave against the collateral
+  Debt: $40,000 USDC
+  HF = ($60,000 × 0.825) / $40,000 = 1.24
+
+Step 4: Swap $40,000 USDC → ~19.94 ETH on Uniswap V3 (0.3% fee)
+  $40,000 / $2,000 = 20 ETH × 0.997 = 19.94 ETH
+
+Step 5: Repay Balancer flash loan (20 ETH)
+  Need: 20 ETH, Have: 19.94 ETH
+  Shortfall: 0.06 ETH ($120) — the swap fee cost
+
+  Fix: Borrow slightly more USDC in Step 3 to cover swap fees:
+  Borrow $40,120 USDC → Swap → 20.00 ETH → Repay → Done.
+  Updated HF = ($60,000 × 0.825) / $40,120 = 1.23 (still healthy)
+
+Result:
+  Position: 30 ETH collateral, $40,120 debt
+  Effective leverage: ~3x
+  Cost: One tx gas + $120 in swap fees
+  If ETH +10%: Position gains $6,000 (30% on your 10 ETH)
+  If ETH -10%: Position loses $6,000 (30% on your 10 ETH)
+  Liquidation price: ~$1,621 ETH (-19% from $2,000)
+    → HF=1.0 when 30 × price × 0.825 = $40,120 → price = $1,621
+```
+
+**Why flash loans matter here:** Without them, you'd need 5+ loop iterations (each with gas costs and swap slippage). With a flash loan, it's a single atomic operation — cheaper, cleaner, and no partial exposure during intermediate steps.
 
 <a id="day2-exercises"></a>
 ### 🛠️ Exercises: Flash Loan Strategies
@@ -503,6 +706,8 @@ Cost to attacker: gas only (~$8). Profit: $350,000.
 ```
 
 **The lesson for protocol builders:** This attack didn't exploit a bug in flash loans — it exploited bZx's reliance on a spot price oracle (Rule 1 above). Flash loans just made it free to execute. Every oracle manipulation attack you'll see in Module 3 postmortems follows this pattern: flash borrow → manipulate price → exploit protocol → repay.
+
+> **📖 Study tip — Tracing real exploits:** Use [Tenderly](https://dashboard.tenderly.co/tx/mainnet/) or [Phalcon by BlockSec](https://app.blocksec.com/explorer) to trace historical exploit transactions step-by-step. Paste the tx hash and you'll see every internal call, state change, and token transfer in order. For the bZx attack, trace [this tx](https://etherscan.io/tx/0xb5c8bd9430b6cc87a0e2fe110ece6bf527fa4f170a4bc8cd032f768fc5219838) — you'll see the flash borrow from dYdX, the Compound interactions, the Uniswap price manipulation, and the profitable unwind all in a single call tree. This is the fastest way to internalize how flash loan compositions work in production.
 
 <a id="receiver-security"></a>
 ### ⚠️ Flash Loan Receiver Security
@@ -651,6 +856,92 @@ This tests your ability to nest or chain flash loans from different providers. N
 
 ---
 
+<a id="common-mistakes"></a>
+### ⚠️ Common Mistakes
+
+**Mistake 1: Not validating `msg.sender` in the callback**
+
+```solidity
+// ❌ WRONG — anyone can call this function directly
+function executeOperation(
+    address asset, uint256 amount, uint256 premium,
+    address initiator, bytes calldata params
+) external returns (bool) {
+    // attacker calls this directly, initiator = whatever they want
+    _doSensitiveOperation(params);
+    return true;
+}
+
+// ✅ CORRECT — validate both msg.sender AND initiator
+function executeOperation(
+    address asset, uint256 amount, uint256 premium,
+    address initiator, bytes calldata params
+) external returns (bool) {
+    require(msg.sender == address(POOL), "Only Pool");
+    require(initiator == address(this), "Only self-initiated");
+    _doSensitiveOperation(params);
+    return true;
+}
+```
+
+Both checks are required: `msg.sender` confirms the lending pool is calling you (not an arbitrary contract), and `initiator` confirms *your* contract requested the flash loan (not someone else using your callback as a target).
+
+**Mistake 2: Storing funds in the receiver contract**
+
+```solidity
+// ❌ WRONG — contract holds USDC between transactions
+contract MyFlashReceiver is IFlashLoanSimpleReceiver {
+    function deposit(uint256 amount) external {
+        USDC.transferFrom(msg.sender, address(this), amount);
+    }
+
+    function executeOperation(...) external returns (bool) {
+        // Uses stored USDC + flash loaned amount for strategy
+    }
+}
+// Attacker initiates a flash loan targeting YOUR contract
+// → Pool sends tokens to your contract
+// → Your callback runs with attacker-controlled params
+// → Even if callback fails, attacker can try different params
+```
+
+```solidity
+// ✅ CORRECT — pull funds in the same tx, never hold between txs
+function executeArbitrage(...) external {
+    USDC.transferFrom(msg.sender, address(this), seedAmount);
+    POOL.flashLoanSimple(address(this), USDC, amount, params, 0);
+    USDC.transfer(msg.sender, USDC.balanceOf(address(this)));
+    // Contract balance returns to 0 after every tx
+}
+```
+
+**Mistake 3: Forgetting to approve repayment (Aave)**
+
+```solidity
+// ❌ WRONG — Aave will revert because it can't pull the repayment
+function executeOperation(...) external returns (bool) {
+    _doStrategy();
+    return true;  // Returns true but Pool's transferFrom fails
+}
+
+// ✅ CORRECT — approve before returning
+function executeOperation(
+    address asset, uint256 amount, uint256 premium, ...
+) external returns (bool) {
+    _doStrategy();
+    IERC20(asset).approve(address(POOL), amount + premium);
+    return true;
+}
+```
+
+Aave uses `transferFrom` to pull the repayment *after* your callback returns. Balancer uses balance checks instead (you `transfer` inside the callback). Mixing up these patterns is a common source of reverts.
+
+**Mistake 4: Using flash loans for operations that don't need atomicity**
+
+Flash loans add complexity (callback architecture, approval management, extra gas). If you already have the capital and don't need atomicity, a simple multi-step transaction or even multiple transactions may be simpler and cheaper. Flash loans shine when: (1) you don't have the capital, or (2) you need the entire operation to succeed or fail atomically (e.g., you don't want to repay debt and then fail on the swap, leaving you exposed).
+
+---
+
 ## Key Takeaways
 
 1. **Flash loans eliminate capital as a barrier.** This is both powerful (anyone can liquidate or arbitrage) and dangerous (anyone can attack with unlimited capital). Design your protocols assuming every user has infinite temporary capital.
@@ -662,6 +953,10 @@ This tests your ability to nest or chain flash loans from different providers. N
 4. **Zero-fee flash loans change the economics.** Balancer V2 (0%) and V4 flash accounting (0% for the flash component) mean flash loans have essentially no cost beyond gas. This lowers the profitability threshold for attacks and arbitrage.
 
 5. **Receiver security is critical.** Validate `msg.sender`, validate `initiator`, never store funds in flash loan contracts, validate decoded params. A careless receiver is an invitation for griefing or fund theft.
+
+6. **Collateral swaps and leverage are the primary production use cases.** Arbitrage gets the headlines, but collateral swaps (Aave "liquidity switch") and flash loan leverage (3x ETH in one tx) are what real users and protocols use daily. The collateral swap pattern — flash borrow → repay → withdraw → swap → deposit → re-borrow → repay flash — is the most complex composition and the most interview-relevant.
+
+7. **The economics are razor-thin.** Flash loan liquidation profits depend on liquidation bonus minus swap fees minus flash loan fees. At 5% bonus and 0.3% swap fee, the math works. But MEV searchers capture most arbitrage profit via builder tips (90%+), leaving individual operators with thin margins.
 
 ---
 
@@ -688,11 +983,11 @@ Study these codebases in order — each builds on the previous one's patterns:
 
 | Source | Concept | How It Connects |
 |--------|---------|-----------------|
-| Part 1 §1 | Custom errors | Flash loan receivers use custom errors for initiator validation, repayment failures |
-| Part 1 §2 | Transient storage / [EIP-1153](https://eips.ethereum.org/EIPS/eip-1153) | V4 flash accounting uses TSTORE/TLOAD for delta tracking — flash loans become emergent from the accounting model |
-| Part 1 §3 | Permit / Permit2 | Gasless approvals in flash loan callbacks — approve repayment without separate tx |
-| Part 1 §5 | Fork testing / `vm.mockCall` | Essential for testing flash loan strategies against real Aave/Balancer/Uniswap liquidity on mainnet forks |
-| Part 1 §6 | Proxy patterns | Aave Pool proxy delegates to FlashLoanLogic library; Balancer Vault is a single immutable entry point |
+| Part 1 Section 1 | Custom errors | Flash loan receivers use custom errors for initiator validation, repayment failures |
+| Part 1 Section 2 | Transient storage / [EIP-1153](https://eips.ethereum.org/EIPS/eip-1153) | V4 flash accounting uses TSTORE/TLOAD for delta tracking — flash loans become emergent from the accounting model |
+| Part 1 Section 3 | Permit / Permit2 | Gasless approvals in flash loan callbacks — approve repayment without separate tx |
+| Part 1 Section 5 | Fork testing / `vm.mockCall` | Essential for testing flash loan strategies against real Aave/Balancer/Uniswap liquidity on mainnet forks |
+| Part 1 Section 6 | Proxy patterns | Aave Pool proxy delegates to FlashLoanLogic library; Balancer Vault is a single immutable entry point |
 | Module 1 | SafeERC20 / token transfers | Safe token handling in callbacks — approve patterns differ between providers (Aave: approve, Balancer: transfer) |
 | Module 2 | AMM swaps / price impact | DEX swaps are the core operation inside most flash loan strategies (arbitrage, liquidation collateral disposal) |
 | Module 2 | Flash accounting (V4) | V4 doesn't have dedicated flash loans — flash borrowing is emergent from the delta tracking system |
