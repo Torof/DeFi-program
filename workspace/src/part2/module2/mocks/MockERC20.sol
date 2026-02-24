@@ -3,7 +3,7 @@ pragma solidity ^0.8.28;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-/// @notice Standard ERC-20 mock with public mint. Used as the baseline "normal" token.
+/// @notice Simple mintable ERC-20 for testing AMM exercises.
 contract MockERC20 is ERC20 {
     uint8 private immutable _decimals;
 

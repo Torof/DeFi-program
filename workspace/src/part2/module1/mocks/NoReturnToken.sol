@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.28;
+pragma solidity ^0.8.28;
 
 /// @notice ERC-20 that does NOT return a bool from transfer/transferFrom/approve.
 /// @dev Mimics USDT (Tether) behavior. Calling `require(token.transfer(...))` on this
