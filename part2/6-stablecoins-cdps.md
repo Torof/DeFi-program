@@ -1083,7 +1083,7 @@ The `dust` parameter prevents tiny vaults whose gas costs for liquidation would 
 
 6. **The landscape is diversifying.** GHO extends lending into issuance. crvUSD reinvents liquidation with AMMs. Ethena hedges with perps. Each approach shows how DeFi primitives from other modules (AMMs, oracles, lending, perps) can be recombined into stablecoin designs.
 
-7. **Stablecoins are the ultimate integration test.** A stablecoin protocol touches every DeFi primitive: oracles (pricing), lending (collateral), liquidation (solvency), governance (monetary policy), AMMs (liquidity). This is why your Part 3 capstone IS a stablecoin.
+7. **Stablecoins are the ultimate integration test.** A stablecoin protocol touches every DeFi primitive: oracles (pricing), lending (collateral), liquidation (solvency), governance (monetary policy), AMMs (liquidity). This is why your Module 9 capstone IS a stablecoin — it integrates everything from Modules 1-8 into one protocol.
 
 8. **`rpow()` and rate accumulators are the mathematical backbone.** Per-second compounding via exponentiation by squaring (O(log n)) enables gas-efficient fee accumulation across the entire Vat. The same pattern appears in Aave (liquidity index), Compound (borrow index), and every protocol with time-based interest.
 
@@ -1137,11 +1137,10 @@ Study these codebases in order — each builds on the previous one's patterns:
 | Module 7 (Yield/Vaults) | DSR as yield source | DAI Savings Rate and sUSDS as yield-bearing stablecoin deposits for vault strategies |
 | Module 8 (Security) | CDP invariant testing | Invariant testing SimpleCDP: total debt ≤ ceiling, all active vaults safe, rate accumulator monotonic |
 | Module 8 (Security) | Peg stability threat model | Modeling peg attacks: PSM drain, oracle manipulation, governance parameter manipulation |
-| Module 9 (Integration) | CDP + flash liquidation | Capstone combines CDP liquidation with flash loans and AMM swaps in a production flow |
+| Module 9 (Capstone) | Multi-collateral stablecoin | Building a decentralized stablecoin protocol — CDP engine, Dutch auction liquidation, flash mint, vault share collateral |
 | Part 3 Module 1 (Liquid Staking) | LSTs as collateral | wstETH, rETH as CDP collateral types — requires exchange rate oracle chaining |
 | Part 3 Module 2 (Perpetuals) | Funding rate mechanics | Ethena's USDe uses perpetual funding rates as stablecoin backing — studied in depth |
 | Part 3 Module 8 (Governance) | Monetary policy governance | Governor for stability fee, DSR, debt ceiling parameter updates; governance attack surface |
-| Part 3 Module 9 (Capstone) | Multi-collateral stablecoin | Building a complete CDP-based stablecoin protocol from scratch — the curriculum's final integration |
 
 ---
 

@@ -18,9 +18,9 @@ The core primitives of decentralized finance. Each module follows a consistent p
 | 6 | [Stablecoins & CDPs](6-stablecoins-cdps.md) | ~4 days | MakerDAO (Vat, Jug, Dog, PSM), Liquity, crvUSD |
 | 7 | [Vaults & Yield](7-vaults-yield.md) | ~4 days | ERC-4626, Yearn, yield aggregation |
 | 8 | [DeFi Security](8-defi-security.md) | ~4 days | Reentrancy, oracle manipulation, invariant testing |
-| 9 | [Integration Capstone](9-integration-capstone.md) | ~2-3 days | All of the above |
+| 9 | [Capstone: Decentralized Stablecoin](9-integration-capstone.md) | ~5-7 days | MakerDAO, Liquity, ERC-4626, ERC-3156 |
 
-**Total: ~38-45 days** (~5-6 weeks at 3-4 hours/day)
+**Total: ~41-49 days** (~6-7 weeks at 3-4 hours/day)
 
 ## Module Progression
 
@@ -41,7 +41,7 @@ Module 7 (Vaults & Yield) ← M1 + M2 + M4 (ERC-4626, strategy allocation)
    ↓
 Module 8 (Security) ← M2 + M3 + M4 + M7 (attack vectors across all primitives)
    ↓
-Module 9 (Capstone) ← Everything
+Module 9 (Stablecoin Capstone) ← M3 + M4 + M5 + M6 + M7 + M8 (design + build a complete protocol)
 ```
 
 ## Part 2 Checklist
