@@ -208,3 +208,5 @@ forge test --match-contract TransientGuardTest -vvv
 | Read-Only Reentrancy | `src/part2/module8/exercise1-reentrancy/ReentrancyAttack.sol` | `test/part2/module8/exercise1-reentrancy/ReadOnlyReentrancy.t.sol` | View function reentrancy, inflated share price, vault.locked() defense |
 | Oracle Manipulation | `src/part2/module8/exercise2-oracle/OracleAttack.sol` | `test/part2/module8/exercise2-oracle/OracleManipulation.t.sol` | Flash loan + AMM spot price exploit, Chainlink defense |
 | Vault Invariant Testing | `src/part2/module8/exercise3-invariant/VaultHandler.sol` | `test/part2/module8/exercise3-invariant/VaultInvariant.t.sol` | Write tests that find bugs, handler + invariant pattern |
+| Precision Loss | `src/part2/module8/exercise4-precision-loss/RoundingExploit.sol` | `test/part2/module8/exercise4-precision-loss/PrecisionLoss.t.sol` | Unscaled accumulator truncation, Synthetix scaled pattern |
+| Access Control | `src/part2/module8/exercise5-access-control/AccessControlAttack.sol` | `test/part2/module8/exercise5-access-control/AccessControl.t.sol` | Re-initialization exploit, missing auth on critical functions |

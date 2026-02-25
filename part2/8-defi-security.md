@@ -17,6 +17,8 @@
 - [Price Manipulation Taxonomy](#price-manipulation)
 - [Flash Loan Attack P&L Walkthrough](#flash-loan-walkthrough)
 - [Frontrunning and MEV](#frontrunning-mev)
+- [Precision Loss and Rounding Exploits](#precision-loss)
+- [Access Control Vulnerabilities](#access-control-attacks)
 - [Composability Risk](#composability-risk)
 
 **Invariant Testing with Foundry**
@@ -304,6 +306,157 @@ Defense: slippage protection (`amountOutMin` in Uniswap swaps), private transact
 
 **Liquidation MEV:** When a position becomes liquidatable, MEV searchers race to execute the liquidation (and capture the bonus). For protocol builders: ensure your liquidation mechanism is MEV-aware and that the bonus isn't so large it incentivizes price manipulation to trigger liquidations.
 
+<a id="precision-loss"></a>
+### ⚠️ Precision Loss and Rounding Exploits
+
+Integer division in Solidity always truncates (rounds toward zero). In DeFi, this creates two distinct classes of vulnerability:
+
+**Class 1: Silent reward loss (truncation to zero)**
+
+When a reward pool distributes rewards proportionally, the accumulator update divides reward by total staked:
+
+```solidity
+// VULNERABLE: unscaled accumulator
+rewardPerTokenStored += rewardAmount / totalStaked;
+// If totalStaked = 1000e18 and rewardAmount = 100 wei:
+//   100 / 1000e18 = 0  ← TRUNCATED! Rewards lost forever.
+```
+
+This isn't a one-time bug — it compounds. Every small reward distribution that truncates is value permanently stuck in the contract. Over time, this can represent significant losses, especially for tokens with small decimal precision or high-value-per-unit tokens.
+
+**The fix — scale before dividing:**
+
+```solidity
+// SAFE: scaled accumulator (Synthetix StakingRewards pattern)
+uint256 constant PRECISION = 1e18;
+rewardPerTokenStored += rewardAmount * PRECISION / totalStaked;
+// Example: 10_000 * 1e18 / 5000e18 = 1e22 / 5e21 = 2  (preserved, not truncated!)
+
+// When calculating earned:
+earned = staked[account] * (rewardPerToken - paid) / PRECISION;
+// Example: 5000e18 * 2 / 1e18 = 10_000  (full reward recovered)
+```
+
+This is the standard pattern used by [Synthetix StakingRewards](https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol), Convex, and virtually every production reward distribution contract.
+
+**Class 2: Rounding direction exploits**
+
+In share-based systems (vaults, lending), rounding direction matters:
+- **Deposits:** round shares DOWN (give user fewer shares → protects vault)
+- **Withdrawals:** round assets DOWN (give user fewer tokens → protects vault)
+
+If rounding favors the user in either direction, they can extract value through repeated small operations:
+
+```
+Deposit 1 wei → receive 1 share (should be 0.7, rounded UP to 1)
+Withdraw 1 share → receive 1 token (should be 0.7, rounded UP to 1)
+Repeat 1000 times → extract ~300 wei from vault
+```
+
+At scale (or with low-decimal tokens like USDC with 6 decimals), this becomes significant.
+
+**The fix — always round against the user:**
+
+```solidity
+// ERC-4626 standard: deposit rounds shares DOWN, withdraw rounds assets DOWN
+function convertToShares(uint256 assets) public view returns (uint256) {
+    return assets * totalSupply() / totalAssets(); // rounds down (fewer shares)
+}
+
+function convertToAssets(uint256 shares) public view returns (uint256) {
+    return shares * totalAssets() / totalSupply(); // rounds down (fewer assets)
+}
+```
+
+For mulDiv with explicit rounding: use OpenZeppelin's `Math.mulDiv(a, b, c, Math.Rounding.Ceil)` when rounding should favor the protocol.
+
+**Where precision loss appears in DeFi:**
+
+| Protocol Type | Where Truncation Hits | Impact |
+|---|---|---|
+| Reward pools | `reward / totalStaked` accumulator | Rewards silently lost |
+| Vaults (ERC-4626) | Share/asset conversions | Value extraction via repeated small ops |
+| Lending (Aave, Compound) | Interest index updates | Interest can be rounded away for small positions |
+| AMMs | Fee collection and distribution | LP fees lost to rounding |
+| CDPs (MakerDAO) | `art * rate` debt calculation | Dust debt that can't be fully repaid |
+
+**Real-world examples:**
+- Multiple vault protocols have had audit findings for incorrect rounding direction in `deposit()`/`mint()`/`withdraw()`/`redeem()`
+- Aave V3 uses `WadRayMath` (1e27 scale factor) specifically to minimize precision loss in interest calculations
+- MakerDAO's Vat tracks debt as `art * rate` (both in RAY = 1e27) to preserve precision across stability fee accruals
+
+<a id="access-control-attacks"></a>
+### ⚠️ Access Control Vulnerabilities
+
+Access control is the [#1 vulnerability in the OWASP Smart Contract Top 10](https://owasp.org/www-project-smart-contract-top-10/) (2024 and 2025). It's devastatingly simple and the most common cause of total fund loss in DeFi.
+
+**Pattern 1: Missing initializer guard (upgradeable contracts)**
+
+Upgradeable contracts use `initialize()` instead of `constructor()` (constructors don't run in proxy context). If `initialize()` can be called more than once, anyone can re-initialize and claim ownership:
+
+```solidity
+// VULNERABLE: no initialization guard
+function initialize(address owner_) external {
+    owner = owner_;  // Can be called repeatedly — attacker overwrites owner
+}
+```
+
+```solidity
+// SAFE: OpenZeppelin Initializable pattern
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
+function initialize(address owner_) external initializer {
+    owner = owner_;  // initializer modifier ensures this runs only once
+}
+```
+
+**Critical subtlety:** Even with `initializer`, the implementation contract itself (not the proxy) can be initialized by anyone if you don't call `_disableInitializers()` in the constructor. This was the root cause of the [Wormhole bridge exploit ($320M, 2022)](https://rekt.news/wormhole-rekt/) — the attacker called `initialize()` directly on the implementation contract.
+
+```solidity
+// PRODUCTION PATTERN: disable initializers on implementation
+constructor() {
+    _disableInitializers();  // Prevents anyone from initializing the implementation
+}
+```
+
+**Pattern 2: Unprotected critical functions**
+
+Functions that move funds, change parameters, or pause the protocol must have access control. The pattern is simple, but forgetting it on even one function is catastrophic:
+
+```solidity
+// VULNERABLE: anyone can drain the vault
+function emergencyWithdraw() external {
+    token.transfer(owner, token.balanceOf(address(this)));
+}
+
+// SAFE: owner-only access
+function emergencyWithdraw() external {
+    require(msg.sender == owner, "not owner");
+    token.transfer(owner, token.balanceOf(address(this)));
+}
+```
+
+For protocols with multiple roles (admin, guardian, strategist), use OpenZeppelin's `AccessControl` with named roles instead of simple `owner` checks.
+
+**Pattern 3: Missing function visibility**
+
+In older Solidity versions (< 0.8.0), functions without explicit visibility defaulted to `public`. Modern Solidity requires explicit visibility, but the lesson still applies: always review that internal helper functions aren't accidentally `external` or `public`.
+
+**The OWASP Smart Contract Top 10 access control patterns:**
+1. Unprotected `initialize()` — re-initialization overwrites owner
+2. Missing `onlyOwner` / role checks on critical functions
+3. `tx.origin` used for authentication (phishable via intermediate contract)
+4. Incorrect role assignment in constructor/initializer
+5. Missing two-step ownership transfer (single-step transfer to wrong address = permanent lockout)
+
+**Defense checklist:**
+- [ ] Every `initialize()` uses `initializer` modifier (OpenZeppelin Initializable)
+- [ ] Implementation contracts call `_disableInitializers()` in constructor
+- [ ] Every fund-moving function has appropriate access control
+- [ ] Ownership transfer uses two-step pattern (`Ownable2Step`)
+- [ ] Never use `tx.origin` for authentication
+- [ ] All roles assigned correctly in initializer, verified in tests
+
 <a id="composability-risk"></a>
 ### ⚠️ Composability Risk
 
@@ -338,6 +491,14 @@ Then fix the lending protocol to use Chainlink and verify the attack fails.
 - Execute a large swap without slippage protection
 - Show how a sandwich captures value
 - Add slippage protection and show the sandwich becomes unprofitable
+
+**Workspace:** [`workspace/src/part2/module8/exercise4-precision-loss/`](../workspace/src/part2/module8/exercise4-precision-loss/) — starter files: [`RoundingExploit.sol`](../workspace/src/part2/module8/exercise4-precision-loss/RoundingExploit.sol), [`DefendedRewardPool.sol`](../workspace/src/part2/module8/exercise4-precision-loss/DefendedRewardPool.sol), tests: [`PrecisionLoss.t.sol`](../workspace/test/part2/module8/exercise4-precision-loss/PrecisionLoss.t.sol)
+
+**Exercise 4: Precision loss exploit.** A reward pool distributes tokens proportionally, but uses an unscaled accumulator (`reward / totalStaked`). When `totalStaked` is large, rewards truncate to zero. Exploit this by staking a tiny amount (1 wei) when you're the only staker to capture 100% of rewards. Then fix the pool using the Synthetix scaled-accumulator pattern (`reward * 1e18 / totalStaked`).
+
+**Workspace:** [`workspace/src/part2/module8/exercise5-access-control/`](../workspace/src/part2/module8/exercise5-access-control/) — starter files: [`AccessControlAttack.sol`](../workspace/src/part2/module8/exercise5-access-control/AccessControlAttack.sol), [`DefendedVault.sol`](../workspace/src/part2/module8/exercise5-access-control/DefendedVault.sol), tests: [`AccessControl.t.sol`](../workspace/test/part2/module8/exercise5-access-control/AccessControl.t.sol)
+
+**Exercise 5: Access control exploit.** A vault has two bugs: `initialize()` can be re-called to overwrite the owner, and `emergencyWithdraw()` has no access control. Exploit both to drain user funds in a single transaction. Then build a defended version with initialization guards and proper owner checks.
 
 ### 🎯 Practice Challenges
 
@@ -375,6 +536,8 @@ Then fix the lending protocol to use Chainlink and verify the attack fails.
 - Cross-contract reentrancy — trust boundary violations across multi-protocol compositions
 - Price manipulation taxonomy — 5 categories from spot manipulation to governance attacks
 - Frontrunning / MEV — sandwich attacks, JIT liquidity, liquidation MEV
+- Precision loss — truncation-to-zero in reward accumulators, rounding direction exploits in share-based systems
+- Access control — OWASP #1: missing initializer guards, unprotected critical functions, Wormhole-style implementation initialization
 - Composability risk — the cascading dependency problem in DeFi
 
 **Key insight:** Most DeFi exploits are *compositions* of known patterns. The attacker combines a flash loan (free capital) with a price manipulation (create mispricing) and a protocol assumption violation (exploit the mispricing). Thinking in attack chains, not isolated vulnerabilities, is what separates effective security reviewers.

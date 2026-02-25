@@ -228,6 +228,52 @@ return (validAfter << 160) | (validUntil << 208);
 // This creates a 1-hour validity window
 ```
 
+#### 🔍 Deep Dive: validationData Packing — Worked Example
+
+Let's trace through a concrete example. Say your smart account wants to return: "signature valid, usable from timestamp 1700000000, expires at 1700003600 (1 hour later)."
+
+```
+Given:
+  sigFailed  = 0 (valid signature)
+  validAfter = 1700000000 = 0x6553_F100
+  validUntil = 1700003600 = 0x6554_0110
+
+Step 1: Pack sigFailed into bits 0-159
+  Since sigFailed = 0, the low 160 bits are all zeros.
+  Result so far: 0x00000000...0000 (160 bits)
+
+Step 2: Shift validAfter left by 160 bits (into bits 160-207)
+  0x6553F100 << 160
+  = 0x0000006553F100_000000000000000000000000000000000000000000
+
+Step 3: Shift validUntil left by 208 bits (into bits 208-255)
+  0x65540110 << 208
+  = 0x65540110_0000000000000000000000000000000000000000000000000000
+
+Step 4: OR them together:
+  ┌──────────────────┬──────────────────┬──────────────────────────────┐
+  │  0x65540110      │  0x6553F100      │  0x00...00                   │
+  │  validUntil      │  validAfter      │  sigFailed (0 = valid)       │
+  │  bits 208-255    │  bits 160-207    │  bits 0-159                  │
+  └──────────────────┴──────────────────┴──────────────────────────────┘
+```
+
+**In Solidity:**
+```solidity
+// Packing:
+uint256 validationData = (uint256(1700003600) << 208) | (uint256(1700000000) << 160);
+
+// Unpacking (how EntryPoint reads it):
+address aggregator = address(uint160(validationData));        // bits 0-159
+uint48 validAfter  = uint48(validationData >> 160);           // bits 160-207
+uint48 validUntil  = uint48(validationData >> 208);           // bits 208-255
+bool sigFailed     = aggregator == address(1);                // special sentinel
+
+// If validUntil == 0, EntryPoint treats it as "no expiration" (type(uint48).max)
+```
+
+**Common mistake:** Swapping `validAfter` and `validUntil` positions. The layout is `validUntil | validAfter | sigFailed` from high to low bits — counterintuitive because you'd expect "after" before "until" chronologically, but the packing follows the EntryPoint's unpacking order.
+
 > **Connection to Module 1:** This is the same bit-packing pattern as BalanceDelta (Module 1) and PackedAllowance (Module 3) — multiple values squeezed into a single uint256 to save gas. The pattern is everywhere in production DeFi.
 
 💻 **Quick Try:**

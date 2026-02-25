@@ -260,6 +260,59 @@ Uniswap V4's PoolManager does exactly this, but for hundreds of pools:
 
 > 🔍 **Deep dive:** [ChainSecurity - TSTORE Low Gas Reentrancy](https://www.chainsecurity.com/blog/tstore-low-gas-reentrancy) demonstrates the attack with code examples. Their [GitHub repo](https://github.com/ChainSecurity/TSTORE-Low-Gas-Reentrancy) provides exploit POCs.
 
+**The attack in code:**
+
+```solidity
+// VULNERABLE: This vault uses a transient-storage-based reentrancy guard,
+// but sends ETH via transfer() BEFORE updating state.
+contract VulnerableVault {
+    uint256 transient _locked;
+
+    modifier nonReentrant() {
+        require(_locked == 0, "locked");
+        _locked = 1;
+        _;
+        _locked = 0;
+    }
+
+    mapping(address => uint256) public balances;
+
+    function withdraw() external nonReentrant {
+        uint256 bal = balances[msg.sender];
+        // Sends ETH via transfer() — 2,300 gas stipend
+        payable(msg.sender).transfer(bal);
+        balances[msg.sender] = 0;  // State update AFTER transfer
+    }
+}
+
+// ATTACKER: Pre-Cancun, transfer()'s 2,300 gas stipend was too little
+// for SSTORE (~5,000+ gas), so reentrancy via transfer() was "impossible."
+// Post-Cancun, TSTORE costs only ~100 gas — well within the 2,300 budget.
+contract Attacker {
+    VulnerableVault vault;
+    uint256 transient _attackCount;  // TSTORE fits in 2,300 gas!
+
+    receive() external payable {
+        // This executes within transfer()'s 2,300 gas stipend.
+        // Pre-Cancun: SSTORE here would exceed gas limit → safe.
+        // Post-Cancun: TSTORE costs ~100 gas → attack is possible.
+        if (_attackCount < 3) {
+            _attackCount += 1;      // ~100 gas (TSTORE)
+            vault.withdraw();       // Re-enters! Guard uses transient storage
+                                    // but the SAME transient slot is already 1
+                                    // Wait — the guard checks _locked == 0...
+        }
+    }
+}
+// KEY INSIGHT: The guard actually blocks this specific attack because _locked
+// is still 1 during re-entry. The REAL danger is contracts that DON'T use
+// a reentrancy guard but relied on transfer()'s gas limit as implicit protection.
+// Post-Cancun, transfer()/send() are NO LONGER safe assumptions for reentrancy
+// prevention. Always use explicit guards + checks-effects-interactions.
+```
+
+> **Bottom line:** The transient reentrancy guard itself is fine — it's contracts that relied on `transfer()`'s gas limit *instead of* a guard that are now vulnerable. Any contract that assumed "2,300 gas isn't enough to do anything dangerous" is broken post-Cancun.
+
 🏗️ **Real usage:**
 
 Read [Uniswap V4's PoolManager.sol](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol)—the entire protocol is built on transient storage tracking deltas. You'll see this pattern in Part 3.
