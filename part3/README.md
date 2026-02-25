@@ -1,6 +1,6 @@
 # Part 3 — Modern DeFi Stack & Advanced Verticals (~6-7 weeks)
 
-Advanced DeFi protocol patterns, emerging verticals, and infrastructure — culminating in a capstone project designing a multi-collateral stablecoin protocol from scratch.
+Advanced DeFi protocol patterns, emerging verticals, and infrastructure — culminating in a capstone project integrating advanced concepts into a portfolio-ready protocol.
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ Advanced DeFi protocol patterns, emerging verticals, and infrastructure — culm
 | 6 | [Cross-Chain & Bridges](6-cross-chain.md) | ~4 days | LayerZero, CCIP, Wormhole |
 | 7 | [L2-Specific DeFi](7-l2-defi.md) | ~3 days | Arbitrum, Base, Optimism |
 | 8 | [Governance & DAOs](8-governance.md) | ~3 days | OZ Governor, Curve, Velodrome |
-| 9 | [Capstone: Multi-Collateral Stablecoin](9-capstone.md) | ~5-7 days | All of the above |
+| 9 | [Capstone: TBD](9-capstone.md) | ~5-7 days | Perpetual DEX / Yield Tokenizer / Stablecoin V2 |
 
 **Total: ~35-43 days** (~6-7 weeks at 3-4 hours/day)
 
@@ -60,7 +60,7 @@ Where DeFi lives today. Bridge architectures, messaging protocols, and the L2-sp
 How protocols govern themselves — on-chain governance, tokenomics, and the security considerations that come with decentralized decision-making.
 
 **Module 9: Capstone**
-Design and build a multi-collateral stablecoin protocol from scratch, integrating concepts from across the entire program.
+Design and build a portfolio-ready protocol from scratch. Three candidates under consideration: (1) On-Chain Perpetual DEX, (2) LST Yield Tokenizer, (3) Governed V2 of the Part 2 Stablecoin. Final choice deferred until Part 3 modules are complete.
 
 ---
 

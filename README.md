@@ -26,7 +26,7 @@ Catching up on Solidity 0.8.x language changes, EVM-level upgrades (Dencun, Pect
 | 6 | Proxy Patterns & Upgradeability | ~1.5-2 days | ⬜ |
 | 7 | Deployment & Operations | ~0.5 day | ⬜ |
 
-### Part 2 — DeFi Foundations (~5-6 weeks)
+### Part 2 — DeFi Foundations (~6-7 weeks)
 
 The core primitives of decentralized finance. Each module follows a consistent pattern: concept → math → read production code → build → test → extend.
 
@@ -40,11 +40,11 @@ The core primitives of decentralized finance. Each module follows a consistent p
 | 6 | Stablecoins & CDPs | ~4 days | ⬜ |
 | 7 | Vaults & Yield | ~4 days | ⬜ |
 | 8 | DeFi Security | ~4 days | ⬜ |
-| 9 | Integration Capstone | ~2-3 days | ⬜ |
+| 9 | Capstone: Decentralized Stablecoin | ~5-7 days | ⬜ |
 
 ### Part 3 — Modern DeFi Stack & Advanced Verticals (~6-7 weeks)
 
-DeFi verticals (liquid staking, perpetuals, yield tokenization), trading infrastructure (aggregation, MEV), multi-chain reality (bridges, L2), governance, and a capstone project designing a multi-collateral stablecoin protocol from scratch.
+DeFi verticals (liquid staking, perpetuals, yield tokenization), trading infrastructure (aggregation, MEV), multi-chain reality (bridges, L2), governance, and a capstone project integrating advanced concepts into a portfolio-ready protocol.
 
 | # | Module | Duration | Status |
 |---|--------|----------|--------|
@@ -56,7 +56,7 @@ DeFi verticals (liquid staking, perpetuals, yield tokenization), trading infrast
 | 6 | Cross-Chain & Bridges | ~4 days | ⬜ |
 | 7 | L2-Specific DeFi | ~3 days | ⬜ |
 | 8 | Governance & DAOs | ~3 days | ⬜ |
-| 9 | Capstone: Multi-Collateral Stablecoin | ~5-7 days | ⬜ |
+| 9 | Capstone: TBD (Perpetual DEX / Yield Tokenizer / Stablecoin V2) | ~5-7 days | ⬜ |
 
 ## Learning Approach
 
