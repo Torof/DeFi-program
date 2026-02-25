@@ -412,6 +412,8 @@ When reading how a production protocol consumes oracle data:
 <a id="build-chainlink-consumer"></a>
 ### 🛠️ Build: Safe Chainlink Consumer
 
+**Workspace:** [`workspace/src/part2/module3/exercise1-oracle-consumer/`](../workspace/src/part2/module3/exercise1-oracle-consumer/) — starter file: [`OracleConsumer.sol`](../workspace/src/part2/module3/exercise1-oracle-consumer/OracleConsumer.sol), tests: [`OracleConsumer.t.sol`](../workspace/test/part2/module3/exercise1-oracle-consumer/OracleConsumer.t.sol)
+
 **Exercise 1: Build an `OracleConsumer.sol`** that reads Chainlink price feeds with proper safety checks:
 
 ```solidity
@@ -701,6 +703,8 @@ amountOut = (amountIn * priceAverage) >> 112;
 
 <a id="build-twap"></a>
 ### 🛠️ Build: TWAP Oracle
+
+**Workspace:** [`workspace/src/part2/module3/exercise2-twap-oracle/`](../workspace/src/part2/module3/exercise2-twap-oracle/) — starter file: [`TWAPOracle.sol`](../workspace/src/part2/module3/exercise2-twap-oracle/TWAPOracle.sol), tests: [`TWAPOracle.t.sol`](../workspace/test/part2/module3/exercise2-twap-oracle/TWAPOracle.t.sol) | Also: [`DualOracle.sol`](../workspace/src/part2/module3/exercise3-dual-oracle/DualOracle.sol), tests: [`DualOracle.t.sol`](../workspace/test/part2/module3/exercise3-dual-oracle/DualOracle.t.sol)
 
 **Exercise 1: Build a TWAP oracle contract** that:
 - Stores periodic price observations (price, timestamp) from a Uniswap V2 pair
@@ -1058,6 +1062,8 @@ require(timeElapsed >= MINIMUM_WINDOW, "Window too short"); // e.g., 1800 second
 
 <a id="build-oracle-lab"></a>
 ### 🛠️ Build: Oracle Manipulation Lab
+
+**Workspace:** [`workspace/src/part2/module3/exercise4-spot-price/`](../workspace/src/part2/module3/exercise4-spot-price/) — starter file: [`SpotPriceManipulation.sol`](../workspace/src/part2/module3/exercise4-spot-price/SpotPriceManipulation.sol), tests: [`SpotPriceManipulation.t.sol`](../workspace/test/part2/module3/exercise4-spot-price/SpotPriceManipulation.t.sol)
 
 **Exercise 1: Build the vulnerable protocol.** Create a simple lending contract that reads spot price from a Uniswap V2 pool. Deploy the pool, the lending contract, and demonstrate the attack:
 - Fund the pool with initial liquidity

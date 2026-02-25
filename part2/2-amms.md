@@ -328,13 +328,7 @@ Fees must exceed LVR, not just IL, for LPs to profit. When evaluating whether a 
 <a id="build-cpp"></a>
 ### 🛠️ Build: Minimal Constant Product Pool
 
-Create a new Foundry project:
-
-```bash
-forge init simple-amm
-cd simple-amm
-forge install OpenZeppelin/openzeppelin-contracts
-```
+**Workspace:** [`workspace/src/part2/module2/exercise1-constant-product/`](../workspace/src/part2/module2/exercise1-constant-product/) — starter file: [`ConstantProductPool.sol`](../workspace/src/part2/module2/exercise1-constant-product/ConstantProductPool.sol), tests: [`ConstantProductPool.t.sol`](../workspace/test/part2/module2/exercise1-constant-product/ConstantProductPool.t.sol)
 
 **Build a `ConstantProductPool.sol`** with these features:
 
@@ -519,6 +513,8 @@ This is the user-facing contract. Note how it:
 
 <a id="v2-exercises"></a>
 ### Exercises
+
+**Workspace:** [`workspace/test/part2/module2/exercise1b-v2-extensions/`](../workspace/test/part2/module2/exercise1b-v2-extensions/) — test-only exercise: [`V2Extensions.t.sol`](../workspace/test/part2/module2/exercise1b-v2-extensions/V2Extensions.t.sol) (implements `FlashSwapConsumer` and `SimpleRouter` inline, then runs tests for flash swaps, multi-hop routing, and TWAP)
 
 **Exercise 1: Flash swap.** Using your own pool or a V2 fork, implement a flash swap consumer contract. Borrow tokens, "use" them (e.g., check arbitrage conditions), then return them with fee. Write tests verifying the flash swap callback works and that failing to return tokens reverts.
 
@@ -845,6 +841,8 @@ Fees in V3 are tracked per unit of liquidity within active ranges using `feeGrow
 <a id="v3-exercises"></a>
 ### Exercises
 
+**Workspace:** [`workspace/src/part2/module2/exercise2-v3-position/`](../workspace/src/part2/module2/exercise2-v3-position/) — starter file: [`V3PositionCalculator.sol`](../workspace/src/part2/module2/exercise2-v3-position/V3PositionCalculator.sol), tests: [`V3PositionCalculator.t.sol`](../workspace/test/part2/module2/exercise2-v3-position/V3PositionCalculator.t.sol)
+
 **Exercise 1: Tick math implementation.** Write Solidity functions that convert between ticks, prices, and sqrtPriceX96. Verify against [TickMath.sol](https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/TickMath.sol) outputs using Foundry tests. This will cement the relationship between these representations.
 
 **Exercise 2: Position value calculator.** Given a position's `(tickLower, tickUpper, liquidity)` and the current `sqrtPriceX96`, compute how many of each token the position currently holds. Handle the three cases: price below range, price within range, price above range.
@@ -1117,6 +1115,8 @@ Focus on:
 
 <a id="v4-exercises"></a>
 ### Exercises
+
+**Workspace:** [`workspace/src/part2/module2/exercise3-dynamic-fee/`](../workspace/src/part2/module2/exercise3-dynamic-fee/) — starter file: [`DynamicFeeHook.sol`](../workspace/src/part2/module2/exercise3-dynamic-fee/DynamicFeeHook.sol), tests: [`DynamicFeeHook.t.sol`](../workspace/test/part2/module2/exercise3-dynamic-fee/DynamicFeeHook.t.sol)
 
 **Exercise 1: Study the unlock pattern.** Trace through a simple swap: how does the caller interact with PoolManager? What's the sequence of `unlock()` → callback → `swap()` → `settle()` / `take()`? Draw the flow.
 

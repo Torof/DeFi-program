@@ -335,7 +335,7 @@ bytes32 digest = buildPermitDigest(owner, spender, value, nonce, deadline);
 <a id="day5-exercise"></a>
 ## 🎯 Build Exercise: PermitVault
 
-**Workspace:** [`workspace/src/part1/module3/`](../workspace/src/part1/module3/) — starter file: [`PermitVault.sol`](../workspace/src/part1/module3/PermitVault.sol), tests: [`PermitVault.t.sol`](../workspace/test/part1/module3/PermitVault.t.sol)
+**Workspace:** [`workspace/src/part1/module3/exercise1-permit-vault/`](../workspace/src/part1/module3/exercise1-permit-vault/) — starter file: [`PermitVault.sol`](../workspace/src/part1/module3/exercise1-permit-vault/PermitVault.sol), tests: [`PermitVault.t.sol`](../workspace/test/part1/module3/exercise1-permit-vault/PermitVault.t.sol)
 
 1. Create an ERC-20 token with EIP-2612 permit support (extend OpenZeppelin's `ERC20Permit`)
 2. Write a `Vault` contract that accepts deposits via permit—a single function that calls `permit()` then `transferFrom()` in one transaction
@@ -862,7 +862,7 @@ Look at how `V3SwapRouter` calls `permit2.permitTransferFrom` to pull tokens fro
 <a id="day6-exercise"></a>
 ## 🎯 Build Exercise: Permit2Vault
 
-**Workspace:** [`workspace/src/part1/module3/`](../workspace/src/part1/module3/) — starter file: [`Permit2Vault.sol`](../workspace/src/part1/module3/Permit2Vault.sol), tests: [`Permit2Vault.t.sol`](../workspace/test/part1/module3/Permit2Vault.t.sol)
+**Workspace:** [`workspace/src/part1/module3/exercise3-permit2-vault/`](../workspace/src/part1/module3/exercise3-permit2-vault/) — starter file: [`Permit2Vault.sol`](../workspace/src/part1/module3/exercise3-permit2-vault/Permit2Vault.sol), tests: [`Permit2Vault.t.sol`](../workspace/test/part1/module3/exercise3-permit2-vault/Permit2Vault.t.sol)
 
 Build a Vault contract that integrates with Permit2 for both transfer modes:
 
@@ -1139,7 +1139,7 @@ try IERC20Permit(token).permit(...) {
 <a id="day7-exercise"></a>
 ## 🎯 Build Exercise: SafePermit
 
-**Workspace:** [`workspace/src/part1/module3/`](../workspace/src/part1/module3/) — starter file: [`SafePermit.sol`](../workspace/src/part1/module3/SafePermit.sol), tests: [`SafePermit.t.sol`](../workspace/test/part1/module3/SafePermit.t.sol)
+**Workspace:** [`workspace/src/part1/module3/exercise2-safe-permit/`](../workspace/src/part1/module3/exercise2-safe-permit/) — starter file: [`SafePermit.sol`](../workspace/src/part1/module3/exercise2-safe-permit/SafePermit.sol), tests: [`SafePermit.t.sol`](../workspace/test/part1/module3/exercise2-safe-permit/SafePermit.t.sol)
 
 1. **Write a test demonstrating permit front-running:**
    - User signs and submits permit

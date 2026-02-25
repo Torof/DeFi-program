@@ -836,13 +836,7 @@ Is your protocol permissionless or curated?
 <a id="build-token-test-suite"></a>
 ### 🛠️ Build: Token Interaction Test Suite (Foundry)
 
-Create a Foundry project that tests your understanding of these patterns:
-
-```bash
-forge init token-mechanics
-cd token-mechanics
-forge install OpenZeppelin/openzeppelin-contracts
-```
+**Workspace:** [`workspace/src/part2/module1/`](../workspace/src/part2/module1/) — starter files: [`DefensiveVault.sol`](../workspace/src/part2/module1/exercise1-defensive-vault/DefensiveVault.sol), [`DecimalNormalizer.sol`](../workspace/src/part2/module1/exercise2-decimal-normalizer/DecimalNormalizer.sol), tests: [`DefensiveVault.t.sol`](../workspace/test/part2/module1/exercise1-defensive-vault/DefensiveVault.t.sol), [`DecimalNormalizer.t.sol`](../workspace/test/part2/module1/exercise2-decimal-normalizer/DecimalNormalizer.t.sol)
 
 **Exercise 1: Build a simple `Vault` contract** that accepts ERC-20 deposits and tracks balances. Requirements:
 - Uses [SafeERC20](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/utils/SafeERC20.sol) for all token interactions

@@ -281,6 +281,8 @@ Also compare with Solmate's implementation (`solmate/src/tokens/ERC4626.sol`) wh
 <a id="day1-exercise"></a>
 ### 🛠️ Exercise
 
+**Workspace:** [`workspace/src/part2/module7/exercise1-simple-vault/`](../workspace/src/part2/module7/exercise1-simple-vault/) — starter file: [`SimpleVault.sol`](../workspace/src/part2/module7/exercise1-simple-vault/SimpleVault.sol), tests: [`SimpleVault.t.sol`](../workspace/test/part2/module7/exercise1-simple-vault/SimpleVault.t.sol)
+
 **Exercise 1:** Implement a minimal ERC-4626 vault from scratch (don't use OpenZeppelin or Solmate). Use `Math.mulDiv` for safe division. Implement all required functions. Test:
 - Deposit 1000 USDC, receive 1000 shares
 - Simulate yield: manually transfer 100 USDC to the vault
@@ -592,6 +594,8 @@ Defense: lending protocols should use time-weighted or externally-sourced exchan
 
 ### 🛠️ Exercise
 
+**Workspace:** [`workspace/src/part2/module7/exercise2-inflation-attack/`](../workspace/src/part2/module7/exercise2-inflation-attack/) — starter files: [`NaiveVault.sol`](../workspace/src/part2/module7/exercise2-inflation-attack/NaiveVault.sol), [`DefendedVault.sol`](../workspace/src/part2/module7/exercise2-inflation-attack/DefendedVault.sol), tests: [`InflationAttack.t.sol`](../workspace/test/part2/module7/exercise2-inflation-attack/InflationAttack.t.sol)
+
 **Exercise 1:** Build the inflation attack. Deploy a naive vault (no virtual shares, `totalAssets = balanceOf`), execute the attack step by step, and show the victim's loss. Then add OpenZeppelin's virtual share offset and show the attack becomes unprofitable.
 
 **Exercise 2:** Build a vault with internal accounting (`_totalManagedAssets`). Show that direct token transfers don't affect the exchange rate. Then show a scenario where a strategy reports yield and updates `_totalManagedAssets` correctly.
@@ -788,6 +792,8 @@ Each layer uses ERC-4626, so they compose naturally.
 **Pro tip:** The curator/vault-as-a-service model is the fastest-growing DeFi architectural pattern in 2025. Being able to articulate the trade-offs between Yearn V3 (flexible strategies, higher risk surface) vs MetaMorpho (constrained to lending, easier to audit) vs Euler V2 (modular with custom vault logic) signals you understand the current state of DeFi infrastructure.
 
 ### 🛠️ Exercise
+
+**Workspace:** [`workspace/src/part2/module7/exercise3-simple-allocator/`](../workspace/src/part2/module7/exercise3-simple-allocator/) — starter files: [`SimpleAllocator.sol`](../workspace/src/part2/module7/exercise3-simple-allocator/SimpleAllocator.sol), [`MockStrategy.sol`](../workspace/src/part2/module7/exercise3-simple-allocator/MockStrategy.sol), tests: [`SimpleAllocator.t.sol`](../workspace/test/part2/module7/exercise3-simple-allocator/SimpleAllocator.t.sol)
 
 **Exercise:** Build a simplified allocator vault:
 
@@ -1011,6 +1017,8 @@ This composability is why ERC-4626 adoption has been so rapid — each new vault
 - Real-world asset (RWA) vaults — tokenized treasury yields via ERC-4626
 
 ### 🛠️ Exercise
+
+**Workspace:** [`workspace/src/part2/module7/exercise4-auto-compounder/`](../workspace/src/part2/module7/exercise4-auto-compounder/) — starter files: [`AutoCompounder.sol`](../workspace/src/part2/module7/exercise4-auto-compounder/AutoCompounder.sol), [`MockSwap.sol`](../workspace/src/part2/module7/exercise4-auto-compounder/MockSwap.sol), tests: [`AutoCompounder.t.sol`](../workspace/test/part2/module7/exercise4-auto-compounder/AutoCompounder.t.sol)
 
 **Exercise 1: Auto-compounder.** Build an ERC-4626 vault that:
 - Deposits USDC into a mock lending protocol

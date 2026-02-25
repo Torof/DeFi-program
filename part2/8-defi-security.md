@@ -319,6 +319,8 @@ DeFi's composability means your protocol interacts with others in ways you can't
 
 ### 🛠️ Exercise
 
+**Workspace:** [`workspace/src/part2/module8/exercise1-reentrancy/`](../workspace/src/part2/module8/exercise1-reentrancy/) — starter files: [`ReentrancyAttack.sol`](../workspace/src/part2/module8/exercise1-reentrancy/ReentrancyAttack.sol), [`DefendedLending.sol`](../workspace/src/part2/module8/exercise1-reentrancy/DefendedLending.sol), tests: [`ReadOnlyReentrancy.t.sol`](../workspace/test/part2/module8/exercise1-reentrancy/ReadOnlyReentrancy.t.sol) | Also: [`OracleAttack.sol`](../workspace/src/part2/module8/exercise2-oracle/OracleAttack.sol), [`SecureLending.sol`](../workspace/src/part2/module8/exercise2-oracle/SecureLending.sol), tests: [`OracleManipulation.t.sol`](../workspace/test/part2/module8/exercise2-oracle/OracleManipulation.t.sol)
+
 **Exercise 1: Read-only reentrancy exploit.** Build a mock vault whose `getSharePrice()` returns an inflated value during a `deposit()` that makes an external callback. Build a lending protocol that reads this value. Show how an attacker can deposit during the callback to get overvalued collateral. Fix it by checking the vault's reentrancy state.
 
 **Exercise 2: Complete flash loan attack.** Build a vulnerable lending protocol that reads Uniswap V2 spot prices. Execute a full flash loan attack:
@@ -730,6 +732,8 @@ The handler's `bound()` function handles invalid inputs, but the *sequence* of v
 - Setting `depth` too low (complex bugs need 20+ step sequences)
 
 ### 🛠️ Exercise
+
+**Workspace:** [`workspace/src/part2/module8/exercise3-invariant/`](../workspace/src/part2/module8/exercise3-invariant/) — starter files: [`BuggyVault.sol`](../workspace/src/part2/module8/exercise3-invariant/BuggyVault.sol), [`VaultHandler.sol`](../workspace/src/part2/module8/exercise3-invariant/VaultHandler.sol), tests: [`VaultInvariant.t.sol`](../workspace/test/part2/module8/exercise3-invariant/VaultInvariant.t.sol)
 
 Write a comprehensive invariant test suite for your SimpleLendingPool from Module 4:
 

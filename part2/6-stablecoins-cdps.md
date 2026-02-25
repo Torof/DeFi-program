@@ -244,6 +244,8 @@ The dss codebase is one of DeFi's most important — and one of the hardest to r
 <a id="day1-exercises"></a>
 ### 🛠️ Exercises: CDP Model and MakerDAO
 
+**Workspace:** [`workspace/src/part2/module6/`](../workspace/src/part2/module6/) — starter files: [`SimpleVat.sol`](../workspace/src/part2/module6/exercise1-simple-vat/SimpleVat.sol), [`SimpleJug.sol`](../workspace/src/part2/module6/exercise2-simple-jug/SimpleJug.sol), tests: [`SimpleVat.t.sol`](../workspace/test/part2/module6/exercise1-simple-vat/SimpleVat.t.sol), [`SimpleJug.t.sol`](../workspace/test/part2/module6/exercise2-simple-jug/SimpleJug.t.sol) | Shared: [`VatMath.sol`](../workspace/src/part2/module6/shared/VatMath.sol), [`SimpleStablecoin.sol`](../workspace/src/part2/module6/shared/SimpleStablecoin.sol), [`SimpleGemJoin.sol`](../workspace/src/part2/module6/shared/SimpleGemJoin.sol), [`SimpleDaiJoin.sol`](../workspace/src/part2/module6/shared/SimpleDaiJoin.sol)
+
 **Exercise 1:** On a mainnet fork, trace a complete Vault lifecycle:
 - Join WETH as collateral via GemJoin
 - Open a Vault via CdpManager, lock collateral, generate DAI via frob
@@ -590,6 +592,8 @@ In `Clipper.kick()`, trace:
 
 <a id="day2-exercises"></a>
 ### 🛠️ Exercises: Liquidations and PSM
+
+**Workspace:** [`workspace/src/part2/module6/exercise3-simple-dog/`](../workspace/src/part2/module6/exercise3-simple-dog/) — starter file: [`SimpleDog.sol`](../workspace/src/part2/module6/exercise3-simple-dog/SimpleDog.sol), tests: [`SimpleDog.t.sol`](../workspace/test/part2/module6/exercise3-simple-dog/SimpleDog.t.sol) | Also: [`SimplePSM.sol`](../workspace/src/part2/module6/exercise4-simple-psm/SimplePSM.sol), tests: [`SimplePSM.t.sol`](../workspace/test/part2/module6/exercise4-simple-psm/SimplePSM.t.sol)
 
 **Exercise 1:** On a mainnet fork, simulate a liquidation:
 - Open a Vault with ETH collateral near the liquidation ratio
@@ -939,6 +943,8 @@ Speed of peg restoration:
 
 <a id="day4-exercises"></a>
 ### 🛠️ Exercises: Stablecoin Design Trade-offs
+
+**Workspace:** [`workspace/test/part2/module6/exercise4b-peg-dynamics/`](../workspace/test/part2/module6/exercise4b-peg-dynamics/) — test-only exercise: [`PegDynamics.t.sol`](../workspace/test/part2/module6/exercise4b-peg-dynamics/PegDynamics.t.sol) (tests PSM peg restoration, reserve depletion, stability fee dynamics, and the fee/PSM feedback loop — requires SimplePSM and SimpleJug to be implemented)
 
 **Exercise 1: Liquity analysis.** Read Liquity's `TroveManager.sol` and `StabilityPool.sol`. Compare the liquidation mechanism (Stability Pool absorption) to MakerDAO's Dutch auctions. Which is simpler? Which handles edge cases better? Write a comparison document.
 

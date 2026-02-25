@@ -291,7 +291,7 @@ mainnet = { key = "${ETHERSCAN_API_KEY}" }
 <a id="day11-exercise"></a>
 ## 🎯 Build Exercise: Cheatcodes and Fork Tests
 
-**Workspace:** [`workspace/test/part1/module5/`](../workspace/test/part1/module5/) — base setup: [`BaseTest.sol`](../workspace/test/part1/module5/BaseTest.sol), fork tests: [`UniswapV2Fork.t.sol`](../workspace/test/part1/module5/UniswapV2Fork.t.sol), [`ChainlinkFork.t.sol`](../workspace/test/part1/module5/ChainlinkFork.t.sol)
+**Workspace:** [`workspace/test/part1/module5/`](../workspace/test/part1/module5/) — base setup: [`BaseTest.sol`](../workspace/test/part1/module5/exercise4-base-test/BaseTest.sol), fork tests: [`UniswapV2Fork.t.sol`](../workspace/test/part1/module5/exercise5-fork-tests/UniswapV2Fork.t.sol), [`ChainlinkFork.t.sol`](../workspace/test/part1/module5/exercise5-fork-tests/ChainlinkFork.t.sol)
 
 Set up the project structure you'll use throughout Part 2:
 
@@ -744,7 +744,7 @@ function invariant_solvency() public {
 <a id="day12-exercise"></a>
 ## 🎯 Build Exercise: Vault Invariants
 
-**Workspace:** [`workspace/src/part1/module5/`](../workspace/src/part1/module5/) — vault: [`SimpleVault.sol`](../workspace/src/part1/module5/SimpleVault.sol), tests: [`SimpleVault.t.sol`](../workspace/test/part1/module5/SimpleVault.t.sol), handler: [`VaultHandler.sol`](../workspace/test/part1/module5/VaultHandler.sol), invariants: [`VaultInvariant.t.sol`](../workspace/test/part1/module5/VaultInvariant.t.sol)
+**Workspace:** [`workspace/src/part1/module5/`](../workspace/src/part1/module5/) — vault: [`SimpleVault.sol`](../workspace/src/part1/module5/exercise1-simple-vault/SimpleVault.sol), tests: [`SimpleVault.t.sol`](../workspace/test/part1/module5/exercise1-simple-vault/SimpleVault.t.sol), handler: [`VaultHandler.sol`](../workspace/test/part1/module5/exercise3-vault-invariant/VaultHandler.sol), invariants: [`VaultInvariant.t.sol`](../workspace/test/part1/module5/exercise3-vault-invariant/VaultInvariant.t.sol)
 
 1. **Build a simple vault** (accepts one ERC-20 token, issues shares proportional to deposit size):
    ```solidity
@@ -1178,7 +1178,7 @@ contract DifferentialTest is Test {
 <a id="day13-exercise"></a>
 ## 🎯 Build Exercise: Fork Testing and Gas
 
-**Workspace:** [`workspace/test/part1/module5/`](../workspace/test/part1/module5/) — fork tests: [`UniswapSwapFork.t.sol`](../workspace/test/part1/module5/UniswapSwapFork.t.sol), gas optimization: [`GasOptimization.sol`](../workspace/src/part1/module5/GasOptimization.sol) and [`GasOptimization.t.sol`](../workspace/test/part1/module5/GasOptimization.t.sol)
+**Workspace:** [`workspace/test/part1/module5/`](../workspace/test/part1/module5/) — fork tests: [`UniswapSwapFork.t.sol`](../workspace/test/part1/module5/exercise5-fork-tests/UniswapSwapFork.t.sol), gas optimization: [`GasOptimization.sol`](../workspace/src/part1/module5/exercise2-gas-optimization/GasOptimization.sol) and [`GasOptimization.t.sol`](../workspace/test/part1/module5/exercise2-gas-optimization/GasOptimization.t.sol)
 
 1. **Write a fork test** that performs a full Uniswap V2 swap:
    ```solidity

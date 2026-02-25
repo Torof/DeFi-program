@@ -573,7 +573,7 @@ contract Vault is Pausable, Ownable {
 <a id="day16-exercise"></a>
 ## 🎯 Build Exercise: Deployment Capstone
 
-**Workspace:** [`workspace/script/`](../workspace/script/) — deployment script: [`DeployUUPSVault.s.sol`](../workspace/script/DeployUUPSVault.s.sol), tests: [`DeployUUPSVault.t.sol`](../workspace/test/part1/module7/DeployUUPSVault.t.sol)
+**Workspace:** [`workspace/script/`](../workspace/script/) — deployment script: [`DeployUUPSVault.s.sol`](../workspace/script/DeployUUPSVault.s.sol), tests: [`DeployUUPSVault.t.sol`](../workspace/test/part1/module7/exercise1-deploy-uups/DeployUUPSVault.t.sol)
 
 This is the capstone exercise for Part 1:
 

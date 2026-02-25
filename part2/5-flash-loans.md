@@ -235,6 +235,8 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 <a id="day1-exercises"></a>
 ### 🛠️ Exercises: Flash Loan Mechanics
 
+**Workspace:** [`workspace/src/part2/module5/exercise1-flash-loan-receiver/`](../workspace/src/part2/module5/exercise1-flash-loan-receiver/) — starter file: [`FlashLoanReceiver.sol`](../workspace/src/part2/module5/exercise1-flash-loan-receiver/FlashLoanReceiver.sol), tests: [`FlashLoanReceiver.t.sol`](../workspace/test/part2/module5/exercise1-flash-loan-receiver/FlashLoanReceiver.t.sol)
+
 **Exercise 1:** Build a minimal Aave V3 flash loan receiver. On a mainnet fork:
 - Flash-borrow 1,000,000 USDC
 - In the callback, simply approve and return the amount + premium
@@ -643,6 +645,8 @@ Result:
 <a id="day2-exercises"></a>
 ### 🛠️ Exercises: Flash Loan Strategies
 
+**Workspace:** [`workspace/src/part2/module5/exercise2-flash-loan-arbitrage/`](../workspace/src/part2/module5/exercise2-flash-loan-arbitrage/) — starter file: [`FlashLoanArbitrage.sol`](../workspace/src/part2/module5/exercise2-flash-loan-arbitrage/FlashLoanArbitrage.sol), tests: [`FlashLoanArbitrage.t.sol`](../workspace/test/part2/module5/exercise2-flash-loan-arbitrage/FlashLoanArbitrage.t.sol) | Also: [`CollateralSwap.sol`](../workspace/src/part2/module5/exercise3-collateral-swap/CollateralSwap.sol), tests: [`CollateralSwap.t.sol`](../workspace/test/part2/module5/exercise3-collateral-swap/CollateralSwap.t.sol)
+
 **Exercise:** Build at least two of the four strategies above. For each, write tests that verify:
 - The flash loan is fully repaid
 - The strategy is profitable (or at least demonstrates the correct flow)
@@ -807,6 +811,8 @@ Key difference:
 
 <a id="day3-exercises"></a>
 ### 🛠️ Exercises: Flash Loan Security
+
+**Workspace:** [`workspace/src/part2/module5/exercise4-vault-donation/`](../workspace/src/part2/module5/exercise4-vault-donation/) — starter file: [`VaultDonationAttack.sol`](../workspace/src/part2/module5/exercise4-vault-donation/VaultDonationAttack.sol), tests: [`VaultDonationAttack.t.sol`](../workspace/test/part2/module5/exercise4-vault-donation/VaultDonationAttack.t.sol)
 
 **Exercise 1: Build the vulnerable protocol, then defend it.** Create a simple vault contract that calculates share price as `totalAssets() / totalShares()`. Show how an attacker can use a flash loan to donate assets, inflate the share price, and exploit a protocol that reads this vault's share price. Then fix it with virtual shares/assets offset (the standard [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) defense).
 

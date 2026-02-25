@@ -318,7 +318,7 @@ Read these contracts in order:
 <a id="day8-exercise"></a>
 ## 🎯 Build Exercise: SimpleSmartAccount
 
-**Workspace:** [`workspace/src/part1/module4/`](../workspace/src/part1/module4/) — starter file: [`SimpleSmartAccount.sol`](../workspace/src/part1/module4/SimpleSmartAccount.sol), tests: [`SimpleSmartAccount.t.sol`](../workspace/test/part1/module4/SimpleSmartAccount.t.sol)
+**Workspace:** [`workspace/src/part1/module4/exercise1-simple-smart-account/`](../workspace/src/part1/module4/exercise1-simple-smart-account/) — starter file: [`SimpleSmartAccount.sol`](../workspace/src/part1/module4/exercise1-simple-smart-account/SimpleSmartAccount.sol), tests: [`SimpleSmartAccount.t.sol`](../workspace/test/part1/module4/exercise1-simple-smart-account/SimpleSmartAccount.t.sol)
 
 1. Create a minimal smart account that implements `IAccount` (just `validateUserOp`)
 2. The account should validate that the UserOperation was signed by a single owner (ECDSA signature via `ecrecover`)
@@ -727,7 +727,7 @@ function verifySignature(address signer, bytes32 hash, bytes memory sig) interna
 <a id="day9-exercise"></a>
 ## 🎯 Build Exercise: SmartAccountEIP1271
 
-**Workspace:** [`workspace/src/part1/module4/`](../workspace/src/part1/module4/) — starter file: [`SmartAccountEIP1271.sol`](../workspace/src/part1/module4/SmartAccountEIP1271.sol), tests: [`SmartAccountEIP1271.t.sol`](../workspace/test/part1/module4/SmartAccountEIP1271.t.sol)
+**Workspace:** [`workspace/src/part1/module4/exercise2-smart-account-eip1271/`](../workspace/src/part1/module4/exercise2-smart-account-eip1271/) — starter file: [`SmartAccountEIP1271.sol`](../workspace/src/part1/module4/exercise2-smart-account-eip1271/SmartAccountEIP1271.sol), tests: [`SmartAccountEIP1271.t.sol`](../workspace/test/part1/module4/exercise2-smart-account-eip1271/SmartAccountEIP1271.t.sol)
 
 1. **Extend your SimpleSmartAccount** to support EIP-1271:
    - Implement `isValidSignature(bytes32 hash, bytes signature)` that verifies the owner's ECDSA signature
@@ -1010,7 +1010,7 @@ postOp(mode, context, actualGasCost, actualUserOpFeePerGas)
 <a id="day10-exercise"></a>
 ## 🎯 Build Exercise: Paymasters
 
-**Workspace:** [`workspace/src/part1/module4/`](../workspace/src/part1/module4/) — starter file: [`Paymasters.sol`](../workspace/src/part1/module4/Paymasters.sol), tests: [`Paymasters.t.sol`](../workspace/test/part1/module4/Paymasters.t.sol)
+**Workspace:** [`workspace/src/part1/module4/exercise3-paymasters/`](../workspace/src/part1/module4/exercise3-paymasters/) — starter file: [`Paymasters.sol`](../workspace/src/part1/module4/exercise3-paymasters/Paymasters.sol), tests: [`Paymasters.t.sol`](../workspace/test/part1/module4/exercise3-paymasters/Paymasters.t.sol)
 
 1. **Implement a simple verifying paymaster** that sponsors UserOperations if they carry a valid signature from a trusted signer:
    - Add a `verifyingSigner` address

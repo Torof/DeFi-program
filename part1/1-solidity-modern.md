@@ -931,7 +931,7 @@ This pattern dominates [Uniswap V4's codebase](https://github.com/Uniswap/v4-cor
 <a id="day1-exercise"></a>
 ## 🎯 Build Exercise: ShareMath
 
-**Workspace:** [`workspace/src/part1/module1/`](../workspace/src/part1/module1/) — starter files: [`ShareMath.sol`](../workspace/src/part1/module1/ShareMath.sol), tests: [`ShareMath.t.sol`](../workspace/test/part1/module1/ShareMath.t.sol)
+**Workspace:** [`workspace/src/part1/module1/exercise1-share-math/`](../workspace/src/part1/module1/exercise1-share-math/) — starter file: [`ShareMath.sol`](../workspace/src/part1/module1/exercise1-share-math/ShareMath.sol), tests: [`ShareMath.t.sol`](../workspace/test/part1/module1/exercise1-share-math/ShareMath.t.sol)
 
 Build a **vault share calculator** — the exact math that underpins every ERC-4626 vault, lending pool, and LP token in DeFi:
 
@@ -1298,7 +1298,7 @@ You should already be avoiding all of these in new code, but you'll encounter th
 <a id="day2-exercise"></a>
 ## 🎯 Build Exercise: TransientGuard
 
-**Workspace:** [`workspace/src/part1/module1/`](../workspace/src/part1/module1/) — starter files: [`TransientGuard.sol`](../workspace/src/part1/module1/TransientGuard.sol), tests: [`TransientGuard.t.sol`](../workspace/test/part1/module1/TransientGuard.t.sol)
+**Workspace:** [`workspace/src/part1/module1/exercise2-transient-guard/`](../workspace/src/part1/module1/exercise2-transient-guard/) — starter file: [`TransientGuard.sol`](../workspace/src/part1/module1/exercise2-transient-guard/TransientGuard.sol), tests: [`TransientGuard.t.sol`](../workspace/test/part1/module1/exercise2-transient-guard/TransientGuard.t.sol)
 
 1. **Implement `TransientReentrancyGuard`** using the `transient` keyword (0.8.28+ syntax)
 2. **Implement the same guard** using raw `tstore`/`tload` assembly (0.8.24+ syntax)

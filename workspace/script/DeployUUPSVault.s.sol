@@ -17,7 +17,7 @@ pragma solidity ^0.8.19;
 // ============================================================================
 
 import "forge-std/Script.sol";
-import {VaultV1, VaultV2} from "../src/part1/module6/UUPSVault.sol";
+import {VaultV1, VaultV2} from "../src/part1/module6/exercise4-uups-vault/UUPSVault.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 

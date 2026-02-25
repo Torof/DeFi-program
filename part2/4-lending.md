@@ -564,6 +564,8 @@ function calculateCompoundedInterest(uint256 rate, uint40 lastUpdateTimestamp, u
 <a id="build-lending-math"></a>
 ### 🛠️ Exercise: Build the Math
 
+**Workspace:** [`workspace/src/part2/module4/exercise1-interest-rate/`](../workspace/src/part2/module4/exercise1-interest-rate/) — starter file: [`InterestRateModel.sol`](../workspace/src/part2/module4/exercise1-interest-rate/InterestRateModel.sol), tests: [`InterestRateModel.t.sol`](../workspace/test/part2/module4/exercise1-interest-rate/InterestRateModel.t.sol)
+
 **Exercise 1:** Implement a `KinkedInterestRate.sol` contract with:
 - `getUtilization(totalSupply, totalBorrow)` → returns U as a WAD (18 decimals)
 - `getBorrowRate(utilization)` → returns per-second borrow rate using two-slope model
@@ -789,6 +791,8 @@ The `onBehalfOf` parameter enables [credit delegation](https://aave.com/docs/aav
 
 <a id="fork-interact"></a>
 ### 🛠️ Exercise: Fork and Interact
+
+**Workspace:** [`workspace/src/part2/module4/exercise2-lending-pool/`](../workspace/src/part2/module4/exercise2-lending-pool/) — starter file: [`LendingPool.sol`](../workspace/src/part2/module4/exercise2-lending-pool/LendingPool.sol), tests: [`LendingPool.t.sol`](../workspace/test/part2/module4/exercise2-lending-pool/LendingPool.t.sol)
 
 **Exercise 1:** Fork Ethereum mainnet. Using Foundry's `vm.prank()`, simulate a full supply → borrow → repay → withdraw cycle on Aave V3. Verify aToken and debt token balances at each step.
 
@@ -1019,6 +1023,8 @@ function setActive(uint256 config, bool active) internal pure returns (uint256) 
 ---
 
 ### 🛠️ Exercise
+
+**Workspace:** [`workspace/src/part2/module4/exercise3-config-bitmap/`](../workspace/src/part2/module4/exercise3-config-bitmap/) — starter file: [`ConfigBitmap.sol`](../workspace/src/part2/module4/exercise3-config-bitmap/ConfigBitmap.sol), tests: [`ConfigBitmap.t.sol`](../workspace/test/part2/module4/exercise3-config-bitmap/ConfigBitmap.t.sol)
 
 **Exercise 1:** On a mainnet fork, activate E-Mode for a user position (stablecoin category). Compare the borrowing power before and after. Verify the LTV and liquidation threshold change.
 
@@ -1405,6 +1411,8 @@ After absorption, the protocol holds seized collateral. Anyone can buy this coll
 
 ### 🛠️ Exercise
 
+**Workspace:** [`workspace/src/part2/module4/exercise4-flash-liquidator/`](../workspace/src/part2/module4/exercise4-flash-liquidator/) — starter file: [`FlashLiquidator.sol`](../workspace/src/part2/module4/exercise4-flash-liquidator/FlashLiquidator.sol), tests: [`FlashLiquidator.t.sol`](../workspace/test/part2/module4/exercise4-flash-liquidator/FlashLiquidator.t.sol)
+
 **Exercise 1: Build a liquidation scenario.** On an Aave V3 mainnet fork:
 - Supply ETH as collateral (use `vm.deal` and `vm.prank`)
 - Borrow USDC near the maximum LTV
@@ -1655,6 +1663,8 @@ Aave continues evolving within the V3 framework. These updates are important to 
 ---
 
 ### 🛠️ Exercise
+
+**Workspace:** [`workspace/test/part2/module4/exercise4b-liquidation-scenarios/`](../workspace/test/part2/module4/exercise4b-liquidation-scenarios/) — test-only exercise: [`LiquidationScenarios.t.sol`](../workspace/test/part2/module4/exercise4b-liquidation-scenarios/LiquidationScenarios.t.sol) (implements `BadDebtPool.handleBadDebt()` inline, then runs cascade and bad debt tests)
 
 **Exercise 1: Liquidation cascade simulation.** Using your SimpleLendingPool from the Build exercise, set up 5 users with progressively tighter health factors. Drop the oracle price in steps. After each drop, execute available liquidations. Track how each liquidation changes the "market" (the oracle price reflects the collateral being sold). Does the cascade stabilize or spiral?
 

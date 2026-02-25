@@ -725,7 +725,7 @@ An attacker used metamorphic contracts to:
 <a id="day3-exercise"></a>
 ## 🎯 Build Exercise: FlashAccounting
 
-**Workspace:** [`workspace/src/part1/module2/`](../workspace/src/part1/module2/) — starter file: [`FlashAccounting.sol`](../workspace/src/part1/module2/FlashAccounting.sol), tests: [`FlashAccounting.t.sol`](../workspace/test/part1/module2/FlashAccounting.t.sol)
+**Workspace:** [`workspace/src/part1/module2/exercise1-flash-accounting/`](../workspace/src/part1/module2/exercise1-flash-accounting/) — starter file: [`FlashAccounting.sol`](../workspace/src/part1/module2/exercise1-flash-accounting/FlashAccounting.sol), tests: [`FlashAccounting.t.sol`](../workspace/test/part1/module2/exercise1-flash-accounting/FlashAccounting.t.sol)
 
 Build a "flash accounting" pattern using transient storage:
 
@@ -1220,7 +1220,7 @@ After BLS precompile:
 <a id="day4-exercise"></a>
 ## 🎯 Build Exercise: EIP7702Delegate
 
-**Workspace:** [`workspace/src/part1/module2/`](../workspace/src/part1/module2/) — starter file: [`EIP7702Delegate.sol`](../workspace/src/part1/module2/EIP7702Delegate.sol), tests: [`EIP7702Delegate.t.sol`](../workspace/test/part1/module2/EIP7702Delegate.t.sol)
+**Workspace:** [`workspace/src/part1/module2/exercise2-eip7702-delegate/`](../workspace/src/part1/module2/exercise2-eip7702-delegate/) — starter file: [`EIP7702Delegate.sol`](../workspace/src/part1/module2/exercise2-eip7702-delegate/EIP7702Delegate.sol), tests: [`EIP7702Delegate.t.sol`](../workspace/test/part1/module2/exercise2-eip7702-delegate/EIP7702Delegate.t.sol)
 
 1. **Research EIP-7702 delegation designator format**—understand how the EVM determines whether an address has delegated code
 2. **Write a simple delegation target contract**:
