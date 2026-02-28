@@ -1,4 +1,4 @@
-# Part 2 — DeFi Foundations (~5-6 weeks)
+# Part 2 — DeFi Foundations (~6-7 weeks)
 
 The core primitives of decentralized finance. Each module follows a consistent pattern: concept → math → read production code → build → test → extend.
 

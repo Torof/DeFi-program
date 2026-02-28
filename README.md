@@ -101,25 +101,27 @@ defi-auto-program/
 │   ├── 6-proxy-patterns.md           # UUPS, transparent, beacon
 │   └── 7-deployment.md               # Scripts, verification, multisig
 ├── part2/                            # Curriculum docs for Part 2
-│   ├── 1-token-mechanics.md
-│   ├── 2-amms.md
-│   ├── 3-oracles.md
-│   ├── 4-lending.md
-│   ├── 5-flash-loans.md
-│   ├── 6-stablecoins-cdps.md
-│   ├── 7-vaults-yield.md
-│   ├── 8-defi-security.md
-│   └── 9-integration-capstone.md
+│   ├── README.md                     # Overview, module table, checklist
+│   ├── 1-token-mechanics.md          # ERC-20 edge cases, SafeERC20
+│   ├── 2-amms.md                     # Uniswap V2, V3, V4
+│   ├── 3-oracles.md                  # Chainlink, TWAP, dual oracle
+│   ├── 4-lending.md                  # Aave V3, Compound V3
+│   ├── 5-flash-loans.md              # Aave V3, ERC-3156, Uniswap V4
+│   ├── 6-stablecoins-cdps.md         # MakerDAO, Liquity, crvUSD
+│   ├── 7-vaults-yield.md             # ERC-4626, yield aggregation
+│   ├── 8-defi-security.md            # Reentrancy, oracle manipulation
+│   └── 9-integration-capstone.md     # Decentralized stablecoin capstone
 └── part3/                            # Curriculum docs for Part 3
-    ├── 1-liquid-staking.md
-    ├── 2-perpetuals.md
-    ├── 3-yield-tokenization.md
-    ├── 4-dex-aggregation.md
-    ├── 5-mev.md
-    ├── 6-cross-chain.md
-    ├── 7-l2-defi.md
-    ├── 8-governance.md
-    └── 9-capstone.md
+    ├── README.md                     # Overview, module table, checklist
+    ├── 1-liquid-staking.md           # Lido, Rocket Pool, EigenLayer
+    ├── 2-perpetuals.md               # GMX, Synthetix, dYdX
+    ├── 3-yield-tokenization.md       # Pendle
+    ├── 4-dex-aggregation.md          # 1inch, UniswapX, CoW Protocol
+    ├── 5-mev.md                      # Flashbots, MEV-Boost, MEV-Share
+    ├── 6-cross-chain.md              # LayerZero, CCIP, Wormhole
+    ├── 7-l2-defi.md                  # Arbitrum, Base, Optimism
+    ├── 8-governance.md               # OZ Governor, Curve, Velodrome
+    └── 9-capstone.md                 # Perpetual exchange capstone
 ```
 
 Each module file contains the full content for that topic.
@@ -148,8 +150,16 @@ workspace/                        # Unified Foundry project
 │   │   ├── module6/              # CDP engine, liquidation
 │   │   ├── module7/              # ERC-4626 vaults, yield strategies
 │   │   ├── module8/              # Security exercises, invariant tests
-│   │   └── module9/              # Integration capstone
+│   │   └── module9/              # Decentralized stablecoin capstone
 │   └── part3/                    # Modern DeFi Stack
+│       ├── module1/              # LST oracle, LST lending pool
+│       ├── module2/              # Funding rate engine, perp exchange
+│       ├── module3/              # Yield tokenizer, PT rate oracle
+│       ├── module4/              # Split router, intent settlement
+│       ├── module5/              # Sandwich simulation, MEV fee hook
+│       ├── module6/              # Cross-chain handler, rate-limited token
+│       ├── module7/              # L2 oracle consumer, gas estimator
+│       └── module8/              # Governor system, vote escrow
 └── test/
     ├── part1/
     ├── part2/
