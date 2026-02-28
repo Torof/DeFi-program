@@ -10,7 +10,8 @@ import {
     MockTarget,
     InvalidSignature,
     CallFailed,
-    Unauthorized
+    Unauthorized,
+    AlreadyInitialized
 } from "../../../../src/part1/module2/exercise2-eip7702-delegate/EIP7702Delegate.sol";
 
 /// @notice Tests for EIP-7702 delegation exercise.
@@ -58,8 +59,8 @@ contract EIP7702DelegateTest is Test {
     function test_SimpleAccount_PreventReInitialize() public {
         simpleImpl.initialize(owner);
 
-        // Try to re-initialize with different owner
-        vm.expectRevert();
+        // Try to re-initialize with different owner — should revert with AlreadyInitialized
+        vm.expectRevert(AlreadyInitialized.selector);
         simpleImpl.initialize(user);
 
         // Owner should remain unchanged
@@ -352,6 +353,148 @@ contract EIP7702DelegateTest is Test {
         bytes[] memory results = simpleImpl.executeBatch(calls);
 
         assertEq(results.length, 0, "Empty batch should return empty results");
+    }
+
+    // =========================================================
+    //  tx.origin Bypass Test (EIP-7702 Security)
+    // =========================================================
+
+    function test_TxOriginBypass_DelegatedEOA() public {
+        // Demonstrates why tx.origin checks are dangerous with EIP-7702.
+        // When an EOA delegates to a batch executor, tx.origin == msg.sender
+        // for direct calls, but in a batch the inner calls have
+        // tx.origin == EOA while msg.sender == the batch executor.
+        // This test shows the pattern is broken.
+
+        TxOriginTarget originTarget = new TxOriginTarget();
+
+        EOASimulator eoaSimulator = new EOASimulator(address(simpleImpl));
+        eoaSimulator.delegateCall(
+            abi.encodeWithSelector(SimpleAccount.initialize.selector, owner)
+        );
+
+        // Direct call: tx.origin == msg.sender (passes naive check)
+        // But via delegation + batch, the target's msg.sender is the EOA simulator,
+        // while tx.origin is still the test contract. They differ!
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({
+            target: address(originTarget),
+            value: 0,
+            data: abi.encodeWithSelector(TxOriginTarget.doSomething.selector)
+        });
+
+        // Owner calls via delegation — msg.sender to originTarget will be
+        // the eoaSimulator, but tx.origin is the owner (or test contract).
+        // This proves tx.origin != msg.sender in delegated context.
+        vm.prank(owner);
+        eoaSimulator.delegateCall(
+            abi.encodeWithSelector(SimpleAccount.executeBatch.selector, calls)
+        );
+
+        // The target received a call where msg.sender != tx.origin
+        // This is exactly the pattern that breaks tx.origin-based auth
+        assertNotEq(
+            originTarget.lastSender(),
+            originTarget.lastOrigin(),
+            "tx.origin should differ from msg.sender in delegated batch calls"
+        );
+    }
+
+    // =========================================================
+    //  Fuzz Tests
+    // =========================================================
+
+    function testFuzz_EIP1271_SignatureValidation(bytes32 hash) public {
+        eip1271Impl.initialize(owner);
+
+        // Sign any hash with owner's key — should always validate
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, hash);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        bytes4 result = eip1271Impl.isValidSignature(hash, signature);
+        assertEq(result, bytes4(0x1626ba7e), "Valid signature for any hash");
+    }
+
+    function testFuzz_EIP1271_InvalidSignature(bytes32 hash, uint256 wrongKey) public {
+        eip1271Impl.initialize(owner);
+
+        // Bound to valid private key range and ensure it's not the owner's key
+        wrongKey = bound(wrongKey, 1, type(uint128).max);
+        vm.assume(wrongKey != ownerPrivateKey);
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(wrongKey, hash);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        bytes4 result = eip1271Impl.isValidSignature(hash, signature);
+        assertEq(result, bytes4(0xffffffff), "Wrong signer should return invalid");
+    }
+
+    function testFuzz_BatchExecution(uint256 value1, uint256 value2) public {
+        value1 = bound(value1, 1, 1000);
+        value2 = bound(value2, 1, 1000);
+
+        simpleImpl.initialize(owner);
+
+        Call[] memory calls = new Call[](2);
+        calls[0] = Call({
+            target: address(target),
+            value: 0,
+            data: abi.encodeWithSelector(MockTarget.setValue.selector, value1)
+        });
+        calls[1] = Call({
+            target: address(target),
+            value: 0,
+            data: abi.encodeWithSelector(MockTarget.setValue.selector, value2)
+        });
+
+        vm.prank(owner);
+        bytes[] memory results = simpleImpl.executeBatch(calls);
+
+        assertEq(results.length, 2, "Should return 2 results");
+        // Last call wins
+        assertEq(target.value(), value2, "Final value should be value2");
+    }
+
+    // =========================================================
+    //  Signature Edge Case: eth_sign prefix
+    // =========================================================
+
+    function test_EIP1271_EthSignPrefixedHash() public {
+        eip1271Impl.initialize(owner);
+
+        // eth_sign prefixes with "\x19Ethereum Signed Message:\n32"
+        // This tests that the contract validates against the RAW hash,
+        // not the prefixed version. The caller is responsible for hashing.
+        bytes32 rawHash = keccak256("Test message");
+        bytes32 ethSignHash = keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32", rawHash)
+        );
+
+        // Sign the raw hash
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, rawHash);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // Validate against raw hash — should pass
+        bytes4 result1 = eip1271Impl.isValidSignature(rawHash, signature);
+        assertEq(result1, bytes4(0x1626ba7e), "Raw hash validation should pass");
+
+        // Validate against eth_sign hash — should fail (different hash)
+        bytes4 result2 = eip1271Impl.isValidSignature(ethSignHash, signature);
+        assertEq(result2, bytes4(0xffffffff), "eth_sign prefixed hash should fail with raw signature");
+    }
+}
+
+// =============================================================
+//  Helper: tx.origin test target
+// =============================================================
+/// @notice Records msg.sender and tx.origin for verification.
+contract TxOriginTarget {
+    address public lastSender;
+    address public lastOrigin;
+
+    function doSomething() external {
+        lastSender = msg.sender;
+        lastOrigin = tx.origin;
     }
 }
 

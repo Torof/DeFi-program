@@ -8,7 +8,7 @@ pragma solidity ^0.8.19;
 // deposit/withdraw, then upgrade to V2 that adds a withdrawal fee.
 // Verify that storage persists across upgrades.
 //
-// Day 14-15: Master UUPS proxy pattern and upgrade workflows.
+// See: Module 6 > UUPS Proxy Pattern (#uups-pattern)
 //
 // Run: forge test --match-contract UUPSVaultTest -vvv
 // ============================================================================
@@ -54,12 +54,10 @@ contract VaultV1 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     /// @param _token Address of the ERC20 token to accept
     /// @param _owner Address of the vault owner
     function initialize(address _token, address _owner) public initializer {
-        // TODO: Implement
-        // 1. Validate inputs (revert ZeroAddress if either is zero)
-        // 2. Initialize inherited contracts:
-        //    __Ownable_init(_owner);
-        //    __UUPSUpgradeable_init();
-        // 3. Set token: token = IERC20(_token);
+        // TODO: Implement initialization
+        // 1. Validate inputs are not zero addresses (revert ZeroAddress)
+        // 2. Initialize inherited upgradeable contracts (Ownable, UUPS)
+        // 3. Set the token state variable
         revert("Not implemented");
     }
 
@@ -69,12 +67,11 @@ contract VaultV1 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     /// @notice Deposits tokens into the vault.
     /// @param amount Amount to deposit
     function deposit(uint256 amount) external {
-        // TODO: Implement
-        // 1. Validate amount > 0
-        // 2. Transfer tokens from user: token.transferFrom(msg.sender, address(this), amount)
-        // 3. Update balances: balances[msg.sender] += amount
-        // 4. Update totalDeposits: totalDeposits += amount
-        // 5. Emit Deposit event
+        // TODO: Implement deposit
+        // 1. Validate amount > 0 (revert ZeroAmount)
+        // 2. Transfer tokens from the caller into this contract
+        // 3. Update the caller's balance and total deposits
+        // 4. Emit the Deposit event
         revert("Not implemented");
     }
 
@@ -84,31 +81,27 @@ contract VaultV1 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     /// @notice Withdraws tokens from the vault.
     /// @param amount Amount to withdraw
     function withdraw(uint256 amount) external virtual {
-        // TODO: Implement
-        // 1. Validate amount > 0
-        // 2. Validate user has sufficient balance: balances[msg.sender] >= amount
-        // 3. Update balances: balances[msg.sender] -= amount
-        // 4. Update totalDeposits: totalDeposits -= amount
-        // 5. Transfer tokens to user: token.transfer(msg.sender, amount)
-        // 6. Emit Withdraw event
+        // TODO: Implement withdrawal
+        // 1. Validate amount > 0 (revert ZeroAmount)
+        // 2. Validate caller has sufficient balance (revert InsufficientBalance)
+        // 3. Update the caller's balance and total deposits
+        // 4. Transfer tokens back to the caller
+        // 5. Emit the Withdraw event
         revert("Not implemented");
     }
 
     // =============================================================
-    //  TODO 5: Implement _authorizeUpgrade (UUPS requirement)
+    //  _authorizeUpgrade (UUPS requirement)
     // =============================================================
     /// @notice Authorizes an upgrade to a new implementation.
     /// @dev Only owner can upgrade. This is required by UUPSUpgradeable.
     /// @param newImplementation Address of new implementation
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
-        // TODO: Implement authorization logic
-        // In this simple version, onlyOwner modifier handles authorization
-        // In production, you might add:
+        // Authorization: only owner can upgrade (enforced by onlyOwner modifier)
+        // In production, you might also add:
         // - Timelock requirement
         // - Multi-sig approval
         // - Validation of newImplementation (e.g., interface check)
-        //
-        // For now, just allow the function to execute (empty body is fine)
     }
 
     /// @notice Returns the version of this implementation.
@@ -141,10 +134,10 @@ contract VaultV2 is VaultV1 {
     /// @notice Initializes V2-specific features.
     /// @param _feeBps Withdrawal fee in basis points (max 10% = 1000 bps)
     function initializeV2(uint256 _feeBps) public reinitializer(2) {
-        // TODO: Implement
-        // 1. Validate fee: _feeBps <= 1000 (revert ExcessiveFee if too high)
-        // 2. Set withdrawalFeeBps: withdrawalFeeBps = _feeBps;
-        // 3. Emit FeeUpdated event
+        // TODO: Initialize V2-specific state
+        // 1. Validate fee is not excessive (max 1000 bps = 10%)
+        // 2. Set the withdrawal fee
+        // 3. Emit the FeeUpdated event
         revert("Not implemented");
     }
 
@@ -154,17 +147,13 @@ contract VaultV2 is VaultV1 {
     /// @notice Withdraws tokens with fee deduction.
     /// @param amount Amount to withdraw (before fee)
     function withdraw(uint256 amount) external override {
-        // TODO: Implement
-        // 1. Validate amount > 0
-        // 2. Validate user has sufficient balance
-        // 3. Calculate fee: uint256 fee = (amount * withdrawalFeeBps) / 10000;
-        // 4. Calculate net amount: uint256 netAmount = amount - fee;
-        // 5. Update balances: balances[msg.sender] -= amount
-        // 6. Update totalDeposits: totalDeposits -= amount
-        // 7. Update collectedFees: collectedFees += fee
-        // 8. Transfer net amount to user: token.transfer(msg.sender, netAmount)
-        // 9. Emit Withdraw event
-        // 10. Emit FeeCollected event (if fee > 0)
+        // TODO: Implement withdrawal with fee deduction
+        // 1. Validate amount > 0 and caller has sufficient balance
+        // 2. Calculate the fee (using withdrawalFeeBps, 10000 = 100%)
+        // 3. Calculate net amount after fee
+        // 4. Update caller's balance, total deposits, and collected fees
+        // 5. Transfer the net amount to the caller
+        // 6. Emit Withdraw event, and FeeCollected if fee > 0
         revert("Not implemented");
     }
 
@@ -175,20 +164,18 @@ contract VaultV2 is VaultV1 {
     /// @notice Updates the withdrawal fee.
     /// @param newFeeBps New fee in basis points
     function setWithdrawalFee(uint256 newFeeBps) external onlyOwner {
-        // TODO: Implement
-        // 1. Validate newFeeBps <= 1000
-        // 2. Update withdrawalFeeBps
-        // 3. Emit FeeUpdated event
+        // TODO: Update the withdrawal fee
+        // 1. Validate fee is not excessive (max 1000 bps)
+        // 2. Update the fee and emit FeeUpdated
         revert("Not implemented");
     }
 
     /// @notice Withdraws collected fees to owner.
     function collectFees() external onlyOwner {
-        // TODO: Implement
-        // 1. Get fees: uint256 fees = collectedFees;
-        // 2. Validate fees > 0
-        // 3. Reset collectedFees: collectedFees = 0;
-        // 4. Transfer to owner: token.transfer(owner(), fees);
+        // TODO: Transfer all collected fees to the owner
+        // 1. Read and validate there are fees to collect
+        // 2. Reset the collected fees counter
+        // 3. Transfer the fee tokens to the owner
         revert("Not implemented");
     }
 

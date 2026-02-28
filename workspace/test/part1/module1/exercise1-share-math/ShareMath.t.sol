@@ -10,7 +10,8 @@ import {
     toAssets,
     ZeroAssets,
     ZeroShares,
-    ZeroTotalSupply
+    ZeroTotalSupply,
+    ZeroTotalAssets
 } from "../../../../src/part1/module1/exercise1-share-math/ShareMath.sol";
 
 /// @notice Tests for the vault share calculator exercise.
@@ -166,6 +167,18 @@ contract ShareMathTest is Test {
         );
     }
 
+    function test_RevertOnZeroTotalAssets() public {
+        // totalAssets=0 but totalSupply>0: shares exist but all assets were
+        // drained (e.g., donation attack, slashing). The naive formula would
+        // divide by zero (panic). A production vault must handle this explicitly.
+        vm.expectRevert(ZeroTotalAssets.selector);
+        calculator.convertToShares(
+            Assets.wrap(1000),
+            Assets.wrap(0),
+            Shares.wrap(1000)
+        );
+    }
+
     // =========================================================
     //  abi.encodeCall Test
     // =========================================================
@@ -174,6 +187,19 @@ contract ShareMathTest is Test {
         // abi.encodeCall provides type-safe encoding — the compiler verifies
         // argument types match the function signature. Compare to
         // abi.encodeWithSelector which does no type checking.
+        //
+        // Try uncommenting this to see the compile-time safety in action:
+        //
+        // bytes memory broken = abi.encodeCall(
+        //     ShareCalculator.convertToShares,
+        //     (Shares.wrap(1000), Assets.wrap(5000), Shares.wrap(3000))
+        //     // ^^^^^^^^^^^^^^ Wrong type! First arg should be Assets, not Shares
+        //     // Compiler error: cannot convert Shares to Assets
+        // );
+        //
+        // abi.encodeWithSelector would silently accept this — same underlying
+        // uint256, wrong semantic meaning. That's the bug class encodeCall prevents.
+
         bytes memory data = abi.encodeCall(
             ShareCalculator.convertToShares,
             (Assets.wrap(1000), Assets.wrap(5000), Shares.wrap(3000))
@@ -226,6 +252,51 @@ contract ShareMathTest is Test {
             Assets.unwrap(redeemed),
             depositAmount,
             "Roundtrip should never be profitable"
+        );
+    }
+
+    /// @dev Extended fuzz with larger bounds (up to uint128.max).
+    /// The forward calculation (toShares) always fits because uint128 * uint128
+    /// fits in uint256. But the REVERSE calculation (toAssets) can overflow
+    /// when shares are large — we skip those cases. This is exactly when you'd
+    /// need mulDiv for safe 512-bit intermediate math.
+    /// See: Module 1 lesson > mulDiv Deep Dive (#checked-arithmetic)
+    function testFuzz_LargeBoundsRoundtrip(
+        uint256 depositAmount,
+        uint256 existingAssets,
+        uint256 existingShares
+    ) public {
+        depositAmount = bound(depositAmount, 1, type(uint128).max);
+        existingAssets = bound(existingAssets, 1, type(uint128).max);
+        existingShares = bound(existingShares, 1, type(uint128).max);
+
+        Shares shares = toShares(
+            Assets.wrap(depositAmount),
+            Assets.wrap(existingAssets),
+            Shares.wrap(existingShares)
+        );
+        if (Shares.unwrap(shares) == 0) return;
+
+        uint256 newAssets = existingAssets + depositAmount;
+        uint256 newShares = existingShares + Shares.unwrap(shares);
+        // Skip if addition overflows
+        if (newAssets < existingAssets || newShares < existingShares) return;
+
+        // Skip if reverse calculation (shares * newAssets) would overflow uint256.
+        // THIS is why mulDiv exists: at these scales, the naive (a * b) / c
+        // formula overflows and you need 512-bit intermediate math.
+        if (Shares.unwrap(shares) > 0 && newAssets > type(uint256).max / Shares.unwrap(shares)) return;
+
+        Assets redeemed = toAssets(
+            shares,
+            Assets.wrap(newAssets),
+            Shares.wrap(newShares)
+        );
+
+        assertLe(
+            Assets.unwrap(redeemed),
+            depositAmount,
+            "Roundtrip invariant holds at uint128 bounds"
         );
     }
 }

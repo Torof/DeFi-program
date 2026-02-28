@@ -45,6 +45,8 @@ contract PermitToken is ERC20Permit {
 // =============================================================
 /// @notice Vault that accepts ERC-20 deposits using EIP-2612 permits.
 /// @dev Demonstrates the single-transaction deposit pattern via permit.
+// See: Module 3 > EIP-2612 — Permit (#eip-2612-permit)
+// See: Module 3 > OpenZeppelin ERC20Permit (#openzeppelin-erc20permit)
 contract PermitVault {
     // TODO: Add state variables
     // Hint: mapping(address user => mapping(address token => uint256 balance)) public balances;

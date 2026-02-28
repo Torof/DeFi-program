@@ -410,7 +410,7 @@ function initialize(address owner_) external initializer {
 }
 ```
 
-**Critical subtlety:** Even with `initializer`, the implementation contract itself (not the proxy) can be initialized by anyone if you don't call `_disableInitializers()` in the constructor. This was the root cause of the [Wormhole bridge exploit ($320M, 2022)](https://rekt.news/wormhole-rekt/) — the attacker called `initialize()` directly on the implementation contract.
+**Critical subtlety:** Even with `initializer`, the implementation contract itself (not the proxy) can be initialized by anyone if you don't call `_disableInitializers()` in the constructor. This is a common pattern found in multiple audits — an attacker calls `initialize()` directly on the implementation contract (bypassing the proxy), becomes the owner of the implementation, and then uses `selfdestruct` or other privileged functions to compromise the system. The [Parity wallet freeze ($150M, 2017)](https://rekt.news/parity-rekt/) is the most famous example: an unprotected `initWallet()` on the library contract allowed an attacker to take ownership and self-destruct it, permanently freezing all dependent wallets.
 
 ```solidity
 // PRODUCTION PATTERN: disable initializers on implementation
@@ -472,25 +472,17 @@ DeFi's composability means your protocol interacts with others in ways you can't
 
 ### 🛠️ Exercise
 
-**Workspace:** [`workspace/src/part2/module8/exercise1-reentrancy/`](../workspace/src/part2/module8/exercise1-reentrancy/) — starter files: [`ReentrancyAttack.sol`](../workspace/src/part2/module8/exercise1-reentrancy/ReentrancyAttack.sol), [`DefendedLending.sol`](../workspace/src/part2/module8/exercise1-reentrancy/DefendedLending.sol), tests: [`ReadOnlyReentrancy.t.sol`](../workspace/test/part2/module8/exercise1-reentrancy/ReadOnlyReentrancy.t.sol) | Also: [`OracleAttack.sol`](../workspace/src/part2/module8/exercise2-oracle/OracleAttack.sol), [`SecureLending.sol`](../workspace/src/part2/module8/exercise2-oracle/SecureLending.sol), tests: [`OracleManipulation.t.sol`](../workspace/test/part2/module8/exercise2-oracle/OracleManipulation.t.sol)
+**Workspace:** [`workspace/src/part2/module8/exercise1-reentrancy/`](../workspace/src/part2/module8/exercise1-reentrancy/) — starter files: [`ReentrancyAttack.sol`](../workspace/src/part2/module8/exercise1-reentrancy/ReentrancyAttack.sol), [`DefendedLending.sol`](../workspace/src/part2/module8/exercise1-reentrancy/DefendedLending.sol), tests: [`ReadOnlyReentrancy.t.sol`](../workspace/test/part2/module8/exercise1-reentrancy/ReadOnlyReentrancy.t.sol)
 
 **Exercise 1: Read-only reentrancy exploit.** Build a mock vault whose `getSharePrice()` returns an inflated value during a `deposit()` that makes an external callback. Build a lending protocol that reads this value. Show how an attacker can deposit during the callback to get overvalued collateral. Fix it by checking the vault's reentrancy state.
 
-**Exercise 2: Complete flash loan attack.** Build a vulnerable lending protocol that reads Uniswap V2 spot prices. Execute a full flash loan attack:
-1. Flash-borrow from Balancer (0 fee)
-2. Swap on Uniswap to manipulate the price
-3. Deposit collateral into the lending protocol (now overvalued)
-4. Borrow against the inflated collateral
-5. Swap back to restore the price
-6. Repay the flash loan, keep the profit
+**Workspace:** [`workspace/src/part2/module8/exercise2-oracle/`](../workspace/src/part2/module8/exercise2-oracle/) — starter files: [`OracleAttack.sol`](../workspace/src/part2/module8/exercise2-oracle/OracleAttack.sol), [`SecureLending.sol`](../workspace/src/part2/module8/exercise2-oracle/SecureLending.sol), tests: [`OracleManipulation.t.sol`](../workspace/test/part2/module8/exercise2-oracle/OracleManipulation.t.sol)
 
-Then fix the lending protocol to use Chainlink and verify the attack fails.
+**Exercise 2: Oracle manipulation exploit.** Build a vulnerable lending protocol that reads AMM spot prices. Execute a flash loan attack: flash-borrow tokens, swap on the AMM to manipulate the price, deposit collateral into the lending protocol (now overvalued), borrow against the inflated collateral, swap back to restore the price, and repay the flash loan keeping the profit. Then fix the lending protocol to use Chainlink and verify the attack fails.
 
-**Exercise 3: Sandwich attack simulation.** (See also Module 2 MEV/sandwich section.) On a Uniswap V2 fork:
-- Set up a pool with known liquidity
-- Execute a large swap without slippage protection
-- Show how a sandwich captures value
-- Add slippage protection and show the sandwich becomes unprofitable
+**Workspace:** [`workspace/src/part2/module8/exercise3-invariant/`](../workspace/src/part2/module8/exercise3-invariant/) — starter files: [`BuggyVault.sol`](../workspace/src/part2/module8/exercise3-invariant/BuggyVault.sol), [`VaultHandler.sol`](../workspace/src/part2/module8/exercise3-invariant/VaultHandler.sol), tests: [`VaultInvariant.t.sol`](../workspace/test/part2/module8/exercise3-invariant/VaultInvariant.t.sol)
+
+**Exercise 3: Invariant testing.** Write a handler contract and invariant tests for `BuggyVault` — a share-based vault with a subtle ordering bug in `withdraw()`. Implement the handler's `deposit()` and `withdraw()` with actor management and ghost variable tracking, then write solvency and fairness invariants that automatically find the bug through random call sequences. (See the Invariant Testing section below for full details.)
 
 **Workspace:** [`workspace/src/part2/module8/exercise4-precision-loss/`](../workspace/src/part2/module8/exercise4-precision-loss/) — starter files: [`RoundingExploit.sol`](../workspace/src/part2/module8/exercise4-precision-loss/RoundingExploit.sol), [`DefendedRewardPool.sol`](../workspace/src/part2/module8/exercise4-precision-loss/DefendedRewardPool.sol), tests: [`PrecisionLoss.t.sol`](../workspace/test/part2/module8/exercise4-precision-loss/PrecisionLoss.t.sol)
 
@@ -502,6 +494,7 @@ Then fix the lending protocol to use Chainlink and verify the attack fails.
 
 ### 🎯 Practice Challenges
 
+- **Sandwich attack simulation** — (See also Module 2 MEV/sandwich section.) On a Uniswap V2 fork: set up a pool with known liquidity, execute a large swap without slippage protection, show how a sandwich captures value, then add slippage protection and show the sandwich becomes unprofitable
 - **Damn Vulnerable DeFi #1 "Unstoppable"** — Flash loan griefing via donation
 - **Damn Vulnerable DeFi #7 "Compromised"** — Oracle manipulation
 - **Damn Vulnerable DeFi #10 "Free Rider"** — Flash swap exploitation
@@ -1387,11 +1380,11 @@ Security knowledge opens multiple career paths beyond "protocol developer." Unde
 
 | Source | Concept | How It Connects |
 |---|---|---|
-| **Part 1 Section 1** | Custom errors | Security checklist requires typed errors for all revert paths — error taxonomy from Section 1 |
-| **Part 1 Section 2** | Transient storage reentrancy guard | Global `nonReentrant` via transient storage is the recommended cross-contract reentrancy defense |
-| **Part 1 Section 5** | Fork testing | Flash loan attack exercises require mainnet fork setup from Section 5 |
-| **Part 1 Section 5** | Invariant / fuzz testing | The Invariant Testing section builds directly on foundry fuzz patterns from Section 5 |
-| **Part 1 Section 6** | Proxy patterns | Security checklist covers upgradeable contract risks — initializer, storage gap from Section 6 |
+| **Part 1 Module 1** | Custom errors | Security checklist requires typed errors for all revert paths — error taxonomy from Module 1 |
+| **Part 1 Module 2** | Transient storage reentrancy guard | Global `nonReentrant` via transient storage is the recommended cross-contract reentrancy defense |
+| **Part 1 Module 5** | Fork testing | Flash loan attack exercises require mainnet fork setup from Module 5 |
+| **Part 1 Module 5** | Invariant / fuzz testing | The Invariant Testing section builds directly on foundry fuzz patterns from Module 5 |
+| **Part 1 Module 6** | Proxy patterns | Security checklist covers upgradeable contract risks — initializer, storage gap from Module 6 |
 | **M1** | SafeERC20 / `balanceOf` pitfalls | Donation attack (Category 3) exploits `balanceOf`-based accounting — internal tracking from M1 is the defense |
 | **M1** | Fee-on-transfer / rebasing tokens | Security Tooling section checklist: these break naive vault and lending accounting |
 | **M2** | AMM spot price / MEV / sandwich | Price manipulation Category 1 uses DEX swaps; sandwich attacks from M2's MEV section |
@@ -1411,11 +1404,13 @@ Security knowledge opens multiple career paths beyond "protocol developer." Unde
 | **M9** | Self-audit methodology | Apply the Reading Audit Reports threat model + security checklist to the integration capstone |
 | **M9** | Invariant test suite | Capstone requires comprehensive invariant tests using the Invariant Testing handler/ghost pattern |
 | **M9** | Stress testing | Capstone stress tests combine flash loan attacks + oracle manipulation from the Attack Patterns section |
-| **Part 3 M1** | Upgradeable security | Proxy-specific security patterns (storage collision, initializer) expand on the checklist |
-| **Part 3 M2** | Governance security | Timelock, multisig, and governance attack defenses build on Category 5 |
-| **Part 3 M5** | Formal verification | Certora awareness from the Security Tooling section becomes hands-on specification writing |
-| **Part 3 M8** | Deployment security | Operational checklist items (monitoring, circuit breakers, incident response) become deployment scripts |
-| **Part 3 M9** | Production monitoring | Runtime anomaly detection operationalizes the invariants from the Invariant Testing section |
+| **Part 3 M1** | Liquid staking security | LST/LRT composability risks — read-only reentrancy on staking derivatives, oracle manipulation on rebasing tokens |
+| **Part 3 M2** | Perpetuals security | Funding rate manipulation, oracle frontrunning in perp exchanges — extends the price manipulation taxonomy |
+| **Part 3 M4** | Cross-chain security | Bridge exploit patterns, message verification bypasses — cross-chain composability risk extends the composability section |
+| **Part 3 M5** | MEV and security | Sandwich attacks, JIT liquidity, and MEV extraction defenses build directly on the frontrunning/MEV section |
+| **Part 3 M7** | L2 DeFi security | L2 sequencer risks, forced inclusion, and cross-L2 bridge security expand on the oracle L2 sequencer checks |
+| **Part 3 M8** | Governance security | Timelock, multisig, and governance attack defenses build on Category 5 (governance manipulation) |
+| **Part 3 M9** | Capstone stress testing | The Perpetual Exchange capstone requires comprehensive invariant tests and adversarial stress testing from this module |
 
 ---
 

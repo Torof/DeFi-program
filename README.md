@@ -56,7 +56,7 @@ DeFi verticals (liquid staking, perpetuals, yield tokenization), trading infrast
 | 6 | Cross-Chain & Bridges | ~4 days | ⬜ |
 | 7 | L2-Specific DeFi | ~3 days | ⬜ |
 | 8 | Governance & DAOs | ~3 days | ⬜ |
-| 9 | Capstone: TBD (Perpetual DEX / Yield Tokenizer / Stablecoin V2) | ~5-7 days | ⬜ |
+| 9 | Capstone: Perpetual Exchange | ~5-7 days | ⬜ |
 
 ## Learning Approach
 

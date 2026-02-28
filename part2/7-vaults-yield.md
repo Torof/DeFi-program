@@ -283,15 +283,16 @@ Also compare with Solmate's implementation (`solmate/src/tokens/ERC4626.sol`) wh
 
 **Workspace:** [`workspace/src/part2/module7/exercise1-simple-vault/`](../workspace/src/part2/module7/exercise1-simple-vault/) — starter file: [`SimpleVault.sol`](../workspace/src/part2/module7/exercise1-simple-vault/SimpleVault.sol), tests: [`SimpleVault.t.sol`](../workspace/test/part2/module7/exercise1-simple-vault/SimpleVault.t.sol)
 
-**Exercise 1:** Implement a minimal ERC-4626 vault from scratch (don't use OpenZeppelin or Solmate). Use `Math.mulDiv` for safe division. Implement all required functions. Test:
-- Deposit 1000 USDC, receive 1000 shares
-- Simulate yield: manually transfer 100 USDC to the vault
-- New deposit of 1000 USDC should receive ~909 shares (1000 × 1000/1100)
-- First user redeems 1000 shares, receives ~1100 USDC
-- Verify all preview functions return correct values
-- Verify rounding always favors the vault
+Implement a minimal ERC-4626 vault from scratch (no OpenZeppelin ERC4626 or Solmate). You'll implement 4 functions: `_convertToShares`, `_convertToAssets`, `deposit`, and `withdraw`. The pre-built wrappers (`mint`, `redeem`, all `preview`/`convert`/`max` functions) route through your conversion functions, so once your TODOs work, everything works.
 
-**Exercise 2:** Implement `deposit` and `mint` side by side. Show that `deposit(100)` and `mint(previewDeposit(100))` produce the same result. Show that `mint(100)` and `deposit(previewMint(100))` produce the same result (accounting for rounding).
+Tests verify:
+- First deposit mints shares 1:1
+- After yield accrues (donation), new deposits get fewer shares at the correct rate
+- `mint` pulls the correct amount of assets (uses `Ceil` rounding)
+- `withdraw` burns the correct shares (uses `Ceil` rounding)
+- `redeem` returns assets including earned yield
+- Rounding always favors the vault (deposit rounds down, withdraw rounds up)
+- Full multi-user cycle matches the curriculum walkthrough (Alice, Bob, yield, Carol, withdrawal)
 
 #### 💼 Job Market Context
 
@@ -596,11 +597,12 @@ Defense: lending protocols should use time-weighted or externally-sourced exchan
 
 **Workspace:** [`workspace/src/part2/module7/exercise2-inflation-attack/`](../workspace/src/part2/module7/exercise2-inflation-attack/) — starter files: [`NaiveVault.sol`](../workspace/src/part2/module7/exercise2-inflation-attack/NaiveVault.sol), [`DefendedVault.sol`](../workspace/src/part2/module7/exercise2-inflation-attack/DefendedVault.sol), tests: [`InflationAttack.t.sol`](../workspace/test/part2/module7/exercise2-inflation-attack/InflationAttack.t.sol)
 
-**Exercise 1:** Build the inflation attack. Deploy a naive vault (no virtual shares, `totalAssets = balanceOf`), execute the attack step by step, and show the victim's loss. Then add OpenZeppelin's virtual share offset and show the attack becomes unprofitable.
+The pre-built `NaiveVault.sol` demonstrates the inflation attack -- no student code needed there, just study it. Your task is to implement `DefendedVault.sol`: a vault that uses OpenZeppelin's virtual shares defense. You'll implement 2 functions: `_convertToShares` and `_convertToAssets`, both using the `(totalSupply + virtualShareOffset) / (totalAssets + 1)` formula.
 
-**Exercise 2:** Build a vault with internal accounting (`_totalManagedAssets`). Show that direct token transfers don't affect the exchange rate. Then show a scenario where a strategy reports yield and updates `_totalManagedAssets` correctly.
-
-**Exercise 3:** Implement all three defenses (virtual shares, dead shares, internal accounting) and compare: gas cost of deposit/withdraw, precision loss on first deposit, effectiveness against varying donation sizes.
+Tests verify:
+- NaiveVault attack succeeds: attacker profits ~5,000 USDC from a 10,000 USDC donation
+- DefendedVault attack fails: same attack leaves attacker with ~6 USDC (massive loss)
+- DefendedVault works correctly for normal operations: deposit, yield accrual, redeem all function properly with negligible virtual share loss (1 raw unit)
 
 ### 📋 Summary: The Inflation Attack and Defenses
 
@@ -795,27 +797,18 @@ Each layer uses ERC-4626, so they compose naturally.
 
 **Workspace:** [`workspace/src/part2/module7/exercise3-simple-allocator/`](../workspace/src/part2/module7/exercise3-simple-allocator/) — starter files: [`SimpleAllocator.sol`](../workspace/src/part2/module7/exercise3-simple-allocator/SimpleAllocator.sol), [`MockStrategy.sol`](../workspace/src/part2/module7/exercise3-simple-allocator/MockStrategy.sol), tests: [`SimpleAllocator.t.sol`](../workspace/test/part2/module7/exercise3-simple-allocator/SimpleAllocator.t.sol)
 
-**Exercise:** Build a simplified allocator vault:
+Build a simplified Yearn V3-style allocator vault. You'll implement 4 functions: `totalAssets` (multi-source accounting across idle + strategies), `allocate` (deploy idle funds to a strategy), `deallocate` (return funds from a strategy to idle), and `redeem` (withdrawal queue that pulls from idle first, then strategies in order).
 
-**SimpleAllocator.sol** — An ERC-4626 vault that:
-- Accepts USDC deposits
-- Manages 2-3 strategies (each also ERC-4626)
-- Has `allocate(strategy, amount)` and `deallocate(strategy, amount)` functions
-- On withdrawal, pulls from strategies in queue order if idle balance is insufficient
-- Reports profit/loss per strategy
+The pre-built `MockStrategy.sol` is a minimal deposit/withdraw wrapper -- yield is simulated in tests by minting tokens directly to the strategy contract.
 
-**MockStrategy.sol** — A simple ERC-4626 strategy that:
-- Accepts deposits
-- Simulates yield by increasing `totalAssets()` over time (use block.timestamp)
-- Returns funds on withdrawal
-
-Test:
-- Deposit 10,000 USDC into allocator
-- Allocate 5,000 to Strategy A, 3,000 to Strategy B, keep 2,000 idle
-- Warp time, strategies accrue yield
-- Report: verify profit is correctly calculated
-- Withdraw 8,000 USDC: verify funds are pulled from idle first, then strategies
-- Verify shares reflect correct value throughout
+Tests verify:
+- Deposit 10,000 into allocator, all funds sit idle initially
+- Allocate 5,000 to Strategy A, 3,000 to Strategy B, keep 2,000 idle -- totalAssets unchanged
+- Allocation reverts if exceeding idle balance
+- Deallocate returns funds from strategy to idle, debt tracking updates correctly
+- After yield accrues in strategies, totalAssets reflects the increased value automatically
+- Redeem 8,000 shares: withdrawal queue drains idle first, then Strategy A, then partial Strategy B
+- Debt tracks original allocation (not yield) -- profit = strategy.totalValue() - debt
 
 ### 📋 Summary: Yield Aggregation — Yearn V3 Architecture
 
@@ -1020,23 +1013,17 @@ This composability is why ERC-4626 adoption has been so rapid — each new vault
 
 **Workspace:** [`workspace/src/part2/module7/exercise4-auto-compounder/`](../workspace/src/part2/module7/exercise4-auto-compounder/) — starter files: [`AutoCompounder.sol`](../workspace/src/part2/module7/exercise4-auto-compounder/AutoCompounder.sol), [`MockSwap.sol`](../workspace/src/part2/module7/exercise4-auto-compounder/MockSwap.sol), tests: [`AutoCompounder.t.sol`](../workspace/test/part2/module7/exercise4-auto-compounder/AutoCompounder.t.sol)
 
-**Exercise 1: Auto-compounder.** Build an ERC-4626 vault that:
-- Deposits USDC into a mock lending protocol
-- Earns yield in a separate REWARD token
-- Has a `harvest()` function that claims REWARD, swaps to USDC via a mock DEX, and re-deposits
-- Verify: share price increases after harvest, profit unlocks over time
+Build an ERC-4626 vault with harvest and linear profit unlocking. You'll implement 3 functions: `_lockedProfit` (linear unlock calculation), `totalAssets` (balance minus locked profit), and `harvest` (swap reward tokens to underlying asset, lock the new profit).
 
-**Exercise 2: Sandwich defense.** Using your vault from Exercise 1:
-- Show the sandwich attack: deposit → harvest → withdraw captures yield
-- Implement linear profit unlocking over 6 hours
-- Show the same sandwich attempt now captures minimal yield
+The pre-built `MockSwap.sol` is a minimal 1:1 swap router. Reward tokens are minted to the vault in tests to simulate earned rewards.
 
-**Exercise 3: Strategy loss.** Using the allocator vault from the Yield Aggregation section:
-- Simulate a strategy losing 20% of its funds (mock a hack)
-- Call report — verify the vault correctly records the loss
-- Verify share price decreased proportionally
-- Verify existing depositors can still withdraw (at reduced value)
-- Verify new depositors enter at the correct (lower) share price
+Tests verify:
+- Standard 1:1 first deposit
+- After harvest, profit is fully locked -- totalAssets unchanged, share price unchanged
+- Profit unlocks linearly: 50% unlocked at the halfway point (3 hours of 6-hour period)
+- After full unlock period, totalAssets equals the complete balance and share price reflects all yield
+- Sandwich attack is unprofitable: attacker deposits before harvest, redeems after -- gets zero profit because profit is locked
+- Consecutive harvests: remaining locked profit from a previous harvest carries over and combines with newly harvested profit
 
 ### 📋 Summary: Composable Yield Patterns and Security
 
@@ -1109,20 +1096,9 @@ function harvest() external {
     uint256 profit = strategy.claim();
     _managedAssets += profit;  // share price jumps instantly
 }
-
-// CORRECT — unlock profit linearly over time
-function harvest() external {
-    uint256 profit = strategy.claim();
-    _profitUnlockingRate = profit / UNLOCK_PERIOD;
-    _lastHarvestTimestamp = block.timestamp;
-    _fullProfitUnlockDate = block.timestamp + UNLOCK_PERIOD;
-}
-
-function totalAssets() public view returns (uint256) {
-    uint256 unlocked = _profitUnlockingRate * (block.timestamp - _lastHarvestTimestamp);
-    return _managedAssets + Math.min(unlocked, _totalLockedProfit);
-}
 ```
+
+The fix: track the harvested profit and unlock it linearly over a time period (e.g., 6 hours). `totalAssets()` should subtract the still-locked portion so the share price rises gradually, not in a single block. Think about what state you need to record at harvest time, and how `totalAssets()` can compute the unlocked fraction using `block.timestamp`. Exercise 4 (AutoCompounder) has you implement this pattern.
 
 **Mistake 5: Not checking `maxDeposit`/`maxWithdraw` before operations**
 
@@ -1166,12 +1142,12 @@ function depositIntoVault(IERC4626 vault, uint256 assets) external {
 
 | Source | Concept | How It Connects |
 |---|---|---|
-| **Part 1 Section 1** | `mulDiv` with rounding | Vault conversions use `Math.mulDiv` with explicit rounding direction — rounds down for deposits, up for withdrawals |
-| **Part 1 Section 1** | Custom errors | Vault revert patterns (`DepositExceedsMax`, `InsufficientShares`) use typed errors from Section 1 |
-| **Part 1 Section 2** | Transient storage | Reentrancy guard for vault deposit/withdraw uses transient storage pattern from Section 2 |
-| **Part 1 Section 5** | Fork testing | ERC-4626 Quick Try reads a live Yearn vault on mainnet fork — fork testing from Section 5 enables this |
-| **Part 1 Section 5** | Invariant testing | ERC-4626 property tests (a16z suite) use invariant/fuzz patterns from Section 5 |
-| **Part 1 Section 6** | Proxy / delegateCall | Yearn V3 TokenizedStrategy uses `delegateCall` to shared implementation — proxy pattern from Section 6 |
+| **Part 1 Module 1** | `mulDiv` with rounding | Vault conversions use `Math.mulDiv` with explicit rounding direction — rounds down for deposits, up for withdrawals |
+| **Part 1 Module 1** | Custom errors | Vault revert patterns (`DepositExceedsMax`, `InsufficientShares`) use typed errors from Module 1 |
+| **Part 1 Module 2** | Transient storage | Reentrancy guard for vault deposit/withdraw uses transient storage pattern from Module 2 |
+| **Part 1 Module 5** | Fork testing | ERC-4626 Quick Try reads a live Yearn vault on mainnet fork — fork testing from Module 5 enables this |
+| **Part 1 Module 5** | Invariant testing | ERC-4626 property tests (a16z suite) use invariant/fuzz patterns from Module 5 |
+| **Part 1 Module 6** | Proxy / delegateCall | Yearn V3 TokenizedStrategy uses `delegateCall` to shared implementation — proxy pattern from Module 6 |
 | **M1** | SafeERC20 | All vault deposit/withdraw flows use SafeERC20 for underlying token transfers |
 | **M1** | Fee-on-transfer tokens | Break naive vault accounting — balance-before-after check from M1 is required |
 | **M2** | MINIMUM_LIQUIDITY / dead shares | Uniswap V2's dead shares defense is the same pattern as Defense 2 (burn shares to `address(1)`) |
@@ -1189,10 +1165,10 @@ function depositIntoVault(IERC4626 vault, uint256 assets) external {
 | **M8** | Composability attack surfaces | Multi-layer vault composition creates novel attack vectors covered in M8 threat models |
 | **M9** | Vault shares as collateral | Integration capstone uses ERC-4626 vault tokens as building blocks |
 | **M9** | Yield aggregator integration | Capstone combines vault patterns with flash loans and liquidation mechanics |
-| **Part 3 M1** | Upgradeable vault architecture | Proxy patterns for vault upgrades and migration strategies |
-| **Part 3 M5** | Formal verification | Proving vault invariants (share price monotonicity, rounding correctness) formally |
-| **Part 3 M8** | Vault deployment | Production deployment patterns for vault infrastructure |
-| **Part 3 M9** | Vault monitoring | Runtime monitoring of vault health, strategy performance, exchange rate anomalies |
+| **Part 3 M1** | Liquid staking vaults | LST wrappers (wstETH) are ERC-4626 vaults — same share math, same inflation risk, applied to staking yield |
+| **Part 3 M3** | Structured product vaults | Structured products compose ERC-4626 vaults into layered yield strategies with tranching and risk segmentation |
+| **Part 3 M5** | MEV and vault harvests | MEV searchers target vault harvest transactions — sandwich attacks on `harvest()` and profit unlocking as defense |
+| **Part 3 M8** | Governance over vault parameters | Vault configuration (strategy caps, fee rates, unlock periods) managed through governance mechanisms |
 
 ---
 

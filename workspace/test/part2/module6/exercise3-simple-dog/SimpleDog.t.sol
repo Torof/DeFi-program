@@ -293,6 +293,15 @@ contract SimpleDogTest is Test {
         dog.take(1, ALICE_INK, type(uint256).max);
     }
 
+    function test_Take_RevertsOnNonExistentAuction() public {
+        _setupKeeper();
+
+        // Auction ID 999 does not exist — should revert
+        vm.expectRevert(AuctionNotFound.selector);
+        vm.prank(keeper);
+        dog.take(999, 1 ether, type(uint256).max);
+    }
+
     function test_Take_RevertsIfMaxPriceTooLow() public {
         _openAliceVault();
         _crashPrice();

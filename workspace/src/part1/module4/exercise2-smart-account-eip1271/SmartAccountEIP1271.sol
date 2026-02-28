@@ -36,6 +36,8 @@ interface IERC1271 {
 //  TODO 1: Implement SmartAccountEIP1271
 // =============================================================
 /// @notice Smart account with EIP-1271 signature validation support.
+// See: Module 4 > EIP-1271 — Contract Signature Verification (#eip-1271)
+// Note: This exercise depends on completing Exercise 1 (SimpleSmartAccount) first.
 contract SmartAccountEIP1271 is SimpleSmartAccount, IERC1271 {
     // EIP-1271 magic value
     bytes4 private constant EIP1271_MAGIC_VALUE = 0x1626ba7e;

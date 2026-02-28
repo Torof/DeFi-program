@@ -60,14 +60,9 @@ contract DefendedLending {
     /// @dev Add ONE LINE at the top of this function to check the vault's
     ///      reentrancy state before reading getSharePrice().
     ///
-    ///   The fix:
-    ///     require(!vault.locked(), "DefendedLending: vault is mid-transaction")
-    ///
-    ///   Why this works:
-    ///     During a vault deposit callback, vault.locked() == true.
-    ///     This means getSharePrice() is unreliable (inconsistent state).
-    ///     By reverting when locked, we refuse to value collateral during
-    ///     the vulnerability window.
+    ///   Hint: Check the vault's `locked` state — the vault sets it to
+    ///     `true` during deposit. If locked, the share price is unreliable
+    ///     (inconsistent state), so revert.
     ///
     ///   In production (Balancer example):
     ///     You'd call IVault(balancerVault).manageUserBalance([]) — a no-op

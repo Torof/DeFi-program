@@ -6,9 +6,10 @@ pragma solidity ^0.8.19;
 //
 // Implement the beacon proxy pattern where multiple proxy instances share
 // a single upgrade beacon. Upgrading the beacon upgrades ALL proxies
-// simultaneously. This is the pattern used by Aave's aTokens.
+// simultaneously. This is a common pattern when deploying many instances
+// of the same contract (e.g., token vaults, lending pools).
 //
-// Day 15: Master the beacon proxy pattern for multi-instance upgrades.
+// See: Module 6 > Beacon Proxy (#beacon-proxy)
 //
 // Run: forge test --match-contract BeaconProxyTest -vvv
 // ============================================================================
@@ -107,9 +108,8 @@ contract BeaconProxy {
     // =============================================================
     /// @notice Gets the current implementation from the beacon.
     function _getImplementation() internal view returns (address) {
-        // TODO: Implement
-        // Call beacon.implementation() and return the result
-        // return UpgradeableBeacon(_beacon).implementation();
+        // TODO: Query the beacon contract for the current implementation address
+        // Hint: Cast _beacon to UpgradeableBeacon and call its getter
         revert("Not implemented");
     }
 
@@ -118,17 +118,16 @@ contract BeaconProxy {
     // =============================================================
     /// @notice Fallback function that delegates all calls to the implementation.
     fallback() external payable {
-        // TODO: Implement
-        // 1. Get implementation from beacon: address impl = _getImplementation()
-        // 2. Delegatecall to implementation:
-        //    assembly {
-        //        calldatacopy(0, 0, calldatasize())
-        //        let result := delegatecall(gas(), impl, 0, calldatasize(), 0, 0)
-        //        returndatacopy(0, 0, returndatasize())
-        //        switch result
-        //        case 0 { revert(0, returndatasize()) }
-        //        default { return(0, returndatasize()) }
-        //    }
+        // TODO: Implement the delegatecall forwarding using assembly
+        // 1. Get the implementation address from _getImplementation()
+        // 2. In an assembly block:
+        //    a. Copy calldata to memory position 0
+        //    b. Execute delegatecall to impl with the copied calldata
+        //    c. Copy returndata to memory position 0
+        //    d. If delegatecall failed, revert with returndata
+        //    e. If succeeded, return the returndata
+        //
+        // Hint: Use calldatacopy, delegatecall, returndatacopy, calldatasize, returndatasize
         revert("Not implemented");
     }
 

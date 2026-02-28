@@ -4,7 +4,7 @@
 **Prerequisites:** Modules 1–5 (especially oracles and lending)
 **Pattern:** Concept → Read MakerDAO/Sky core contracts → Build simplified CDP → Compare stablecoin designs
 **Builds on:** Module 3 (oracle integration for collateral pricing), Module 4 (interest rate models, health factor math, liquidation mechanics)
-**Used by:** Module 8 (threat modeling and invariant testing your CDP), Module 9 (integration capstone), Part 3 Module 9 (capstone: multi-collateral stablecoin)
+**Used by:** Module 8 (threat modeling and invariant testing your CDP), Module 9 (integration capstone), Part 3 Module 9 (capstone: perpetual exchange — uses stablecoin integration knowledge)
 
 ---
 
@@ -13,14 +13,14 @@
 **The CDP Model and MakerDAO/Sky Architecture**
 - [How CDPs Work](#how-cdps-work)
 - [MakerDAO Contract Architecture](#maker-architecture)
-  - [Deep Dive: `rpow()` — Exponentiation by Squaring](#how-cdps-work)
+  - [Deep Dive: `rpow()` — Exponentiation by Squaring](#rpow-deep-dive)
 - [The Full Flow: Opening a Vault](#opening-vault-flow)
 - [Read: Vat.sol](#read-vat)
 - [Exercises](#day1-exercises)
 
 **Liquidations, PSM, and DAI Savings Rate**
 - [Liquidation 2.0: Dutch Auctions](#liquidation-auctions)
-  - [Deep Dive: Dutch Auction Liquidation — Numeric Walkthrough](#liquidation-auctions)
+  - [Deep Dive: Dutch Auction Liquidation — Numeric Walkthrough](#liquidation-walkthrough)
 - [Peg Stability Module (PSM)](#psm)
 - [Dai Savings Rate (DSR)](#dsr)
 - [Read: Dog.sol and Clipper.sol](#read-dog-clipper)
@@ -32,7 +32,7 @@
 **Stablecoin Landscape and Design Trade-offs**
 - [Taxonomy of Stablecoins](#stablecoin-taxonomy)
 - [Liquity: A Different CDP Design](#liquity)
-  - [Deep Dive: Liquity Redemption — Numeric Walkthrough](#liquity)
+  - [Deep Dive: Liquity Redemption — Numeric Walkthrough](#liquity-redemption-walkthrough)
 - [The Algorithmic Stablecoin Failure Pattern](#algo-failure)
 - [Ethena (USDe): The Delta-Neutral Model](#ethena)
 - [crvUSD: Curve's Soft-Liquidation Model](#crvusd)
@@ -278,6 +278,7 @@ Each time drip() is called:
 
 > **🔗 Connection:** This is the same continuous compounding from Module 4 — Aave and Compound use the same per-second rate accumulator for borrow interest. The math is identical; only the context differs (stability fee vs borrow rate).
 
+<a id="rpow-deep-dive"></a>
 #### 🔍 Deep Dive: `rpow()` — Exponentiation by Squaring
 
 The Jug needs to compute `per_second_rate ^ seconds_elapsed`. With `seconds_elapsed` potentially being millions (weeks between `drip()` calls), you can't loop. MakerDAO uses **exponentiation by squaring** — an O(log n) algorithm:
@@ -469,6 +470,7 @@ Why Dutch auctions fix Black Thursday:
 
 The Dutch auction design fixes Black Thursday's problems: no capital lockup means participants can use flash loans, settlement is instant (composable with other DeFi operations), and the decreasing price naturally finds the market clearing level.
 
+<a id="liquidation-walkthrough"></a>
 #### 🔍 Deep Dive: Dutch Auction Liquidation — Numeric Walkthrough
 
 ```
@@ -644,63 +646,9 @@ In `Clipper.kick()`, trace:
 <a id="simple-cdp"></a>
 ### 🛠️ SimpleCDP.sol
 
-Build a minimal CDP system that captures the essential mechanisms:
+The exercises across this module build a minimal CDP system that captures the essential mechanisms: **SimpleVat** (accounting engine with `frob`/`fold`/`grab`), **SimpleJug** (stability fee compounding via `rpow` and `drip`), **SimpleDog** (liquidation trigger + Dutch auction), and **SimplePSM** (peg stability swaps with fee). Shared contracts (join adapters, stablecoin ERC-20, math library) are pre-built.
 
-**Core contracts:**
-
-**SimpleVat.sol** — The accounting engine:
-```solidity
-struct Ilk {
-    uint256 Art;    // total normalized debt
-    uint256 rate;   // stability fee accumulator (RAY)
-    uint256 spot;   // price with safety margin (RAY)
-    uint256 line;   // debt ceiling (RAD)
-    uint256 dust;   // minimum debt (RAD)
-}
-
-struct Urn {
-    uint256 ink;    // locked collateral (WAD)
-    uint256 art;    // normalized debt (WAD)
-}
-
-mapping(bytes32 => Ilk) public ilks;
-mapping(bytes32 => mapping(address => Urn)) public urns;
-mapping(address => uint256) public dai;   // internal stablecoin balance
-uint256 public debt;  // total system debt
-uint256 public Line;  // global debt ceiling
-```
-
-**Functions:**
-- `frob(ilk, dink, dart)` — lock/unlock collateral and generate/repay stablecoins. Check: vault remains safe, debt ceiling not exceeded, minimum debt met.
-- `fold(ilk, rate)` — update stability fee accumulator. Called by the Jug equivalent.
-- `grab(ilk, u, v, w, dink, dart)` — seize collateral for liquidation.
-
-**SimpleJug.sol** — Stability fee accumulator:
-- Stores per-second stability fee rate per ilk
-- `drip(ilk)` computes time elapsed since last update, compounds the rate, calls `Vat.fold()`
-
-**SimpleStablecoin.sol** — ERC-20 token with mint/burn controlled by the join adapter.
-
-**SimpleJoin.sol** — Collateral join (lock ERC-20, credit Vat gem) and stablecoin join (convert internal dai ↔ external ERC-20).
-
-**SimpleDog.sol** — Liquidation trigger:
-- Check if Vault is unsafe: `ink × spot < art × rate`
-- Call `Vat.grab()` to seize collateral
-- Start a Dutch auction (simplified: decreasing price over time)
-
-**SimplePSM.sol** — Peg stability module:
-- Accept USDC, mint stablecoin 1:1 (with configurable tin/tout fee)
-- Accept stablecoin, return USDC 1:1
-
-### Test Suite
-
-- **Full lifecycle:** join collateral → frob (lock + generate) → transfer stablecoin → frob (repay + unlock) → exit collateral
-- **Stability fee accrual:** open vault, warp 1 year, verify debt increased by stability fee %
-- **Liquidation:** open vault, drop oracle price, trigger liquidation, buy collateral at auction, verify debt cleared
-- **Debt ceiling:** attempt to generate stablecoins beyond the ceiling, verify revert
-- **Dust check:** attempt to leave a vault with debt below the dust threshold, verify revert
-- **PSM peg arbitrage:** when stablecoin trades above $1, show how PSM swap creates profit; when below $1, show the reverse
-- **Multi-collateral:** support two collateral types with different stability fees and liquidation ratios
+**Workspace:** All exercise scaffolds and tests are in the exercise folders linked from the Day 1, Day 2, and Day 4 exercise sections above. Each exercise has a scaffold with TODOs and a complete test suite.
 
 ---
 
@@ -743,6 +691,7 @@ Liquity (LUSD) takes a minimalist approach compared to MakerDAO:
 
 **Liquity V2 (2024-25):** Introduces user-set interest rates (borrowers bid their own rate), multi-collateral support (LSTs like wstETH, rETH), and a modified redemption mechanism.
 
+<a id="liquity-redemption-walkthrough"></a>
 #### 🔍 Deep Dive: Liquity Redemption — Numeric Walkthrough
 
 ```
@@ -1114,12 +1063,12 @@ Study these codebases in order — each builds on the previous one's patterns:
 
 | Source | Concept | How It Connects |
 |--------|---------|-----------------|
-| Part 1 Section 1 | `mulDiv` / fixed-point math | WAD/RAY/RAD arithmetic throughout the Vat; `rmul`/`rpow` for stability fee compounding |
-| Part 1 Section 1 | Custom errors | Production CDP contracts use custom errors for vault safety violations, ceiling breaches |
-| Part 1 Section 2 | Transient storage | Modern CDP implementations can use TSTORE for reentrancy guards during liquidation callbacks |
-| Part 1 Section 5 | Fork testing / `vm.mockCall` | Essential for testing against live MakerDAO state and simulating oracle price drops for liquidation |
-| Part 1 Section 5 | Invariant testing | Property-based testing for CDP invariants: total debt ≤ total DAI, all vaults safe, rate monotonicity |
-| Part 1 Section 6 | Proxy patterns | MakerDAO's authorization system (`wards`/`can`) and join adapter pattern for upgradeable periphery |
+| Part 1 Module 1 | `mulDiv` / fixed-point math | WAD/RAY/RAD arithmetic throughout the Vat; `rmul`/`rpow` for stability fee compounding |
+| Part 1 Module 1 | Custom errors | Production CDP contracts use custom errors for vault safety violations, ceiling breaches |
+| Part 1 Module 2 | Transient storage | Modern CDP implementations can use TSTORE for reentrancy guards during liquidation callbacks |
+| Part 1 Module 5 | Fork testing / `vm.mockCall` | Essential for testing against live MakerDAO state and simulating oracle price drops for liquidation |
+| Part 1 Module 5 | Invariant testing | Property-based testing for CDP invariants: total debt ≤ total DAI, all vaults safe, rate monotonicity |
+| Part 1 Module 6 | Proxy patterns | MakerDAO's authorization system (`wards`/`can`) and join adapter pattern for upgradeable periphery |
 | Module 1 | SafeERC20 / token decimals | Join adapters bridge external ERC-20 tokens to Vat's internal accounting; decimal handling critical for multi-collateral |
 | Module 1 | Fee-on-transfer awareness | Collateral join adapters must handle non-standard token behavior; PSM must handle USDC's blacklist |
 | Module 2 | AMM / Curve StableSwap | PSM uses 1:1 swap; crvUSD's LLAMMA repurposes AMM as liquidation mechanism; Curve pools for peg monitoring |

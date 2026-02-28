@@ -3,7 +3,7 @@
 **Duration:** ~12 days (3–4 hours/day)
 **Prerequisites:** Module 1 complete (token mechanics, SafeERC20)
 **Pattern:** Math → Build minimal version → Read production code → Extend
-**Builds on:** Module 1 (SafeERC20, balance-before-after), Part 1 Section 5 (Foundry, fork testing)
+**Builds on:** Module 1 (SafeERC20, balance-before-after), Part 1 Module 5 (Foundry, fork testing)
 **Used by:** Module 3 (TWAP oracles), Module 4 (liquidation swaps), Module 5 (flash swaps/arbitrage), Module 9 (integration capstone)
 
 ---
@@ -26,7 +26,7 @@
 - [Read: Key V3 Contracts](#read-v3-contracts)
 - [V3 Exercises](#v3-exercises)
 
-**Build a Simplified CLAMM**
+**Build a Simplified CLAMM (Self-Directed Challenge)**
 
 **V4 — Singleton Architecture and Flash Accounting**
 - [Read: Key V4 Contracts](#read-v4-contracts)
@@ -575,7 +575,7 @@ This is exactly what V3 does — but it adds complexity:
   → The swap loop must cross tick boundaries
 ```
 
-V3 trades simplicity for capital efficiency. Keep this tradeoff in mind as you read the next section.
+V3 trades simplicity for capital efficiency. Keep this tradeoff in mind as you read the next part of this module.
 
 ### 📋 Summary: Reading Uniswap V2
 
@@ -921,9 +921,11 @@ Write tests that verify all three cases and check that amounts change continuous
 
 ---
 
-## Build a Simplified Concentrated Liquidity Pool
+## Build a Simplified Concentrated Liquidity Pool (Self-Directed Challenge)
 
 ### What to Build
+
+> **Note:** This is a self-directed challenge — there is no workspace scaffold or pre-written test suite. Design the contract, write the tests, and iterate on your own. The [Uniswap V3 Development Book](https://uniswapv3book.com/) is an excellent companion resource for this build.
 
 You won't replicate V3's full complexity (the tick bitmap alone is a masterwork of gas optimization). Instead, build a simplified CLAMM (Concentrated Liquidity AMM) that captures the core mechanics:
 
@@ -981,7 +983,9 @@ Between any two initialized ticks, the pool behaves exactly like a V2 pool with 
 
 ---
 
-### Tests
+### Test Checklist
+
+Write Foundry tests covering:
 
 - Create a single full-range position (equivalent to V2 behavior), verify swap outputs match your Constant Product Pool
 - Create two overlapping positions, verify liquidity adds at overlapping ticks
@@ -992,13 +996,13 @@ Between any two initialized ticks, the pool behaves exactly like a V2 pool with 
 
 > **Common pitfall:** Not testing tick crossings in both directions. A swap buying token0 (decreasing price) crosses ticks differently than a swap buying token1 (increasing price). Test both directions.
 
-### 📋 Summary: Simplified CLAMM Build
+### 📋 Summary: Simplified CLAMM Challenge
 
-**✓ Covered:**
-- Built a simplified CLAMM with `addLiquidity`, `swap` (with tick-crossing loop), `removeLiquidity`
-- Understood V3's core insight: between any two initialized ticks, the pool behaves like V2 with liquidity `L`
-- Fee accrual per position (only while in range)
-- Tested tick crossings, overlapping positions, out-of-range behavior, IL comparison
+**🎯 Learning goals:**
+- Build a simplified CLAMM with `addLiquidity`, `swap` (with tick-crossing loop), `removeLiquidity`
+- Internalize V3's core insight: between any two initialized ticks, the pool behaves like V2 with liquidity `L`
+- Implement fee accrual per position (only while in range)
+- Test tick crossings, overlapping positions, out-of-range behavior, IL comparison
 
 **Next:** V4's singleton architecture — one contract to rule all pools.
 
@@ -1066,7 +1070,7 @@ The key benefit: multi-hop swaps never move tokens between contracts. All accoun
 
 **2. Flash Accounting ([EIP-1153](https://eips.ethereum.org/EIPS/eip-1153) Transient Storage)**
 
-V4 uses [transient storage](https://eips.ethereum.org/EIPS/eip-1153) (which you studied in Part 1 Section 2) to implement "flash accounting." During a transaction:
+V4 uses [transient storage](https://eips.ethereum.org/EIPS/eip-1153) (which you studied in Part 1 Module 2) to implement "flash accounting." During a transaction:
 
 1. The caller "unlocks" the PoolManager
 2. The caller can perform multiple operations (swaps, liquidity changes) across any pools
@@ -1404,7 +1408,7 @@ The line is blurring. V4 hooks enable limit-order-like behavior in AMMs. Uniswap
 
 ### Beyond Uniswap: Other AMM Designs (Awareness)
 
-This module focuses on Uniswap because it's the Rosetta Stone of AMMs — V2's constant product, V3's concentrated liquidity, and V4's hooks represent the core design space. But other AMM architectures are important to know about. They'll be covered in depth in Part 3; this section gives you enough context to recognize them in the wild.
+This module focuses on Uniswap because it's the Rosetta Stone of AMMs — V2's constant product, V3's concentrated liquidity, and V4's hooks represent the core design space. But other AMM architectures are important to know about. The overviews below give you enough context to recognize them in the wild, evaluate protocol design decisions, and know when to reach for a specific AMM type. Some of these topics reappear in later modules: Curve StableSwap in Module 6 (Stablecoins), MEV in Part 3 Module 5, and LP management patterns in Module 7 (Vaults & Yield).
 
 <a id="curve-stableswap"></a>
 ### Curve StableSwap
@@ -1970,13 +1974,13 @@ After 12 days, you should have internalized:
 
 | Source | Concept | How It Connects |
 |--------|---------|-----------------|
-| Part 1 Section 1 | [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) share math / `mulDiv` | LP token minting uses the same shares-proportional-to-deposit pattern; `Math.sqrt` in V2 parallels vault share math |
-| Part 1 Section 1 | Unchecked arithmetic | V2/V3 use unchecked blocks for gas-optimized tick and fee math where overflow is intentional |
-| Part 1 Section 2 | Transient storage | V4 flash accounting uses TSTORE/TLOAD for delta tracking — 20× cheaper than SSTORE |
-| Part 1 Section 3 | Permit2 | Universal token approvals for V4 PositionManager; aggregator integrations use Permit2 for gasless approvals |
-| Part 1 Section 5 | Fork testing | Essential for testing AMM integrations against real mainnet liquidity and verifying swap routing |
-| Part 1 Section 5 | Invariant / fuzz testing | Property-based testing for AMM invariants: `x * y >= k`, tick math boundaries, fee accumulation monotonicity |
-| Part 1 Section 6 | Immutable core + periphery | V2/V3/V4 all use immutable core contracts with upgradeable periphery routers — the canonical DeFi proxy pattern |
+| Part 1 Module 1 | [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) share math / `mulDiv` | LP token minting uses the same shares-proportional-to-deposit pattern; `Math.sqrt` in V2 parallels vault share math |
+| Part 1 Module 1 | Unchecked arithmetic | V2/V3 use unchecked blocks for gas-optimized tick and fee math where overflow is intentional |
+| Part 1 Module 2 | Transient storage | V4 flash accounting uses TSTORE/TLOAD for delta tracking — 20× cheaper than SSTORE |
+| Part 1 Module 3 | Permit2 | Universal token approvals for V4 PositionManager; aggregator integrations use Permit2 for gasless approvals |
+| Part 1 Module 5 | Fork testing | Essential for testing AMM integrations against real mainnet liquidity and verifying swap routing |
+| Part 1 Module 5 | Invariant / fuzz testing | Property-based testing for AMM invariants: `x * y >= k`, tick math boundaries, fee accumulation monotonicity |
+| Part 1 Module 6 | Immutable core + periphery | V2/V3/V4 all use immutable core contracts with upgradeable periphery routers — the canonical DeFi proxy pattern |
 | Module 1 | SafeERC20 / balance-before-after | V2 implements its own `_safeTransfer`; `mint()`/`burn()` read balances directly — the foundation of composability |
 | Module 1 | Fee-on-transfer tokens | V2's `_update()` syncs reserves from actual balances; V3/V4 don't natively support fee-on-transfer |
 | Module 1 | WETH wrapping | All AMM routers wrap/unwrap ETH; V4 supports native ETH pairs directly |

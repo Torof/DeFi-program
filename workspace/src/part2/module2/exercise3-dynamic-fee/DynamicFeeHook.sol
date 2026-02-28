@@ -38,7 +38,6 @@ import {IHookCallback} from "../interfaces/IHookCallback.sol";
 
 // --- Custom Errors ---
 error OnlyPoolManager();
-error WindowSizeTooSmall();
 
 /// @notice A V4-style hook that returns higher swap fees during volatile markets.
 /// @dev Tracks the last WINDOW_SIZE swap prices in a circular buffer. On each

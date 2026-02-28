@@ -99,10 +99,10 @@ contract BaseTestTest is Test {
         assertEq(block.number, initialBlock + blocksToAdvance, "Should advance blocks");
     }
 
-    function test_SignTypedData() public view {
+    function test_SignDigest() public view {
         bytes32 digest = keccak256("test message");
 
-        (uint8 v, bytes32 r, bytes32 s) = baseTest.exposedSignTypedData(baseTest.aliceKey(), digest);
+        (uint8 v, bytes32 r, bytes32 s) = baseTest.exposedSignDigest(baseTest.aliceKey(), digest);
 
         // Verify signature components are non-zero
         assertTrue(v == 27 || v == 28, "v should be 27 or 28");
@@ -134,7 +134,7 @@ contract BaseTestTest is Test {
 
         // Sign a message
         bytes32 message = keccak256("Hello, DeFi!");
-        (uint8 v, bytes32 r, bytes32 s) = baseTest.exposedSignTypedData(baseTest.aliceKey(), message);
+        (uint8 v, bytes32 r, bytes32 s) = baseTest.exposedSignDigest(baseTest.aliceKey(), message);
         address recovered = ecrecover(message, v, r, s);
         assertEq(recovered, baseTest.alice(), "Signature should be valid");
     }
@@ -158,12 +158,12 @@ contract TestableBaseTest is BaseTest {
         dealToken(token, to, amount);
     }
 
-    function exposedSignTypedData(uint256 privateKey, bytes32 digest)
+    function exposedSignDigest(uint256 privateKey, bytes32 digest)
         external
         pure
         returns (uint8 v, bytes32 r, bytes32 s)
     {
-        return signTypedData(privateKey, digest);
+        return signDigest(privateKey, digest);
     }
 
     function exposedSkip(uint256 duration) external {

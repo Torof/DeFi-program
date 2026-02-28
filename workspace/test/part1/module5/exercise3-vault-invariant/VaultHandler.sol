@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+// See: Module 5 > Invariant Testing (#invariant-testing)
 // ============================================================================
 // EXERCISE: Vault Handler for Invariant Testing
 //

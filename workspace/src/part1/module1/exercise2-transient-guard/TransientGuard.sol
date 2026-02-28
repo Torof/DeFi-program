@@ -21,6 +21,7 @@ pragma solidity ^0.8.28;
 /// @dev The `transient` keyword makes _locked live in transient storage —
 ///      same slot-based addressing as regular storage, but discarded at
 ///      the end of every transaction. ~100 gas per op vs ~5000+ for storage.
+// See: Module 1 > Transient Storage (#transient-storage)
 contract TransientReentrancyGuard {
     bool transient _locked;
 
@@ -40,17 +41,18 @@ contract TransientReentrancyGuard {
 /// @notice Reentrancy guard using raw tstore/tload opcodes.
 /// @dev Uses slot 0 for the lock flag. tstore(slot, value) writes,
 ///      tload(slot) reads. Same transient storage, manual control.
+// See: Module 1 > Transient Storage (#transient-storage) — assembly syntax
 contract AssemblyReentrancyGuard {
     modifier nonReentrant() {
         // TODO: Implement using inline assembly
-        // assembly {
-        //     if tload(0) { revert(0, 0) }  // already locked
-        //     tstore(0, 1)                    // lock
-        // }
-        // _;
-        // assembly {
-        //     tstore(0, 0)                    // unlock
-        // }
+        //
+        // Steps:
+        //   1. In an assembly block, read slot 0 with tload(0)
+        //      - If the value is non-zero, the lock is held → revert
+        //      - Hint: revert(0, 0) reverts with empty data in assembly
+        //   2. Still in the same assembly block, write 1 to slot 0 with tstore(0, 1)
+        //   3. Execute the function body (_)
+        //   4. In a second assembly block, clear the lock: tstore(0, 0)
         _;
     }
 }
@@ -62,6 +64,7 @@ contract AssemblyReentrancyGuard {
 /// @dev Uses the 1/2 pattern: 1 = unlocked, 2 = locked. This avoids
 ///      the gas refund difference between zero→nonzero and nonzero→nonzero
 ///      SSTORE operations.
+// See: Module 1 > Transient Storage (#transient-storage) — gas comparison
 contract StorageReentrancyGuard {
     uint256 private _locked = 1;
 

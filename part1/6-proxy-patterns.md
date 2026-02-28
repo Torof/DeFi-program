@@ -78,6 +78,8 @@ contract Proxy {
 
 Deploy `Implementation`, then deploy `Proxy` with the implementation address. Call `setValue(42)` on the Proxy — then read `value` from the Proxy. It's 42! But read `value` from Implementation — it's 0. **The proxy's storage changed, not the implementation's.** That's `DELEGATECALL`.
 
+> ⚠️ Notice that `impl` at slot 1 could be overwritten by the implementation contract — this is exactly why EIP-1967 random storage slots exist (covered below).
+
 #### ⚠️ Common Mistakes
 
 ```solidity
@@ -188,7 +190,7 @@ address impl = address(uint160(uint256(vm.load(proxyAddress, implSlot))));
 
 **Why this matters:** UUPS is now the **recommended** pattern for new deployments. Cheaper gas, more flexible upgrade logic. Used by: Uniswap V4 periphery, modern protocols.
 
-> Defined in [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822), standardized as [EIP-1822](https://eips.ethereum.org/EIPS/eip-1822)
+> Defined in [ERC-1822](https://eips.ethereum.org/EIPS/eip-1822) (Universal Upgradeable Proxy Standard)
 
 **How it works:**
 
@@ -224,7 +226,7 @@ The proxy is minimal (just `DELEGATECALL` forwarding). The implementation includ
 
 [OpenZeppelin UUPS implementation](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/proxy/utils/UUPSUpgradeable.sol) — production reference.
 
-> 🔍 **Deep dive:** [OpenZeppelin - UUPS Proxy Guide](https://docs.openzeppelin.com/contracts-stylus/uups-proxy) provides official documentation. [Cyfrin Updraft - UUPS Proxies Tutorial](https://updraft.cyfrin.io/courses/advanced-foundry/upgradeable-smart-contracts/introduction-to-uups-proxies) offers hands-on Foundry examples. [OpenZeppelin - Proxy Upgrade Pattern](https://docs.openzeppelin.com/upgrades-plugins/proxies) covers best practices and common pitfalls.
+> 🔍 **Deep dive:** [OpenZeppelin - UUPS Proxy Guide](https://docs.openzeppelin.com/contracts/5.x/api/proxy#UUPSUpgradeable) provides official documentation. [Cyfrin Updraft - UUPS Proxies Tutorial](https://updraft.cyfrin.io/courses/advanced-foundry/upgradeable-smart-contracts/introduction-to-uups-proxies) offers hands-on Foundry examples. [OpenZeppelin - Proxy Upgrade Pattern](https://docs.openzeppelin.com/upgrades-plugins/proxies) covers best practices and common pitfalls.
 
 #### 🎓 Intermediate Example: Minimal UUPS Proxy
 
@@ -332,7 +334,7 @@ VaultV1(address(proxy)).upgradeTo(newImpl);  // Proxy's EIP-1967 slot gets updat
 <a id="beacon-proxy"></a>
 ### 💡 Concept: Beacon Proxy
 
-**Why this matters:** When you have 100+ proxy instances (like Aave's aTokens), upgrading them individually is expensive and error-prone. Beacon proxies let you upgrade ALL instances in a single transaction. ✨
+**Why this matters:** When you have 100+ proxy instances that share the same logic, upgrading them individually is expensive and error-prone. Beacon proxies let you upgrade ALL instances in a single transaction. ✨
 
 > Defined in [BeaconProxy.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/beacon/BeaconProxy.sol)
 
@@ -384,7 +386,7 @@ The Diamond pattern allows a single proxy to delegate to **multiple** implementa
 |--------|---------|---------|
 | **Modularity** | ✅ Pro | Split 100+ functions across domains |
 | **Complexity** | ❌ Con | Significantly more complex |
-| **Security risk** | ⚠️ Warning | [LI.FI exploit (March 2024, $10M)](https://rekt.news/lifi-rekt/) caused by facet validation bug |
+| **Security risk** | ⚠️ Warning | [LI.FI exploit (July 2024, $10M)](https://rekt.news/lifi-rekt/) caused by facet validation bug |
 
 **Recommendation:** For most DeFi protocols, UUPS or Transparent Proxy is sufficient. Diamond is worth knowing about but rarely needed. Complexity is a security risk.
 
@@ -415,7 +417,7 @@ The Diamond pattern allows a single proxy to delegate to **multiple** implementa
 
 1. **"When would you use UUPS vs Transparent vs no proxy at all?"**
    - Good answer: "UUPS for new deployments, Transparent for legacy, no proxy for trust-minimized core logic"
-   - Great answer: "It depends on the trust model. For core protocol logic that handles user funds, I'd argue for immutable contracts — users shouldn't trust that an upgrade won't change the rules. For periphery (routers, adapters, fee modules), UUPS gives flexibility with lower gas overhead than Transparent. Beacon makes sense only when you have many instances of the same contract (like Aave's aTokens). I'd avoid Diamond unless the protocol truly needs 100+ functions split across domains"
+   - Great answer: "It depends on the trust model. For core protocol logic that handles user funds, I'd argue for immutable contracts — users shouldn't trust that an upgrade won't change the rules. For periphery (routers, adapters, fee modules), UUPS gives flexibility with lower gas overhead than Transparent. Beacon makes sense when you have many instances of the same contract (e.g., token vaults, lending pools) and want atomic upgrades. Note that Aave V3's aTokens actually use individual transparent-style proxies upgraded via governance, not a shared beacon. I'd avoid Diamond unless the protocol truly needs 100+ functions split across domains"
 
 2. **"What's the biggest risk with upgradeable contracts?"**
    - Good answer: "Storage collisions and uninitialized proxies"
@@ -436,7 +438,7 @@ The Diamond pattern allows a single proxy to delegate to **multiple** implementa
 <a id="storage-layout"></a>
 ### 💡 Concept: Storage Layout Compatibility
 
-**Why this matters:** The #1 risk with proxy upgrades is **storage collisions**. [Audius governance takeover exploit](https://blog.openzeppelin.com/audius-governance-takeover-post-mortem) ($6M+ at risk) was caused by storage layout mismatch. This is silent, catastrophic, and happens at deployment—not caught by tests unless you specifically check.
+**Why this matters:** The #1 risk with proxy upgrades is **storage collisions**. [Audius governance takeover exploit](https://www.openzeppelin.com/blog/audius-governance-takeover-post-mortem) ($6M+ at risk) was caused by storage layout mismatch. This is silent, catastrophic, and happens at deployment—not caught by tests unless you specifically check.
 
 **How Solidity assigns storage:**
 
@@ -466,22 +468,24 @@ contract VaultV2 {
 
 **Storage gaps:**
 
-To allow future inheritance changes, reserve empty slots:
+To allow future inheritance changes, reserve empty slots. Gap size = target total slots - number of state variables in the contract. With a target of 50 total slots:
 
 ```solidity
 contract VaultV1 is Initializable {
-    uint256 public totalSupply;
-    mapping(address => uint256) balances;
-    uint256[48] private __gap;  // ✅ Reserve 48 slots for future use (total 50 slots)
+    uint256 public totalSupply;              // slot 0
+    mapping(address => uint256) balances;    // slot 1
+    uint256[48] private __gap;  // ✅ 50 - 2 state vars = 48 gap slots (total 50 slots)
 }
 
 contract VaultV2 is Initializable {
-    uint256 public totalSupply;
-    mapping(address => uint256) balances;
-    address public owner;                   // ✅ Added 1 new variable
-    uint256[47] private __gap;  // ✅ Reduced gap by 1 (total still 50 slots)
+    uint256 public totalSupply;              // slot 0 (same)
+    mapping(address => uint256) balances;    // slot 1 (same)
+    address public owner;                    // slot 2 (new — added 1 variable)
+    uint256[47] private __gap;  // ✅ 48 - 1 new var = 47 gap slots (total still 50 slots)
 }
 ```
+
+> **Gap math rule:** When adding N new state variables, reduce `__gap` size by N. Each variable occupies one slot (even `uint128` — packed structs are the exception, but it's safer to count full slots). Always verify with `forge inspect`.
 
 **`forge inspect` for storage layout:**
 
@@ -498,6 +502,8 @@ diff v1-layout.txt v2-layout.txt
 > ⚡ **Common pitfall:** Changing the inheritance order. If V1 inherits `A, B` and V2 inherits `B, A`, the storage layout changes even if no variables were added. Always maintain inheritance order.
 
 > 🔍 **Deep dive:** [Foundry Storage Check Tool](https://github.com/Rubilmax/foundry-storage-check) automates collision detection in CI/CD. [RareSkills - OpenZeppelin Foundry Upgrades](https://rareskills.io/post/openzeppelin-foundry-upgrades) covers the OZ Foundry upgrades plugin. [Runtime Verification - Foundry Upgradeable Contracts](https://runtimeverification.com/blog/using-foundry-to-explore-upgradeable-contracts-part-1) provides practical verification patterns.
+
+> 📝 **Modern Alternative:** OpenZeppelin V5 introduced ERC-7201 (`@custom:storage-location`) as a successor to `__gap` patterns. It uses namespaced storage at deterministic slots, eliminating the need for manual gap management. Worth exploring for new projects.
 
 ---
 
@@ -627,6 +633,12 @@ contract V2 { uint256 public fee = 100; }             // IN storage at slot 0 �
 
 **Workspace:** [`workspace/src/part1/module6/`](../workspace/src/part1/module6/) — starter files: [`UUPSVault.sol`](../workspace/src/part1/module6/exercise4-uups-vault/UUPSVault.sol), [`UninitializedProxy.sol`](../workspace/src/part1/module6/exercise1-uninitialized-proxy/UninitializedProxy.sol), [`StorageCollision.sol`](../workspace/src/part1/module6/exercise2-storage-collision/StorageCollision.sol), [`BeaconProxy.sol`](../workspace/src/part1/module6/exercise3-beacon-proxy/BeaconProxy.sol), tests: [`UUPSVault.t.sol`](../workspace/test/part1/module6/exercise4-uups-vault/UUPSVault.t.sol), [`UninitializedProxy.t.sol`](../workspace/test/part1/module6/exercise1-uninitialized-proxy/UninitializedProxy.t.sol), [`StorageCollision.t.sol`](../workspace/test/part1/module6/exercise2-storage-collision/StorageCollision.t.sol), [`BeaconProxy.t.sol`](../workspace/test/part1/module6/exercise3-beacon-proxy/BeaconProxy.t.sol)
 
+> **Note:** Exercise folders are numbered by difficulty progression:
+> - exercise1-uninitialized-proxy (simplest — attack demonstration)
+> - exercise2-storage-collision (intermediate — storage layout)
+> - exercise3-beacon-proxy (intermediate — beacon pattern)
+> - exercise4-uups-vault (advanced — full UUPS implementation)
+
 **Exercise 1: UUPS upgradeable vault**
 
 1. Deploy a UUPS-upgradeable ERC-20 vault:
@@ -736,9 +748,10 @@ Study these proxy implementations in this order — each builds on patterns from
 | 1 | [OZ Proxy contracts](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/proxy) | Clean reference implementations — learn the standards | ERC1967Proxy.sol, TransparentUpgradeableProxy.sol |
 | 2 | [OZ UUPSUpgradeable](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/proxy/utils/UUPSUpgradeable.sol) | Understand UUPS internals — `_authorizeUpgrade`, rollback test | UUPSUpgradeable.sol, Initializable.sol |
 | 3 | [Compound V3 (Comet)](https://github.com/compound-finance/comet) | Custom immutable proxy — simpler than Aave, different philosophy | Comet.sol, CometConfiguration.sol |
-| 4 | [Aave V3 Pool](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/pool/Pool.sol) | Full production proxy architecture — Transparent + Beacon | Pool.sol, PoolStorage.sol, AToken.sol |
-| 5 | [Aave V3 aToken beacon](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/tokenization/AToken.sol) | Beacon proxy in production — 100+ instances, single upgrade | AToken.sol, VersionedInitializable.sol |
-| 6 | [ERC-4337 SimpleAccount](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccount.sol) | UUPS for smart wallets — proxy as account abstraction pattern | SimpleAccount.sol, BaseAccount.sol |
+| 4 | [Aave V3 Pool](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/pool/Pool.sol) | Full production proxy architecture — Transparent for core, individual transparent-style proxies for aTokens | Pool.sol, PoolStorage.sol, AToken.sol |
+| 5 | [Aave V3 aToken proxies](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/tokenization/AToken.sol) | Individual transparent-style proxies for aTokens — 100+ instances, upgraded via `PoolConfigurator` | AToken.sol, VersionedInitializable.sol |
+| 6 | [Gnosis Safe](https://github.com/safe-global/safe-smart-account/blob/main/contracts/Safe.sol) | EIP-1167 minimal proxy + singleton pattern | Safe.sol, SafeProxy.sol — most-deployed proxy in DeFi |
+| 7 | [ERC-4337 SimpleAccount](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccount.sol) | UUPS for smart wallets — proxy as account abstraction pattern | SimpleAccount.sol, BaseAccount.sol |
 
 **Reading strategy:** Start with OZ to learn the canonical proxy patterns, then study Compound's intentionally different approach (immutable implementation). Move to Aave for the most complex production proxy architecture you'll encounter. Finish with ERC-4337 to see UUPS applied to a completely different domain — smart wallets instead of DeFi protocols.
 
@@ -774,7 +787,7 @@ Study these proxy implementations in this order — each builds on patterns from
 |---------------|---------------|-------------|
 | [M1: Token Mechanics](../part2/1-token-mechanics.md) | Beacon proxy | Rebasing tokens (like stETH) use proxy patterns for upgradeable accounting |
 | [M2: AMMs](../part2/2-amms.md) | Immutable core | Uniswap V4 PoolManager is immutable — trust minimization for AMM math |
-| [M4: Lending](../part2/4-lending.md) | Transparent + Beacon | Aave V3 uses Transparent for Pool, Beacon for aTokens (100+ instances) |
+| [M4: Lending](../part2/4-lending.md) | Transparent + individual proxies | Aave V3 uses Transparent for Pool, individual transparent-style proxies for aTokens (upgraded via `PoolConfigurator`) |
 | [M4: Lending](../part2/4-lending.md) | Custom immutable | Compound V3 (Comet) uses custom proxy with immutable implementation |
 | [M5: Flash Loans](../part2/5-flash-loans.md) | UUPS periphery | Flash loan routers behind UUPS for upgradeable routing logic |
 | [M6: Stablecoins](../part2/6-stablecoins-cdps.md) | Timelock + proxy | Governance controls proxy upgrades via timelock — upgrade authorization |
@@ -786,9 +799,8 @@ Study these proxy implementations in this order — each builds on patterns from
 ## 📚 Resources
 
 ### Proxy Standards
-- [EIP-1967](https://eips.ethereum.org/EIPS/eip-1967) — standard proxy storage slots
+- [EIP-1967](https://eips.ethereum.org/EIPS/eip-1967) — standard proxy storage slots (implementation, admin, and beacon slots)
 - [EIP-1822 (UUPS)](https://eips.ethereum.org/EIPS/eip-1822) — universal upgradeable proxy standard
-- [EIP-1967 (Transparent)](https://eips.ethereum.org/EIPS/eip-1967) — admin storage slot
 - [EIP-2535 (Diamond)](https://eips.ethereum.org/EIPS/eip-2535) — multi-facet proxy
 
 ### OpenZeppelin Implementations
@@ -798,17 +810,17 @@ Study these proxy implementations in this order — each builds on patterns from
 - [Initializable](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/proxy/utils/Initializable.sol)
 
 ### Production Examples
-- [Aave V3 Proxy Architecture](https://github.com/aave/aave-v3-core/tree/master/contracts/protocol/libraries) — beacon proxies, initialization patterns
+- [Aave V3 Proxy Architecture](https://github.com/aave/aave-v3-core/tree/master/contracts/protocol/tokenization) — individual transparent-style proxies for aTokens, initialization patterns
 - [Compound V3 Configurator](https://github.com/compound-finance/comet) — custom proxy with immutable implementation
 
 ### Security Resources
-- [OpenZeppelin Proxy Upgrade Guide](https://docs.openzeppelin.com/upgrades-plugins/1.x/proxies) — best practices
-- [Audius governance takeover postmortem](https://blog.openzeppelin.com/audius-governance-takeover-post-mortem) — storage collision exploit
+- [OpenZeppelin Proxy Upgrade Guide](https://docs.openzeppelin.com/upgrades-plugins/proxies) — best practices
+- [Audius governance takeover postmortem](https://www.openzeppelin.com/blog/audius-governance-takeover-post-mortem) — storage collision exploit
 - [Wormhole uninitialized proxy](https://medium.com/immunefi/wormhole-uninitialized-proxy-bugfix-review-90250c41a43a) — initialization attack
 
 ### Tools
 - [Foundry storage layout](https://book.getfoundry.sh/reference/forge/forge-inspect) — `forge inspect storage-layout`
-- [OpenZeppelin Upgrades Plugin](https://docs.openzeppelin.com/upgrades-plugins/1.x/) — automated layout checking
+- [OpenZeppelin Upgrades Plugin](https://docs.openzeppelin.com/upgrades-plugins/) — automated layout checking
 
 ---
 

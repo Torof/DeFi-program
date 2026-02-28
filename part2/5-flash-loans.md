@@ -4,7 +4,7 @@
 **Prerequisites:** Modules 1–4 (especially AMMs and lending)
 **Pattern:** Concept → Read provider implementations → Build multi-step compositions → Security analysis
 **Builds on:** Module 2 (AMM swaps for arbitrage), Module 3 (oracle manipulation threat model), Module 4 (liquidation mechanics for flash loan liquidation)
-**Used by:** Module 6 (DAI flash mint, Liquidation 2.0 composability), Module 8 (flash-loan-amplified attack patterns), Module 9 (integration capstone flash liquidation bot), Part 3 Module 5 (MEV searcher strategies)
+**Used by:** Module 6 (DAI flash mint, Liquidation 2.0 composability), Module 8 (flash-loan-amplified attack patterns), Module 9 (Decentralized Multi-Collateral Stablecoin capstone — flash mint feature), Part 3 Module 5 (MEV searcher strategies)
 
 ---
 
@@ -185,7 +185,7 @@ Not all providers implement ERC-3156 (Aave and Balancer have their own interface
 
 **DAI Flash Mint** — MakerDAO's `DssFlash` module lets anyone mint *unlimited* DAI via flash loan — not from a pool, but minted from thin air and burned at the end. This is unique: the liquidity isn't constrained by pool deposits. DAI is minted in the Vat, used, and burned within the same tx. Fee: 0%. This is possible because DAI is protocol-issued (see Module 6 — CDPs mint stablecoins into existence).
 
-> **🔗 Connection:** The flash mint concept connects to Module 6 — a CDP stablecoin can offer infinite flash liquidity because the protocol controls issuance. Your Part 3 Module 9 capstone stablecoin will include a flash mint feature.
+> **🔗 Connection:** The flash mint concept connects to Module 6 — a CDP stablecoin can offer infinite flash liquidity because the protocol controls issuance. Your Part 2 Module 9 capstone stablecoin includes a flash mint feature, and Part 3 Module 9 (Perpetual Exchange capstone) builds on these composability patterns.
 
 <a id="read-aave-flash"></a>
 ### 📖 Read: Aave FlashLoanLogic.sol
@@ -237,15 +237,14 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 
 **Workspace:** [`workspace/src/part2/module5/exercise1-flash-loan-receiver/`](../workspace/src/part2/module5/exercise1-flash-loan-receiver/) — starter file: [`FlashLoanReceiver.sol`](../workspace/src/part2/module5/exercise1-flash-loan-receiver/FlashLoanReceiver.sol), tests: [`FlashLoanReceiver.t.sol`](../workspace/test/part2/module5/exercise1-flash-loan-receiver/FlashLoanReceiver.t.sol)
 
-**Exercise 1:** Build a minimal Aave V3 flash loan receiver. On a mainnet fork:
-- Flash-borrow 1,000,000 USDC
-- In the callback, simply approve and return the amount + premium
-- Verify the transaction succeeds and your contract paid exactly the premium
-- Log the premium amount to confirm the fee
+**Exercise 1 — FlashLoanReceiver:** Build a minimal Aave V3-style flash loan receiver that borrows tokens, validates the callback (both `msg.sender` and `initiator`), approves repayment, and tracks premiums paid. Also implement a `rescueTokens` function to sweep any accidentally stuck tokens — reinforcing the "never store funds" principle.
 
-**Exercise 2:** Build a Balancer flash loan receiver that borrows the same 1,000,000 USDC. Compare gas costs with the Aave version. Verify the fee is 0.
+- Implement `requestFlashLoan` (owner-only, initiates the flash loan)
+- Implement `executeOperation` (callback security checks + approve repayment)
+- Implement `rescueTokens` (owner-only safety net)
+- Tests verify: correct premium accounting, cumulative tracking across multiple loans, callback validation, access control, and zero contract balance after every operation
 
-**Exercise 3:** Build a Uniswap V2 flash swap receiver. Flash-borrow WETH from a WETH/USDC pair. In the callback, verify you received the WETH, then send USDC (equivalent value + 0.3% fee) back to the pair. Verify the invariant is maintained.
+**Stretch:** Build a Balancer flash loan receiver that borrows the same amount. Compare the callback pattern — Balancer checks balance increase (you transfer) vs Aave uses `transferFrom` (you approve). Verify the fee is 0.
 
 #### 💼 Job Market Context
 
@@ -339,38 +338,13 @@ The classic flash loan use case: a price discrepancy between two DEXes.
 - Slippage on larger trades reduces profitability
 - Frontrunning: your transaction sits in the mempool where MEV searchers can see it and extract the opportunity first (Flashbots private transactions mitigate this)
 
-**Build: SimpleArbitrage.sol**
+**Build: FlashLoanArbitrage**
 
-```solidity
-contract SimpleArbitrage is IFlashLoanSimpleReceiver {
-    function executeArbitrage(
-        address flashLoanProvider,
-        address tokenA,
-        uint256 amount,
-        address dex1Router,
-        address dex2Router,
-        address tokenB,
-        uint256 minProfit
-    ) external { ... }
+The key architectural decision: your `executeArbitrage` function encodes the strategy parameters (which DEXs, which intermediate token, minimum profit) into bytes and passes them through the flash loan's `params` argument. The callback decodes them to execute the two-leg swap. This encode/decode pattern is how every real flash loan strategy passes information across the callback boundary.
 
-    function executeOperation(
-        address asset,
-        uint256 amount,
-        uint256 premium,
-        address initiator,
-        bytes calldata params
-    ) external returns (bool) {
-        // Decode params: dex1Router, dex2Router, tokenB, minProfit
-        // Swap asset → tokenB on dex1
-        // Swap tokenB → asset on dex2
-        // Verify: balance >= amount + premium + minProfit
-        // Approve Pool for amount + premium
-        return true;
-    }
-}
-```
+Think about: how do you enforce that the arbitrage is actually profitable before committing? Where in the callback do you check `minProfit`? What happens to any remaining tokens after repayment?
 
-Test on a mainnet fork by deploying two Uniswap V2 pools with deliberately different prices. Execute the arbitrage and verify profit.
+**Workspace exercise:** The full scaffold with TODOs is in [`FlashLoanArbitrage.sol`](../workspace/src/part2/module5/exercise2-flash-loan-arbitrage/FlashLoanArbitrage.sol).
 
 #### 🔍 Deep Dive: Arbitrage Profit Calculation
 
@@ -505,66 +479,26 @@ This is Aave's "liquidity switch" pattern — one of the primary production uses
 
 This is the most complex composition — and the most interview-relevant. It touches lending (repay, withdraw, deposit, borrow) and swapping, all within a single flash loan callback.
 
-```solidity
-contract CollateralSwap is IFlashLoanSimpleReceiver {
-    IPool public immutable POOL;
-    ISwapRouter public immutable SWAP_ROUTER;
+**The 6-step callback pattern:**
 
-    struct SwapParams {
-        address user;           // Position owner (must have delegated credit)
-        address oldCollateral;  // e.g., WETH
-        address newCollateral;  // e.g., WBTC
-        address debtAsset;      // e.g., USDC
-        uint256 debtAmount;     // Total debt to repay
-        uint24 swapFee;         // Uniswap V3 pool fee tier
-    }
-
-    /// @notice Initiate the collateral swap via flash loan
-    function swapCollateral(SwapParams calldata p) external {
-        // TODO: Encode SwapParams into bytes
-        // TODO: Request flash loan of p.debtAsset for p.debtAmount from Aave
-        // Hint: Use POOL.flashLoanSimple(address(this), p.debtAsset, p.debtAmount, params, 0)
-    }
-
-    function executeOperation(
-        address asset,
-        uint256 amount,
-        uint256 premium,
-        address initiator,
-        bytes calldata params
-    ) external override returns (bool) {
-        require(msg.sender == address(POOL), "Caller must be Pool");
-        require(initiator == address(this), "Initiator must be this contract");
-
-        SwapParams memory p = abi.decode(params, (SwapParams));
-
-        // TODO Step 1: Repay user's entire debt on Aave
-        // Hint: Approve the Pool, then POOL.repay(p.debtAsset, p.debtAmount, 2, p.user)
-        // Note: repay() pulls tokens from msg.sender (this contract). We have them
-        //       from the flash loan. The user doesn't need to approve anything here.
-
-        // TODO Step 2: Transfer user's aTokens to this contract, then withdraw
-        // Hint: aToken.transferFrom(p.user, address(this), aToken.balanceOf(p.user))
-        //       then POOL.withdraw(p.oldCollateral, type(uint256).max, address(this))
-        // Note: withdraw() burns aTokens from msg.sender — so we need to hold them first.
-        //       User must have called aToken.approve(this, amount) beforehand.
-
-        // TODO Step 3: Swap old collateral → new collateral via Uniswap V3
-        // Hint: Use ISwapRouter.exactInputSingle with p.swapFee tier
-
-        // TODO Step 4: Deposit new collateral into Aave for user
-        // Hint: POOL.supply(p.newCollateral, swappedAmount, p.user, 0)
-
-        // TODO Step 5: Borrow debt asset from Aave on behalf of user to repay flash loan
-        // Hint: POOL.borrow(p.debtAsset, amount + premium, 2, 0, p.user)
-        // Note: User must have delegated variable debt credit to this contract
-
-        // TODO Step 6: Approve Pool to pull the flash loan repayment
-        // Hint: IERC20(asset).approve(address(POOL), amount + premium)
-
-        return true;
-    }
-}
+```
+Flash borrow debt asset (e.g., USDC)
+  │
+  ├─ Step 1: Repay user's entire debt on lending pool
+  │           (we have the tokens from the flash loan)
+  │
+  ├─ Step 2: Pull user's aTokens, then withdraw old collateral
+  │           (withdraw burns aTokens from msg.sender)
+  │
+  ├─ Step 3: Swap old collateral → new collateral on DEX
+  │
+  ├─ Step 4: Deposit new collateral into lending pool for user
+  │           (supply on behalf of user — they receive aTokens)
+  │
+  ├─ Step 5: Borrow debt asset on behalf of user (credit delegation)
+  │           to cover the flash loan repayment
+  │
+  └─ Step 6: Approve flash pool to pull amount + premium
 ```
 
 **Key prerequisite:** The user must set up two delegations before calling this contract:
@@ -572,6 +506,8 @@ contract CollateralSwap is IFlashLoanSimpleReceiver {
 2. `variableDebtToken.approveDelegation(collateralSwap, amount)` — so the contract can borrow on their behalf
 
 This delegation pattern is critical for interview discussions — it shows you understand Aave's credit delegation system.
+
+**Workspace exercise:** The full scaffold with TODOs is in [`CollateralSwap.sol`](../workspace/src/part2/module5/exercise3-collateral-swap/CollateralSwap.sol).
 
 <a id="leverage-deleverage"></a>
 ### 💡 Strategy 4: Leverage/Deleverage in One Transaction
@@ -647,11 +583,17 @@ Result:
 
 **Workspace:** [`workspace/src/part2/module5/exercise2-flash-loan-arbitrage/`](../workspace/src/part2/module5/exercise2-flash-loan-arbitrage/) — starter file: [`FlashLoanArbitrage.sol`](../workspace/src/part2/module5/exercise2-flash-loan-arbitrage/FlashLoanArbitrage.sol), tests: [`FlashLoanArbitrage.t.sol`](../workspace/test/part2/module5/exercise2-flash-loan-arbitrage/FlashLoanArbitrage.t.sol) | Also: [`CollateralSwap.sol`](../workspace/src/part2/module5/exercise3-collateral-swap/CollateralSwap.sol), tests: [`CollateralSwap.t.sol`](../workspace/test/part2/module5/exercise3-collateral-swap/CollateralSwap.t.sol)
 
-**Exercise:** Build at least two of the four strategies above. For each, write tests that verify:
-- The flash loan is fully repaid
-- The strategy is profitable (or at least demonstrates the correct flow)
-- The strategy reverts cleanly if conditions aren't met (e.g., arbitrage isn't profitable enough to cover fees)
-- Edge cases: what happens if the DEX doesn't have enough liquidity for the swap?
+**Exercise 2 — FlashLoanArbitrage:** Build a flash loan arbitrage contract that captures price discrepancies between two DEXs. This exercises the full composition pattern: flash borrow, encode/decode strategy params through the callback bytes, execute two-leg swap, enforce minimum profit, and sweep profit to the caller.
+
+- Implement `executeArbitrage` (encode params, request flash loan, sweep profit)
+- Implement `executeOperation` (decode params, two DEX swaps, profitability check, approve repayment)
+- Tests verify: profitable arb with 1% spread, `minProfit` enforcement, revert when spread is too small, callback security, fuzz testing across varying borrow amounts
+
+**Exercise 3 — CollateralSwap:** Build the most complex flash loan composition: switch a user's lending position from one collateral to another in a single atomic transaction. This is Aave's "liquidity switch" pattern and the most interview-relevant use case.
+
+- Implement `swapCollateral` (encode SwapParams, request flash loan)
+- Implement `executeOperation` (6-step callback: repay debt, pull aTokens + withdraw, swap on DEX, deposit new collateral, borrow on behalf of user via credit delegation, approve repayment)
+- Tests verify: complete position migration (old collateral to new), correct debt accounting (original + premium), prerequisite delegation checks, callback security
 
 ---
 
@@ -814,17 +756,15 @@ Key difference:
 
 **Workspace:** [`workspace/src/part2/module5/exercise4-vault-donation/`](../workspace/src/part2/module5/exercise4-vault-donation/) — starter file: [`VaultDonationAttack.sol`](../workspace/src/part2/module5/exercise4-vault-donation/VaultDonationAttack.sol), tests: [`VaultDonationAttack.t.sol`](../workspace/test/part2/module5/exercise4-vault-donation/VaultDonationAttack.t.sol)
 
-**Exercise 1: Build the vulnerable protocol, then defend it.** Create a simple vault contract that calculates share price as `totalAssets() / totalShares()`. Show how an attacker can use a flash loan to donate assets, inflate the share price, and exploit a protocol that reads this vault's share price. Then fix it with virtual shares/assets offset (the standard [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) defense).
+**Exercise 4 — VaultDonationAttack:** Build a flash loan-powered vault donation attack that exploits the classic ERC-4626 share price inflation vulnerability. This puts you in the attacker's shoes to understand why `balanceOf`-based asset accounting is dangerous and why the virtual shares/assets offset defense exists.
 
-**Exercise 2: Governance attack simulation.** Deploy a simple governance contract with non-snapshot voting. Show how a flash loan can pass a malicious proposal. Then deploy an OpenZeppelin Governor with snapshot voting and verify the attack fails.
+- Implement `executeAttack` (encode params, request flash loan, sweep profit)
+- Implement `executeOperation` (5-step attack: deposit 1 wei to become sole shareholder, donate remaining tokens to inflate share price, trigger victim's harvest that rounds to 0 shares, withdraw everything, approve repayment)
+- Tests verify: attacker profits ~4,995 USDC from 5,000 USDC victim, victim gets 0 shares and 0 balance, vault is empty after withdrawal, attack contract holds nothing, flash pool gains premium
 
-**Exercise 3: Multi-provider composition.** Build a contract that:
-- Flash-borrows USDC from Balancer (0 fee)
-- Flash-borrows WETH from Aave (uses the USDC from Balancer as part of a larger strategy)
-- Executes a complex multi-step operation
-- Repays both flash loans
+**Stretch: Governance attack simulation.** Deploy a simple governance contract with non-snapshot voting. Show how a flash loan can pass a malicious proposal. Then deploy an OpenZeppelin Governor with snapshot voting and verify the attack fails.
 
-This tests your ability to nest or chain flash loans from different providers. Note: nesting callbacks requires careful tracking of which repayment is owed to which provider.
+**Stretch: Multi-provider composition.** Build a contract that nests flash loans from different providers (e.g., Balancer + Aave). This tests your ability to manage nested callbacks and track which repayment is owed to which provider.
 
 ---
 
@@ -989,11 +929,11 @@ Study these codebases in order — each builds on the previous one's patterns:
 
 | Source | Concept | How It Connects |
 |--------|---------|-----------------|
-| Part 1 Section 1 | Custom errors | Flash loan receivers use custom errors for initiator validation, repayment failures |
-| Part 1 Section 2 | Transient storage / [EIP-1153](https://eips.ethereum.org/EIPS/eip-1153) | V4 flash accounting uses TSTORE/TLOAD for delta tracking — flash loans become emergent from the accounting model |
-| Part 1 Section 3 | Permit / Permit2 | Gasless approvals in flash loan callbacks — approve repayment without separate tx |
-| Part 1 Section 5 | Fork testing / `vm.mockCall` | Essential for testing flash loan strategies against real Aave/Balancer/Uniswap liquidity on mainnet forks |
-| Part 1 Section 6 | Proxy patterns | Aave Pool proxy delegates to FlashLoanLogic library; Balancer Vault is a single immutable entry point |
+| Part 1 Module 1 | Custom errors | Flash loan receivers use custom errors for initiator validation, repayment failures |
+| Part 1 Module 2 | Transient storage / [EIP-1153](https://eips.ethereum.org/EIPS/eip-1153) | V4 flash accounting uses TSTORE/TLOAD for delta tracking — flash loans become emergent from the accounting model |
+| Part 1 Module 3 | Permit / Permit2 | Gasless approvals in flash loan callbacks — approve repayment without separate tx |
+| Part 1 Module 5 | Fork testing / `vm.mockCall` | Essential for testing flash loan strategies against real Aave/Balancer/Uniswap liquidity on mainnet forks |
+| Part 1 Module 6 | Proxy patterns | Aave Pool proxy delegates to FlashLoanLogic library; Balancer Vault is a single immutable entry point |
 | Module 1 | SafeERC20 / token transfers | Safe token handling in callbacks — approve patterns differ between providers (Aave: approve, Balancer: transfer) |
 | Module 2 | AMM swaps / price impact | DEX swaps are the core operation inside most flash loan strategies (arbitrage, liquidation collateral disposal) |
 | Module 2 | Flash accounting (V4) | V4 doesn't have dedicated flash loans — flash borrowing is emergent from the delta tracking system |
@@ -1010,10 +950,10 @@ Study these codebases in order — each builds on the previous one's patterns:
 | Module 6 (Stablecoins) | Liquidation 2.0 | MakerDAO Dutch auctions designed for flash loan compatibility — more competition, better prices, less bad debt |
 | Module 7 (Yield/Vaults) | ERC-4626 inflation attack | Flash loans amplify donation attacks on vault share prices — virtual shares/assets offset is the defense |
 | Module 8 (Security) | Attack simulation | Flash-loan-amplified attack scenarios as primary threat model for invariant testing |
-| Module 9 (Integration) | Liquidation bot | Capstone includes a flash-loan-powered liquidation bot combining lending + AMM + oracle components |
+| Module 9 (Stablecoin Capstone) | Flash mint | Capstone stablecoin protocol includes ERC-3156-adapted flash mint — CDP-issued tokens can offer infinite flash liquidity |
 | Part 3 Module 5 (MEV) | Searcher strategies | Flash loan arbitrage profits captured by MEV searchers via Flashbots bundles; builder tips consume 90%+ of profit |
 | Part 3 Module 8 (Governance) | Governance attacks | Flash loan voting attacks and snapshot-based voting defense; quorum requirements |
-| Part 3 Module 9 (Capstone) | Flash mint feature | Your stablecoin protocol includes flash mint functionality — CDP-issued tokens can offer infinite flash liquidity |
+| Part 3 Module 9 (Capstone) | Perpetual Exchange | Capstone perp exchange integrates flash loan patterns for liquidation and MEV strategies learned throughout Part 3 |
 
 ---
 

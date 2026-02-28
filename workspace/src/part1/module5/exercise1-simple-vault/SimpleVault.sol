@@ -28,6 +28,8 @@ error TransferFailed();
 // =============================================================
 /// @notice Simple vault that accepts ERC-20 deposits and issues shares.
 /// @dev Simplified ERC-4626 pattern for testing exercises.
+// See: Module 5 > Fuzz Testing (#fuzz-testing)
+// See: Module 5 > Invariant Testing (#invariant-testing)
 contract SimpleVault {
     IERC20 public immutable asset;
 
@@ -38,8 +40,7 @@ contract SimpleVault {
     event Withdraw(address indexed user, uint256 shares, uint256 assets);
 
     constructor(IERC20 _asset) {
-        // TODO: Add validation
-        // if (_asset == IERC20(address(0))) revert ZeroAddress();
+        if (_asset == IERC20(address(0))) revert ZeroAddress();
         asset = _asset;
     }
 

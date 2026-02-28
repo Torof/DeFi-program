@@ -11,8 +11,7 @@ import {IHookCallback} from "../../../../src/part2/module2/interfaces/IHookCallb
 import {MockPoolManager} from "../../../../src/part2/module2/mocks/MockPoolManager.sol";
 import {
     DynamicFeeHook,
-    OnlyPoolManager,
-    WindowSizeTooSmall
+    OnlyPoolManager
 } from "../../../../src/part2/module2/exercise3-dynamic-fee/DynamicFeeHook.sol";
 
 contract DynamicFeeHookTest is Test {

@@ -7,7 +7,7 @@ pragma solidity ^0.8.19;
 // Demonstrate the uninitialized proxy vulnerability and how to fix it.
 // If initialize() can be called by anyone, an attacker can take ownership.
 //
-// Day 15: Understand proxy initialization security.
+// See: Module 6 > Initializers vs Constructors (#initializers-vs-constructors)
 //
 // Run: forge test --match-contract UninitializedProxyTest -vvv
 // ============================================================================

@@ -33,7 +33,7 @@
 
 | Problem | Impact | Example |
 |---------|--------|---------|
-| **Two transactions** per interaction | 2x gas costs, poor UX | Approve tx + Action tx = ~42k extra gas |
+| **Two transactions** per interaction | 2x gas costs, poor UX | Approve tx alone costs ~46k gas (21k base + ~25k execution) |
 | **Infinite approvals** as default | All tokens at risk if protocol hacked | 💰 **[Euler Finance](https://www.certik.com/resources/blog/euler-finance-hack-explained)** (March 2023): $197M drained |
 | **No expiration** | Forgotten approvals persist forever | Approvals from 2020 still active today |
 | **No batch revocation** | 1 tx per token per spender to revoke | Users have 50+ active approvals on average |
@@ -96,7 +96,7 @@ When protocols get hacked ([Euler Finance March 2023](https://www.certik.com/res
 <a id="eip-2612-permit"></a>
 ### 💡 Concept: EIP-2612 — Permit
 
-**Why this matters:** Single-transaction UX is table stakes in 2024. Protocols that still require two transactions lose users to competitors. EIP-2612 unlocks the "approve + action in one click" experience users expect.
+**Why this matters:** Single-transaction UX is table stakes in 2025-2026. Protocols that still require two transactions lose users to competitors. EIP-2612 unlocks the "approve + action in one click" experience users expect.
 
 > Introduced in [EIP-2612](https://eips.ethereum.org/EIPS/eip-2612), formalized [EIP-712](https://eips.ethereum.org/EIPS/eip-712) typed data signing
 
@@ -137,7 +137,7 @@ The token contract itself must implement EIP-2612. Tokens deployed before the st
 
 *DAI's permit predates EIP-2612 but inspired it. USDC mainnet gained permit support via the FiatToken V2.2 proxy upgrade (domain: `{name: "USDC", version: "2"}`).
 
-> ⚡ **Common pitfall:** Not all tokens support permit — USDT doesn't on any chain, and WETH on Ethereum mainnet (the original WETH9 contract from 2017) doesn't either. Always check `supportsInterface` or try calling `DOMAIN_SEPARATOR()` before assuming permit support. Even tokens that DO support permit may use different domain versions (e.g., USDC uses `version: "2"`).
+> ⚡ **Common pitfall:** Not all tokens support permit — USDT doesn't on any chain, and WETH on Ethereum mainnet (the original WETH9 contract from 2017) doesn't either. Try calling `DOMAIN_SEPARATOR()` via staticcall before assuming permit support — if it reverts, the token doesn't implement EIP-2612. Note: `supportsInterface` does NOT work for EIP-2612 detection because the standard doesn't define an interface ID. Even tokens that DO support permit may use different domain versions (e.g., USDC uses `version: "2"`).
 
 💻 **Quick Try:**
 
@@ -292,6 +292,27 @@ Most modern tokens implement EIP-2612:
 
 **Pro tip:** Knowing the DAI permit story shows depth — DAI had `permit()` before EIP-2612 existed and actually inspired the standard, but uses a slightly different signature format (`allowed` boolean instead of `value` uint256). This is a common gotcha in production code.
 
+#### ⚠️ The Classic Approve Race Condition
+
+Before EIP-2612, there was already a well-known vulnerability with `approve()`:
+
+```solidity
+// Scenario: Alice approved Bob for 100 tokens, now wants to change to 50
+// Step 1: Alice calls approve(Bob, 50)
+// Step 2: Bob sees the pending tx and front-runs with transferFrom(Alice, Bob, 100)
+// Step 3: Alice's approve(50) executes → Bob now has 50 allowance
+// Step 4: Bob calls transferFrom(Alice, Bob, 50)
+// Result: Bob stole 150 tokens instead of the intended 100→50 change
+```
+
+**Production pattern:** Always approve to 0 first, then approve the new amount:
+```solidity
+token.approve(spender, 0);      // Reset to zero
+token.approve(spender, newAmount); // Set new value
+```
+
+OpenZeppelin's `forceApprove` handles this automatically. EIP-2612 avoids this entirely because each permit signature is nonce-bound — you can't "change" a permit, you just sign a new one with the next nonce.
+
 #### ⚠️ Common Mistakes
 
 ```solidity
@@ -412,6 +433,15 @@ Permit2:      User → approve(Permit2) [once per token, forever]
 3. ✅ All subsequent protocol interactions use **free off-chain signatures**
 4. ✅ Built-in **expiration and revocation**
 
+💻 **Quick Try:**
+
+Check Permit2's deployment on [Etherscan](https://etherscan.io/address/0x000000000022d473030f116ddee9f6b43ac78ba3#readContract):
+1. Go to "Read Contract" → call `DOMAIN_SEPARATOR()` — compare it to your token's domain separator. Different contracts, different domains
+2. Check the "Write Contract" tab — find `permitTransferFrom` and `permit` (the two modes)
+3. Try `nonceBitmap(address,uint256)` with your address and word index `0` — you'll see `0` (no nonces used). After using a Permit2-integrated dApp, check again
+
+Now go to [Revoke.cash](https://revoke.cash/) and search your wallet address. Look for "Permit2" in the approvals list — if you've used Uniswap recently, you'll see a max approval to Permit2 for each token you've traded.
+
 #### 🎓 Intermediate Example: Permit2 vs EIP-2612 Side by Side
 
 Before diving into Permit2's internals, see how the two approaches differ from a protocol developer's perspective:
@@ -447,7 +477,7 @@ function depositWithPermit2(
 | **On-chain calls** | permit() + transferFrom() | One call to Permit2 |
 | **Signature target** | Token contract | Permit2 contract |
 | **Nonce system** | Sequential (0, 1, 2, ...) | Bitmap (any order) |
-| **Adoption** | ~30% of tokens | Universal |
+| **Adoption** | Tokens that opted in | Universal (any ERC-20) |
 
 #### 🔗 DeFi Pattern Connection
 
@@ -593,9 +623,9 @@ Why this matters: UniswapX collects multiple signatures from users for different
 EIP-2612 nonces: 0 → 1 → 2 → 3 → ...
 
 User signs order A (nonce 0) and order B (nonce 1) in parallel.
-If order B settles first → nonce becomes 2.
-Order A tries to use nonce 0 → INVALID (expected nonce 2).
-Sequential nonces force serial execution.
+Order B CANNOT execute — it needs nonce 1, but current nonce is 0.
+Order A MUST go first. If order A fails or gets stuck → order B is also blocked.
+Sequential nonces force serial execution — no parallelism possible.
 ```
 
 **Bitmap nonces solve this — any nonce can be used in any order:**
@@ -818,6 +848,8 @@ Read these contracts in order:
 4. [`src/AllowanceTransfer.sol`](https://github.com/Uniswap/permit2/blob/main/src/AllowanceTransfer.sol) — focus on `permit`, `transferFrom`, and how allowance state is packed
 5. [`src/libraries/SignatureVerification.sol`](https://github.com/Uniswap/permit2/blob/main/src/libraries/SignatureVerification.sol) — handles EOA signatures, EIP-2098 compact signatures, and EIP-1271 contract signatures
 
+> **EIP-2098 compact signatures:** Standard ECDSA signatures are 65 bytes (`r` [32] + `s` [32] + `v` [1]). [EIP-2098](https://eips.ethereum.org/EIPS/eip-2098) encodes them in 64 bytes by packing `v` into the highest bit of `s` (since `v` is always 27 or 28, only 1 bit is needed). Permit2's `SignatureVerification` accepts both formats — if the signature is 64 bytes, it extracts `v` from `s`. This saves ~1 byte of calldata per signature (~16 gas), which adds up in batch operations.
+
 🏗️ **Read: Permit2 Integration in the Wild**
 
 **Source:** [Uniswap Universal Router](https://github.com/Uniswap/universal-router) uses Permit2 for all token ingress.
@@ -855,14 +887,14 @@ Look at how `V3SwapRouter` calls `permit2.permitTransferFrom` to pull tokens fro
 **What to look for:**
 - How errors are defined and when each one reverts
 - The `witness` parameter in `permitWitnessTransferFrom` — this is how UniswapX binds order data to signatures
-- How batch operations (`permitTransferFrom` for arrays) reuse the single-transfer logic
+- How batch operations (`permitTransferFrom` for arrays) reuse the single-transfer logic — Permit2 supports `PermitBatchTransferFrom` and `PermitBatch` for multi-token transfers in a single signature, which is how protocols like 1inch and Cowswap handle complex multi-asset swaps
 
 ---
 
 <a id="day6-exercise"></a>
 ## 🎯 Build Exercise: Permit2Vault
 
-**Workspace:** [`workspace/src/part1/module3/exercise3-permit2-vault/`](../workspace/src/part1/module3/exercise3-permit2-vault/) — starter file: [`Permit2Vault.sol`](../workspace/src/part1/module3/exercise3-permit2-vault/Permit2Vault.sol), tests: [`Permit2Vault.t.sol`](../workspace/test/part1/module3/exercise3-permit2-vault/Permit2Vault.t.sol)
+**Workspace:** [`workspace/src/part1/module3/exercise2-permit2-vault/`](../workspace/src/part1/module3/exercise2-permit2-vault/) — starter file: [`Permit2Vault.sol`](../workspace/src/part1/module3/exercise2-permit2-vault/Permit2Vault.sol), tests: [`Permit2Vault.t.sol`](../workspace/test/part1/module3/exercise2-permit2-vault/Permit2Vault.t.sol)
 
 Build a Vault contract that integrates with Permit2 for both transfer modes:
 
@@ -908,10 +940,10 @@ forge test --match-contract Permit2VaultTest --fork-url $MAINNET_RPC_URL -vvv
 
 The tests pin a specific block number (`19_000_000`) so results are deterministic — the first run downloads and caches that block's state, subsequent runs are fast.
 
-6. **Gas comparison:**
-   - Measure gas for: traditional approve → deposit (2 txs)
-   - vs: deposit with SignatureTransfer (1 tx, signature off-chain)
-   - You should see ~21,000 gas saved (one transaction eliminated)
+6. **Gas savings:**
+   - Traditional approve → deposit requires two on-chain transactions: approve (~46k gas) + deposit
+   - Permit2 SignatureTransfer: one transaction (signature is off-chain and free) → saves the entire approve tx
+   - The tests include a gas measurement to demonstrate this advantage
 
 **🎯 Goal:** Hands-on with the Permit2 contract so you recognize its patterns when you see them in Uniswap V4, UniswapX, and other modern DeFi protocols. The witness data extension is particularly important—it's central to intent-based systems you'll study in Part 3.
 
@@ -980,13 +1012,14 @@ An attacker tricks a user into signing a permit message that approves tokens to 
 
 > 🔍 **Deep dive:** [Gate.io - Permit2 Phishing Analysis](https://www.gate.com/learn/articles/is-your-wallet-safe-how-hackers-exploit-permit-uniswap-permit2-and-signatures-for-phishing/4197) documents real attacks with $314M lost in 2024. [Eocene - Permit2 Risk Analysis](https://eocene.medium.com/permit2-introduction-and-risk-analysis-f9444b896fc5) covers security implications. [SlowMist - Examining Permit Signatures](https://slowmist.medium.com/examining-permit-signatures-is-phishing-of-tokens-possible-via-off-chain-signatures-bfb5723a5e9) analyzes off-chain signature attack vectors.
 
-**🚨 4. Griefing with permit revocation:**
+**🚨 4. Nonce invalidation (self-service revocation):**
 
-An attacker can call Permit2's `invalidateNonces` on behalf of any user to revoke a specific allowance-transfer nonce. This is a denial-of-service vector—the attacker can't steal funds but can prevent valid permits from being used.
+Users can call Permit2's `invalidateUnorderedNonces(uint256 wordPos, uint256 mask)` to proactively invalidate specific bitmap nonces — effectively revoking any pending SignatureTransfer permits that use those nonces. Note: only the nonce **owner** can call this function (it operates on `msg.sender`'s nonces), so this is not a griefing vector — it's a safety feature.
 
-**Protection:**
-- ✅ Frontend should detect invalidated nonces and request a new signature
-- ✅ For critical operations, verify nonce validity on-chain before execution
+**When this matters:**
+- ✅ User signed a permit but wants to cancel it before it's used
+- ✅ User suspects their signature was leaked or phished
+- ✅ Frontend should offer a "cancel pending permit" button that calls `invalidateUnorderedNonces`
 
 #### 🔗 DeFi Pattern Connection
 
@@ -1139,7 +1172,7 @@ try IERC20Permit(token).permit(...) {
 <a id="day7-exercise"></a>
 ## 🎯 Build Exercise: SafePermit
 
-**Workspace:** [`workspace/src/part1/module3/exercise2-safe-permit/`](../workspace/src/part1/module3/exercise2-safe-permit/) — starter file: [`SafePermit.sol`](../workspace/src/part1/module3/exercise2-safe-permit/SafePermit.sol), tests: [`SafePermit.t.sol`](../workspace/test/part1/module3/exercise2-safe-permit/SafePermit.t.sol)
+**Workspace:** [`workspace/src/part1/module3/exercise3-safe-permit/`](../workspace/src/part1/module3/exercise3-safe-permit/) — starter file: [`SafePermit.sol`](../workspace/src/part1/module3/exercise3-safe-permit/SafePermit.sol), tests: [`SafePermit.t.sol`](../workspace/test/part1/module3/exercise3-safe-permit/SafePermit.t.sol)
 
 1. **Write a test demonstrating permit front-running:**
    - User signs and submits permit

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+// See: Module 5 > Fork Testing (#fork-testing)
 // ============================================================================
 // EXERCISE: Uniswap V2 Fork Testing
 //
@@ -42,10 +43,7 @@ contract UniswapV2ForkTest is BaseTest {
 
     function setUp() public override {
         super.setUp();
-
-        // TODO: Get the WETH/USDC pair from factory
-        // wethUsdcPair = IUniswapV2Pair(FACTORY.getPair(WETH, USDC));
-        revert("Not implemented");
+        wethUsdcPair = IUniswapV2Pair(FACTORY.getPair(WETH, USDC));
     }
 
     // =============================================================

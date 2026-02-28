@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+// See: Module 5 > Core Cheatcodes (#core-cheatcodes)
 // ============================================================================
 // EXERCISE: Base Test Contract with Fork Configuration
 //
@@ -89,13 +90,14 @@ abstract contract BaseTest is Test {
         revert("Not implemented");
     }
 
-    /// @notice Creates a signature for EIP-712 typed data.
+    /// @notice Signs a raw digest (not full EIP-712 typed data).
     /// @param privateKey Private key to sign with
     /// @param digest Hash to sign
     /// @return v Signature recovery id
     /// @return r Signature r component
     /// @return s Signature s component
-    function signTypedData(uint256 privateKey, bytes32 digest)
+    // Note: This signs a raw digest, not full EIP-712 typed data
+    function signDigest(uint256 privateKey, bytes32 digest)
         internal
         pure
         returns (uint8 v, bytes32 r, bytes32 s)

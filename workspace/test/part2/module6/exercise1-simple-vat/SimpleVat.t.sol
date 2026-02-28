@@ -429,6 +429,51 @@ contract SimpleVatTest is Test {
         assertEq(vat.sin(vow), 5_000 * RAD, "Vow gets 5,000 sin");
     }
 
+    // =========================================================
+    //  frob — Fuzz: vault always safe within bounds
+    // =========================================================
+
+    /// @dev Fuzz test: any (ink, dart) within safe bounds should produce a safe vault.
+    ///      Bounds: ink in [1, 1000] ETH, dart capped so that art × rate ≤ ink × spot.
+    ///      This verifies the safety check never falsely reverts for valid inputs.
+    function testFuzz_Frob_AlwaysSafeWithinBounds(uint256 ink, uint256 dart) public {
+        // Bound collateral to a reasonable range: 1 to 1,000 ETH
+        ink = bound(ink, 1 ether, 1_000 ether);
+
+        // Max safe debt (WAD): ink × spot / rate = ink × SPOT / RAY
+        // rate starts at RAY (1.0), so maxDebt = ink × SPOT / RAY
+        uint256 maxDebtWad = ink * SPOT / RAY;
+
+        // Must also respect dust: if maxDebtWad < dust/RAY then dart = 0
+        uint256 dustWad = DUST / RAY; // 100 WAD
+
+        // Bound dart: either 0, or [dustWad, maxDebtWad]
+        if (maxDebtWad < dustWad) {
+            dart = 0; // Can't borrow above dust, so just lock collateral
+        } else {
+            dart = bound(dart, dustWad, maxDebtWad);
+        }
+
+        // Fund and open vault
+        _openVault(alice, ink, int256(ink), int256(dart));
+
+        // Verify vault state
+        (uint256 actualInk, uint256 actualArt) = vat.urns(ILK_ETH, alice);
+        assertEq(actualInk, ink, "Fuzz: ink should match deposited amount");
+        assertEq(actualArt, dart, "Fuzz: art should match borrowed amount");
+
+        // Verify safety invariant: ink × spot >= art × rate
+        (, uint256 rate, uint256 spot,,) = vat.ilks(ILK_ETH);
+        assertTrue(
+            actualInk * spot >= actualArt * rate,
+            "Fuzz: vault should always be safe within bounded inputs"
+        );
+    }
+
+    // =========================================================
+    //  grab — Liquidation Seizure
+    // =========================================================
+
     function test_Grab_ThenHealClearsBadDebt() public {
         // Open vault, grab, then simulate auction recovery + heal
         _openVault(alice, 10 ether, int256(10 ether), int256(10_000 * WAD));

@@ -8,10 +8,10 @@ pragma solidity ^0.8.19;
 // during proxy upgrades. This shows both the WRONG way (causing collisions)
 // and the CORRECT way (append-only upgrades).
 //
-// Day 15: Understand storage layout compatibility.
+// See: Module 6 > Storage Collision (#storage-collision)
 //
 // Run: forge test --match-contract StorageCollisionTest -vvv
-// Run: forge inspect src/part1/module6/StorageCollision.sol:VaultV1 storage-layout
+// Run: forge inspect src/part1/module6/exercise2-storage-collision/StorageCollision.sol:VaultV1 storage-layout
 // ============================================================================
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -41,9 +41,8 @@ contract VaultV1 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     //  TODO 2: Implement initialize
     // =============================================================
     function initialize(address _owner) public initializer {
-        // TODO: Implement
-        // __Ownable_init(_owner);
-        // __UUPSUpgradeable_init();
+        // TODO: Initialize the Ownable and UUPSUpgradeable modules, set the owner
+        // Hint: Call the __init() functions for both inherited contracts
         revert("Not implemented");
     }
 
@@ -51,9 +50,7 @@ contract VaultV1 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     //  TODO 3: Implement deposit
     // =============================================================
     function deposit(uint256 amount) external {
-        // TODO: Implement
-        // totalDeposits += amount;
-        // emit Deposit(msg.sender, amount);
+        // TODO: Add amount to totalDeposits and emit the Deposit event
         revert("Not implemented");
     }
 
@@ -99,10 +96,8 @@ contract VaultV2Wrong is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     /// @param slot Storage slot to read
     /// @return value Value at that slot
     function getStorageSlot(uint256 slot) external view returns (bytes32 value) {
-        // TODO: Implement using assembly
-        // assembly {
-        //     value := sload(slot)
-        // }
+        // TODO: Use inline assembly to read the raw storage value at the given slot
+        // Hint: The sload opcode reads from a storage slot
         revert("Not implemented");
     }
 
@@ -136,9 +131,7 @@ contract VaultV2Correct is VaultV1 {
     //  TODO 9: Implement setNewOwner
     // =============================================================
     function setNewOwner(address _newOwner) external onlyOwner {
-        // TODO: Implement
-        // newOwner = _newOwner;
-        // emit NewOwnerSet(_newOwner);
+        // TODO: Set the newOwner state variable and emit the NewOwnerSet event
         revert("Not implemented");
     }
 
@@ -205,14 +198,12 @@ contract VaultWithGapV2 is VaultWithGap {
     // uint256[46] private __gapV2;  // Reduced by 2 (added 2 variables)
 
     function setFeeCollector(address _feeCollector) external onlyOwner {
-        // TODO: Implement
-        // feeCollector = _feeCollector;
+        // TODO: Set the feeCollector state variable
         revert("Not implemented");
     }
 
     function setFeeBps(uint256 _feeBps) external onlyOwner {
-        // TODO: Implement
-        // feeBps = _feeBps;
+        // TODO: Set the feeBps state variable
         revert("Not implemented");
     }
 }

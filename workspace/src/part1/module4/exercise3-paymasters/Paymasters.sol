@@ -50,6 +50,8 @@ interface IPaymaster {
 //  TODO 1: Implement VerifyingPaymaster
 // =============================================================
 /// @notice Paymaster that sponsors gas if UserOp has valid signature from trusted signer.
+// See: Module 4 > Paymaster Design Patterns (#paymaster-patterns)
+// See: Module 4 > Paymaster Flow in Detail (#paymaster-flow)
 contract VerifyingPaymaster is IPaymaster {
     address public immutable verifyingSigner;
     address public immutable entryPoint;
@@ -95,6 +97,7 @@ contract VerifyingPaymaster is IPaymaster {
 //  TODO 4: Implement ERC20Paymaster
 // =============================================================
 /// @notice Paymaster that accepts ERC-20 tokens as gas payment.
+// See: Module 4 > Paymaster Design Patterns (#paymaster-patterns)
 contract ERC20Paymaster is IPaymaster {
     address public immutable entryPoint;
     IERC20 public immutable token;
@@ -113,13 +116,11 @@ contract ERC20Paymaster is IPaymaster {
         uint256 maxCost
     ) external override returns (bytes memory context, uint256 validationData) {
         // TODO: Implement
-        // 1. Calculate required token amount:
-        //    uint256 requiredTokens = (maxCost * tokenToEthRate) / 1e18;
-        // 2. Check user has enough tokens:
-        //    if (token.balanceOf(userOp.sender) < requiredTokens) revert InsufficientTokenBalance();
-        // 3. Return context with sender address and required tokens:
-        //    context = abi.encode(userOp.sender, requiredTokens);
-        // 4. Return 0 for validationData
+        // 1. Calculate required tokens from maxCost using tokenToEthRate
+        // 2. Check user has enough tokens (revert InsufficientTokenBalance())
+        // 3. Return context encoding sender + required tokens, and 0 for validationData
+        //
+        // Hint: requiredTokens = (maxCost * tokenToEthRate) / 1e18
         revert("Not implemented");
     }
 
@@ -131,14 +132,12 @@ contract ERC20Paymaster is IPaymaster {
         uint256 actualUserOpFeePerGas
     ) external override {
         // TODO: Implement
-        // 1. Decode context to get sender and max token amount:
-        //    (address sender, uint256 maxTokens) = abi.decode(context, (address, uint256));
-        // 2. Calculate actual token cost:
-        //    uint256 actualTokenCost = (actualGasCost * tokenToEthRate) / 1e18;
-        // 3. Transfer tokens from sender to this paymaster:
-        //    bool success = token.transferFrom(sender, address(this), actualTokenCost);
-        //    if (!success) revert TransferFailed();
-        // 4. Note: In production, handle mode.opReverted case carefully
+        // 1. Decode context to get sender and max token amount
+        // 2. Calculate actual token cost from actualGasCost
+        // 3. Transfer tokens from sender to this paymaster
+        //
+        // Hint: Context was encoded as abi.encode(sender, maxTokens) in validatePaymasterUserOp
+        // Note: In production, handle mode == PostOpMode.opReverted carefully
         revert("Not implemented");
     }
 

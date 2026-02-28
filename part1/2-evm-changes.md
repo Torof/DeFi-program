@@ -1,18 +1,442 @@
-# Module 2: EVM-Level Changes (~2 days)
+# Module 2: EVM-Level Changes (~3 days)
 
 ## 📚 Table of Contents
 
-**Dencun Upgrade**
+**Foundational EVM Concepts**
+- [EIP-2929: Cold/Warm Access Model](#eip-2929)
+- [EIP-1559: Base Fee Market](#eip-1559)
+- [EIP-3529: Gas Refund Changes & Death of Gas Tokens](#eip-3529)
+- [Contract Size Limits (EIP-170)](#eip-170)
+- [CREATE vs CREATE2 vs CREATE3](#create2)
+- [Precompile Landscape](#precompiles)
+
+**Dencun Upgrade (March 2024)**
 - [Transient Storage Deep Dive (EIP-1153)](#transient-storage-deep-dive)
 - [Proto-Danksharding (EIP-4844)](#proto-danksharding)
+  - [Blob Fee Market Math](#blob-fee-math)
 - [PUSH0 & MCOPY](#push0-mcopy)
 - [SELFDESTRUCT Changes](#selfdestruct-changes)
 - [Build Exercise: FlashAccounting](#day3-exercise)
 
-**Pectra Upgrade**
+**Pectra Upgrade (May 2025)**
 - [EIP-7702 — EOA Code Delegation](#eip-7702)
-- [Other Pectra EIPs](#other-pectra-eips)
+  - [Delegation Designator Format](#delegation-designator)
+- [EIP-7623 — Increased Calldata Cost](#eip-7623)
+- [EIP-2537 — BLS12-381 Precompile](#eip-2537)
 - [Build Exercise: EIP7702Delegate](#day4-exercise)
+
+**Looking Ahead**
+- [EOF (EVM Object Format)](#eof)
+
+---
+
+## Foundational EVM Concepts
+
+These pre-Dencun EVM changes underpin everything else in this module. The gas table above references "cold" and "warm" costs — this section explains where those numbers come from, along with other foundational concepts every DeFi developer must know.
+
+<a id="eip-2929"></a>
+### 💡 Concept: EIP-2929 — Cold/Warm Access Model
+
+**Why this matters:** Every time your DeFi contract reads or writes storage, calls another contract, or checks a balance, the gas cost depends on whether the address/slot has already been "accessed" in the current transaction. This is the single most important concept for gas optimization.
+
+> Introduced in [EIP-2929](https://eips.ethereum.org/EIPS/eip-2929), activated with the Berlin upgrade (April 2021)
+
+**The model:**
+
+Before EIP-2929, `SLOAD` cost a flat 800 gas regardless of access pattern. After EIP-2929, the EVM maintains an **access set** — a list of addresses and storage slots that have been touched during the transaction. The first access to any address or slot is "cold" (expensive), subsequent accesses are "warm" (cheap).
+
+```
+Access Set (maintained per-transaction by the EVM):
+┌────────────────────────────────────────────────────┐
+│  Addresses:                                         │
+│    0xUniswapRouter  ← accessed (warm)               │
+│    0xWETH           ← accessed (warm)               │
+│    0xDAI            ← NOT accessed yet (cold)       │
+│                                                     │
+│  Storage Slots:                                     │
+│    (0xWETH, slot 5)   ← accessed (warm)             │
+│    (0xWETH, slot 12)  ← NOT accessed yet (cold)     │
+└────────────────────────────────────────────────────┘
+```
+
+**Gas costs with cold/warm model:**
+
+| Operation | Cold (first access) | Warm (subsequent) | Before EIP-2929 |
+|-----------|-------------------|-------------------|-----------------|
+| `SLOAD` | 2,100 gas | 100 gas | 800 gas (flat) |
+| `CALL` / `STATICCALL` | 2,600 gas | 100 gas | 700 gas (flat) |
+| `BALANCE` / `EXTCODESIZE` | 2,600 gas | 100 gas | 700 gas (flat) |
+| `EXTCODECOPY` | 2,600 gas | 100 gas | 700 gas (flat) |
+
+**Step-by-step: How cold/warm affects a Uniswap swap**
+
+```solidity
+function swap(address tokenIn, uint256 amountIn) external {
+    // 1. SLOAD balances[msg.sender]
+    //    First access to this slot → COLD → 2,100 gas
+    uint256 balance = balances[msg.sender];
+
+    // 2. SLOAD balances[msg.sender] again (in require)
+    //    Same slot, already accessed → WARM → 100 gas ✨
+    require(balance >= amountIn);
+
+    // 3. SLOAD reserves[tokenIn]
+    //    Different slot, first access → COLD → 2,100 gas
+    uint256 reserve = reserves[tokenIn];
+
+    // 4. CALL to tokenIn.transferFrom()
+    //    First call to tokenIn address → COLD → 2,600 gas
+    IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+
+    // 5. CALL to tokenIn.transfer()
+    //    Same address, already accessed → WARM → 100 gas ✨
+    IERC20(tokenIn).transfer(recipient, amountOut);
+}
+```
+
+**Optimization: Access Lists (EIP-2930)**
+
+[EIP-2930](https://eips.ethereum.org/EIPS/eip-2930) introduced **access lists** — a way to pre-declare which addresses and storage slots your transaction will touch. Pre-declared items start "warm," avoiding the cold surcharge at the cost of a smaller upfront fee (1,900 gas per address, 100 gas per slot in the access list).
+
+```
+When to use access lists:
+- Transaction touches many storage slots in external contracts
+- You know exactly which slots will be accessed
+- The cold→warm savings exceed the access list declaration cost
+
+When NOT to use:
+- Simple transfers (overhead exceeds savings)
+- You don't know which slots will be accessed (dynamic routing)
+```
+
+**Real DeFi impact:**
+
+In a multi-hop Uniswap V3 swap touching 3 pools:
+- **Without access list**: 3 cold CALL + ~9 cold SLOAD = 3×2,600 + 9×2,100 = **26,700 gas** in cold penalties
+- **With access list**: 3×1,900 + 9×100 = 6,600 gas upfront, all accesses warm = ~1,200 gas during execution = **7,800 gas total**
+- **Savings**: ~19,000 gas (~71% reduction in access costs)
+
+#### 🔗 DeFi Pattern Connection
+
+**Where cold/warm access matters most:**
+
+1. **DEX aggregators** (1inch, Paraswap) — Route through multiple pools. Each pool is a new address (cold). Aggregators use access lists to pre-warm pools on the route.
+2. **Liquidation bots** — Read health factors (cold SLOAD), call liquidate (cold CALL), swap collateral (cold CALL). Access lists are critical for staying competitive on gas.
+3. **Storage-heavy protocols** (Aave V3) — Multiple storage reads per operation. Aave packs related data in fewer slots to minimize cold reads.
+
+#### 💼 Job Market Context
+
+**Interview question:**
+
+> "How do cold and warm storage accesses affect gas costs?"
+
+**What to say:**
+
+"Since EIP-2929 (Berlin upgrade), the EVM maintains an access set per transaction. The first read of any storage slot costs 2,100 gas (cold), subsequent reads cost 100 gas (warm). Same pattern for external calls — first call to an address costs 2,600 gas. This means the order you access storage matters: reading the same slot twice costs 2,200 gas total, not 4,200. You can also use EIP-2930 access lists to pre-warm slots, which is valuable for multi-pool DEX swaps and liquidation bots."
+
+**Interview Red Flags:**
+- 🚩 "SLOAD always costs 200 gas" — Outdated (pre-Berlin pricing)
+- 🚩 Not knowing about access lists — Critical optimization tool
+- 🚩 "Gas costs are the same for every storage read" — Cold/warm distinction is fundamental
+
+---
+
+<a id="eip-1559"></a>
+### 💡 Concept: EIP-1559 — Base Fee Market
+
+**Why this matters:** EIP-1559 fundamentally changed how Ethereum prices gas. Understanding it matters for MEV strategy, gas estimation, transaction ordering, and L2 fee models.
+
+> Introduced in [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559), activated with the London upgrade (August 2021)
+
+**The model:**
+
+Before EIP-1559, gas pricing was a first-price auction: users bid gas prices, miners picked the highest bids. This led to overpaying, gas price volatility, and poor UX.
+
+EIP-1559 split the gas price into two components:
+
+```
+Total gas price = base fee + priority fee (tip)
+
+┌─────────────────────────────────────────────────┐
+│ BASE FEE (burned)                                │
+│ - Set by the protocol, not the user              │
+│ - Adjusts based on block fullness                │
+│ - If block > 50% full → base fee increases       │
+│ - If block < 50% full → base fee decreases       │
+│ - Max change: ±12.5% per block                   │
+│ - Burned (removed from supply) — not paid        │
+│   to validators                                  │
+├─────────────────────────────────────────────────┤
+│ PRIORITY FEE / TIP (paid to validator)           │
+│ - Set by the user                                │
+│ - Incentivizes validators to include your tx     │
+│ - During congestion, higher tip = faster          │
+│   inclusion                                      │
+│ - During calm periods, 1-2 gwei is sufficient    │
+└─────────────────────────────────────────────────┘
+```
+
+**Why DeFi developers care:**
+
+1. **Gas estimation**: `block.basefee` is available in Solidity — protocols can read the current base fee for gas-aware logic
+2. **MEV**: Searchers set high priority fees to get their bundles included. Understanding base fee vs. tip is essential for MEV strategies
+3. **L2 fee models**: L2s adapt EIP-1559 for their own fee markets (Arbitrum ArbGas, Optimism L1 data fee + L2 execution fee)
+4. **Protocol design**: Some protocols adjust fees based on gas conditions (e.g., oracle update frequency)
+
+**DeFi-relevant Solidity globals:**
+
+```solidity
+block.basefee    // Current block's base fee (EIP-1559)
+block.blobbasefee // Current block's blob base fee (EIP-4844)
+tx.gasprice      // Actual gas price of the transaction (base + tip)
+```
+
+#### 💼 Job Market Context
+
+**Interview question:**
+
+> "How does EIP-1559 affect MEV strategies?"
+
+**What to say:**
+
+"EIP-1559 separated the gas price into base fee (burned, set by protocol) and priority fee (paid to validators, set by user). For MEV, the base fee is a floor cost you can't avoid — it determines whether an arbitrage is profitable. The priority fee is how you bid for inclusion. Flashbots bypasses the public mempool entirely, but understanding base fee dynamics helps you predict profitability windows and set appropriate tips."
+
+---
+
+<a id="eip-3529"></a>
+### 💡 Concept: EIP-3529 — Gas Refund Changes
+
+**Why this matters:** EIP-3529 killed the gas token pattern and changed how SSTORE refunds work. If you've ever seen CHI or GST2 tokens mentioned in old DeFi code, this is why they're dead.
+
+> Introduced in [EIP-3529](https://eips.ethereum.org/EIPS/eip-3529), activated with the London upgrade (August 2021)
+
+**What changed:**
+
+Before EIP-3529:
+- Clearing a storage slot (nonzero → zero) refunded 15,000 gas
+- `SELFDESTRUCT` refunded 24,000 gas
+- Refunds could offset up to 50% of total transaction gas
+
+After EIP-3529:
+- Clearing a storage slot refunds only 4,800 gas
+- `SELFDESTRUCT` refund removed entirely
+- Refunds capped at 20% of total transaction gas (down from 50%)
+
+**The gas token exploit (now dead):**
+
+```solidity
+// Before EIP-3529: Gas tokens exploited the refund mechanism
+contract GasToken {
+    // During low gas prices: write to many storage slots (cheap)
+    function mint(uint256 amount) external {
+        for (uint256 i = 0; i < amount; i++) {
+            assembly { sstore(add(i, 0x100), 1) }  // Write nonzero
+        }
+    }
+
+    // During high gas prices: clear those slots (get refunds!)
+    function burn(uint256 amount) external {
+        for (uint256 i = 0; i < amount; i++) {
+            assembly { sstore(add(i, 0x100), 0) }  // Clear → refund
+        }
+        // Each clear refunded 15,000 gas — effectively "stored" cheap gas
+        // for use during expensive periods. Arbitrage on gas prices!
+    }
+}
+// CHI (1inch) and GST2 (Gas Station Network) used this pattern.
+// EIP-3529 reduced refunds to 4,800 gas, making gas tokens unprofitable.
+```
+
+**Impact on DeFi:**
+- Any protocol that relied on SELFDESTRUCT gas refunds for economic models is broken
+- Storage cleanup patterns still get some refund (4,800 gas), but it's not a significant optimization target anymore
+- The 20% refund cap means you can't use gas refunds to subsidize large transactions
+
+#### 💼 Job Market Context
+
+**Interview question:** "What were gas tokens and why don't they work anymore?"
+
+**What to say:** "Gas tokens like CHI and GST2 exploited the SSTORE gas refund mechanism. You'd write to storage slots during low gas prices, then clear them during high gas prices to get refunds of 15,000 gas per slot. EIP-3529 in the London upgrade reduced the refund to 4,800 gas and capped total refunds at 20% of transaction gas, making the pattern unprofitable. It also removed the SELFDESTRUCT refund entirely."
+
+---
+
+<a id="eip-170"></a>
+### 💡 Concept: Contract Size Limits (EIP-170)
+
+**Why this matters:** If you're building a full-featured DeFi protocol, you will hit the 24 KiB contract size limit. Knowing the strategies to work around it is essential practical knowledge.
+
+> Introduced in [EIP-170](https://eips.ethereum.org/EIPS/eip-170), activated with the Spurious Dragon upgrade (November 2016)
+
+**The limit:** Deployed contract bytecode cannot exceed **24,576 bytes** (24 KiB). Attempting to deploy a larger contract reverts with an out-of-gas error.
+
+**Why DeFi protocols hit this:**
+
+Complex protocols (Aave, Uniswap, Compound) have many functions, modifiers, and internal logic. With Solidity's inline expansion of internal functions, a contract can easily exceed 24 KiB.
+
+**Strategies to stay under the limit:**
+
+| Strategy | Description | Tradeoff |
+|----------|-------------|----------|
+| **Optimizer** | `optimizer = true`, `runs = 200` in foundry.toml | Reduces bytecode but increases compile time |
+| **`via_ir`** | `via_ir = true` in foundry.toml — uses the Yul IR optimizer | More aggressive optimization, slower compilation |
+| **Libraries** | Extract logic into `library` contracts with `using for` | Adds DELEGATECALL overhead per call |
+| **Split contracts** | Divide into core + periphery contracts | Adds deployment and integration complexity |
+| **Diamond pattern** | [EIP-2535](https://eips.ethereum.org/EIPS/eip-2535) — modular facets behind a single proxy | Complex but powerful for large protocols |
+| **Custom errors** | Replace `require(cond, "long string")` with custom errors | Saves ~200 bytes per error message |
+| **Remove unused code** | Dead code still compiles into bytecode | Free — always do this first |
+
+**Real DeFi examples:**
+
+- **Aave V3**: Split into `Pool.sol` (core) + `PoolConfigurator.sol` + `L2Pool.sol` — each under 24 KiB
+- **Uniswap V3**: `NonfungiblePositionManager.sol` required careful optimization to stay under the limit
+- **Compound V3**: Uses the "Comet" architecture with a single streamlined contract
+
+```toml
+# foundry.toml — common settings for large DeFi contracts
+[profile.default]
+optimizer = true
+optimizer_runs = 200     # Lower = smaller bytecode, higher = cheaper runtime
+via_ir = true           # Yul IR optimizer — often saves 10-20% bytecode
+evm_version = "cancun"  # PUSH0 saves ~1 byte per zero-push
+```
+
+#### 💼 Job Market Context
+
+**Interview question:** "Your contract is 26 KiB and won't deploy. What do you do?"
+
+**What to say:** "First, enable the optimizer with `via_ir = true` and lower `optimizer_runs` — this often saves 10-20% bytecode. Second, replace string revert messages with custom errors. Third, check for dead code. If it's still too large, extract read-only view functions into a separate 'Lens' contract, or split business logic into a core + periphery pattern. For very large protocols, the Diamond pattern (EIP-2535) provides modular facets behind a single proxy address. I'd also check if any internal functions should be external libraries instead."
+
+---
+
+<a id="create2"></a>
+### 💡 Concept: CREATE vs CREATE2 vs CREATE3
+
+**Why this matters:** Deterministic contract deployment is critical DeFi infrastructure. Uniswap uses it for pool deployment, Safe for wallet creation, and understanding it is essential for the [SELFDESTRUCT](#selfdestruct-changes) metamorphic attack explanation later in this module.
+
+**The three deployment methods:**
+
+```
+┌───────────────────────────────────────────────────────────┐
+│ CREATE (opcode 0xF0)                                      │
+│ address = keccak256(sender, nonce)                        │
+│                                                           │
+│ - Address depends on deployer's nonce (tx count)          │
+│ - Non-deterministic: deploying the same code from         │
+│   different nonces gives different addresses              │
+│ - Standard deployment method                              │
+└───────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────┐
+│ CREATE2 (opcode 0xF5, EIP-1014, Constantinople 2019)     │
+│ address = keccak256(0xff, sender, salt, keccak256(code))  │
+│                                                           │
+│ - Address is DETERMINISTIC — depends on:                  │
+│   1. The deployer address (sender)                        │
+│   2. A user-chosen salt (bytes32)                         │
+│   3. The init code hash                                   │
+│ - Same inputs → same address, regardless of nonce         │
+│ - Enables counterfactual addresses (know the address      │
+│   before deployment)                                      │
+└───────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────┐
+│ CREATE3 (not an opcode — a pattern)                       │
+│ address = keccak256(0xff, deployer, salt, PROXY_HASH)     │
+│                                                           │
+│ - Deploys a minimal proxy via CREATE2, then the proxy     │
+│   deploys the actual contract via CREATE                  │
+│ - Address depends ONLY on deployer + salt (not init code) │
+│ - Same address across chains even if constructor args     │
+│   differ (chain-specific config)                          │
+│ - Used by: Axelar, LayerZero for cross-chain deployments  │
+└───────────────────────────────────────────────────────────┘
+```
+
+**CREATE2 in DeFi — the key pattern:**
+
+```solidity
+// How Uniswap V2 deploys pair contracts deterministically
+function createPair(address tokenA, address tokenB) external returns (address pair) {
+    bytes32 salt = keccak256(abi.encodePacked(token0, token1));
+
+    // CREATE2: address is deterministic based on tokens
+    pair = address(new UniswapV2Pair{salt: salt}());
+
+    // Anyone can compute the pair address WITHOUT calling the factory:
+    // address pair = address(uint160(uint256(keccak256(abi.encodePacked(
+    //     hex"ff",
+    //     factory,
+    //     keccak256(abi.encodePacked(token0, token1)),
+    //     INIT_CODE_HASH
+    // )))));
+}
+```
+
+**Why counterfactual addresses matter:**
+
+```solidity
+// Routers can compute pair addresses off-chain without storage reads
+function getAmountsOut(uint256 amountIn, address[] calldata path)
+    external view returns (uint256[] memory)
+{
+    for (uint256 i = 0; i < path.length - 1; i++) {
+        // No SLOAD needed! Compute pair address from tokens:
+        address pair = computePairAddress(path[i], path[i + 1]);
+        // This saves ~2,100 gas (cold SLOAD) per hop
+        (uint256 reserveIn, uint256 reserveOut) = getReserves(pair);
+        amounts[i + 1] = getAmountOut(amountIn, reserveIn, reserveOut);
+    }
+}
+```
+
+**Safe (Gnosis Safe) wallet deployment:**
+
+CREATE2 enables **counterfactual wallets** — you can send funds to a Safe address before the Safe is even deployed. The address is computed from the owners + threshold + salt. When the user is ready, they deploy the Safe at the pre-computed address and the funds are already there.
+
+**The metamorphic contract risk (now dead):**
+
+CREATE2 address depends on init code hash. If you can SELFDESTRUCT a contract and redeploy different code at the same address, you get a metamorphic contract. **EIP-6780 killed this** — see [SELFDESTRUCT Changes](#selfdestruct-changes) below.
+
+> 🔍 **Deep dive:** Module 7 (Deployment) covers CREATE2 deployment scripts and cross-chain deployment patterns in detail. This section provides the conceptual foundation.
+
+#### 💼 Job Market Context
+
+**Interview question:** "What's CREATE2 and why does Uniswap use it?"
+
+**What to say:** "CREATE2 gives deterministic contract addresses based on the deployer, a salt, and the init code hash — unlike CREATE where the address depends on the nonce. Uniswap uses it so any contract can compute a pair's address off-chain by hashing the two token addresses, without needing a storage read. This saves ~2,100 gas per pool lookup in multi-hop swaps. Safe uses it for counterfactual wallets — you know the wallet address before deployment so you can send funds to it first. The newer CREATE3 pattern makes addresses independent of init code, which is useful for cross-chain deployments where constructor args differ per chain."
+
+---
+
+<a id="precompiles"></a>
+### 💡 Concept: Precompile Landscape
+
+**Why this matters:** Precompiles are native EVM functions at fixed addresses, much cheaper than equivalent Solidity. You've used `ecrecover` (address `0x01`) every time you verify an ERC-2612 permit signature.
+
+**The precompile addresses:**
+
+| Address | Name | Gas | DeFi Usage |
+|---------|------|-----|------------|
+| `0x01` | **ecrecover** | 3,000 | ERC-2612 permit, EIP-712 signatures, meta-transactions |
+| `0x02` | SHA-256 | 60 + 12/word | Bitcoin SPV proofs (rare in DeFi) |
+| `0x03` | RIPEMD-160 | 600 + 120/word | Bitcoin address derivation (rare) |
+| `0x04` | Identity (memcpy) | 15 + 3/word | Compiler optimization (transparent) |
+| `0x05` | **modexp** | Variable | RSA verification, large-number math |
+| `0x06` | **ecAdd** (BN254) | 150 | zkSNARK verification (Tornado Cash, zkSync) |
+| `0x07` | **ecMul** (BN254) | 6,000 | zkSNARK verification |
+| `0x08` | **ecPairing** (BN254) | 34,000 + per-pair | zkSNARK verification |
+| `0x09` | **blake2f** | Variable | Zcash interop (rare) |
+| `0x0a` | **point evaluation** | 50,000 | EIP-4844 blob verification |
+| `0x0b`-`0x13` | **BLS12-381** | Variable | Validator signatures ([see above](#eip-2537)) |
+
+**The ones that matter for DeFi:**
+
+1. **ecrecover (`0x01`)** — Used in every `permit()` call, every EIP-712 typed data signature, every meta-transaction. You've been using this indirectly through `ECDSA.recover()` from OpenZeppelin.
+
+2. **BN254 pairing (`0x06`-`0x08`)** — The foundation of zkSNARK verification on Ethereum. Tornado Cash, zkSync's proof verification, and privacy protocols all depend on these. Note: this is a different curve from BLS12-381.
+
+3. **BLS12-381 (`0x0b`-`0x13`)** — New in Pectra. Enables on-chain validator signature verification. See the [BLS section above](#eip-2537).
+
+**Key distinction:** BN254 (alt-bn128) is for zkSNARKs. BLS12-381 is for signature aggregation. Different curves, different use cases. Confusing them is a common interview mistake.
 
 ---
 
@@ -43,6 +467,23 @@ Transient storage is a key-value store (32-byte keys → 32-byte values) that:
 **Visual comparison of the three storage types:**
 
 ```
+┌─────────────────────────────────────────────────────────────┐
+│                       CALLDATA                              │
+│  - Byte-addressed, read-only input to a call               │
+│  - Per call frame (each call has its own calldata)         │
+│  - ~3 gas per 32 bytes (CALLDATALOAD)                      │
+│  - Cheaper than memory for read-only access                │
+│  - In DeFi: function args, encoded swap paths, proofs      │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                       RETURNDATA                            │
+│  - Byte-addressed, output from the last external call      │
+│  - Overwritten on each new CALL/STATICCALL/DELEGATECALL    │
+│  - ~3 gas per 32 bytes (RETURNDATACOPY)                    │
+│  - In DeFi: decoded return values, revert reasons          │
+└─────────────────────────────────────────────────────────────┘
+
 ┌─────────────────────────────────────────────────────────────┐
 │                         MEMORY                              │
 │  - Byte-addressed (0x00, 0x01, 0x02, ...)                  │
@@ -78,7 +519,7 @@ Transient storage is a key-value store (32-byte keys → 32-byte values) that:
 │  - Slot-addressed (slot 0, slot 1, slot 2, ...)           │
 │  - Per contract, permanent on-chain                        │
 │  - Persists across transactions                            │
-│  - First access: ~2,100 gas (cold)                         │
+│  - First access: ~2,100 gas (cold) — see EIP-2929 below   │
 │  - Subsequent: ~100 gas (warm)                             │
 │  - Writing zero→nonzero: ~20,000 gas                       │
 │  - Writing nonzero→nonzero: ~5,000 gas                     │
@@ -100,6 +541,9 @@ contract Parent {
         this.callback();  // External call to self - CAN see transient storage
     }
 
+    // Note: `view` is valid here — tload is a read-only opcode (like sload).
+    // The compiler treats transient storage reads the same as storage reads
+    // for function mutability purposes.
     function callback() external view returns (uint256) {
         uint256 value;
         assembly { value := tload(0) }  // Reads 100 ✨
@@ -112,13 +556,15 @@ contract Parent {
 
 | Operation | Cold Access | Warm Access | Notes |
 |-----------|-------------|-------------|-------|
-| `SLOAD` (storage read) | 2,100 gas | 100 gas | First access in tx is "cold" |
-| `SSTORE` (zero→nonzero) | 20,000 gas | — | Adds new data to state |
-| `SSTORE` (nonzero→nonzero) | 5,000 gas | — | Modifies existing data |
-| `SSTORE` (nonzero→zero) | 5,000 gas | — | Removes data (gets refund) |
+| `SLOAD` (storage read) | 2,100 gas | 100 gas | First access in tx is "cold" ([EIP-2929](#eip-2929)) |
+| `SSTORE` (zero→nonzero) | 20,000 gas | 20,000 gas | Adds new data to state (cold/warm affects slot access, not write cost) |
+| `SSTORE` (nonzero→nonzero) | 5,000 gas | 5,000 gas | Modifies existing data (+2,100 cold surcharge on first access) |
+| `SSTORE` (nonzero→zero) | 5,000 gas | 5,000 gas | Removes data (gets partial refund — [EIP-3529](#eip-3529)) |
 | **`TLOAD`** | **100 gas** | **100 gas** | Always same cost ✨ |
 | **`TSTORE`** | **100 gas** | **100 gas** | Always same cost ✨ |
 | `MLOAD`/`MSTORE` (memory) | ~3 gas | ~3 gas | Cheapest but doesn't persist |
+
+> **Note:** SSTORE costs shown are the base write cost. If the storage slot hasn't been accessed yet in the transaction (cold), EIP-2929 adds a 2,100 gas cold access surcharge on top. Once the slot is warm, subsequent SSTOREs to the same slot pay only the base cost. See [EIP-2929 section](#eip-2929) for the full cold/warm model.
 
 **Real cost comparison for reentrancy guard:**
 
@@ -176,6 +622,8 @@ pragma solidity ^0.8.24;
 contract TransientDemo {
     uint256 transient counter;  // Lives only during transaction
 
+    // Note: `view` is valid — reading transient storage (tload) is treated
+    // like reading regular storage (sload) for mutability purposes.
     function demonstrateTransient() external view returns (uint256, uint256) {
         // Read current value (will be 0 on first call in tx)
         uint256 before = counter;
@@ -251,12 +699,12 @@ contract SimpleFlashAccount {
 **How this connects to Uniswap V4:**
 
 Uniswap V4's PoolManager does exactly this, but for hundreds of pools:
-- `lock()` opens a flash accounting session
+- `unlock()` opens a flash accounting session (calls back via `unlockCallback`)
 - Swaps, adds liquidity, removes liquidity all update transient deltas
 - `settle()` enforces that you've paid what you owe (or received what you're owed)
-- All within ~300 gas for the lock/unlock mechanism ✨
+- All within ~300 gas for the unlock mechanism ✨
 
-> ⚠️ **Common pitfall—new reentrancy vectors:** Because `TSTORE` costs only ~100 gas, it can execute within the 2,300 gas stipend that `transfer()` and `send()` forward. A contract receiving ETH via `transfer()` can now execute `TSTORE` (something impossible with `SSTORE`). This creates new reentrancy attack surfaces in contracts that assumed 2,300 gas was "safe." This is one reason `transfer()` and `send()` are deprecated in Solidity 0.8.31+.
+> ⚠️ **Common pitfall—new reentrancy vectors:** Because `TSTORE` costs only ~100 gas, it can execute within the 2,300 gas stipend that `transfer()` and `send()` forward. A contract receiving ETH via `transfer()` can now execute `TSTORE` (something impossible with `SSTORE`). This creates new reentrancy attack surfaces in contracts that assumed 2,300 gas was "safe." This is one reason `transfer()` and `send()` are deprecated — [Solidity 0.8.31](https://www.soliditylang.org/blog/2025/12/03/solidity-0.8.31-release-announcement/) emits compiler warnings, and they'll be removed entirely in 0.9.0.
 
 > 🔍 **Deep dive:** [ChainSecurity - TSTORE Low Gas Reentrancy](https://www.chainsecurity.com/blog/tstore-low-gas-reentrancy) demonstrates the attack with code examples. Their [GitHub repo](https://github.com/ChainSecurity/TSTORE-Low-Gas-Reentrancy) provides exploit POCs.
 
@@ -323,15 +771,15 @@ When you open PoolManager.sol, follow this path to understand the flash accounti
 
 1. **Start at the top**: Find the transient storage declarations
    ```solidity
-   // Look for:
-   NonzeroDeltaCount transient _nonzeroDeltaCount;
-   mapping(Currency currency => int256) transient _currencyDelta;
+   // Look for transient state in PoolManager and related contracts:
+   // Currency deltas tracked per-caller in transient storage
+   // NonzeroDeltaCount tracks how many currencies have outstanding deltas
    ```
 
-2. **Understand the lock mechanism**: Search for `function lock()`
-   - Notice how it sets `_nonzeroDeltaCount` to track how many currencies have deltas
-   - The callback pattern: `ILockCallback(msg.sender).lockAcquired(...)`
-   - This is how users execute complex operations within the lock
+2. **Understand the unlock mechanism**: Search for `function unlock()`
+   - Notice how it uses a callback pattern: `IUnlockCallback(msg.sender).unlockCallback(...)`
+   - The caller executes all operations inside the callback
+   - `_nonzeroDeltaCount` tracks how many currencies still have unsettled deltas
 
 3. **Follow a swap flow**: Search for `function swap()`
    - See how it calls `_accountPoolBalanceDelta()` to update transient deltas
@@ -397,12 +845,13 @@ When you open PoolManager.sol, follow this path to understand the flash accounti
 
 **What changed:**
 
-EIP-4844 introduced "blob transactions"—a new transaction type (Type 3) that carries large data blobs (~128 KB each) at significantly lower cost than calldata. The blobs are available temporarily (roughly 18 days) and then pruned from the consensus layer.
+EIP-4844 introduced "blob transactions"—a new transaction type (Type 3) that carries large data blobs (128 KiB / 131,072 bytes each) at significantly lower cost than calldata. The blobs are available temporarily (roughly 18 days) and then pruned from the consensus layer.
 
 **📊 The impact on L2 DeFi:**
 
 Before Dencun, L2s posted transaction data to L1 as expensive calldata (~16 gas/byte). After Dencun, they post to cheap blob space (~1 gas/byte or less, depending on demand).
 
+<a id="blob-fee-math"></a>
 #### 🔍 Deep Dive: Blob Fee Market Math
 
 **The blob fee formula:**
@@ -485,18 +934,38 @@ The blob data itself is nearly free — the remaining cost is just the L1 transa
 
 💻 **Quick Try:**
 
-EIP-4844 is **infrastructure-level** (L2 sequencers use it to post data to L1), not application-level. You won't write blob transaction code in your DeFi contracts. But you can:
+EIP-4844 is **infrastructure-level** (L2 sequencers use it to post data to L1), not application-level. You won't write blob transaction code in your DeFi contracts. But you CAN read the blob base fee on-chain:
 
-1. **Explore blob transactions on Etherscan**: [Etherscan Dencun Upgrade](https://etherscan.io/txs?block=19426587) (first Dencun block, March 13, 2024)
-   - Look for Type 3 transactions (blob txs)
-   - See the blob base fee in action
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
 
-2. **Check L2Beat's blob explorer**: [L2Beat Blobs](https://l2beat.com/blobs)
-   - Real-time blob usage by L2s
-   - Blob fee market dynamics
-   - Cost savings visualization
+/// @notice Read blob base fee — available in contracts targeting Cancun+
+contract BlobFeeReader {
+    /// @dev block.blobbasefee returns the current blob base fee (EIP-7516)
+    function currentBlobBaseFee() external view returns (uint256) {
+        return block.blobbasefee;
+    }
 
-3. **Read blob data**: Use `eth_getBlob` RPC if your node supports it (within 18-day window)
+    /// @dev Compare blob fee to regular gas price
+    function feeComparison() external view returns (
+        uint256 blobBaseFee,
+        uint256 regularGasPrice,
+        uint256 ratio
+    ) {
+        blobBaseFee = block.blobbasefee;
+        regularGasPrice = tx.gasprice;
+        ratio = regularGasPrice > 0 ? blobBaseFee / regularGasPrice : 0;
+    }
+}
+```
+
+Deploy in Remix (set EVM to `cancun`) and call `currentBlobBaseFee()`. In a local environment it returns 1 (minimum). On mainnet, it fluctuates based on blob demand.
+
+**Explore further:**
+1. **[Etherscan Dencun Upgrade](https://etherscan.io/txs?block=19426587)** — first Dencun block, March 13, 2024. Look for Type 3 blob transactions.
+2. **[L2Beat Blobs](https://l2beat.com/blobs)** — real-time blob usage by L2s, fee market dynamics.
+3. **Read blob data**: Use `eth_getBlob` RPC if your node supports it (within 18-day window).
 
 **For application developers**: Your L2 DeFi contract doesn't interact with blobs directly. The impact is on **user economics**: design for higher volume, smaller transactions.
 
@@ -544,9 +1013,11 @@ EIP-4844 is **infrastructure-level** (L2 sequencers use it to post data to L1), 
 ---
 
 <a id="push0-mcopy"></a>
-### 💡 Concept: PUSH0 (EIP-3855) and MCOPY (EIP-5656)
+### 💡 Concept: PUSH0 (EIP-3855, Shanghai) and MCOPY (EIP-5656, Cancun)
 
 **Behind-the-scenes optimizations** that make your compiled contracts smaller and cheaper:
+
+> Note: PUSH0 was activated in the **Shanghai upgrade** (April 2023), predating Dencun. MCOPY was activated in Dencun (March 2024). Both are covered here because they affect post-Dencun compiler output.
 
 **PUSH0 ([EIP-3855](https://eips.ethereum.org/EIPS/eip-3855))**: A new opcode that pushes the value 0 onto the stack. Previously, pushing zero required `PUSH1 0x00` (2 bytes). `PUSH0` is a single byte. This saves gas and reduces bytecode size. The Solidity compiler uses it automatically when targeting Shanghai or later.
 
@@ -665,7 +1136,7 @@ evm_version = "cancun"  # Enables PUSH0, MCOPY, and transient storage
 
 - 🚩 "I manually use PUSH0 in my code" — The compiler does this automatically
 - 🚩 "MCOPY makes all operations faster" — Only memory-to-memory copies, not storage or other operations
-- 🚩 "Setting EVM version to `cancun` might break my code" — It's backwards compatible; it just enables optimizations
+- 🚩 "Setting EVM version to `cancun` might break my Solidity code" — Source code is backwards compatible. However, if deploying to a chain that hasn't activated Cancun, the bytecode will fail (new opcodes aren't available). Always match your EVM target to the deployment chain.
 
 **What production DeFi engineers know:**
 
@@ -819,9 +1290,17 @@ Build a "flash accounting" pattern using transient storage:
 
 ---
 
-## 📋 Summary: Dencun Upgrade
+## 📋 Summary: Foundational Concepts & Dencun Upgrade
 
-**✓ Covered:**
+**✓ Covered (Foundational):**
+- EIP-2929 cold/warm access model — why first storage read costs 2,100 gas vs 100 gas, access lists
+- EIP-1559 base fee market — base fee + priority fee, MEV implications
+- EIP-3529 gas refund reduction — death of gas tokens (CHI, GST2)
+- Contract size limits (EIP-170) — the 24 KiB limit and strategies to work around it
+- CREATE vs CREATE2 vs CREATE3 — deterministic deployment, counterfactual addresses
+- Precompile landscape — ecrecover, BN254 (zkSNARKs), BLS12-381 (signatures)
+
+**✓ Covered (Dencun):**
 - Transient storage mechanics (EIP-1153) — how it differs from memory and storage, gas costs, flash accounting
 - Flash accounting pattern — Uniswap V4's core innovation with code reading strategy
 - Proto-Danksharding (EIP-4844) — why L2s became 90-97% cheaper, blob fee market math
@@ -867,6 +1346,7 @@ EIP-7702 means EOAs can:
 3. For that transaction, Alice's EOA acts like a smart account with batching capabilities
 4. Alice can batch: approve USDC → swap on Uniswap → stake in Aave, all atomically ✨
 
+<a id="delegation-designator"></a>
 #### 🔍 Deep Dive: Delegation Designator Format
 
 **How the EVM knows an EOA has delegated:**
@@ -1112,15 +1592,31 @@ Real delegation targets are what EOAs point to via EIP-7702. Study them to under
 <a id="other-pectra-eips"></a>
 ### 💡 Concept: Other Pectra EIPs
 
+<a id="eip-7623"></a>
 **EIP-7623 — Increased calldata cost** ([EIP-7623](https://eips.ethereum.org/EIPS/eip-7623)):
 
 Transactions that predominantly post data (rather than executing computation) pay higher calldata fees. This affects:
 - L2 data posting (though most L2s now use blobs from EIP-4844)
 - Any protocol that uses heavy calldata (e.g., posting Merkle proofs, batch data)
 
+<a id="eip-2537"></a>
 **EIP-2537 — BLS12-381 precompile** ([EIP-2537](https://eips.ethereum.org/EIPS/eip-2537)):
 
-Native BLS signature verification becomes available as a precompile. Useful for:
+Native BLS signature verification becomes available as a precompile. EIP-2537 defines **9 separate precompile operations** at addresses `0x0b` through `0x13`:
+
+| Address | Operation | Gas Cost |
+|---------|-----------|----------|
+| `0x0b` | G1ADD | ~500 |
+| `0x0c` | G1MUL | ~12,000 |
+| `0x0d` | G1MSM (multi-scalar multiplication) | Variable |
+| `0x0e` | G2ADD | ~800 |
+| `0x0f` | G2MUL | ~45,000 |
+| `0x10` | G2MSM | Variable |
+| `0x11` | PAIRING | ~43,000 + per-pair |
+| `0x12` | MAP_FP_TO_G1 | ~5,500 |
+| `0x13` | MAP_FP2_TO_G2 | ~75,000 |
+
+Useful for:
 - Threshold signatures
 - Validator-adjacent logic (e.g., liquid staking protocols)
 - Any system that needs efficient pairing-based cryptography (privacy protocols, zkSNARKs)
@@ -1135,8 +1631,11 @@ Lido/Rocket Pool needs to verify that validators are correctly attesting to Beac
 
 ```solidity
 contract ValidatorRegistry {
-    // BLS12-381 precompile addresses (hypothetical - check final EIP)
-    address constant BLS_VERIFY = address(0x0A);
+    // BLS12-381 precompile addresses (EIP-2537, activated in Pectra)
+    // Note: Signature verification requires the PAIRING precompile.
+    // This is a conceptual simplification — real BLS verification
+    // involves multiple precompile calls (G1MUL + PAIRING).
+    address constant BLS_PAIRING = address(0x11);
 
     struct ValidatorAttestation {
         bytes48 publicKey;      // BLS public key (G1 point)
@@ -1157,7 +1656,7 @@ contract ValidatorRegistry {
         );
 
         // Call BLS12-381 pairing precompile
-        (bool success, bytes memory output) = BLS_VERIFY.staticcall(input);
+        (bool success, bytes memory output) = BLS_PAIRING.staticcall(input);
 
         require(success, "BLS verification failed");
         return abi.decode(output, (bool));
@@ -1321,6 +1820,48 @@ After BLS precompile:
 
 ---
 
+## Looking Ahead
+
+<a id="eof"></a>
+### 💡 Concept: EOF — EVM Object Format
+
+**Why this matters (awareness level):** EOF is the next major structural change to the EVM, targeted for the Osaka/Fusaka upgrade. While not yet live, DeFi developers at top teams should know what it is and why it matters.
+
+**What EOF changes:**
+
+EOF introduces a new **container format** for EVM bytecode that separates code from data, replaces dynamic jumps with static control flow, and adds new sections for metadata.
+
+```
+Current bytecode: Raw bytes, code and data mixed
+┌──────────────────────────────────────────┐
+│ opcodes + data + constructor args (flat) │
+└──────────────────────────────────────────┘
+
+EOF container: Structured sections
+┌──────────┬──────────┬──────────┬────────┐
+│  Header  │  Types   │   Code   │  Data  │
+│ (magic + │ (function│ (validated│(static │
+│ version) │  sigs)   │  opcodes)│  data) │
+└──────────┴──────────┴──────────┴────────┘
+```
+
+**Key changes:**
+- **Static jumps only** — `JUMP` and `JUMPI` replaced by `RJUMP`, `RJUMPI`, `RJUMPV` (relative jumps). No more `JUMPDEST` scanning.
+- **Code/data separation** — Bytecode analysis becomes simpler and safer. No more ambiguity about whether bytes are code or data.
+- **Stack validation** — The EVM validates stack heights at deploy time, catching errors that currently only surface at runtime.
+- **New calling convention** — `CALLF`/`RETF` for internal function calls, reducing stack manipulation overhead.
+
+**Why DeFi developers should care:**
+- **Compiler changes**: Solidity will eventually target EOF containers, potentially changing gas profiles
+- **Bytecode analysis**: Tools that analyze deployed bytecode (decompilers, security scanners) will need updates
+- **Backwards compatible**: Legacy (non-EOF) contracts continue to work. EOF is opt-in via the new container format
+
+**What you DON'T need to do right now:** Nothing. EOF is not yet live. When it ships, the Solidity compiler will handle the transition. Keep an eye on Solidity release notes for EOF compilation support.
+
+> 🔍 **Deep dive:** [EIP-3540 (EOF v1)](https://eips.ethereum.org/EIPS/eip-3540), [ipsilon/eof](https://github.com/ipsilon/eof) — the EOF specification and reference implementation.
+
+---
+
 ## 🔗 Cross-Module Concept Links
 
 **Backward references (← concepts from earlier modules):**
@@ -1339,7 +1880,9 @@ After BLS precompile:
 | EIP-7702 delegation | Account abstraction architecture, paymasters | [§4 — Account Abstraction](4-account-abstraction.md) |
 | SELFDESTRUCT neutered | Why proxy patterns are the only upgrade path | [§6 — Proxy Patterns](6-proxy-patterns.md) |
 | Gas profiling (PUSH0/MCOPY) | Forge snapshot, gas optimization workflows | [§5 — Foundry](5-foundry.md) |
-| EIP-7702 + proxy security | Deployment scripts, CREATE2 deterministic addresses | [§7 — Deployment](7-deployment.md) |
+| CREATE2 deterministic deployment | Deployment scripts, cross-chain deployments | [§7 — Deployment](7-deployment.md) |
+| Cold/warm access (EIP-2929) | Gas optimization in vault operations, DEX routing | [Part 2 — AMMs](../part2/2-amms.md) |
+| Contract size limits (EIP-170) | Diamond pattern, proxy splitting | [§6 — Proxy Patterns](6-proxy-patterns.md) |
 
 **Part 2 connections:**
 
@@ -1393,11 +1936,27 @@ Read these files in order to build progressive understanding of Module 2's conce
 - [Vitalik's account abstraction roadmap](https://notes.ethereum.org/@vbuterin/account_abstraction_roadmap) — context on how EIP-7702 fits into AA
 - [Ethereum.org — Pectra upgrade](https://ethereum.org/en/roadmap/pectra/) — overview of all Pectra EIPs
 
-### Other Pectra EIPs
-- [EIP-3855 (PUSH0)](https://eips.ethereum.org/EIPS/eip-3855) — single-byte zero push
-- [EIP-5656 (MCOPY)](https://eips.ethereum.org/EIPS/eip-5656) — memory copy opcode
-- [EIP-7623 (Calldata cost)](https://eips.ethereum.org/EIPS/eip-7623) — increased calldata pricing
-- [EIP-2537 (BLS precompile)](https://eips.ethereum.org/EIPS/eip-2537) — BLS12-381 pairing operations
+### Other EIPs
+- [EIP-3855 (PUSH0)](https://eips.ethereum.org/EIPS/eip-3855) — single-byte zero push (Shanghai)
+- [EIP-5656 (MCOPY)](https://eips.ethereum.org/EIPS/eip-5656) — memory copy opcode (Cancun)
+- [EIP-7623 (Calldata cost)](https://eips.ethereum.org/EIPS/eip-7623) — increased calldata pricing (Pectra)
+- [EIP-2537 (BLS precompile)](https://eips.ethereum.org/EIPS/eip-2537) — BLS12-381 pairing operations (Pectra)
+- [EIP-2929 (Cold/Warm access)](https://eips.ethereum.org/EIPS/eip-2929) — access list gas pricing (Berlin)
+- [EIP-1559 (Base fee)](https://eips.ethereum.org/EIPS/eip-1559) — fee market reform (London)
+- [EIP-3529 (Gas refund reduction)](https://eips.ethereum.org/EIPS/eip-3529) — reduced SSTORE/SELFDESTRUCT refunds (London)
+
+### Foundational EVM EIPs
+- [EIP-170 (Contract size limit)](https://eips.ethereum.org/EIPS/eip-170) — 24 KiB bytecode limit
+- [EIP-1014 (CREATE2)](https://eips.ethereum.org/EIPS/eip-1014) — deterministic contract deployment
+- [EIP-2930 (Access lists)](https://eips.ethereum.org/EIPS/eip-2930) — optional access list transaction type
+
+### Future EVM
+- [EIP-3540 (EOF v1)](https://eips.ethereum.org/EIPS/eip-3540) — EVM Object Format specification
+- [ipsilon/eof](https://github.com/ipsilon/eof) — EOF reference implementation
+
+### Tooling & Pectra Support
+- [Foundry EIP-7702 support](https://book.getfoundry.sh/) — evolving Type 4 transaction support
+- [ethers.js v6 Type 4 transactions](https://docs.ethers.org/v6/) — account abstraction integration
 
 ---
 

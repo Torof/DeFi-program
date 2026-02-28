@@ -246,6 +246,20 @@ contract FlashAccountingTest is Test {
         accounting.unlock();
     }
 
+    function test_SettlePositiveDeltaRejectsExtraETH() public {
+        // If the contract owes alice, alice should NOT need to send msg.value.
+        // Sending ETH when the contract owes you is likely a mistake.
+        accounting.lock();
+        accounting.accountDelta(alice, NATIVE, 1 ether);
+
+        // Alice sends ETH even though she's owed — should revert
+        vm.prank(alice);
+        vm.expectRevert(NotSettled.selector);
+        accounting.settle{value: 1 ether}(alice);
+
+        accounting.unlock();
+    }
+
     // =========================================================
     //  Edge Cases
     // =========================================================

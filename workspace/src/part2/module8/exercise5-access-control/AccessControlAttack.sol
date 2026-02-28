@@ -42,14 +42,9 @@ contract AccessControlAttack {
     //  TODO: Implement attack — exploit re-initialization + unprotected drain
     // =============================================================
     /// @notice Execute the access control exploit to drain the vault.
-    /// @dev Steps:
-    ///   1. Re-initialize the vault with yourself as owner:
-    ///      vault.initialize(token, address(this));
-    ///
-    ///   2. Call emergencyWithdraw — sends all tokens to owner (you):
-    ///      vault.emergencyWithdraw();
-    ///
-    ///   That's it. Two lines. This is why access control is OWASP #1.
+    /// @dev Hint: Call the uninitialized implementation's initialize function,
+    ///   then drain its funds. That's it. Two lines. This is why access
+    ///   control is OWASP #1.
     ///
     /// See: Module 8 — "Access Control Vulnerabilities"
     function attack() external {

@@ -27,6 +27,8 @@ error Unauthorized();
 /// @notice Flash accounting system using transient storage.
 /// @dev Tracks balance deltas during a "locked" session, then enforces
 ///      settlement (all deltas must net to zero or be paid) before unlock.
+// See: Module 2 > Transient Storage Deep Dive (#transient-storage-deep-dive)
+// See: Module 2 > Flash Accounting intermediate example
 contract FlashAccounting {
     /// @dev Transient storage slot 0: lock flag (0 = unlocked, 1 = locked)
     /// @dev Transient storage slot for user delta: keccak256(abi.encode(user, token))
@@ -65,6 +67,9 @@ contract FlashAccounting {
     /// @param user The user address
     /// @param token The token address
     /// @param delta The delta amount (positive = user receives, negative = user pays)
+    /// @dev Warning: the unchecked int256 addition can overflow with extreme values.
+    ///      In production, you'd use SafeCast or bound inputs. Here we trust callers
+    ///      to stay within reasonable DeFi ranges.
     function accountDelta(address user, address token, int256 delta) external onlyLocked {
         // TODO: Implement
         // 1. Compute storage slot: keccak256(abi.encode(user, token))
@@ -95,6 +100,10 @@ contract FlashAccounting {
 
     /// @notice Gets the current delta for a user-token pair.
     /// @dev Only callable when locked (otherwise transient storage is wiped).
+    ///      Note: This function is `view` even though it reads transient storage via tload.
+    ///      tload is a read-only operation (like sload), so `view` is correct here.
+    ///      The Solidity compiler treats transient reads the same as storage reads
+    ///      for mutability purposes.
     function getDelta(address user, address token) external view onlyLocked returns (int256) {
         // TODO: Implement
         // 1. Compute slot: keccak256(abi.encode(user, token))
@@ -118,6 +127,7 @@ contract FlashAccounting {
 // =============================================================
 /// @notice Example contract that uses flash accounting to perform operations.
 /// @dev This demonstrates how external contracts interact with the flash accounting system.
+// See: Module 2 > Intermediate Example: Building a Simple Flash Accounting System
 contract FlashAccountingUser {
     FlashAccounting public immutable accounting;
 

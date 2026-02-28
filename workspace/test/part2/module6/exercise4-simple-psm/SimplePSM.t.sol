@@ -185,6 +185,37 @@ contract SimplePSMTest is Test {
     //  Decimal conversion — 6 → 18
     // =========================================================
 
+    function testFuzz_SellGem_DecimalConversionCorrectness(uint256 gemAmt) public {
+        // Bound to reasonable USDC amounts: 1 USDC to 10M USDC
+        gemAmt = bound(gemAmt, 1e6, 10_000_000e6);
+
+        // Set tin to 0 for clean decimal conversion testing
+        psm.file("tin", 0);
+
+        usdc.mint(alice, gemAmt);
+        vm.prank(alice);
+        usdc.approve(address(psm), gemAmt);
+
+        vm.prank(alice);
+        psm.sellGem(alice, gemAmt);
+
+        // 1 USDC (6 dec) should always produce exactly 1 DAI (18 dec)
+        // So gemAmt in 6-dec × 10^12 = expected DAI in 18-dec
+        uint256 expectedDai = gemAmt * 1e12;
+        assertEq(
+            dai.balanceOf(alice),
+            expectedDai,
+            "Fuzz: DAI received should equal USDC amount scaled to 18 decimals"
+        );
+
+        // PSM should hold all the USDC
+        assertEq(
+            usdc.balanceOf(address(psm)),
+            gemAmt,
+            "Fuzz: PSM should hold all deposited USDC"
+        );
+    }
+
     function test_SellGem_DecimalConversion() public {
         // Set tin to 0 for clean 1:1 test
         psm.file("tin", 0);

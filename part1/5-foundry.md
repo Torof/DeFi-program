@@ -13,6 +13,7 @@
 - [Fuzz Testing](#fuzz-testing)
 - [Invariant Testing](#invariant-testing)
 - [Build Exercise: Vault Invariants](#day12-exercise)
+- [How to Study Production Test Suites](#code-reading-strategies)
 
 **Fork Testing and Gas Optimization**
 - [Fork Testing for DeFi](#fork-testing)
@@ -27,7 +28,7 @@
 <a id="why-foundry"></a>
 ### 💡 Concept: Why Foundry
 
-**Why this matters:** Every production DeFi protocol launched after 2023 uses Foundry. Uniswap V4, Aave V3, MakerDAO's new contracts—all built and tested with Foundry. If you want to contribute to or understand modern DeFi codebases, Foundry fluency is mandatory, not optional.
+**Why this matters:** Every production DeFi protocol launched after 2023 uses Foundry. Uniswap V4, Morpho Blue, MakerDAO's new contracts—all built and tested with Foundry. If you want to contribute to or understand modern DeFi codebases, Foundry fluency is mandatory, not optional.
 
 > Created by [Paradigm](https://www.paradigm.xyz/), now the de facto standard for Solidity development. [Foundry Book](https://book.getfoundry.sh/)
 
@@ -52,7 +53,7 @@ If you've used Hardhat, the key mental shift: **everything happens in Solidity**
 
 1. **Protocol Development** — Every major protocol launched since 2023 uses Foundry:
    - [Uniswap V4](https://github.com/Uniswap/v4-core) — 1000+ tests, invariant suites, gas snapshots
-   - [Aave V3](https://github.com/aave/aave-v3-core) — Fork tests against live markets, invariant testing
+   - [Aave V3.1 (aave-v3-origin)](https://github.com/aave/aave-v3-origin) — Fork tests against live markets, Foundry-native
    - [Morpho Blue](https://github.com/morpho-org/morpho-blue) — Formal verification + Foundry fuzz testing
    - [Euler V2](https://github.com/euler-xyz/euler-vault-kit) — Modular vault architecture tested entirely in Foundry
 
@@ -165,6 +166,7 @@ address alice = makeAddr("alice");
 uint256 snapshot = vm.snapshot();
 // ... modify state ...
 vm.revertTo(snapshot);  // Back to snapshot state
+// (Note: In recent Foundry versions, renamed to `vm.snapshotState()` and `vm.revertToState()`)
 ```
 
 > ⚡ **Common pitfall:** `vm.prank` only affects the **next** call. If you need multiple calls, use `vm.startPrank`/`vm.stopPrank`. Forgetting this leads to "hey why is msg.sender wrong?" debugging sessions.
@@ -208,7 +210,7 @@ Run with `forge test --match-contract CheatcodePlayground -vvv` and watch the tr
 1. **Time-dependent logic** (`vm.warp`):
    - Vault lock periods and vesting schedules
    - Oracle staleness checks
-   - Interest accrual in lending protocols (→ Part 2 Module 3)
+   - Interest accrual in lending protocols (→ Part 2 Module 4)
    - Governance timelocks and voting periods
 
 2. **Access control testing** (`vm.prank`):
@@ -264,7 +266,7 @@ solc = "0.8.28"                 # Latest stable
 evm_version = "cancun"          # or "prague" for Pectra features
 optimizer = true
 optimizer_runs = 200            # Balance deployment cost vs runtime cost
-via_ir = false                  # Enable for Permit2 integration (slower compile)
+via_ir = false                  # Enable when hitting stack-too-deep errors (slower compile)
 
 [profile.default.fuzz]
 runs = 256                      # Increase for production: 10000+
@@ -385,7 +387,7 @@ Set up the project structure you'll use throughout Part 2:
 <a id="fuzz-testing"></a>
 ### 💡 Concept: Fuzz Testing
 
-**Why this matters:** Manual unit tests check specific cases. Fuzz tests check properties across **all possible inputs**. The [Euler Finance hack](https://www.certik.com/resources/blog/euler-finance-hack-explained) ($197M) would have been caught by a simple fuzz test checking "can liquidate with 0 collateral?"
+**Why this matters:** Manual unit tests check specific cases. Fuzz tests check properties across **all possible inputs**. The [Euler Finance hack](https://www.certik.com/resources/blog/euler-finance-hack-explained) ($197M) involved `donateToReserves` + self-liquidation -- a fuzz test targeting the invariant "liquidation should not be profitable with 0 collateral" could have flagged the vulnerability path.
 
 **How it works:**
 
@@ -435,17 +437,7 @@ function testGood(uint256 amount) public {
 
 #### ⚠️ Common Mistakes
 
-```solidity
-// ❌ WRONG: Using vm.assume() for common constraints — discards too many inputs
-function testFuzz_deposit(uint256 amount) public {
-    vm.assume(amount > 0 && amount < 1e30);  // Rejects ~99% of inputs!
-}
-
-// ✅ CORRECT: Use bound() to transform inputs into valid range
-function testFuzz_deposit(uint256 amount) public {
-    amount = bound(amount, 1, 1e30);  // Every input becomes valid
-}
-```
+> See [Fuzz Testing > Bound vs Assume](#fuzz-testing) above for the `bound()` vs `vm.assume()` pattern.
 
 ```solidity
 // ❌ WRONG: Testing only the happy path with fuzzing
@@ -472,7 +464,7 @@ function testFuzz_swap(uint256 amountIn) public {
 <a id="invariant-testing"></a>
 ### 💡 Concept: Invariant Testing
 
-**Why this matters:** Invariant testing found the critical bugs in [Vyper reentrancy vulnerability](https://hackmd.io/@LlamaRisk/BJzSKHNjn) (July 2023, $70M+ at risk). Fuzz tests check individual functions. Invariant tests check system-wide properties across **arbitrary sequences of operations**.
+**Why this matters:** The Curve pool exploits (July 2023, $70M+ at risk) from a [Vyper compiler reentrancy bug](https://hackmd.io/@LlamaRisk/BJzSKHNjn) **would have been detectable** by invariant testing that checked "re-entering a pool cannot change its total value." Fuzz tests check individual functions. Invariant tests check system-wide properties across **arbitrary sequences of operations**.
 
 **How it works:**
 
@@ -571,7 +563,7 @@ contract VaultInvariantTest is Test {
 
 **🏗️ Real usage:**
 
-[Aave V3 invariant tests](https://github.com/aave/aave-v3-core/tree/master/test-suites/invariants) are the gold standard. Study their handler patterns and ghost variable usage.
+[Morpho Blue invariant tests](https://github.com/morpho-org/morpho-blue/tree/main/test/forge) are the gold standard. Study their handler patterns and ghost variable usage.
 
 > 🔍 **Deep dive:** [Cyfrin - Invariant Testing: Enter The Matrix](https://medium.com/cyfrin/invariant-testing-enter-the-matrix-c71363dea37e) explains advanced handler patterns. [RareSkills - Invariant Testing in Solidity](https://rareskills.io/post/invariant-testing-solidity) covers ghost variables and metrics. [Cyfrin Updraft - Handler Tutorial](https://updraft.cyfrin.io/courses/advanced-foundry/develop-defi-protocol/create-fuzz-tests-handler) provides step-by-step handler implementation.
 
@@ -654,12 +646,12 @@ Ghost variables are your **parallel accounting system** — if the contract's st
    - No tokens can be extracted without providing the other side
    - LP share value never decreases from swaps (fees accumulate)
 
-2. **Lending Protocol Invariants** (→ Part 2 Module 3):
+2. **Lending Protocol Invariants** (→ Part 2 Module 4):
    - Total borrows ≤ total supplied (solvency)
    - Health factor < 1 → liquidatable (always)
    - Interest index only increases (monotonicity)
 
-3. **Vault Invariants** (→ Part 2 Module 4):
+3. **Vault Invariants** (→ Part 2 Module 7):
    - `convertToShares(convertToAssets(shares)) <= shares` (no free shares — rounding in protocol's favor)
    - Total assets ≥ sum of all redeemable assets (solvency)
    - First depositor can't steal from subsequent depositors (inflation attack)
@@ -747,37 +739,17 @@ function invariant_solvency() public {
 **Workspace:** [`workspace/src/part1/module5/`](../workspace/src/part1/module5/) — vault: [`SimpleVault.sol`](../workspace/src/part1/module5/exercise1-simple-vault/SimpleVault.sol), tests: [`SimpleVault.t.sol`](../workspace/test/part1/module5/exercise1-simple-vault/SimpleVault.t.sol), handler: [`VaultHandler.sol`](../workspace/test/part1/module5/exercise3-vault-invariant/VaultHandler.sol), invariants: [`VaultInvariant.t.sol`](../workspace/test/part1/module5/exercise3-vault-invariant/VaultInvariant.t.sol)
 
 1. **Build a simple vault** (accepts one ERC-20 token, issues shares proportional to deposit size):
-   ```solidity
-   contract Vault is ERC20 {
-       IERC20 public immutable token;
 
-       function deposit(uint256 assets) external returns (uint256 shares) {
-           shares = convertToShares(assets);
-           token.transferFrom(msg.sender, address(this), assets);
-           _mint(msg.sender, shares);
-       }
+   Your vault should implement:
+   - `deposit(uint256 assets)` -- calculates shares, transfers tokens in, mints shares
+   - `withdraw(uint256 shares)` -- burns shares, transfers assets back
+   - `totalAssets()`, `convertToShares()`, `convertToAssets()`
 
-       function withdraw(uint256 shares) external returns (uint256 assets) {
-           assets = convertToAssets(shares);
-           _burn(msg.sender, shares);
-           token.transfer(msg.sender, assets);
-       }
+   The share math follows the standard pattern:
+   - First deposit: shares = assets (1:1)
+   - Subsequent: shares = (assets * totalSupply) / totalAssets
 
-       function convertToShares(uint256 assets) public view returns (uint256) {
-           uint256 supply = totalSupply();
-           return supply == 0 ? assets : (assets * supply) / totalAssets();
-       }
-
-       function convertToAssets(uint256 shares) public view returns (uint256) {
-           uint256 supply = totalSupply();
-           return supply == 0 ? shares : (shares * totalAssets()) / supply;
-       }
-
-       function totalAssets() public view returns (uint256) {
-           return token.balanceOf(address(this));
-       }
-   }
-   ```
+   See the scaffold in [`SimpleVault.sol`](../workspace/src/part1/module5/exercise1-simple-vault/SimpleVault.sol) for the full TODO list.
 
 2. **Write fuzz tests** for the deposit and withdraw functions individually:
    ```solidity
@@ -823,6 +795,7 @@ function invariant_solvency() public {
 
 ---
 
+<a id="code-reading-strategies"></a>
 ### 📖 How to Study Production Test Suites
 
 Production DeFi test suites can be overwhelming (Uniswap V4 has 100+ test files). Here's a strategy:
@@ -860,7 +833,7 @@ Search for tests with names like `test_RevertWhen_*`, `test_EdgeCase_*`, `testFu
 1. [Solmate tests](https://github.com/transmissions11/solmate/tree/main/src/test) — Clean, minimal, great for learning patterns
 2. [OpenZeppelin tests](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/test) — Comprehensive, well-documented
 3. [Uniswap V4 tests](https://github.com/Uniswap/v4-core/tree/main/test) — Production DeFi complexity
-4. [Aave V3 invariant tests](https://github.com/aave/aave-v3-core/tree/master/test-suites/invariants) — Gold standard for invariant testing
+4. [Morpho Blue invariant tests](https://github.com/morpho-org/morpho-blue/tree/main/test/forge) — Gold standard for invariant testing
 
 ---
 
@@ -936,7 +909,7 @@ deal(address(token), alice, 1000e18);  // Always works, no dependencies
 <a id="gas-optimization"></a>
 ### 💡 Concept: Gas Optimization Workflow
 
-**Why this matters:** Every 100 gas you save is $0.01+ per transaction at 100 gwei. For a protocol processing 100k transactions/day (like Uniswap), that's $1M+/year in user savings. Gas optimization is a competitive advantage.
+**Why this matters:** Every 100 gas you save is $0.01+ per transaction at 100 gwei (gas prices vary significantly; L2s can be 100-1000x cheaper). For a protocol processing 100k transactions/day (like Uniswap), that's $1M+/year in user savings. Gas optimization is a competitive advantage.
 
 ```bash
 # Gas report for all tests
@@ -1133,7 +1106,7 @@ contract DifferentialTest is Test {
    - Example: Reproduce the [Euler hack](https://github.com/iphelix/euler-exploit-v1) by forking at the pre-attack block
    - Security teams run fork tests against their own protocols to find similar vectors
 
-2. **Oracle Integration Testing** (→ Part 2 Module 5):
+2. **Oracle Integration Testing** (→ Part 2 Module 3):
    - Fork test Chainlink feeds with real price data
    - Test staleness checks: `vm.warp` past the heartbeat interval
    - Simulate oracle manipulation by forking at blocks with extreme prices
@@ -1308,7 +1281,7 @@ Study these test suites in this order — each builds on skills from the previou
 | 2 | [OZ test suite](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/test) | Industry-standard patterns, comprehensive coverage | ERC20.test.js → Foundry equivalents |
 | 3 | [Uniswap V4 basic tests](https://github.com/Uniswap/v4-core/tree/main/test) | State-of-the-art DeFi testing patterns | PoolManager.t.sol, Swap.t.sol |
 | 4 | [Uniswap V4 handlers](https://github.com/Uniswap/v4-core/tree/main/test) | Invariant testing with handler contracts | invariant/ directory |
-| 5 | [Aave V3 invariant tests](https://github.com/aave/aave-v3-core/tree/master/test-suites/invariants) | Complex protocol invariant testing | Handler patterns for lending |
+| 5 | [Morpho Blue invariant tests](https://github.com/morpho-org/morpho-blue/tree/main/test/forge) | Complex protocol invariant testing | Handler patterns for lending |
 | 6 | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) | Exploit reproduction with fork tests | src/test/ — real attack PoCs |
 
 **Reading strategy:** Start with Solmate to learn clean Foundry patterns, then OZ for coverage standards. Move to V4 for DeFi-specific testing, then Aave for invariant handler patterns. Finish with DeFiHackLabs to understand exploit reproduction — the ultimate fork testing skill.
@@ -1329,7 +1302,7 @@ Study these test suites in this order — each builds on skills from the previou
 
 ### Production Examples
 - [Uniswap V4 test suite](https://github.com/Uniswap/v4-core/tree/main/test) — state-of-the-art testing patterns
-- [Aave V3 invariant tests](https://github.com/aave/aave-v3-core/tree/master/test-suites/invariants) — handler patterns
+- [Morpho Blue invariant tests](https://github.com/morpho-org/morpho-blue/tree/main/test/forge) — handler patterns
 - [Solmate tests](https://github.com/transmissions11/solmate/tree/main/src/test) — clean, minimal examples
 
 ### Gas Optimization

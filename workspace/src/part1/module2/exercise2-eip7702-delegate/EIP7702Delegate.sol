@@ -18,12 +18,15 @@ pragma solidity ^0.8.24;
 error InvalidSignature();
 error CallFailed(uint256 index, bytes returnData);
 error Unauthorized();
+error AlreadyInitialized();
 
 // =============================================================
 //  TODO 1: Implement SimpleAccount (EIP-7702 delegation target)
 // =============================================================
 /// @notice A simple smart account implementation that can be used as an EIP-7702 delegation target.
 /// @dev When an EOA delegates to this contract, calls to the EOA execute this code via DELEGATECALL semantics.
+// See: Module 2 > EIP-7702 — EOA Code Delegation (#eip-7702)
+// See: Module 2 > Intermediate Example: Batch Executor with Security
 contract SimpleAccount {
     /// @dev Storage slot for the owner. Since this runs via delegation, this storage
     ///      lives in the EOA's storage space, not the implementation contract.
@@ -33,9 +36,12 @@ contract SimpleAccount {
     /// @notice Initializes the account with an owner.
     /// @dev This should be called once when first delegating to this contract.
     ///      In EIP-7702, the EOA's owner would call this in their first delegated transaction.
+    ///      Note: OWNER_SLOT is a keccak256 hash to avoid storage collisions. In delegated
+    ///      context (EIP-7702), this storage lives in the EOA's storage space, so using a
+    ///      well-known slot like 0 could collide with other contracts the EOA delegates to.
     function initialize(address _owner) external {
         // TODO: Implement
-        // 1. Check that owner is not already set (prevent re-initialization)
+        // 1. Check that owner is not already set (revert AlreadyInitialized() if set)
         // 2. Store the owner in OWNER_SLOT using assembly sstore
         // Hint: assembly { sstore(OWNER_SLOT, _owner) }
         revert("Not implemented");
@@ -99,6 +105,7 @@ struct Call {
 // =============================================================
 /// @notice Extended account with EIP-1271 signature validation.
 /// @dev Demonstrates how delegated EOAs can implement custom validation logic.
+// See: Module 2 > EIP-7702 — EOA Code Delegation (#eip-7702)
 contract EIP1271Account {
     bytes32 private constant OWNER_SLOT = keccak256("EIP1271Account.owner");
 
@@ -106,7 +113,7 @@ contract EIP1271Account {
     bytes4 private constant EIP1271_MAGIC_VALUE = 0x1626ba7e;
 
     function initialize(address _owner) external {
-        // TODO: Same as SimpleAccount
+        // TODO: Same as SimpleAccount (revert AlreadyInitialized() if already set)
         revert("Not implemented");
     }
 
@@ -124,7 +131,14 @@ contract EIP1271Account {
     function isValidSignature(bytes32 hash, bytes memory signature) external view returns (bytes4 magicValue) {
         // TODO: Implement
         // 1. Recover the signer from the signature using ecrecover
-        //    Extract r, s, v from signature (bytes 0-31, 32-63, 64)
+        //    Signature byte layout (65 bytes total):
+        //    ┌────────────────┬────────────────┬──────┐
+        //    │   r (32 bytes) │   s (32 bytes) │ v(1) │
+        //    │  offset 0-31   │  offset 32-63  │  64  │
+        //    └────────────────┴────────────────┴──────┘
+        //    Extract using: assembly { r := mload(add(signature, 32))
+        //                              s := mload(add(signature, 64))
+        //                              v := byte(0, mload(add(signature, 96))) }
         // 2. If recovered signer == owner(), return EIP1271_MAGIC_VALUE
         // 3. Otherwise return 0xffffffff
         // Hint: address signer = ecrecover(hash, v, r, s);

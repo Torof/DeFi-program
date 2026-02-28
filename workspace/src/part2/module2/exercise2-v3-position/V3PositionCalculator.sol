@@ -63,17 +63,13 @@ library V3PositionCalculator {
     ///      In Q96 fixed-point (to avoid division by fractional sqrt prices):
     ///        amount0 = L × 2^96 × (sqrtUpper - sqrtLower) / (sqrtLower × sqrtUpper)
     ///
-    ///      To avoid overflow, split the computation into two steps:
-    ///        Step 1: intermediate = mulDiv(L << 96, sqrtUpper - sqrtLower, sqrtUpper)
-    ///        Step 2: amount0 = intermediate / sqrtLower
+    ///      The direct computation overflows because L × 2^96 × diff can exceed
+    ///      uint256. Split the division into two steps, dividing by each sqrt price
+    ///      separately to keep intermediate values in safe bounds.
     ///
-    ///      Why this works: mulDiv(a, b, c) computes (a × b) / c with a 512-bit
-    ///      intermediate, preventing overflow. By dividing by sqrtUpper first and
-    ///      sqrtLower second, we keep intermediate values within safe bounds.
-    ///
-    /// Hint: Use Math.mulDiv(a, b, c) from OpenZeppelin.
-    ///       numerator = uint256(liquidity) << 96
-    ///       diff = sqrtUpper - sqrtLower (cast to uint256 for safety)
+    /// Hint: Use Math.mulDiv(a, b, c) from OpenZeppelin for overflow-safe
+    ///       (a × b) / c with a 512-bit intermediate. Think about which of
+    ///       sqrtLower and sqrtUpper to divide by first vs second.
     ///
     /// @param sqrtLowerX96 √P_lower × 2^96
     /// @param sqrtUpperX96 √P_upper × 2^96

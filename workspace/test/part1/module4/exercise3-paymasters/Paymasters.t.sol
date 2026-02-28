@@ -107,7 +107,8 @@ contract PaymastersTest is Test {
         assertEq(validationData, 0, "Should validate");
         (address sender, uint256 maxTokens) = abi.decode(context, (address, uint256));
         assertEq(sender, user, "Context should contain user address");
-        assertGt(maxTokens, 0, "Context should contain token amount");
+        uint256 expectedTokens = (maxCost * TOKEN_TO_ETH_RATE) / 1e18;
+        assertEq(maxTokens, expectedTokens, "Token amount should match formula: (maxCost * rate) / 1e18");
     }
 
     function test_ERC20Paymaster_RevertInsufficientTokens() public {
@@ -142,6 +143,49 @@ contract PaymastersTest is Test {
         uint256 actualTokenCost = (actualGasCost * TOKEN_TO_ETH_RATE) / 1e18;
 
         assertEq(userBalanceBefore - userBalanceAfter, actualTokenCost, "Tokens should be charged");
+    }
+
+    function test_ERC20Paymaster_PostOp_DifferentGasCosts() public {
+        uint256 maxCost = 0.01 ether;
+        uint256 requiredTokens = (maxCost * TOKEN_TO_ETH_RATE) / 1e18;
+        bytes memory context = abi.encode(user, requiredTokens);
+
+        // User approves paymaster
+        vm.prank(user);
+        token.approve(address(erc20Paymaster), requiredTokens);
+
+        // Actual gas cost is less than max
+        uint256 actualGasCost = 0.002 ether;
+        uint256 expectedTokenCost = (actualGasCost * TOKEN_TO_ETH_RATE) / 1e18;
+
+        uint256 userBalanceBefore = token.balanceOf(user);
+
+        vm.prank(address(entryPoint));
+        erc20Paymaster.postOp(IPaymaster.PostOpMode.opSucceeded, context, actualGasCost, 0);
+
+        uint256 charged = userBalanceBefore - token.balanceOf(user);
+        assertEq(charged, expectedTokenCost, "Should charge based on actual gas, not max");
+        assertLt(charged, requiredTokens, "Actual charge should be less than max");
+    }
+
+    function test_ERC20Paymaster_PostOp_OpReverted() public {
+        // Even if the UserOp execution reverts, postOp should still charge
+        uint256 maxCost = 0.01 ether;
+        uint256 requiredTokens = (maxCost * TOKEN_TO_ETH_RATE) / 1e18;
+        bytes memory context = abi.encode(user, requiredTokens);
+        uint256 actualGasCost = 0.005 ether;
+
+        vm.prank(user);
+        token.approve(address(erc20Paymaster), requiredTokens);
+
+        uint256 userBalanceBefore = token.balanceOf(user);
+
+        // PostOpMode.opReverted — execution failed, but paymaster still charges
+        vm.prank(address(entryPoint));
+        erc20Paymaster.postOp(IPaymaster.PostOpMode.opReverted, context, actualGasCost, 0);
+
+        uint256 actualTokenCost = (actualGasCost * TOKEN_TO_ETH_RATE) / 1e18;
+        assertEq(userBalanceBefore - token.balanceOf(user), actualTokenCost, "Should charge even on opReverted");
     }
 
     // =========================================================

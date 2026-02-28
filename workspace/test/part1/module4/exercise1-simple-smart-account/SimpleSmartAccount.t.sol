@@ -122,34 +122,25 @@ contract SimpleSmartAccountTest is Test {
     // =========================================================
 
     function test_Execute() public {
-        bytes memory callData = abi.encodeWithSelector(
-            SimpleSmartAccount.execute.selector,
+        vm.prank(address(entryPoint));
+        account.execute(
             address(target),
             0,
             abi.encodeWithSelector(MockTarget.setValue.selector, 123)
         );
 
-        // Execute from EntryPoint
-        vm.prank(address(entryPoint));
-        (bool success,) = address(account).call(callData);
-
-        assertTrue(success, "Execute should succeed");
         assertEq(target.value(), 123, "Target value should be updated");
         assertEq(account.nonce(), 1, "Nonce should increment");
     }
 
     function test_ExecuteWithValue() public {
-        bytes memory callData = abi.encodeWithSelector(
-            SimpleSmartAccount.execute.selector,
+        vm.prank(address(entryPoint));
+        account.execute(
             address(target),
             1 ether,
             abi.encodeWithSelector(MockTarget.setValue.selector, 999)
         );
 
-        vm.prank(address(entryPoint));
-        (bool success,) = address(account).call(callData);
-
-        assertTrue(success, "Execute with value should succeed");
         assertEq(target.value(), 999, "Target value should be updated");
         assertEq(address(target).balance, 1 ether, "Target should receive ETH");
     }
@@ -161,16 +152,13 @@ contract SimpleSmartAccountTest is Test {
     }
 
     function test_Execute_RevertOnFailedCall() public {
-        bytes memory callData = abi.encodeWithSelector(
-            SimpleSmartAccount.execute.selector,
+        vm.prank(address(entryPoint));
+        vm.expectRevert(CallFailed.selector);
+        account.execute(
             address(target),
             0,
             abi.encodeWithSelector(MockTarget.revertWithMessage.selector)
         );
-
-        vm.prank(address(entryPoint));
-        vm.expectRevert(CallFailed.selector);
-        (bool success,) = address(account).call(callData);
     }
 
     // =========================================================
@@ -326,6 +314,26 @@ contract SimpleSmartAccountTest is Test {
         // Execution should be skipped
         assertEq(target.value(), 0, "Value should not change (execution skipped)");
         assertEq(account.nonce(), 0, "Nonce should not increment");
+    }
+
+    // =========================================================
+    //  Fuzz Tests
+    // =========================================================
+
+    function testFuzz_ValidateUserOp_RejectsRandomSignatures(uint256 randomKey) public {
+        // Ensure randomKey is a valid private key and not the owner's key
+        vm.assume(randomKey > 0 && randomKey < type(uint248).max);
+        vm.assume(vm.addr(randomKey) != owner);
+
+        UserOperation memory userOp = UserOpHelper.createUserOp(address(account), 0, "", "");
+        bytes32 userOpHash = keccak256(abi.encode(userOp));
+        bytes memory signature = _signUserOp(userOpHash, randomKey);
+        userOp.signature = signature;
+
+        vm.prank(address(entryPoint));
+        uint256 validationData = account.validateUserOp(userOp, userOpHash, 0);
+
+        assertEq(validationData, 1, "Random key should fail validation");
     }
 
     // =========================================================

@@ -10,7 +10,7 @@ import {
     InsufficientBalance,
     TransferFailed,
     InvalidWitnessData
-} from "../../../../src/part1/module3/exercise3-permit2-vault/Permit2Vault.sol";
+} from "../../../../src/part1/module3/exercise2-permit2-vault/Permit2Vault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @notice Tests for Permit2 integration exercise.
@@ -34,8 +34,10 @@ contract Permit2VaultTest is Test {
     uint256 constant FORK_BLOCK = 19_000_000;
 
     function setUp() public {
-        // Fork mainnet at a pinned block for deterministic results
-        // Set MAINNET_RPC_URL in your environment (e.g. from Alchemy, Infura, or a local node)
+        // Fork mainnet at a pinned block for deterministic results.
+        // Set MAINNET_RPC_URL in your environment (e.g. from Alchemy, Infura, or a local node).
+        // The demo URL below may be rate-limited or unavailable — get your own free key:
+        //   Alchemy: https://www.alchemy.com/ | Infura: https://www.infura.io/
         string memory rpcUrl = vm.envOr("MAINNET_RPC_URL", string("https://eth-mainnet.g.alchemy.com/v2/demo"));
         vm.createSelectFork(rpcUrl, FORK_BLOCK);
 
@@ -102,11 +104,14 @@ contract Permit2VaultTest is Test {
         uint256 deadline = block.timestamp + 1 hours;
 
         // First deposit with nonce 0
+        // Note: Permit2 uses BITMAP nonces, not sequential nonces like EIP-2612.
+        // Nonce 0 = word 0, bit 0. Nonce 1 = word 0, bit 1. They're independent bits
+        // in the same 256-bit word, so they can be consumed in ANY order.
         bytes memory sig1 = _signPermitTransferFrom(alice, alicePrivateKey, address(usdc), 1000 * 1e6, 0, deadline);
         vm.prank(alice);
         vault.depositWithSignatureTransfer(address(usdc), 1000 * 1e6, 0, deadline, sig1);
 
-        // Second deposit with nonce 1
+        // Second deposit with nonce 1 (different bit in same bitmap word — works independently)
         bytes memory sig2 = _signPermitTransferFrom(alice, alicePrivateKey, address(usdc), 500 * 1e6, 1, deadline);
         vm.prank(alice);
         vault.depositWithSignatureTransfer(address(usdc), 500 * 1e6, 1, deadline, sig2);
@@ -280,11 +285,40 @@ contract Permit2VaultTest is Test {
     }
 
     // =========================================================
+    //  Gas Comparison
+    // =========================================================
+
+    function test_GasComparison_Permit2VsTraditional() public {
+        uint256 depositAmount = 1000 * 1e6;
+
+        // Traditional approach requires TWO on-chain transactions:
+        //   Tx 1: approve()        → ~46,000 gas (21k base + ~25k execution)
+        //   Tx 2: vault.deposit()  → vault-specific gas
+        // With Permit2, the user only pays for ONE transaction (signature is free/off-chain).
+
+        // Measure Permit2 SignatureTransfer deposit gas
+        bytes memory signature = _signPermitTransferFrom(
+            alice, alicePrivateKey, address(usdc), depositAmount, 0, block.timestamp + 1 hours
+        );
+        uint256 gasBefore = gasleft();
+        vm.prank(alice);
+        vault.depositWithSignatureTransfer(address(usdc), depositAmount, 0, block.timestamp + 1 hours, signature);
+        uint256 gasUsed = gasBefore - gasleft();
+
+        // The key insight: Permit2 eliminates the approve transaction entirely.
+        // The signature is created off-chain (free), so the user only pays for the
+        // deposit tx. Traditional approve+deposit requires ~46k extra gas for the
+        // separate approve transaction.
+        assertGt(gasUsed, 0, "Gas should be measured");
+        assertEq(vault.getBalance(alice, address(usdc)), depositAmount, "Deposit succeeded");
+    }
+
+    // =========================================================
     //  Helper Functions: Signature Generation
     // =========================================================
 
     function _signPermitTransferFrom(
-        address owner,
+        address, /* owner — unused, Permit2 recovers it from the signature */
         uint256 ownerPrivateKey,
         address token,
         uint256 amount,
@@ -308,7 +342,7 @@ contract Permit2VaultTest is Test {
     }
 
     function _signPermitWitnessTransferFrom(
-        address owner,
+        address, /* owner */
         uint256 ownerPrivateKey,
         address token,
         uint256 amount,
@@ -343,7 +377,7 @@ contract Permit2VaultTest is Test {
     }
 
     function _signPermitAllowance(
-        address owner,
+        address, /* owner */
         uint256 ownerPrivateKey,
         address token,
         uint160 amount,

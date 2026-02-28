@@ -8,7 +8,7 @@
 - [Contract Verification](#contract-verification)
 - [Safe Multisig for Ownership](#safe-multisig)
 - [Monitoring and Alerting](#monitoring-alerting)
-- [Build Exercise: Deployment Capstone](#day16-exercise)
+- [Build Exercise: Deployment Capstone](#deployment-exercise)
 
 ---
 
@@ -161,7 +161,7 @@ forge script script/Deploy.s.sol --rpc-url $SEPOLIA_RPC --resume
 
 > ⚡ **Common pitfall:** Forgetting to fund the deployer address with testnet/mainnet ETH before broadcasting. The script simulates successfully but fails on broadcast with "insufficient funds."
 
-> 🔍 **Deep dive:** [Foundry - Best Practices for Writing Scripts](https://getfoundry.sh/guides/best-practices/writing-scripts/) covers testing scripts, error handling, and multi-chain deployments. [Cyfrin Updraft - Deploying with Foundry](https://updraft.cyfrin.io/courses/foundry/foundry-simple-storage/deploying-locally-anvil) provides hands-on tutorials.
+> 🔍 **Deep dive:** [Foundry - Best Practices for Writing Scripts](https://book.getfoundry.sh/guides/best-practices/writing-scripts/) covers testing scripts, error handling, and multi-chain deployments. [Cyfrin Updraft - Deploying with Foundry](https://updraft.cyfrin.io/courses/foundry/foundry-simple-storage/deploying-locally-anvil) provides hands-on tutorials.
 
 💻 **Quick Try:**
 
@@ -182,7 +182,7 @@ cast call $CONTRACT_ADDRESS "totalSupply()" --rpc-url http://localhost:8545
 cast send $CONTRACT_ADDRESS "deposit(uint256)" 1000000 --rpc-url http://localhost:8545 --private-key 0xac0974...
 
 # Decode return data
-cast call $CONTRACT_ADDRESS "balanceOf(address)" $USER_ADDRESS --rpc-url http://localhost:8545 | cast to-dec
+cast call $CONTRACT_ADDRESS "balanceOf(address)" $USER_ADDRESS --rpc-url http://localhost:8545 | cast to-dec  # (In newer Foundry versions, use `cast to-base <value> 10`)
 
 # Read storage slots directly (useful for debugging proxies)
 cast storage $CONTRACT_ADDRESS 0 --rpc-url http://localhost:8545
@@ -351,7 +351,7 @@ require(vault.totalSupply() == 0, "Unexpected initial state");
 <a id="contract-verification"></a>
 ### 💡 Concept: Contract Verification
 
-**Why this matters:** Unverified contracts can't be audited by users. Verified contracts prove that deployed bytecode matches published source code. This is **mandatory** for any serious protocol. ✨
+**Why this matters:** Unverified contracts can't be audited by users. Verified contracts prove that deployed bytecode matches published source code. This is **mandatory** for any serious protocol.
 
 > Used by: [Etherscan](https://etherscan.io/), [Blockscout](https://blockscout.com/), [Sourcify](https://sourcify.dev/)
 
@@ -380,6 +380,21 @@ forge verify-contract <IMPL_ADDRESS> src/VaultV1.sol:VaultV1 \
 ```
 
 > ⚡ **Common pitfall:** Constructor arguments. If your contract has constructor parameters, you MUST provide them with `--constructor-args`. Use `cast abi-encode` to format them correctly.
+
+**Common verification failures:**
+- **Optimizer settings mismatch** — The verification service must use the exact same `optimizer` and `runs` settings as your compilation
+- **Constructor args encoding** — Complex constructor arguments need ABI-encoded bytes appended to the deployment bytecode
+- **Library linking** — If your contract uses external libraries, provide their deployed addresses
+
+**Sourcify vs Etherscan:**
+- Etherscan: Partial match (only checks bytecode), most widely used
+- Sourcify: Full match (checks metadata hash too), decentralized, gaining adoption
+
+**Proxy verification workflow:**
+1. Verify the implementation contract first
+2. Verify the proxy contract (usually just the ERC1967Proxy bytecode)
+3. On Etherscan: "More Options" → "Is this a proxy?" → auto-detects implementation
+4. The proxy's Read/Write tabs will then show the implementation's ABI
 
 ---
 
@@ -413,6 +428,18 @@ forge verify-contract <IMPL_ADDRESS> src/VaultV1.sol:VaultV1 \
 - [Safe Transaction Service](https://docs.safe.global/safe-core-api/available-services) — API for off-chain signature collection
 
 > ⚡ **Common pitfall:** Using 1-of-N multisig. That's just a single key with extra steps. Use at minimum 2-of-3 for testing, 3-of-5+ for production.
+
+**How Safe works technically:**
+- **Proxy + Singleton pattern** — Each Safe is a minimal proxy pointing to a shared singleton (GnosisSafe.sol)
+- **CREATE2 deployment** — Safe addresses are deterministic based on owners + threshold + salt
+- **Module system** — Extensible via modules (e.g., allowance module for recurring payments)
+
+**Safe transaction flow:**
+1. **Propose** — Any owner creates a transaction (stored off-chain on Safe's service)
+2. **Collect signatures** — Other owners sign the transaction hash
+3. **Execute** — Once threshold reached, anyone can submit the multi-signed transaction
+
+**Pro tip:** Use Safe's batch transaction feature (via Transaction Builder app) to deploy and configure multiple contracts atomically.
 
 ---
 
@@ -468,8 +495,13 @@ function deposit(uint256 amount) external {
 **Event monitoring pattern:**
 
 ```javascript
-// Example: Monitor large withdrawals
-safe.filters.Withdraw(null, null, gte(1000000e18))
+// Monitor all Withdraw events, filter large amounts in application code
+const filter = vault.filters.Withdraw();
+vault.on(filter, (sender, receiver, amount, event) => {
+    if (amount > ethers.parseEther("1000000")) {
+        alertOps(`Large withdrawal: ${ethers.formatEther(amount)} by ${sender}`);
+    }
+});
 ```
 
 > ⚡ **Common pitfall:** Not indexing the right parameters. You can only index up to 3 parameters per event. Choose the ones you'll filter by (usually addresses and IDs).
@@ -570,7 +602,7 @@ contract Vault is Pausable, Ownable {
 
 ---
 
-<a id="day16-exercise"></a>
+<a id="deployment-exercise"></a>
 ## 🎯 Build Exercise: Deployment Capstone
 
 **Workspace:** [`workspace/script/`](../workspace/script/) — deployment script: [`DeployUUPSVault.s.sol`](../workspace/script/DeployUUPSVault.s.sol), tests: [`DeployUUPSVault.t.sol`](../workspace/test/part1/module7/exercise1-deploy-uups/DeployUUPSVault.t.sol)
@@ -763,4 +795,4 @@ You've now covered:
 
 ---
 
-**Navigation:** [← Module 6: Proxy Patterns](6-proxy-patterns.md)
+**Navigation:** [← Module 6: Proxy Patterns](6-proxy-patterns.md) | [Part 2: DeFi Protocols →](../part2/1-token-mechanics.md)

@@ -64,6 +64,8 @@ interface IEntryPoint {
 // =============================================================
 /// @notice Basic smart account with single-owner ECDSA validation.
 /// @dev Implements IAccount for ERC-4337 compatibility.
+// See: Module 4 > ERC-4337 Components (#erc-4337-components)
+// See: Module 4 > Reading SimpleAccount and BaseAccount (#read-simpleaccount)
 contract SimpleSmartAccount is IAccount {
     address public immutable entryPoint;
     address public owner;
@@ -83,24 +85,19 @@ contract SimpleSmartAccount is IAccount {
     // =============================================================
     /// @notice Validates a UserOperation.
     /// @dev Called by EntryPoint during the validation phase.
+    // See: Module 4 > The Flow (#the-flow)
     function validateUserOp(
         UserOperation calldata userOp,
         bytes32 userOpHash,
         uint256 missingAccountFunds
     ) external override returns (uint256 validationData) {
         // TODO: Implement
-        // 1. Check that msg.sender == entryPoint (revert NotEntryPoint() if not)
-        // 2. Verify the signature:
-        //    a. Recover signer from userOpHash and userOp.signature
-        //    b. Check that recovered signer == owner
-        //    c. If invalid, return SIG_VALIDATION_FAILED (1)
-        // 3. If missingAccountFunds > 0, pay the EntryPoint:
-        //    payable(entryPoint).call{value: missingAccountFunds}("")
-        // 4. Return 0 for successful validation
+        // 1. Check caller is entryPoint
+        // 2. Validate owner's ECDSA signature against userOpHash
+        // 3. Pay missingAccountFunds to EntryPoint if needed
+        // 4. Return 0 for valid, 1 for invalid (SIG_VALIDATION_FAILED)
         //
         // Hint: Use _validateSignature helper function
-        // Hint: validationData = 0 means valid signature
-        //       validationData = 1 means invalid signature (SIG_VALIDATION_FAILED)
         revert("Not implemented");
     }
 
@@ -108,8 +105,8 @@ contract SimpleSmartAccount is IAccount {
     //  TODO 3: Implement _validateSignature helper
     // =============================================================
     /// @notice Validates that the signature is from the owner.
-    /// @param userOpHash The hash to verify
-    /// @param signature The signature (65 bytes: r, s, v)
+    /// @param userOpHash The hash to verify (raw, no EthSign prefix)
+    /// @param signature The signature (65 bytes: r|s|v packed)
     /// @return validationData 0 if valid, 1 if invalid
     function _validateSignature(bytes32 userOpHash, bytes memory signature)
         internal
@@ -117,14 +114,11 @@ contract SimpleSmartAccount is IAccount {
         returns (uint256 validationData)
     {
         // TODO: Implement
-        // 1. Extract r, s, v from signature
-        //    bytes32 r = bytes32(signature[0:32]);
-        //    bytes32 s = bytes32(signature[32:64]);
-        //    uint8 v = uint8(signature[64]);
-        // 2. Recover signer using ecrecover:
-        //    address signer = ecrecover(userOpHash, v, r, s);
-        // 3. If signer == owner, return 0
-        // 4. Otherwise, return 1 (SIG_VALIDATION_FAILED)
+        // 1. Extract r (bytes 0-31), s (bytes 32-63), v (byte 64) from signature
+        // 2. Recover signer using ecrecover(userOpHash, v, r, s)
+        // 3. Return 0 if signer == owner, 1 otherwise
+        //
+        // Hint: Use byte slicing — signature[0:32] for r, etc.
         revert("Not implemented");
     }
 
@@ -177,12 +171,13 @@ contract SimpleSmartAccount is IAccount {
         revert("Not implemented");
     }
 
-    /// @notice Gets the hash of a UserOperation for signature verification.
-    /// @dev This should match the hash computed by the EntryPoint.
+    /// @notice Gets the hash of a UserOperation (simplified for learning).
+    /// @dev Note: This hashes the FULL UserOp including signature. The MockEntryPoint
+    ///      computes a different hash (excluding signature) for validation. This function
+    ///      is a standalone helper, not used in the validation flow.
+    ///      Real ERC-4337 also includes chainId and entryPoint address in the hash.
     function getUserOpHash(UserOperation calldata userOp) public pure returns (bytes32) {
-        // TODO: Implement
-        // Return keccak256(abi.encode(userOp))
-        // Note: In real ERC-4337, this includes chainId and entryPoint address
+        // TODO: Return keccak256(abi.encode(userOp))
         revert("Not implemented");
     }
 
@@ -214,12 +209,20 @@ contract MockEntryPoint {
 
             // Compute userOpHash (excludes signature to avoid circular dependency,
             // matching real ERC-4337 behavior)
-            bytes32 userOpHash = keccak256(abi.encode(
-                op.sender, op.nonce, op.initCode, op.callData,
-                op.callGasLimit, op.verificationGasLimit, op.preVerificationGas,
-                op.maxFeePerGas, op.maxPriorityFeePerGas, op.paymasterAndData,
-                bytes("")
-            ));
+            UserOperation memory cleanOp = UserOperation({
+                sender: op.sender,
+                nonce: op.nonce,
+                initCode: op.initCode,
+                callData: op.callData,
+                callGasLimit: op.callGasLimit,
+                verificationGasLimit: op.verificationGasLimit,
+                preVerificationGas: op.preVerificationGas,
+                maxFeePerGas: op.maxFeePerGas,
+                maxPriorityFeePerGas: op.maxPriorityFeePerGas,
+                paymasterAndData: op.paymasterAndData,
+                signature: ""
+            });
+            bytes32 userOpHash = keccak256(abi.encode(cleanOp));
 
             // Validation phase: call validateUserOp
             uint256 validationData = account.validateUserOp(op, userOpHash, 0);

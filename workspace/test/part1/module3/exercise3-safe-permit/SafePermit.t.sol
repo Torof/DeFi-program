@@ -6,8 +6,9 @@ import {
     SafePermitVault,
     NonPermitToken,
     InsufficientAllowance,
-    TransferFailed
-} from "../../../../src/part1/module3/exercise2-safe-permit/SafePermit.sol";
+    TransferFailed,
+    PermitPhishingDemo
+} from "../../../../src/part1/module3/exercise3-safe-permit/SafePermit.sol";
 import {PermitToken, IERC20Permit} from "../../../../src/part1/module3/exercise1-permit-vault/PermitVault.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -112,9 +113,9 @@ contract SafePermitTest is Test {
             deadline
         );
 
-        // Permit will fail with invalid signature, and there's no allowance
+        // Permit will fail (amount mismatch → invalid signer), and there's no allowance
         vm.prank(alice);
-        vm.expectRevert(); // Should revert either from permit or from insufficient allowance check
+        vm.expectRevert(InsufficientAllowance.selector);
         vault.safeDepositWithPermit(address(permitToken), depositAmount + 1, deadline, v, r, s);
     }
 
@@ -323,6 +324,65 @@ contract SafePermitTest is Test {
 
         // Deposit should still succeed
         assertEq(vault.getBalance(alice, address(permitToken)), depositAmount, "Deposit succeeded despite front-run");
+    }
+
+    // =========================================================
+    //  Phishing Demonstration
+    // =========================================================
+
+    function test_PhishingAttack_Demonstration() public {
+        // EDUCATIONAL: This demonstrates how permit phishing works.
+        // The attack vector: a malicious website tricks Alice into signing
+        // a permit where the spender is the attacker, not a legitimate vault.
+
+        PermitPhishingDemo phishingContract = new PermitPhishingDemo(frontRunner);
+
+        // Step 1: Attacker's fake website asks Alice to sign a "deposit" permit.
+        // The UI shows "Approve deposit to Vault" but the actual spender is the attacker.
+        (uint8 v, bytes32 r, bytes32 s) = _signPermit(
+            alice,
+            alicePrivateKey,
+            address(permitToken),
+            frontRunner, // <-- The spender is the ATTACKER, not the vault!
+            1000 * 1e18,
+            block.timestamp + 1 hours
+        );
+
+        // Step 2: Alice calls the phishing contract's "fakeDeposit"
+        vm.prank(alice);
+        phishingContract.fakeDeposit(
+            address(permitToken), 1000 * 1e18, block.timestamp + 1 hours, v, r, s
+        );
+
+        // Step 3: Attacker now has allowance and drains Alice's tokens
+        uint256 allowance = permitToken.allowance(alice, frontRunner);
+        assertEq(allowance, 1000 * 1e18, "Attacker has allowance from phishing");
+
+        vm.prank(frontRunner);
+        permitToken.transferFrom(alice, frontRunner, 1000 * 1e18);
+        assertEq(permitToken.balanceOf(frontRunner), 1000 * 1e18, "Attacker stole tokens via phishing");
+
+        // LESSON: Wallet UIs MUST clearly display the spender address.
+        // If "spender" doesn't match the expected protocol address, DON'T sign.
+    }
+
+    // =========================================================
+    //  Fuzz Tests
+    // =========================================================
+
+    function testFuzz_SafeDepositWithPermit(uint256 depositAmount) public {
+        // Bound to reasonable range
+        depositAmount = bound(depositAmount, 1, 100_000 * 1e18);
+        uint256 deadline = block.timestamp + 1 hours;
+
+        (uint8 v, bytes32 r, bytes32 s) = _signPermit(
+            alice, alicePrivateKey, address(permitToken), address(vault), depositAmount, deadline
+        );
+
+        vm.prank(alice);
+        vault.safeDepositWithPermit(address(permitToken), depositAmount, deadline, v, r, s);
+
+        assertEq(vault.getBalance(alice, address(permitToken)), depositAmount, "Deposit should match");
     }
 
     // =========================================================

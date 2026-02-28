@@ -98,6 +98,9 @@ interface IPermit2 is ISignatureTransfer, IAllowanceTransfer {
 //  TODO 1: Implement Permit2Vault
 // =============================================================
 /// @notice Vault that integrates with Permit2 for deposits.
+// See: Module 3 > How Permit2 Works (#how-permit2-works)
+// See: Module 3 > SignatureTransfer vs AllowanceTransfer (#signature-vs-allowance-transfer)
+// See: Module 3 > Permit2 Design Details (#permit2-design-details)
 contract Permit2Vault {
     IPermit2 public immutable permit2;
 

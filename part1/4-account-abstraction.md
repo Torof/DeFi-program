@@ -37,11 +37,11 @@ Ethereum's account model has two types: EOAs (controlled by private keys) and sm
 | Limitation | Impact | Real-World Cost |
 |------------|--------|----------------|
 | **Must hold ETH for gas** | Users with USDC but no ETH can't transact | Massive onboarding friction |
-| **Lost key = lost funds** | No recovery mechanism | $140B+ in lost crypto |
+| **Lost key = lost funds** | No recovery mechanism | Billions in lost crypto (estimates vary widely) |
 | **Single signature only** | No multisig, no social recovery | Enterprise users forced to use external multisig |
 | **No batch operations** | Separate tx for approve + swap | 2x gas costs, poor UX |
 
-> First proposed in [EIP-4337](https://eips.ethereum.org/EIPS/eip-4337) (March 2021), deployed to mainnet (March 2023)
+> First proposed in [EIP-4337](https://eips.ethereum.org/EIPS/eip-4337) (September 2021), deployed to mainnet (March 2023)
 
 **✨ The promise of account abstraction:**
 
@@ -75,7 +75,7 @@ Make smart contracts the primary account type, with programmable validation logi
 > "What's the difference between ERC-4337 and EIP-7702?"
 
 **What to say:**
-"ERC-4337 deploys new smart contract accounts — full flexibility but requires asset migration. EIP-7702, activated with Pectra in May 2025, lets existing EOAs temporarily delegate to smart contract code — same address, no migration. They're complementary: an EOA can use EIP-7702 to delegate to an ERC-4337-compatible implementation, getting the full bundler/paymaster ecosystem without changing addresses."
+"ERC-4337 deploys new smart contract accounts — full flexibility but requires asset migration. EIP-7702, activated with Pectra in May 2025, lets existing EOAs delegate to smart contract code — same address, no migration. Delegation persists until explicitly revoked. They're complementary: an EOA can use EIP-7702 to delegate to an ERC-4337-compatible implementation, getting the full bundler/paymaster ecosystem without changing addresses."
 
 **Interview Red Flags:**
 - 🚩 "Account abstraction requires a hard fork" — ERC-4337 is entirely at the application layer
@@ -96,17 +96,6 @@ function deposit() external {
 function deposit() external {
     // No msg.sender == tx.origin check — smart accounts welcome
 }
-```
-
-```solidity
-// ❌ WRONG: Assuming msg.sender.code.length == 0 means EOA
-// Post-EIP-7702, EOAs can have delegated code!
-if (msg.sender.code.length == 0) {
-    // "Must be an EOA" — wrong assumption
-}
-
-// ✅ CORRECT: Don't try to distinguish EOAs from contracts
-// Design your protocol to work with both
 ```
 
 ---
@@ -162,6 +151,15 @@ The user's smart contract wallet. Must implement `validateUserOp()` which the En
 - [Biconomy](https://github.com/bcnmy/scw-contracts) — optimized for gas
 - [SimpleAccount](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccount.sol) — reference implementation
 
+**📐 Modular Account Standards (2024-2025):**
+
+The ecosystem is converging on standardized module interfaces so plugins can work across different smart accounts:
+
+- [ERC-6900](https://eips.ethereum.org/EIPS/eip-6900) — Modular Smart Contract Accounts. Defines a standard plugin interface (validation, execution, hooks) so modules are portable across account implementations. Led by Alchemy (Modular Account).
+- [ERC-7579](https://eips.ethereum.org/EIPS/eip-7579) — Minimal Modular Smart Accounts. A lighter alternative to ERC-6900 with fewer constraints, adopted by Rhinestone and Biconomy. Defines four module types: validators, executors, hooks, and fallback handlers.
+
+**Why this matters for DeFi:** Modular accounts enable session keys (temporary authorization for specific protocols), spending limits (auto-DCA without full key access), and recovery modules. Your protocol may need to interact with these modules for advanced integrations.
+
 **5. Paymaster**
 
 An optional contract that sponsors gas on behalf of users. When a UserOperation includes paymaster data, the EntryPoint calls the paymaster to verify it agrees to pay, then charges the paymaster instead of the user.
@@ -206,10 +204,10 @@ An optional component for signature aggregation—multiple UserOperations can sh
 
 ```
 ┌──────────────────────┬──────────────────────┬──────────────────────────────┐
-│     validUntil       │     validAfter       │  aggregator / sigFailed      │
+│     validAfter       │     validUntil       │  aggregator / sigFailed      │
 │     (48 bits)        │     (48 bits)        │  (160 bits)                  │
-│  Expiration timestamp│  Not-before timestamp│  0 = no aggregator, valid    │
-│  0 = no expiration   │  0 = immediately     │  1 = SIG_VALIDATION_FAILED   │
+│  Not-before timestamp│  Expiration timestamp│  0 = no aggregator, valid    │
+│  0 = immediately     │  0 = no expiration   │  1 = SIG_VALIDATION_FAILED   │
 ├──────────────────────┼──────────────────────┼──────────────────────────────┤
 │  bits 208-255        │  bits 160-207        │  bits 0-159                  │
 └──────────────────────┴──────────────────────┴──────────────────────────────┘
@@ -224,7 +222,7 @@ return 1;    // ❌ Signature invalid (SIG_VALIDATION_FAILED in aggregator field
 // With time bounds:
 uint256 validAfter = block.timestamp;
 uint256 validUntil = block.timestamp + 1 hours;
-return (validAfter << 160) | (validUntil << 208);
+return (validUntil << 160) | (validAfter << 208);
 // This creates a 1-hour validity window
 ```
 
@@ -242,18 +240,18 @@ Step 1: Pack sigFailed into bits 0-159
   Since sigFailed = 0, the low 160 bits are all zeros.
   Result so far: 0x00000000...0000 (160 bits)
 
-Step 2: Shift validAfter left by 160 bits (into bits 160-207)
-  0x6553F100 << 160
-  = 0x0000006553F100_000000000000000000000000000000000000000000
+Step 2: Shift validUntil left by 160 bits (into bits 160-207)
+  0x65540110 << 160
+  = 0x0000006554_0110_000000000000000000000000000000000000000000
 
-Step 3: Shift validUntil left by 208 bits (into bits 208-255)
-  0x65540110 << 208
-  = 0x65540110_0000000000000000000000000000000000000000000000000000
+Step 3: Shift validAfter left by 208 bits (into bits 208-255)
+  0x6553F100 << 208
+  = 0x6553F100_0000000000000000000000000000000000000000000000000000
 
 Step 4: OR them together:
   ┌──────────────────┬──────────────────┬──────────────────────────────┐
-  │  0x65540110      │  0x6553F100      │  0x00...00                   │
-  │  validUntil      │  validAfter      │  sigFailed (0 = valid)       │
+  │  0x6553F100      │  0x65540110      │  0x00...00                   │
+  │  validAfter      │  validUntil      │  sigFailed (0 = valid)       │
   │  bits 208-255    │  bits 160-207    │  bits 0-159                  │
   └──────────────────┴──────────────────┴──────────────────────────────┘
 ```
@@ -261,18 +259,18 @@ Step 4: OR them together:
 **In Solidity:**
 ```solidity
 // Packing:
-uint256 validationData = (uint256(1700003600) << 208) | (uint256(1700000000) << 160);
+uint256 validationData = (uint256(1700003600) << 160) | (uint256(1700000000) << 208);
 
 // Unpacking (how EntryPoint reads it):
 address aggregator = address(uint160(validationData));        // bits 0-159
-uint48 validAfter  = uint48(validationData >> 160);           // bits 160-207
-uint48 validUntil  = uint48(validationData >> 208);           // bits 208-255
+uint48 validUntil  = uint48(validationData >> 160);           // bits 160-207
+uint48 validAfter  = uint48(validationData >> 208);           // bits 208-255
 bool sigFailed     = aggregator == address(1);                // special sentinel
 
 // If validUntil == 0, EntryPoint treats it as "no expiration" (type(uint48).max)
 ```
 
-**Common mistake:** Swapping `validAfter` and `validUntil` positions. The layout is `validUntil | validAfter | sigFailed` from high to low bits — counterintuitive because you'd expect "after" before "until" chronologically, but the packing follows the EntryPoint's unpacking order.
+**Common mistake:** Swapping `validAfter` and `validUntil` positions. The layout is `validAfter | validUntil | sigFailed` from high to low bits — counterintuitive because you'd expect "until" (the upper bound) at higher bits, but the packing follows the EntryPoint's `_parseValidationData` order.
 
 > **Connection to Module 1:** This is the same bit-packing pattern as BalanceDelta (Module 1) and PackedAllowance (Module 3) — multiple values squeezed into a single uint256 to save gas. The pattern is everywhere in production DeFi.
 
@@ -308,7 +306,7 @@ This gives you a concrete feel for how the system works in production.
 
 **The critical insight:** Validation and execution are separated. Validation runs first for ALL UserOps in the bundle, then execution runs. This prevents one UserOp's execution from invalidating another UserOp's validation (which would waste the bundler's gas).
 
-> 🔍 **Deep dive:** Read the [ERC-4337 spec](https://eips.ethereum.org/EIPS/eip-4337#implementation) section on the validation/execution split and the "forbidden opcodes" during validation (no storage reads, no external calls that could change state).
+> 🔍 **Deep dive:** Read the [ERC-4337 spec](https://eips.ethereum.org/EIPS/eip-4337#implementation) section on the validation/execution split and the "forbidden opcodes" during validation. The restricted opcodes include `GASPRICE`, `GASLIMIT`, `DIFFICULTY`/`PREVRANDAO`, `TIMESTAMP`, `BASEFEE`, `BLOCKHASH`, `NUMBER`, `SELFBALANCE`, `BALANCE`, `ORIGIN`, and `COINBASE` — essentially anything environment-dependent that could change between simulation and execution. Storage access is restricted (accounts can read/write their own storage; staked entities get broader access). `CREATE` is forbidden during validation except for account deployment via factories. The full rules are in the [validation rules spec](https://github.com/eth-infinitism/account-abstraction/blob/develop/erc/ERCS/erc-7562.md).
 
 ---
 
@@ -369,27 +367,17 @@ Read these contracts in order:
 1. Create a minimal smart account that implements `IAccount` (just `validateUserOp`)
 2. The account should validate that the UserOperation was signed by a single owner (ECDSA signature via `ecrecover`)
 3. Implement basic `execute(address dest, uint256 value, bytes calldata func)` for the execution phase
-4. Deploy against a local EntryPoint (the `account-abstraction` repo includes deployment scripts)
+4. Test against the provided MockEntryPoint (simplified for learning)
 
-**Validation signature format:**
-```solidity
-function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash, uint256 missingAccountFunds)
-    external override returns (uint256 validationData)
-{
-    bytes32 hash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", userOpHash));
-    address recovered = ECDSA.recover(hash, userOp.signature);
+> **Note on UserOperation versions:** The exercise uses a simplified `UserOperation` struct with separate gas fields (inspired by v0.6). Production ERC-4337 v0.7 uses `PackedUserOperation` with packed `bytes32 accountGasLimits` and `bytes32 gasFees` (see the bit-packing diagrams above). The core flow (validate → execute → postOp) is identical — only the struct encoding differs.
 
-    if (recovered != owner) return 1;  // ❌ Signature failed
+**Key concepts to implement:**
+- Extract `r`, `s`, `v` from `userOp.signature` (65 bytes packed as `r|s|v`)
+- Recover signer using `ecrecover(userOpHash, v, r, s)` — raw hash, no EthSign prefix
+- Return `0` for valid signature, `1` for `SIG_VALIDATION_FAILED`
+- If `missingAccountFunds > 0`, pay the EntryPoint via low-level call
 
-    // Pay EntryPoint the required funds
-    if (missingAccountFunds > 0) {
-        (bool success,) = payable(msg.sender).call{value: missingAccountFunds}("");
-        require(success);
-    }
-
-    return 0;  // ✅ Signature valid, no time bounds
-}
-```
+> ⚠️ **Note:** The exercise uses raw `ecrecover` against the `userOpHash` directly (no `"\x19Ethereum Signed Message:\n32"` prefix). This matches the simplified MockEntryPoint. Production ERC-4337 implementations typically use `ECDSA.recover` with the EthSign prefix or a typed data hash, but the raw approach keeps the exercise focused on the account abstraction flow rather than signature encoding details.
 
 **🎯 Goal:** Understand the smart account contract interface from the builder's perspective. You're not building a wallet product—you're understanding how these accounts interact with DeFi protocols you'll design.
 
@@ -422,7 +410,7 @@ function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash,
 |--------|----------|----------|
 | **Account type** | Full smart account with new address | EOA keeps its address |
 | **Migration** | Requires moving assets | No migration needed |
-| **Flexibility** | Maximum (custom validation, storage) | Limited (temporary delegation) |
+| **Flexibility** | Maximum (custom validation, storage) | Limited (persistent delegation until revoked) |
 | **Adoption** | ~40M+ deployed as of 2025 | Native to protocol (all EOAs) |
 | **Use case** | New users, enterprises | Existing users, wallets |
 
@@ -644,6 +632,14 @@ function verifySignature(address signer, bytes32 hash, bytes memory signature) i
 
 > 🔍 **Deep dive:** Permit2's [SignatureVerification.sol](https://github.com/Uniswap/permit2/blob/main/src/libraries/SignatureVerification.sol) is the production reference for handling both EOA and EIP-1271 signatures. [Ethereum.org - EIP-1271 Tutorial](https://ethereum.org/developers/tutorials/eip-1271-smart-contract-signatures/) provides step-by-step implementation. [Alchemy - Smart Contract Wallet Compatibility](https://www.alchemy.com/docs/how-to-make-your-dapp-compatible-with-smart-contract-wallets) covers dApp integration patterns.
 
+💻 **Quick Try:**
+
+See EIP-1271 in action with a Safe multisig:
+1. Go to any [Safe wallet on Etherscan](https://etherscan.io/address/0xd9Db270c1B5E3Bd161E8c8503c55cEABeE709552) (the Safe singleton implementation)
+2. Search for the `isValidSignature` function in the "Read Contract" tab
+3. Notice the function signature — this is the EIP-1271 interface that every protocol calls
+4. Now look at [OpenZeppelin's SignatureChecker.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/SignatureChecker.sol) — see how it branches between `ecrecover` and `isValidSignature` based on `signer.code.length`
+
 #### 🎓 Intermediate Example: Universal Signature Verification
 
 Before the exercise, here's a reusable pattern that handles both EOA and smart account signatures — the same approach used by OpenZeppelin's `SignatureChecker`:
@@ -778,37 +774,20 @@ function verifySignature(address signer, bytes32 hash, bytes memory sig) interna
 1. **Extend your SimpleSmartAccount** to support EIP-1271:
    - Implement `isValidSignature(bytes32 hash, bytes signature)` that verifies the owner's ECDSA signature
    - Return `0x1626ba7e` if valid ✅, `0xffffffff` if invalid ❌
+   - Handle edge cases: invalid signature length, recovery to `address(0)`
 
-2. **Modify the Permit2 Vault** you built in Module 3 to support both EOA signatures (ecrecover) and contract signatures (EIP-1271):
-   ```solidity
-   function verifyPermitSignature(
-       address owner,
-       bytes32 permitHash,
-       bytes memory signature
-   ) internal view returns (bool) {
-       if (owner.code.length > 0) {
-           return IERC1271(owner).isValidSignature(permitHash, signature) == 0x1626ba7e;
-       } else {
-           address recovered = ECDSA.recover(permitHash, signature);
-           return recovered == owner;
-       }
-   }
-   ```
+> **Note:** This exercise depends on completing Exercise 1 first. `SmartAccountEIP1271` inherits from `SimpleSmartAccount`.
 
-3. **Write tests** that perform a Permit2 deposit from your smart account:
-   - Smart account signs a Permit2 message (as the owner)
-   - Vault verifies the signature through EIP-1271
-   - Permit2 transfers the tokens
-   - Vault processes the deposit
+**🎯 Goal:** Understand how EIP-1271 bridges smart accounts and signature-based DeFi protocols. The `isValidSignature` function is what Permit2, OpenSea, and governance systems call to verify signatures from contract wallets.
 
-**🎯 Goal:** See the full loop—smart account signs a Permit2 message, vault verifies it through EIP-1271, Permit2 transfers the tokens. This is how modern DeFi actually works with account-abstracted users.
+**🔗 Stretch goal (Permit2 integration):** After completing the tests, consider how you'd modify the Permit2 Vault from Module 3 to support contract signatures — check `signer.code.length > 0`, then call `isValidSignature` instead of `ecrecover`. Permit2 already does this internally via its `SignatureVerification` library.
 
 ---
 
 ## 📋 Summary: EIP-7702 and DeFi Implications
 
 **✓ Covered:**
-- EIP-7702 vs ERC-4337 — temporary delegation vs full smart accounts
+- EIP-7702 vs ERC-4337 — persistent delegation vs full smart accounts
 - DeFi protocol implications — `msg.sender`, `tx.origin`, batch transactions
 - EIP-1271 — contract signature verification for smart account compatibility
 - Real-world patterns — Permit2 integration with smart accounts
@@ -904,6 +883,15 @@ contract ERC20Paymaster is BasePaymaster {
 ```
 
 > ⚡ **Common pitfall:** Oracle price updates can lag, leading to over/underpayment. Add a buffer (e.g., charge 105% of oracle price) and refund excess in `postOp`.
+
+💻 **Quick Try:**
+
+See paymaster-sponsored transactions live:
+1. Go to [JiffyScan](https://jiffyscan.xyz/) — an ERC-4337 UserOperation explorer
+2. Pick any recent UserOperation on a supported chain
+3. Look at the "Paymaster" field — if non-zero, the paymaster sponsored gas
+4. Compare gas costs between sponsored (paymaster ≠ 0x0) and self-paid (paymaster = 0x0) UserOperations
+5. Click into a paymaster address to see how many UserOps it has sponsored — some have sponsored millions
 
 > 🔍 **Deep dive:** [OSEC - ERC-4337 Paymasters: Better UX, Hidden Risks](https://osec.io/blog/2025-12-02-paymasters-evm/) analyzes security vulnerabilities including post-execution charging risks. [Encrypthos - Security Risks of EIP-4337](https://encrypthos.com/guide/the-security-risks-of-eip-4337-you-need-to-know/) covers common attack vectors. [OpenZeppelin - Account Abstraction Impact on Security](https://blog.openzeppelin.com/account-abstractions-impact-on-security-and-user-experience/) provides security best practices.
 
@@ -1184,10 +1172,15 @@ Read these files in order to build progressive understanding of account abstract
 - [eth-infinitism VerifyingPaymaster](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/VerifyingPaymaster.sol)
 - [eth-infinitism TokenPaymaster](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/TokenPaymaster.sol)
 
+### Modular Accounts
+- [ERC-6900 specification](https://eips.ethereum.org/EIPS/eip-6900) — modular smart contract accounts (Alchemy)
+- [ERC-7579 specification](https://eips.ethereum.org/EIPS/eip-7579) — minimal modular accounts (Rhinestone)
+- [Rhinestone Module Registry](https://docs.rhinestone.wtf/module-sdk) — reusable account modules
+
 ### Deployment Data
 - [4337 Stats](https://www.bundlebear.com/overview/all) — account abstraction adoption metrics
 - [Dune: Smart Account Growth](https://dune.com/johnrising/account-abstraction) — deployment trends
 
 ---
 
-**Navigation:** [← Module 3: Token Approvals](3-token-approvals.md) | [Module 5: Foundry →](5-foundry.md)
+**Navigation:** [← Module 3: Token Approvals & Permits](3-token-approvals.md) | [Module 5: Foundry Testing →](5-foundry.md)

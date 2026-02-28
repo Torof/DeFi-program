@@ -105,10 +105,15 @@ contract VaultInvariantTest is Test {
         assertGe(totalAssets, totalSupply, "Invariant violated: share price decreased below 1:1");
     }
 
-    /// @notice INVARIANT: Total supply should never exceed total assets.
-    /// @dev Shares represent claims on assets, so shares <= assets (for 1:1 minimum rate).
-    function invariant_supplyNeverExceedsAssets() public view {
-        assertLe(vault.totalSupply(), vault.totalAssets(), "Invariant violated: totalSupply > totalAssets");
+    /// @notice INVARIANT: No individual user balance should exceed total supply.
+    /// @dev A user's share balance can never be greater than the total shares issued.
+    function invariant_noUserExceedsSupply() public view {
+        uint256 supply = vault.totalSupply();
+        uint256 count = handler.getActorCount();
+        for (uint256 i = 0; i < count; i++) {
+            address actor = handler.actors(i);
+            assertLe(vault.balanceOf(actor), supply, "No user should have more shares than total supply");
+        }
     }
 
     /// @notice INVARIANT: Conversions should be consistent.

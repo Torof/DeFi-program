@@ -6,6 +6,9 @@ import {DeployUUPSVault, DeployMultiNetwork} from "../../../../script/DeployUUPS
 import {VaultV1, VaultV2} from "../../../../src/part1/module6/exercise4-uups-vault/UUPSVault.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+/// @dev PREREQUISITE: Complete Module 6, Exercise 4 (UUPSVault.sol) before running these tests.
+/// These tests depend on VaultV1 and VaultV2 implementations from Module 6.
+
 /// @notice Tests for deployment scripts.
 /// @dev DO NOT MODIFY THIS FILE. Fill in DeployUUPSVault.s.sol instead.
 contract DeployUUPSVaultTest is Test {
@@ -61,10 +64,9 @@ contract DeployUUPSVaultTest is Test {
     function test_TransferToSafe_Success() public {
         // First deploy a vault
         VaultV1 implementation = new VaultV1();
-        bytes memory initData = abi.encodeWithSelector(
-            VaultV1.initialize.selector,
-            address(token),
-            deployer
+        bytes memory initData = abi.encodeCall(
+            VaultV1.initialize,
+            (address(token), deployer)
         );
 
         vm.prank(deployer);
@@ -81,10 +83,9 @@ contract DeployUUPSVaultTest is Test {
 
     function test_TransferToSafe_RevertNonContract() public {
         VaultV1 implementation = new VaultV1();
-        bytes memory initData = abi.encodeWithSelector(
-            VaultV1.initialize.selector,
-            address(token),
-            deployer
+        bytes memory initData = abi.encodeCall(
+            VaultV1.initialize,
+            (address(token), deployer)
         );
 
         vm.prank(deployer);
@@ -94,7 +95,8 @@ contract DeployUUPSVaultTest is Test {
         address eoa = makeAddr("eoa");
 
         vm.setEnv("PRIVATE_KEY", vm.toString(deployerKey));
-        vm.expectRevert();
+        // Expects revert because safe address is not a contract (EOA)
+        vm.expectRevert(); // Safe validation should reject non-contract address
         deployScript.transferToSafe(address(proxy), eoa);
     }
 
@@ -106,10 +108,9 @@ contract DeployUUPSVaultTest is Test {
         // Deploy V1
         vm.startPrank(deployer);
         VaultV1 implementation = new VaultV1();
-        bytes memory initData = abi.encodeWithSelector(
-            VaultV1.initialize.selector,
-            address(token),
-            deployer
+        bytes memory initData = abi.encodeCall(
+            VaultV1.initialize,
+            (address(token), deployer)
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
         vm.stopPrank();
@@ -133,10 +134,9 @@ contract DeployUUPSVaultTest is Test {
 
         vm.startPrank(deployer);
         VaultV1 implementation = new VaultV1();
-        bytes memory initData = abi.encodeWithSelector(
-            VaultV1.initialize.selector,
-            address(token),
-            deployer
+        bytes memory initData = abi.encodeCall(
+            VaultV1.initialize,
+            (address(token), deployer)
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
 
@@ -160,6 +160,8 @@ contract DeployUUPSVaultTest is Test {
     //  Edge Cases
     // =========================================================
 
+    // Note: This test passes initially because run() reverts with "Not implemented".
+    // After implementing run(), it should pass because empty env vars cause vm.envUint to revert.
     function test_Deploy_WithoutEnvVars() public {
         // Clear env vars
         vm.setEnv("PRIVATE_KEY", "");
@@ -174,10 +176,9 @@ contract DeployUUPSVaultTest is Test {
         // Deploy with correct config
         vm.startPrank(deployer);
         VaultV1 implementation = new VaultV1();
-        bytes memory initData = abi.encodeWithSelector(
-            VaultV1.initialize.selector,
-            address(token),
-            deployer
+        bytes memory initData = abi.encodeCall(
+            VaultV1.initialize,
+            (address(token), deployer)
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
         vm.stopPrank();
@@ -185,7 +186,8 @@ contract DeployUUPSVaultTest is Test {
         // Try to verify with wrong expected values
         address wrongToken = makeAddr("wrongToken");
 
-        vm.expectRevert();
+        // Expects revert because token address does not match the deployed vault's token
+        vm.expectRevert(); // _verifyDeployment should require(token == expectedToken)
         deployScript._verifyDeployment(address(proxy), wrongToken, deployer);
     }
 }

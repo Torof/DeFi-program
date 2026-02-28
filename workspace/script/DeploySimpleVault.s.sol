@@ -8,7 +8,7 @@ pragma solidity ^0.8.19;
 // Scripts are written in Solidity and can be simulated or broadcast to
 // actual networks.
 //
-// Day 13: Master deployment workflows.
+// See: Module 7 > Deployment Scripts (#deployment-scripts)
 //
 // Simulate: forge script script/DeploySimpleVault.s.sol --rpc-url $RPC_URL
 // Deploy:   forge script script/DeploySimpleVault.s.sol --rpc-url $RPC_URL --broadcast --verify

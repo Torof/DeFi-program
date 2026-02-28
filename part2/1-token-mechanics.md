@@ -1,9 +1,9 @@
 # Part 2 — Module 1: Token Mechanics in Practice
 
 **Duration:** ~2 days (3–4 hours/day)
-**Prerequisites:** Part 1 complete (including Permit and Permit2 from Section 3), Foundry installed
+**Prerequisites:** Part 1 complete (including Permit and Permit2 from Module 3), Foundry installed
 **Pattern:** Concept → Read production code → Build → Extend
-**Builds on:** Part 1 Section 3 (Permit/Permit2), Part 1 Section 5 (Foundry)
+**Builds on:** Part 1 Module 3 (Permit/Permit2), Part 1 Module 5 (Foundry)
 **Used by:** Every subsequent module — SafeERC20, balance-before-after, and WETH patterns are foundational
 
 ---
@@ -22,7 +22,7 @@
 - [Read: WETH](#read-weth)
 - [Token Listing Patterns](#token-listing-patterns)
 - [Token Evaluation Checklist](#token-evaluation-checklist)
-- [Build: Token Interaction Test Suite](#build-token-test-suite)
+- [Build Exercises: Token Interaction Patterns](#build-token-test-suite)
 - [Practice Challenges](#practice-challenges)
 
 ---
@@ -33,7 +33,7 @@
 
 > **Real impact:** [Hundred Finance hack](https://rekt.news/hundred-rekt2/) ($7M, April 2023) — exploited lending pool that didn't account for [ERC-777](https://eips.ethereum.org/EIPS/eip-777) [reentrancy hooks](https://github.com/d-xo/weird-erc20#reentrant-calls). [SushiSwap MISO incident](https://www.coindesk.com/tech/2021/09/17/3m-in-ether-stolen-from-sushiswap-token-launchpad/) ($3M, September 2021) — malicious token with transfer() that silently failed but returned true, draining auction funds.
 
-> **Note:** Permit ([EIP-2612](https://eips.ethereum.org/EIPS/eip-2612)) and [Permit2](https://github.com/Uniswap/permit2) patterns are covered in Part 1 Section 3. This module focuses on the ERC-20 edge cases and safe integration patterns that will affect every protocol you build in Part 2.
+> **Note:** Permit ([EIP-2612](https://eips.ethereum.org/EIPS/eip-2612)) and [Permit2](https://github.com/Uniswap/permit2) patterns are covered in Part 1 Module 3. This module focuses on the ERC-20 edge cases and safe integration patterns that will affect every protocol you build in Part 2.
 
 ---
 
@@ -64,7 +64,7 @@ Every DeFi protocol you'll ever build begins here. [Uniswap V2](https://github.c
 1. **AMMs (Module 2):** Uniswap V2's "pull" pattern — users approve the Router, Router calls `transferFrom` to move tokens into Pair contracts. V4 replaces this with flash accounting
 2. **Lending (Module 4):** Users approve the Pool contract to pull collateral. Aave V3 and Compound V3 both use this for deposits
 3. **Vaults (Module 7):** [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) vaults call `transferFrom` on deposit — the entire vault standard is built on this two-step pattern
-4. **Alternative:** Permit (Part 1 Section 3) eliminates the separate approve transaction by using [EIP-712](https://eips.ethereum.org/EIPS/eip-712) signatures
+4. **Alternative:** Permit (Part 1 Module 3) eliminates the separate approve transaction by using [EIP-712](https://eips.ethereum.org/EIPS/eip-712) signatures
 
 ---
 
@@ -140,7 +140,7 @@ uint256 normWBTC = oneWBTC * 1e10;  // 1e8 * 1e10 = 1e18 ✓
 assertEq(normUSDC, oneDAI);  // Both represent "1 token" at 18 decimals
 ```
 
-> **Deep dive:** [OpenZeppelin Math.mulDiv](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol) — when scaling involves multiplication that could overflow, use `mulDiv` for safe precision handling. Covered in Part 1 Section 1.
+> **Deep dive:** [OpenZeppelin Math.mulDiv](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol) — when scaling involves multiplication that could overflow, use `mulDiv` for safe precision handling. Covered in Part 1 Module 1.
 
 ---
 
@@ -218,19 +218,19 @@ function test_FeeOnTransferCaughtByBalanceCheck() public {
     vm.startPrank(alice);
     feeToken.approve(address(vault), 1000e18);
 
-    // Alice deposits 100 tokens, but 3% fee means vault receives 97
+    // Alice deposits 100 tokens, but 1% fee means vault receives 99
     uint256 vaultBalBefore = feeToken.balanceOf(address(vault));
     feeToken.transfer(address(vault), 100e18);
     uint256 received = feeToken.balanceOf(address(vault)) - vaultBalBefore;
 
     // Without balance-before-after: would credit 100e18 (WRONG)
-    // With balance-before-after: correctly credits 97e18
-    assertEq(received, 97e18);  // 100 - 3% fee = 97
+    // With balance-before-after: correctly credits 99e18
+    assertEq(received, 99e18);  // 100 - 1% fee = 99
     vm.stopPrank();
 }
 ```
 
-Run it and see the 3% difference. This is why `received != amount`.
+Run it and see the 1% difference. This is why `received != amount`.
 
 **3. Rebasing tokens**
 
@@ -249,7 +249,7 @@ If Alice has approved 100 tokens to a spender, and then calls `approve(200)`, th
 **Solutions:**
 - USDT's brute-force: "approve to zero first" requirement
 - Better: use `increaseAllowance`/`decreaseAllowance` (removed from OZ v5 core but still available in extensions)
-- Best: use [Permit (EIP-2612)](https://eips.ethereum.org/EIPS/eip-2612) or [Permit2](https://github.com/Uniswap/permit2) (covered in Part 1 Section 3)
+- Best: use [Permit (EIP-2612)](https://eips.ethereum.org/EIPS/eip-2612) or [Permit2](https://github.com/Uniswap/permit2) (covered in Part 1 Module 3)
 
 > **Common pitfall:** Calling `approve(newAmount)` directly without first checking if existing approval is non-zero. With USDT, this reverts. Use `forceApprove` which handles the zero-first pattern automatically.
 
@@ -299,7 +299,7 @@ Some proxied tokens have multiple addresses pointing to the same contract. Don't
 <a id="intermediate-example-safe-deposit"></a>
 #### 🎓 Intermediate Example: Building a Minimal Safe Deposit Function
 
-Before diving into the advanced token behaviors below, let's bridge from basic SafeERC20 to a production-ready pattern. This combines everything from sections 1-6:
+Before diving into the advanced token behaviors below, let's bridge from basic SafeERC20 to a production-ready pattern. This combines everything from topics 1-6 above:
 
 ```solidity
 /// @notice Handles deposits for ANY ERC-20, including weird ones
@@ -320,10 +320,10 @@ function deposit(IERC20 token, uint256 amount) external nonReentrant {
 ```
 
 **Why each line matters:**
-- `nonReentrant` → guards against ERC-777 hooks (section 7 below)
-- `require(amount > 0)` → guards against tokens that revert on zero transfer (section 5)
-- `safeTransferFrom` → handles tokens with no return value like USDT (section 1)
-- `received` vs `amount` → handles fee-on-transfer tokens (section 2)
+- `nonReentrant` → guards against ERC-777 hooks (topic 7 below)
+- `require(amount > 0)` → guards against tokens that revert on zero transfer (topic 5)
+- `safeTransferFrom` → handles tokens with no return value like USDT (topic 1)
+- `received` vs `amount` → handles fee-on-transfer tokens (topic 2)
 
 This 8-line function handles 90% of weird token edge cases. The remaining 10% (rebasing, pausable, upgradeable) requires architectural decisions covered below.
 
@@ -380,7 +380,7 @@ The receiver's `tokensReceived` hook fires *after* the balance update but *befor
 **How to guard against it:**
 
 ```solidity
-// Option 1: Reentrancy guard (from Part 1 — use transient storage version!)
+// Option 1: Reentrancy guard (from Part 1 Module 2 — use transient storage version!)
 modifier nonReentrant() {
     assembly {
         if tload(0) { revert(0, 0) }
@@ -834,40 +834,40 @@ Is your protocol permissionless or curated?
 ---
 
 <a id="build-token-test-suite"></a>
-### 🛠️ Build: Token Interaction Test Suite (Foundry)
+### 🛠️ Build Exercises: Token Interaction Patterns (Foundry)
 
 **Workspace:** [`workspace/src/part2/module1/`](../workspace/src/part2/module1/) — starter files: [`DefensiveVault.sol`](../workspace/src/part2/module1/exercise1-defensive-vault/DefensiveVault.sol), [`DecimalNormalizer.sol`](../workspace/src/part2/module1/exercise2-decimal-normalizer/DecimalNormalizer.sol), tests: [`DefensiveVault.t.sol`](../workspace/test/part2/module1/exercise1-defensive-vault/DefensiveVault.t.sol), [`DecimalNormalizer.t.sol`](../workspace/test/part2/module1/exercise2-decimal-normalizer/DecimalNormalizer.t.sol)
 
-**Exercise 1: Build a simple `Vault` contract** that accepts ERC-20 deposits and tracks balances. Requirements:
-- Uses [SafeERC20](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/utils/SafeERC20.sol) for all token interactions
-- Handles fee-on-transfer tokens correctly (balance-before-after pattern)
-- Allows deposits and withdrawals
-- Emits events for deposits and withdrawals
+**Exercise 1: Defensive Vault** ([`DefensiveVault.sol`](../workspace/src/part2/module1/exercise1-defensive-vault/DefensiveVault.sol)) — Build a vault that correctly handles deposits and withdrawals for ANY ERC-20 token, including fee-on-transfer tokens and tokens that don't return a bool. Requirements:
+- Import and apply [SafeERC20](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/utils/SafeERC20.sol) for all token interactions
+- Implement `deposit()` using the balance-before-after pattern (credit actual received, not requested)
+- Implement `withdraw()` with proper balance checks
+- Track per-user balances and total tracked amount
+- Emit events for deposits and withdrawals
 
-**Exercise 2: Write comprehensive Foundry tests** including:
-- Deploy a standard ERC-20, deposit, withdraw — the happy path
-- Deploy a fee-on-transfer mock token, verify the vault credits the correct (reduced) amount
-- Deploy a token that doesn't return `bool` (USDT-style), verify SafeERC20 handles it
-- Test the approval race condition scenario
-- Test zero-amount transfer behavior
+Tests ([`DefensiveVault.t.sol`](../workspace/test/part2/module1/exercise1-defensive-vault/DefensiveVault.t.sol)) cover standard tokens, fee-on-transfer tokens (1% fee), USDT-style no-return-value tokens, edge cases, and fuzz invariants.
 
-**Exercise 3: Test with a WETH wrapper path** — add a `depositETH()` function that wraps incoming ETH to WETH before depositing.
+**Exercise 2: Decimal Normalizer** ([`DecimalNormalizer.sol`](../workspace/src/part2/module1/exercise2-decimal-normalizer/DecimalNormalizer.sol)) — Build a multi-token accounting contract that accepts deposits from tokens with different decimals (USDC=6, WBTC=8, DAI=18) and maintains a single normalized internal ledger in 18 decimals. Requirements:
+- Register tokens and read their decimals dynamically
+- Implement `_normalize()` and `_denormalize()` conversion helpers
+- Implement `deposit()` and `withdraw()` with decimal scaling
+- Track per-user, per-token normalized balances and a global total
+- Understand precision loss when denormalizing (division truncation)
 
-**Foundry tip:** Use `vm.mockCall` or write mock token contracts to simulate weird behaviors. For fee-on-transfer, write a simple ERC-20 that overrides `_update()` to burn 3% on every transfer:
+Tests ([`DecimalNormalizer.t.sol`](../workspace/test/part2/module1/exercise2-decimal-normalizer/DecimalNormalizer.t.sol)) cover registration, normalization math for 6/8/18 decimal tokens, cross-token totals, roundtrip precision, and fuzz invariants.
+
+**Foundry tip:** The workspace already includes mock tokens in [`workspace/src/part2/module1/mocks/`](../workspace/src/part2/module1/mocks/) — `FeeOnTransferToken.sol` (1% fee), `NoReturnToken.sol` (USDT-style), and `MockERC20.sol` (configurable decimals). Here is the fee-on-transfer pattern for reference:
 
 ```solidity
 contract FeeOnTransferToken is ERC20 {
-    uint256 public constant FEE_BPS = 300; // 3%
+    uint256 public constant FEE_BPS = 100; // 1%
 
-    function _update(address from, address to, uint256 amount) internal override {
-        if (from != address(0) && to != address(0)) {
-            // Burn 3% on transfers (not mints/burns)
-            uint256 fee = (amount * FEE_BPS) / 10000;
-            super._update(from, address(0), fee); // burn fee
-            super._update(from, to, amount - fee); // transfer remainder
-        } else {
-            super._update(from, to, amount);
-        }
+    function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
+        uint256 fee = (amount * FEE_BPS) / 10_000;
+        _spendAllowance(from, msg.sender, amount);
+        _burn(from, fee);             // burn fee from sender
+        _transfer(from, to, amount - fee); // transfer remainder
+        return true;
     }
 }
 ```
@@ -939,21 +939,21 @@ contract FeeOnTransferToken is ERC20 {
 
 After completing this module, try these challenges to test your understanding:
 
-**Token-Specific Builds:**
+**Stretch Goals (extend the workspace exercises):**
 
-1. **Universal Token Vault:** Build a vault that correctly handles deposits from standard ERC-20, fee-on-transfer, and USDT-style (no return value) tokens. Write Foundry tests with mock tokens for each behavior. The vault must use balance-before-after and SafeERC20, and correctly track per-user balances.
+1. **Extend DefensiveVault:** Add a `depositETH()` function that wraps incoming ETH to WETH before depositing. Requires handling `msg.value`, calling `WETH.deposit()`, and testing the dual-path flow.
 
-2. **Multi-Decimal Aggregator:** Build a contract that accepts deposits in tokens with different decimals (6, 8, 18) and maintains a single normalized accounting ledger in 18 decimals. Include a `totalValueNormalized()` view that returns the sum. Test with mock USDC (6), WBTC (8), and DAI (18).
+2. **Extend DecimalNormalizer:** Add support for tokens with >18 decimals (scale down instead of up). Guard against overflow and handle the precision loss in both directions.
 
 3. **Weird Token Test Suite:** Write a comprehensive Foundry test file that deploys mock tokens for 5+ weird behaviors (fee-on-transfer, no-return-value, revert-on-zero, rebasing, pausable). For each, demonstrate (a) how a naive vault breaks and (b) how a defensive vault handles it correctly.
 
-**Damn Vulnerable DeFi Challenges:**
+**Damn Vulnerable DeFi Challenges (related to this module's concepts):**
 
-4. **DVDF #4 — "Side Entrance":** A lending pool with flash loan functionality has a vulnerability related to how it tracks ETH balances. Exploits the balance accounting pattern covered in this module. [Challenge link](https://www.damnvulnerabledefi.xyz/)
+1. **DVDF #4 — "Side Entrance":** A lending pool with flash loan functionality has a vulnerability related to how it tracks ETH balances. Exploits the balance accounting pattern covered in this module. [Challenge link](https://www.damnvulnerabledefi.xyz/)
 
-5. **DVDF #3 — "Truster":** A flash loan pool that allows arbitrary external calls. Explores how token approval mechanics can be exploited when a protocol makes calls on behalf of an attacker. [Challenge link](https://www.damnvulnerabledefi.xyz/)
+2. **DVDF #3 — "Truster":** A flash loan pool that allows arbitrary external calls. Explores how token approval mechanics can be exploited when a protocol makes calls on behalf of an attacker. [Challenge link](https://www.damnvulnerabledefi.xyz/)
 
-6. **DVDF #15 — "ABI Smuggling":** Explores token approval patterns and how calldata can be manipulated to bypass access controls on token operations. [Challenge link](https://www.damnvulnerabledefi.xyz/)
+3. **DVDF #15 — "ABI Smuggling":** Explores token approval patterns and how calldata can be manipulated to bypass access controls on token operations. [Challenge link](https://www.damnvulnerabledefi.xyz/)
 
 ---
 
@@ -1001,17 +1001,17 @@ shares = convertToShares(received); // Use received, not amount
 
 #### Building on Part 1
 
-| Section | Concept | How It Connects |
-|---------|---------|-----------------|
-| [← Section 1: Modern Solidity](../part1/1-solidity-modern.md) | Custom errors | Token transfer failure revert data — `InsufficientBalance()` over string messages |
-| [← Section 1: Modern Solidity](../part1/1-solidity-modern.md) | `unchecked` blocks | Gas-optimized balance math where underflow is impossible (post-require) |
-| [← Section 1: Modern Solidity](../part1/1-solidity-modern.md) | UDVTs | Prevent mixing up token amounts with share amounts — `type Shares is uint256` |
-| [← Section 2: EVM Changes](../part1/2-evm-changes.md) | Transient storage | Reentrancy guards for ERC-777 hook protection — `TSTORE`/`TLOAD` pattern |
-| [← Section 3: Token Approvals](../part1/3-token-approvals.md) | Permit (EIP-2612) | Gasless approve built on the approval mechanics covered in this module |
-| [← Section 3: Token Approvals](../part1/3-token-approvals.md) | Permit2 | Universal approval manager — extends the approve/transferFrom pattern |
-| [← Section 5: Foundry](../part1/5-foundry.md) | Fork testing | Test against real mainnet tokens (USDC, USDT, WETH) — catch behaviors mocks miss |
-| [← Section 5: Foundry](../part1/5-foundry.md) | Fuzz testing | Randomized token amounts and decimal values to catch edge cases |
-| [← Section 6: Proxy Patterns](../part1/6-proxy-patterns.md) | Upgradeable proxies | USDC/USDT are proxy tokens — same storage layout and upgrade mechanics from Section 6 |
+| Module | Concept | How It Connects |
+|--------|---------|-----------------|
+| [← Module 1: Modern Solidity](../part1/1-solidity-modern.md) | Custom errors | Token transfer failure revert data — `InsufficientBalance()` over string messages |
+| [← Module 1: Modern Solidity](../part1/1-solidity-modern.md) | `unchecked` blocks | Gas-optimized balance math where underflow is impossible (post-require) |
+| [← Module 1: Modern Solidity](../part1/1-solidity-modern.md) | UDVTs | Prevent mixing up token amounts with share amounts — `type Shares is uint256` |
+| [← Module 2: EVM Changes](../part1/2-evm-changes.md) | Transient storage | Reentrancy guards for ERC-777 hook protection — `TSTORE`/`TLOAD` pattern |
+| [← Module 3: Token Approvals](../part1/3-token-approvals.md) | Permit (EIP-2612) | Gasless approve built on the approval mechanics covered in this module |
+| [← Module 3: Token Approvals](../part1/3-token-approvals.md) | Permit2 | Universal approval manager — extends the approve/transferFrom pattern |
+| [← Module 5: Foundry](../part1/5-foundry.md) | Fork testing | Test against real mainnet tokens (USDC, USDT, WETH) — catch behaviors mocks miss |
+| [← Module 5: Foundry](../part1/5-foundry.md) | Fuzz testing | Randomized token amounts and decimal values to catch edge cases |
+| [← Module 6: Proxy Patterns](../part1/6-proxy-patterns.md) | Upgradeable proxies | USDC/USDT are proxy tokens — same storage layout and upgrade mechanics from Module 6 |
 
 #### Forward to Part 2
 
@@ -1073,4 +1073,4 @@ shares = convertToShares(received); // Use received, not amount
 
 ---
 
-**Navigation:** [← Part 1 Section 7: Deployment](../part1/7-deployment.md) | [Module 2: AMMs →](2-amms.md)
+**Navigation:** [← Part 1 Module 7: Deployment](../part1/7-deployment.md) | [Module 2: AMMs →](2-amms.md)

@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+// NOTE: This handler lives in src/ (not test/) because Foundry's invariant
+// fuzzer requires handler contracts to be deployable via targetContract().
+// Importing forge-std/Test.sol in src/ is intentional — handlers need access
+// to vm.prank, bound(), makeAddr(), and other test helpers.
 import {Test} from "forge-std/Test.sol";
 import {BuggyVault} from "./BuggyVault.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";

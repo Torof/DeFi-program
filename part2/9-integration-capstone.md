@@ -4,7 +4,7 @@
 **Prerequisites:** Modules 1–8 complete
 **Pattern:** Architecture design → Core engine → Collateral pricing → Liquidation → Flash mint → Testing → Portfolio
 **Builds on:** Module 4 (health factors, interest accrual, liquidation), Module 5 (flash loans, ERC-3156), Module 6 (CDP mechanics, rate accumulator, Dutch auctions), Module 7 (ERC-4626 vault shares, inflation attack), Module 8 (invariant testing, security)
-**Used by:** Part 3 Module 8 (governance — potential upgrade path), Part 3 Capstone
+**Used by:** Part 3 Module 8: Governance (potential upgrade path), Part 3 Module 9: Capstone (Perpetual Exchange)
 
 ---
 
@@ -312,7 +312,7 @@ Your 4 contracts have mutual dependencies. Think about deployment order and how 
 - **Liquidator** needs permission to call Engine's `seizeCollateral()`
 - **PriceFeed** is standalone (no dependencies on other protocol contracts)
 
-Since the protocol is immutable (no setters), these addresses must be set at deployment. One pattern: deploy PriceFeed first (no dependencies), then Stablecoin with Engine address as constructor arg (requires knowing Engine address — use `CREATE2` for deterministic addresses, or deploy Stablecoin with a placeholder and use an immutable initializer pattern).
+Since the protocol is immutable (no setters), these addresses must be set at deployment. The concrete pattern: deploy via a deployer script that deploys PriceFeed first (no dependencies), pre-computes the Engine address via `CREATE2`, deploys Stablecoin with that pre-computed Engine address as a constructor arg, then deploys Engine (at the pre-computed address) and Liquidator with all addresses known. Alternatively, use a factory contract that deploys all four in a single transaction, passing addresses between constructor calls.
 
 This is a real production concern — MakerDAO's deployment scripts handle complex interdependencies across 10+ contracts. Your 4-contract system is simpler, but the authorization wiring still needs to be correct.
 
@@ -339,7 +339,7 @@ Packing BPS values as `uint16` (max 65,535 — more than enough for basis points
 **Next:** Deep dive into the core CDP engine — health factor math, stability fees, and the vault lifecycle.
 
 > **🧭 Checkpoint — Before Moving On:**
-> Can you sketch the 4-contract architecture from memory? Can you name the 6 design decisions and articulate a preference (with rationale) for each? If you can't, re-read this section — the architecture IS the project, and changing it mid-build is expensive.
+> Can you sketch the 4-contract architecture from memory? Can you name the 6 design decisions and articulate a preference (with rationale) for each? If you can't, re-read the Architecture Design material above — the architecture IS the project, and changing it mid-build is expensive.
 
 ---
 
@@ -1084,6 +1084,8 @@ Why: every stablecoin in circulation must have a corresponding source — either
 
 **Important design implication:** For this invariant to hold, `drip()` must mint new stablecoin to a surplus address when it increases `rateAccumulator`. Otherwise, debt grows (via compounding) but `totalSupply` stays the same — breaking the invariant after the very first fee accrual. This is what MakerDAO's `fold()` does: it increases the Vat's internal `dai` balance for `vow` (the surplus address) by the fee revenue amount. Your `drip()` must do the equivalent: `stablecoin.mint(surplus, debtIncrease)` where `debtIncrease = totalNormalizedDebt × (newRate - oldRate) / RAY`.
 
+**Why this stays balanced:** `drip()` increases both sides of the equation in lockstep — rateAccumulator growth increases the right side (sum of debts), and the corresponding `mint(surplus, feeRevenue)` increases the left side (totalSupply) by the same amount. They stay in sync by construction.
+
 Note: during a flash mint callback, `totalSupply` is temporarily inflated. Your invariant check should not run mid-flash-mint (the handler shouldn't trigger a flash mint that's still in progress when checking invariants).
 
 **Invariant 3: Accounting**
@@ -1144,8 +1146,8 @@ contract SystemHandler is Test {
 **Fork tests:** Deploy on a mainnet fork:
 - Use real Chainlink ETH/USD feed — verify staleness checks work with actual feed behavior
 - Use a real ERC-4626 vault (e.g., Yearn's yvWETH or a WETH vault) as collateral
-- Measure gas for key operations: deposit, mint, liquidation check, auction bid. Rough targets: deposit/withdraw ~50-80K, mint/repay ~80-120K (includes drip), health factor view ~30-50K, auction bid ~100-150K
-- Compare gas to production protocols (MakerDAO's `frob` is ~150-200K gas)
+- Measure gas for key operations: deposit, mint, liquidation check, auction bid. Rough ballpark targets (will vary with your implementation choices — storage layout, number of SLOADs, decimal normalization path): deposit/withdraw ~50-80K, mint/repay ~80-120K (includes drip), health factor view ~30-50K, auction bid ~100-150K
+- Compare gas to production protocols (MakerDAO's `frob` is ~150-200K gas) — your numbers will differ but should be in the same order of magnitude
 
 <a id="edge-cases"></a>
 ### ⚠️ Edge Cases to Explore
@@ -1527,10 +1529,10 @@ MakerDAO's codebase uses terse, domain-specific naming that can be disorienting.
 
 | Target | Concept | How It Connects |
 |---|---|---|
-| **Part 3 M1** | LST collateral types | Adding wstETH/rETH as collateral — your vault share pricing pipeline generalizes directly to LSTs (same `convertToAssets()`-style exchange rate, same manipulation concerns) |
-| **Part 3 M5** | MEV-resistant design | Dutch auction as MEV defense studied in depth — your Liquidator is a concrete implementation of the principles covered theoretically |
-| **Part 3 M8** | Governance upgrade | Adding Governor + Timelock for parameter updates to your stablecoin — transforming from immutable V1 to governed V2 |
-| **Part 3 Capstone** | Protocol extension | Building on this foundation with Part 3 advanced concepts — your stablecoin becomes the base layer for more sophisticated protocol design |
+| **Part 3 M1** (Liquid Staking & Restaking) | LST collateral types | Adding wstETH/rETH as collateral — your vault share pricing pipeline generalizes directly to LSTs (same `convertToAssets()`-style exchange rate, same manipulation concerns) |
+| **Part 3 M5** (MEV) | MEV-resistant design | Dutch auction as MEV defense studied in depth — your Liquidator is a concrete implementation of the principles covered theoretically |
+| **Part 3 M8** (Governance) | Governance upgrade | Adding Governor + Timelock for parameter updates to your stablecoin — transforming from immutable V1 to governed V2 |
+| **Part 3 M9** (Capstone: Perpetual Exchange) | Protocol extension | Building on this foundation with Part 3 advanced concepts — your stablecoin becomes the base layer for more sophisticated protocol design |
 
 ---
 
@@ -1584,6 +1586,7 @@ MakerDAO's codebase uses terse, domain-specific naming that can be disorienting.
 - [ ] Multiple collateral types per vault (not just one type per vault per user)
 - [ ] Dust threshold enforcement (minimum vault size)
 - [ ] Architecture Decision Record written for portfolio
+- [ ] Foundry deployment script showing correct 4-contract wiring order
 
 ---
 

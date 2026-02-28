@@ -134,6 +134,37 @@ contract TransientGuardTest is Test {
         // This test logs the values so you can compare. Run with -vv to see
         // the gas breakdown. The key insight: transient storage provides
         // predictable, low-cost access regardless of cold/warm state.
+
+        // Sanity check: transient guard should not be significantly more
+        // expensive than storage guard (even in warm-slot test conditions)
+        assertTrue(
+            transientGas <= storageGas + 5000,
+            "Transient guard should not be significantly more expensive than storage"
+        );
+    }
+
+    // =========================================================
+    //  Sequential operations: guard resets properly
+    // =========================================================
+
+    function test_TransientGuard_AllowsSequentialOperations() public {
+        TransientGuardedVault vault = new TransientGuardedVault();
+        address user = makeAddr("sequential");
+        deal(user, 10 ether);
+
+        vm.startPrank(user);
+
+        // First cycle: deposit + withdraw
+        vault.deposit{value: 5 ether}();
+        vault.withdraw();
+
+        // Second cycle: guard resets properly, not permanently locked
+        vault.deposit{value: 5 ether}();
+        vault.withdraw();
+
+        vm.stopPrank();
+
+        assertEq(user.balance, 10 ether, "User should recover all ETH after two cycles");
     }
 
     // =========================================================

@@ -50,4 +50,30 @@ contract SmartAccountEIP1271Test is Test {
         vm.expectRevert(InvalidSignatureLength.selector);
         account.isValidSignature(hash, shortSig);
     }
+
+    function test_IsValidSignature_RevertEmptySignature() public {
+        bytes32 hash = keccak256("Test");
+        bytes memory emptySig = "";
+
+        vm.expectRevert(InvalidSignatureLength.selector);
+        account.isValidSignature(hash, emptySig);
+    }
+
+    function test_IsValidSignature_RevertOversizedSignature() public {
+        bytes32 hash = keccak256("Test");
+        // 66 bytes — too long
+        bytes memory longSig = abi.encodePacked(bytes32(0), bytes32(0), bytes2(0));
+
+        vm.expectRevert(InvalidSignatureLength.selector);
+        account.isValidSignature(hash, longSig);
+    }
+
+    function test_IsValidSignature_MalformedVValue() public view {
+        bytes32 hash = keccak256("Test");
+        // Signature with v = 0 → ecrecover returns address(0), which != owner
+        bytes memory malformedSig = abi.encodePacked(bytes32(uint256(1)), bytes32(uint256(2)), uint8(0));
+
+        bytes4 result = account.isValidSignature(hash, malformedSig);
+        assertEq(result, EIP1271_INVALID, "Malformed v should return invalid");
+    }
 }

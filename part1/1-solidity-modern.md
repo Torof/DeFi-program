@@ -4,8 +4,11 @@
 
 **Language-Level Changes**
 - [Checked Arithmetic (0.8.0)](#checked-arithmetic)
+  - [Deep Dive: mulDiv Math](#checked-arithmetic)
 - [Custom Errors (0.8.4+)](#custom-errors)
+  - [Deep Dive: try/catch Error Handling](#try-catch)
 - [User-Defined Value Types (0.8.8+)](#user-defined-value-types)
+  - [Deep Dive: BalanceDelta Bit-Packing](#balance-delta)
 - [abi.encodeCall (0.8.11+)](#abi-encodecall)
 - [Other Notable Changes](#other-notable-changes)
 - [Build Exercise: ShareMath](#day1-exercise)
@@ -43,6 +46,8 @@ for (uint256 i = 0; i < length;) {
 }
 
 // ✅ CORRECT: AMM math where inputs are already validated
+// Safety proof: reserveIn and amountInWithFee are bounded by token supply
+// (max ~10^30 for 18-decimal tokens), so their product can't overflow uint256 (~10^77)
 unchecked {
     uint256 denominator = reserveIn * 1000 + amountInWithFee;
 }
@@ -241,15 +246,22 @@ if (amount == 0) revert InvalidAmount();
 if (balance < amount) revert InsufficientBalance(balance, amount);
 ```
 
-**Even more modern (0.8.26+):**
+**`require` with custom errors (0.8.26+) — the recommended pattern:**
 
-As of [Solidity 0.8.26](https://www.soliditylang.org/blog/2024/05/21/solidity-0.8.26-release-announcement/), you can use custom errors directly in `require`:
+As of [Solidity 0.8.26](https://www.soliditylang.org/blog/2024/05/21/solidity-0.8.26-release-announcement/), you can use custom errors directly in `require`. This is now **the recommended way** to write input validation — it combines the readability of `require` with the gas efficiency and tooling benefits of custom errors:
 
 ```solidity
-// ✅ NEWEST: Best of both worlds
+// ✅ RECOMMENDED (0.8.26+): Best of both worlds
+error InvalidAmount();
+error InsufficientBalance(uint256 available, uint256 required);
+
 require(amount > 0, InvalidAmount());
 require(balance >= amount, InsufficientBalance(balance, amount));
 ```
+
+This replaces both the old `require("string")` pattern AND the verbose `if (...) revert` pattern for simple validations. Use `if (...) revert` when you need complex branching logic; use `require(condition, CustomError())` for straightforward precondition checks.
+
+> ⚡ **Production note:** As of early 2026, not all codebases have adopted this yet — you'll see both `if/revert` and `require` with custom errors in modern protocols. Both are correct; `require` is more readable for simple checks.
 
 **Beyond gas savings:**
 
@@ -337,6 +349,69 @@ Aave's frontend decodes 60+ custom errors to show specific messages like "Health
 **Pro tip:** When building aggregators or routers, design your error types as a hierarchy — base errors for the protocol, specific errors per module. Teams that do this well (like 1inch, Paraswap) can provide users with actionable revert reasons instead of opaque failures.
 
 > 🔍 **Deep dive:** [Cyfrin Updraft - Custom Errors](https://updraft.cyfrin.io/courses/solidity/fund-me/solidity-custom-errors) provides a tutorial with practical examples. [Solidity Docs - Error Handling](https://docs.soliditylang.org/en/latest/control-structures.html#error-handling-assert-require-revert-and-exceptions) covers how custom errors work with try/catch.
+
+<a id="try-catch"></a>
+#### 🔍 Deep Dive: try/catch for Cross-Contract Error Handling
+
+Custom errors shine when combined with `try/catch` — the pattern you'll use constantly in DeFi aggregators, routers, and any protocol that calls external contracts.
+
+**The problem:** External calls can fail, and you need to handle failures gracefully — not just let them propagate up and kill the entire transaction.
+
+**Basic try/catch:**
+```solidity
+// Catch specific custom errors from external calls
+try pool.swap(amountIn, minAmountOut) returns (uint256 amountOut) {
+    // Success — use amountOut
+} catch Error(string memory reason) {
+    // Catches require(false, "reason") or revert("reason")
+} catch Panic(uint256 code) {
+    // Catches assert failures, division by zero, overflow (codes: 0x01, 0x11, 0x12, etc.)
+} catch (bytes memory lowLevelData) {
+    // Catches custom errors and anything else
+    // Decode: bytes4 selector = bytes4(lowLevelData);
+}
+```
+
+**DeFi pattern — aggregator with fallback routing:**
+```solidity
+function swapWithFallback(
+    address primaryPool,
+    address fallbackPool,
+    uint256 amountIn,
+    uint256 minOut
+) external returns (uint256) {
+    // Try primary pool first
+    try IPool(primaryPool).swap(amountIn, minOut) returns (uint256 out) {
+        return out;
+    } catch (bytes memory reason) {
+        bytes4 selector = bytes4(reason);
+
+        if (selector == IPool.InsufficientLiquidity.selector) {
+            // Known error — fall through to backup pool
+        } else {
+            // Unknown error — re-throw (don't swallow unexpected failures)
+            assembly { revert(add(reason, 32), mload(reason)) }
+        }
+    }
+
+    // Fallback to secondary pool
+    return IPool(fallbackPool).swap(amountIn, minOut);
+}
+```
+
+**Key rules:**
+- `try` only works on **external** function calls and contract creation (`new`)
+- The `returns` clause captures success values
+- Always handle the catch-all `catch (bytes memory)` — custom errors land here
+- Never silently swallow errors (`catch {}`) unless you genuinely intend to ignore failures
+
+**Where this appears in DeFi:**
+- **Aggregators** (1inch, Paraswap): try Pool A, catch → try Pool B
+- **Liquidators**: try to liquidate, catch → skip to next position
+- **Keepers** (Gelato, Chainlink Automation): try execution, catch → log and retry
+- **Flash loans**: decode callback errors for debugging
+
+> Forward reference: You'll implement cross-contract error handling in Part 2 Module 5 (Flash Loans) where callback errors must be decoded and handled.
 
 #### ⚠️ Common Mistakes
 
@@ -533,8 +608,12 @@ int256 packed = int256(amount0) << 128;
 // [amount0 in high 128 bits][empty 128 bits with zeros]
 
 // Step 2: OR with amount1 (fills the low 128 bits)
-// ⚠️ Must mask to 128 bits — int256(negative_int128) sign-extends to 256 bits,
-//    which would corrupt the high 128 bits when ORed.
+// ⚠️ Must mask to 128 bits via the triple-cast chain:
+//    int128 → uint128: reinterprets sign bit as data (e.g., -1 → 0xFF..FF)
+//    uint128 → uint256: zero-extends (fills high bits with 0, not sign)
+//    uint256 → int256: safe reinterpret (value fits, high bits are 0)
+// Without this: int256(negative_int128) sign-extends to 256 bits,
+// corrupting the high 128 bits (amount0) when ORed.
 packed = packed | int256(uint256(uint128(amount1)));
 
 // Final result (binary):
@@ -907,6 +986,38 @@ OpenZeppelin v5 (aligned with Solidity 0.8.20+) replaced the dual `_beforeTokenT
 
 > Learn more: [Introducing OpenZeppelin Contracts 5.0](https://blog.openzeppelin.com/introducing-openzeppelin-contracts-5.0)
 
+**`bytes.concat` and `string.concat` (0.8.4+ / 0.8.12+):**
+
+Cleaner alternatives to `abi.encodePacked` for non-hashing concatenation:
+
+```solidity
+// ❌ BEFORE: abi.encodePacked for everything
+bytes memory data = abi.encodePacked(prefix, payload);
+
+// ✅ AFTER: Purpose-specific concatenation
+bytes memory data = bytes.concat(prefix, payload);       // For bytes
+string memory name = string.concat(first, " ", last);    // For strings
+```
+
+Use `bytes.concat` / `string.concat` for building data, `abi.encodePacked` only for hash inputs.
+
+**`immutable` improvements (0.8.8+ / 0.8.21+):**
+
+Immutable variables became more flexible over time:
+- **0.8.8+**: Immutables can be read in the constructor
+- **0.8.21+**: Immutables can be non-value types (bytes, strings) — previously only value types (uint256, address, etc.) were supported
+
+```solidity
+// Since 0.8.21: immutable string and bytes
+string public immutable name;   // Stored in code, not storage — cheaper to read
+bytes32 public immutable merkleRoot;
+
+constructor(string memory _name, bytes32 _root) {
+    name = _name;
+    merkleRoot = _root;
+}
+```
+
 **Free functions and `using for` at file level (0.8.0+):**
 
 Functions can exist outside contracts, and `using LibraryX for TypeY global` makes library functions available everywhere:
@@ -1048,6 +1159,8 @@ Deploy and compare execution costs. You'll see ~20,000 vs ~100 gas difference.
 |--------------|-------------|------------|---------|
 | Regular storage (cold) | ~20,000 gas | ~5,000 gas | Baseline |
 | Transient storage | ~100 gas | ~100 gas | **50-200x cheaper** ✨ |
+
+> ⚡ **Note:** Exact gas costs vary by compiler version, optimizer settings, and EVM upgrades. The relative difference (transient is dramatically cheaper) is what matters, not the precise numbers.
 
 #### 🔍 Understanding Transient Storage at EVM Level
 
@@ -1269,11 +1382,21 @@ modifier withCallback() {
 
 **What changed:** [Solidity 0.8.30](https://www.soliditylang.org/blog/2025/05/07/solidity-0.8.30-release-announcement/) changed the default EVM target from Cancun to Prague (the Pectra upgrade, May 2025). New opcodes are available and the compiler's code generation assumes the newer EVM.
 
+**What Pectra brought:**
+- **EIP-7702**: Set EOA code (delegate transactions) — enables account abstraction patterns without deploying a new wallet contract. Covered in depth in Module 4.
+- **EIP-7685**: General purpose execution layer requests
+- **EIP-2537**: BLS12-381 precompile — efficient BLS signature verification (important for consensus layer interactions)
+
 **What this means for you:**
 - ✅ Deploying to Ethereum mainnet: use default (Prague/Pectra)
-- ⚠️ Deploying to chains that haven't upgraded: specify `--evm-version cancun` in your compiler settings
+- ⚠️ Deploying to L2s or chains that haven't upgraded: specify `--evm-version cancun` in your compiler settings
+- ⚠️ Compiling with Prague target produces bytecode that may fail on pre-Pectra chains
 
-Check your target chain's EVM version in your Foundry/Hardhat config.
+Check your target chain's EVM version in your Foundry config (`foundry.toml`):
+```toml
+[profile.default]
+evm_version = "cancun"  # For L2s that haven't adopted Pectra yet
+```
 
 ---
 
@@ -1329,12 +1452,12 @@ You should already be avoiding all of these in new code, but you'll encounter th
 ## 🔗 Cross-Module Concept Links
 
 **→ Forward to Part 1 (where these concepts appear next):**
-- **Module 2 (EVM Changes):** TSTORE/TLOAD opcodes underpin the `transient` keyword; EVM target versioning affects available opcodes
-- **Module 3 (Token Approvals):** Permit/Permit2 build on the approve model covered here; EIP-712 signatures introduced in this module
-- **Module 4 (Account Abstraction):** EIP-7702 delegate transactions use `abi.encodeCall` for type-safe calldata encoding
-- **Module 5 (Foundry):** All exercises in this module use Foundry; fork testing and gas snapshots for the transient storage comparison
-- **Module 6 (Proxy Patterns):** `delegatecall` encoding uses `abi.encodeCall`; storage layout awareness connects to UDVTs and bit-packing
-- **Module 7 (Deployment):** Compiler `--evm-version` setting connects to Pectra/Prague target discussion
+- **[Module 2 (EVM Changes)](2-evm-changes.md):** TSTORE/TLOAD opcodes underpin the `transient` keyword; EVM target versioning affects available opcodes
+- **[Module 3 (Token Approvals)](3-token-approvals.md):** Permit/Permit2 build on the approve model covered here; EIP-712 signatures introduced
+- **[Module 4 (Account Abstraction)](4-account-abstraction.md):** EIP-7702 delegate transactions use `abi.encodeCall` for type-safe calldata encoding
+- **[Module 5 (Foundry)](5-foundry.md):** All exercises use Foundry; fork testing and gas snapshots for the transient storage comparison
+- **[Module 6 (Proxy Patterns)](6-proxy-patterns.md):** `delegatecall` encoding uses `abi.encodeCall`; storage layout awareness connects to UDVTs and bit-packing
+- **[Module 7 (Deployment)](7-deployment.md):** Compiler `--evm-version` setting connects to Pectra/Prague target discussion
 
 **→ Forward to Part 2 (where these patterns become foundational):**
 
@@ -1353,15 +1476,15 @@ You should already be avoiding all of these in new code, but you'll encounter th
 
 Read these in order to build understanding progressively:
 
-| Order | File | What to study | Lines |
-|-------|------|--------------|-------|
-| 1 | [OZ Math.sol — `mulDiv`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol) | Clean `mulDiv` implementation — understand the concept without assembly optimizations | ~50 lines |
-| 2 | [Uniswap V4 FullMath.sol](https://github.com/Uniswap/v4-core/blob/main/src/libraries/FullMath.sol) | Assembly-optimized `mulDiv` — compare with OZ version, note the `unchecked` blocks | ~120 lines |
-| 3 | [Uniswap V4 PoolId.sol](https://github.com/Uniswap/v4-core/blob/main/src/types/PoolId.sol) | Simplest UDVT — `type PoolId is bytes32`, one function | ~10 lines |
-| 4 | [Uniswap V4 Currency.sol](https://github.com/Uniswap/v4-core/blob/main/src/types/Currency.sol) | UDVT with custom operators — `type Currency is address`, native ETH handling | ~40 lines |
-| 5 | [Uniswap V4 BalanceDelta.sol](https://github.com/Uniswap/v4-core/blob/main/src/types/BalanceDelta.sol) | Advanced UDVT — bit-packed int128 pair with custom `+`, `-`, `==` operators | ~60 lines |
-| 6 | [OZ ReentrancyGuardTransient.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/ReentrancyGuardTransient.sol) | Production transient storage — compare with classic ReentrancyGuard.sol | ~30 lines |
-| 7 | [Aave V3 Errors.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/helpers/Errors.sol) | Centralized error library — 60+ custom errors, see the organizational pattern | ~100 lines |
+| Order | File | What to study | Difficulty | Lines |
+|-------|------|--------------|------------|-------|
+| 1 | [OZ Math.sol — `mulDiv`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol) | Clean `mulDiv` implementation — understand the concept without assembly optimizations | ⭐⭐ | ~50 lines |
+| 2 | [Uniswap V4 FullMath.sol](https://github.com/Uniswap/v4-core/blob/main/src/libraries/FullMath.sol) | Assembly-optimized `mulDiv` — compare with OZ version, note the `unchecked` blocks | ⭐⭐⭐ | ~120 lines |
+| 3 | [Uniswap V4 PoolId.sol](https://github.com/Uniswap/v4-core/blob/main/src/types/PoolId.sol) | Simplest UDVT — `type PoolId is bytes32`, one function | ⭐ | ~10 lines |
+| 4 | [Uniswap V4 Currency.sol](https://github.com/Uniswap/v4-core/blob/main/src/types/Currency.sol) | UDVT with custom operators — `type Currency is address`, native ETH handling | ⭐⭐ | ~40 lines |
+| 5 | [Uniswap V4 BalanceDelta.sol](https://github.com/Uniswap/v4-core/blob/main/src/types/BalanceDelta.sol) | Advanced UDVT — bit-packed int128 pair with custom `+`, `-`, `==` operators | ⭐⭐⭐ | ~60 lines |
+| 6 | [OZ ReentrancyGuardTransient.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/ReentrancyGuardTransient.sol) | Production transient storage — compare with classic ReentrancyGuard.sol | ⭐ | ~30 lines |
+| 7 | [Aave V3 Errors.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/helpers/Errors.sol) | Centralized error library — 60+ `string constant` revert reasons (pre-custom-error pattern), study the organizational principle | ⭐ | ~100 lines |
 
 **Don't get stuck on:** Assembly optimizations in FullMath — understand the mulDiv concept from OZ first, then see how Uniswap optimizes it.
 

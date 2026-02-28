@@ -3,8 +3,8 @@
 **Duration:** ~7 days (3–4 hours/day)
 **Prerequisites:** Modules 1–3 (tokens, AMMs, oracles)
 **Pattern:** Math → Read Aave V3 → Read Compound V3 → Build simplified protocol → Liquidation deep dive
-**Builds on:** Module 1 (SafeERC20), Module 3 (Chainlink consumer, staleness checks), Part 1 Section 5 (invariant testing, fork testing)
-**Used by:** Module 5 (flash loan liquidation), Module 6 (stablecoin CDPs share index math), Module 7 (vault share pricing uses same index pattern), Module 8 (invariant testing your lending pool), Module 9 (integration capstone), Part 3 Module 1 (governance attacks on lending params), Part 3 Module 5 (cross-chain lending)
+**Builds on:** Module 1 (SafeERC20), Module 3 (Chainlink consumer, staleness checks), Part 1 Module 5 (invariant testing, fork testing)
+**Used by:** Module 5 (flash loan liquidation), Module 6 (stablecoin CDPs share index math), Module 7 (vault share pricing uses same index pattern), Module 8 (invariant testing your lending pool), Module 9 (integration capstone), Part 3 Module 8 (governance attacks on lending params), Part 3 Module 6 (cross-chain lending)
 
 ---
 
@@ -562,56 +562,23 @@ function calculateCompoundedInterest(uint256 rate, uint40 lastUpdateTimestamp, u
 ---
 
 <a id="build-lending-math"></a>
-### 🛠️ Exercise: Build the Math
+### 🛠️ Exercise 1: Interest Rate Model
 
 **Workspace:** [`workspace/src/part2/module4/exercise1-interest-rate/`](../workspace/src/part2/module4/exercise1-interest-rate/) — starter file: [`InterestRateModel.sol`](../workspace/src/part2/module4/exercise1-interest-rate/InterestRateModel.sol), tests: [`InterestRateModel.t.sol`](../workspace/test/part2/module4/exercise1-interest-rate/InterestRateModel.t.sol)
 
-**Exercise 1:** Implement a `KinkedInterestRate.sol` contract with:
-- `getUtilization(totalSupply, totalBorrow)` → returns U as a WAD (18 decimals)
-- `getBorrowRate(utilization)` → returns per-second borrow rate using two-slope model
-- `getSupplyRate(utilization, borrowRate, reserveFactor)` → returns per-second supply rate
-- Configurable parameters: baseRate, slope1, slope2, optimalUtilization, reserveFactor
+Implement a complete interest rate model contract that covers all the math from this section:
 
-```solidity
-// Example: Two-slope interest rate model
-contract KinkedInterestRate {
-    uint256 public immutable baseRatePerSecond;
-    uint256 public immutable slope1;
-    uint256 public immutable slope2;
-    uint256 public immutable optimalUtilization; // e.g., 0.8e18 (80%)
-    uint256 public immutable reserveFactor; // e.g., 0.15e18 (15%)
+1. **RAY multiplication** (`rayMul`) — the bread-and-butter operation of all lending protocol math. A reference `rayDiv` implementation is provided for you to study.
+2. **Utilization rate** (`getUtilization`) — the x-axis of the kinked curve
+3. **Kinked borrow rate** (`getBorrowRate`) — the two-slope curve with the gentle slope below optimal and the steep slope above
+4. **Supply rate** (`getSupplyRate`) — derived from borrow rate, utilization, and reserve factor
+5. **Compound interest approximation** (`calculateCompoundInterest`) — the 3-term Taylor expansion used by Aave V3's MathUtils
 
-    function getUtilization(uint256 totalSupply, uint256 totalBorrow) public pure returns (uint256) {
-        if (totalSupply == 0) return 0;
-        return (totalBorrow * 1e18) / totalSupply;
-    }
-
-    function getBorrowRate(uint256 utilization) public view returns (uint256) {
-        if (utilization <= optimalUtilization) {
-            // Below kink: linear slope from base to base + slope1
-            return baseRatePerSecond + (utilization * slope1) / optimalUtilization;
-        } else {
-            // Above kink: steep slope2
-            uint256 excessUtilization = utilization - optimalUtilization;
-            uint256 excessRange = 1e18 - optimalUtilization;
-            return baseRatePerSecond + slope1 + (excessUtilization * slope2) / excessRange;
-        }
-    }
-
-    function getSupplyRate(uint256 utilization, uint256 borrowRate) public view returns (uint256) {
-        // SupplyRate = BorrowRate × U × (1 - ReserveFactor)
-        return (borrowRate * utilization * (1e18 - reserveFactor)) / 1e36;
-    }
-}
-```
+All rates use RAY precision (27 decimals), matching Aave V3's internal math. The exercise scaffold has detailed hints and worked examples in the TODO comments.
 
 > **Common pitfall:** Integer overflow when multiplying rates. Always ensure intermediate calculations don't overflow. Use smaller precision (e.g., per-second rates in RAY = 27 decimals) rather than storing APY directly.
 
-**Exercise 2:** Implement an `InterestAccumulator.sol` that:
-- Maintains a global `supplyIndex` and `borrowIndex`
-- Exposes `accrueInterest()` which updates both indexes based on elapsed time and current rates
-- Exposes `balanceOf(user)` which returns the user's scaled balance using the current index
-- Test: deposit at t=0, warp forward 1 year, verify the balance matches expected APY
+**🎯 Goal:** Internalize RAY arithmetic and the kinked curve math before moving to the full lending pool. This is pure math — no tokens, no protocol state.
 
 ---
 
@@ -777,7 +744,7 @@ The Aave V3 codebase is ~15,000+ lines across many libraries. Here's how to appr
 
 5. **Then read ValidationLogic.sol** — This is where all the safety checks live: health factor validation, borrow cap checks, E-Mode constraints. Read `validateBorrow()` to understand every condition that must pass before a borrow succeeds.
 
-**Don't get stuck on:** The configuration bitmap encoding initially. It's clever bit manipulation (Part 1 Section 1 territory) but you can treat `getters` as black boxes on first pass. Focus on the flow: entry point → logic library → state update → token operations.
+**Don't get stuck on:** The configuration bitmap encoding initially. It's clever bit manipulation (Part 1 Module 1 territory) but you can treat `getters` as black boxes on first pass. Focus on the flow: entry point → logic library → state update → token operations.
 
 ---
 
@@ -790,42 +757,25 @@ The `onBehalfOf` parameter enables [credit delegation](https://aave.com/docs/aav
 ---
 
 <a id="fork-interact"></a>
-### 🛠️ Exercise: Fork and Interact
+### 🛠️ Exercise 2: Simplified Lending Pool
 
 **Workspace:** [`workspace/src/part2/module4/exercise2-lending-pool/`](../workspace/src/part2/module4/exercise2-lending-pool/) — starter file: [`LendingPool.sol`](../workspace/src/part2/module4/exercise2-lending-pool/LendingPool.sol), tests: [`LendingPool.t.sol`](../workspace/test/part2/module4/exercise2-lending-pool/LendingPool.t.sol)
 
-**Exercise 1:** Fork Ethereum mainnet. Using Foundry's `vm.prank()`, simulate a full supply → borrow → repay → withdraw cycle on Aave V3. Verify aToken and debt token balances at each step.
+Build a minimal but correct lending pool that puts the Aave V3 concepts into practice. The scaffold provides the state layout (Reserve struct, user positions, collateral configs) and RAY math helpers. You implement the core protocol logic:
 
-```solidity
-function testAaveSupplyBorrowCycle() public {
-    vm.createSelectFork(mainnetRpcUrl);
+1. **`supply(amount)`** — transfer tokens in, compute scaled deposit using the liquidity index
+2. **`withdraw(amount)`** — convert scaled balance back, validate sufficient funds
+3. **`depositCollateral(token, amount)`** — post collateral (no interest earned, like Compound V3)
+4. **`borrow(amount)`** — record scaled debt, enforce health factor >= 1.0
+5. **`repay(amount)`** — burn scaled debt, cap at actual debt to prevent overpayment
+6. **`accrueInterest()`** — update both indexes using linear interest (simplified from Aave's compound)
+7. **`getHealthFactor(user)`** — iterate collateral tokens, fetch oracle prices, compute weighted collateral vs debt
 
-    IPool pool = IPool(0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2); // Aave V3 Pool
-    IERC20 usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
-    IERC20 aUSDC = IERC20(0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c);
+The exercise tests cover: happy path supply/withdraw/borrow/repay, interest accrual over time, health factor computation, over-borrow reverts, and multi-supplier independence.
 
-    address user = makeAddr("user");
-    uint256 supplyAmount = 10_000e6; // 10k USDC
+**🎯 Goal:** Understand how index-based accounting works end-to-end in a lending pool, from accrual to health factor enforcement.
 
-    // Setup: give user USDC
-    deal(address(usdc), user, supplyAmount);
-
-    vm.startPrank(user);
-    usdc.approve(address(pool), supplyAmount);
-
-    // Supply
-    pool.supply(address(usdc), supplyAmount, user, 0);
-    assertEq(aUSDC.balanceOf(user), supplyAmount); // aUSDC minted 1:1 initially
-
-    // Warp forward, verify interest accrued
-    vm.warp(block.timestamp + 365 days);
-    assertGt(aUSDC.balanceOf(user), supplyAmount); // Balance increased
-
-    vm.stopPrank();
-}
-```
-
-**Exercise 2:** Inspect the [`ReserveData`](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/types/DataTypes.sol#L49) struct for USDC on the forked state. Extract: liquidityIndex, variableBorrowIndex, currentLiquidityRate, currentVariableBorrowRate, configuration (decode the bitmap to get LTV, liquidation threshold, etc.). This builds familiarity with how Aave stores state.
+> **Bonus (no workspace):** Fork Ethereum mainnet and run a full supply → borrow → repay → withdraw cycle on Aave V3 directly, using `vm.prank()` and `deal()`. Compare the live behavior with your simplified implementation.
 
 ---
 
@@ -1018,17 +968,23 @@ function setActive(uint256 config, bool active) internal pure returns (uint256) 
 
 **Why this matters for DeFi development:** This bitmap pattern appears everywhere — Uniswap V3/V4 tick bitmaps, Compound V3's `assetsIn` field, governance proposal states. Once you understand the mask-shift-or pattern, you can read any packed configuration in production code.
 
-> **Connection:** Part 1 Section 1 covers bit manipulation fundamentals. This is the production application of those patterns.
+> **Connection:** Part 1 Module 1 covers bit manipulation fundamentals. This is the production application of those patterns.
 
 ---
 
-### 🛠️ Exercise
+### 🛠️ Exercise 3: Configuration Bitmap
 
 **Workspace:** [`workspace/src/part2/module4/exercise3-config-bitmap/`](../workspace/src/part2/module4/exercise3-config-bitmap/) — starter file: [`ConfigBitmap.sol`](../workspace/src/part2/module4/exercise3-config-bitmap/ConfigBitmap.sol), tests: [`ConfigBitmap.t.sol`](../workspace/test/part2/module4/exercise3-config-bitmap/ConfigBitmap.t.sol)
 
-**Exercise 1:** On a mainnet fork, activate E-Mode for a user position (stablecoin category). Compare the borrowing power before and after. Verify the LTV and liquidation threshold change.
+Implement an Aave-style bitmap library that packs multiple risk parameters into a single `uint256`. The exercise provides reference implementations for `setLiquidationBonus`/`getLiquidationBonus` and `setDecimals`/`getDecimals` -- study the pattern, then apply it to:
 
-**Exercise 2:** Read the [PoolConfigurator.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/pool/PoolConfigurator.sol) contract. Trace how `configureReserveAsCollateral()` encodes LTV, liquidation threshold, and liquidation bonus into the bitmap. Write a helper contract that decodes a raw bitmap into a human-readable struct.
+1. **`setLtv`/`getLtv`** — bits 0-15 (simplest: no offset needed)
+2. **`setLiquidationThreshold`/`getLiquidationThreshold`** — bits 16-31
+3. **`setFlag`/`getFlag`** — generalized single-bit setter/getter for boolean flags (active, frozen, borrow enabled, etc.)
+
+The tests include field independence checks (setting LTV must not corrupt the threshold) and a full roundtrip test with all fields set simultaneously -- matching real Aave V3 USDC and WETH configurations.
+
+**🎯 Goal:** Master the mask-shift-or pattern used throughout production DeFi (Aave bitmaps, Uniswap tick bitmaps, Compound V3 `assetsIn`).
 
 ---
 
@@ -1409,26 +1365,20 @@ After absorption, the protocol holds seized collateral. Anyone can buy this coll
 
 ---
 
-### 🛠️ Exercise
+### 🛠️ Exercise 4: Flash Loan Liquidation Bot
 
 **Workspace:** [`workspace/src/part2/module4/exercise4-flash-liquidator/`](../workspace/src/part2/module4/exercise4-flash-liquidator/) — starter file: [`FlashLiquidator.sol`](../workspace/src/part2/module4/exercise4-flash-liquidator/FlashLiquidator.sol), tests: [`FlashLiquidator.t.sol`](../workspace/test/part2/module4/exercise4-flash-liquidator/FlashLiquidator.t.sol)
 
-**Exercise 1: Build a liquidation scenario.** On an Aave V3 mainnet fork:
-- Supply ETH as collateral (use `vm.deal` and `vm.prank`)
-- Borrow USDC near the maximum LTV
-- Use `vm.mockCall` to simulate a Chainlink price drop that pushes HF below 1
-- Execute the liquidation call from a separate address
-- Verify: debt decreased, collateral seized (including bonus), HF restored above 1
+Build a zero-capital liquidation bot using ERC-3156 flash loans. The scaffold provides all the mock infrastructure (flash lender, lending pool, DEX) and the contract skeleton with interfaces. You wire together the composability flow:
 
-**Exercise 2: Flash loan liquidation.** Build a contract that:
-- Takes a flash loan from Aave for the debt asset
-- Uses it to liquidate an underwater position
-- Sells the received collateral on Uniswap (or swap for the debt asset)
-- Repays the flash loan
-- Keeps the profit
-- Test end-to-end on the mainnet fork
+1. **`liquidate(borrower, debtToken, debtAmount, collateralToken)`** — entry point that encodes parameters and requests a flash loan
+2. **`onFlashLoan(...)`** — ERC-3156 callback that performs the liquidation with borrowed funds. Two critical security checks are required (caller validation and initiator validation).
+3. **`_sellCollateral(...)`** — approve and swap seized collateral on the DEX
+4. **`_verifyProfit(...)`** — ensure the liquidation was profitable after accounting for flash loan fees
 
-**Exercise 3: Compare liquidation economics.** Calculate the profit/loss for a liquidator who repays $10,000 of USDC debt against ETH collateral with a 5% bonus, given a flash loan fee of 0.09% and a Uniswap swap fee of 0.3%. What's the net profit? At what bonus percentage does liquidation become unprofitable?
+The tests cover: profitable liquidation end-to-end, exact profit calculation (5% bonus minus 0.09% flash fee), close factor mechanics (50% vs 100%), unprofitable liquidation revert, callback security (wrong caller/initiator), and profit withdrawal.
+
+**🎯 Goal:** Understand how MEV bots and liquidation bots compose flash loans, lending pools, and DEXes in a single atomic transaction.
 
 ---
 
@@ -1834,14 +1784,14 @@ Study these codebases in order — each builds on the previous one's patterns:
 
 | Source | Concept | How It Connects |
 |--------|---------|-----------------|
-| Part 1 Section 1 | Bit manipulation / UDVTs | Aave's `ReserveConfigurationMap` packs all risk params into a single `uint256` bitmap — production example of Section 1 patterns |
-| Part 1 Section 1 | `mulDiv` / fixed-point math | RAY (27-decimal) arithmetic for index calculations; `rayMul`/`rayDiv` used in every balance computation |
-| Part 1 Section 1 | Custom errors | Aave V3 uses custom errors for revert reasons; Compound V3 uses custom errors throughout Comet |
-| Part 1 Section 2 | Transient storage | Reentrancy guards in lending pools; V4-era lending integrations can use TSTORE for flash accounting |
-| Part 1 Section 3 | Permit / Permit2 | Gasless approvals for supply/repay operations; Compound V3 supports EIP-2612 permit natively |
-| Part 1 Section 5 | Fork testing / `vm.mockCall` | Essential for testing against live Aave/Compound state and simulating oracle price movements |
-| Part 1 Section 5 | Invariant / fuzz testing | Property-based testing for lending invariants: total debt ≤ total supply, HF checks, index monotonicity |
-| Part 1 Section 6 | Proxy patterns | Both Aave V3 (Pool proxy + logic libraries) and Compound V3 (Comet proxy + CometExt fallback) use proxy architecture |
+| Part 1 Module 1 | Bit manipulation / UDVTs | Aave's `ReserveConfigurationMap` packs all risk params into a single `uint256` bitmap — production example of Module 1 patterns |
+| Part 1 Module 1 | `mulDiv` / fixed-point math | RAY (27-decimal) arithmetic for index calculations; `rayMul`/`rayDiv` used in every balance computation |
+| Part 1 Module 1 | Custom errors | Aave V3 uses custom errors for revert reasons; Compound V3 uses custom errors throughout Comet |
+| Part 1 Module 2 | Transient storage | Reentrancy guards in lending pools; V4-era lending integrations can use TSTORE for flash accounting |
+| Part 1 Module 3 | Permit / Permit2 | Gasless approvals for supply/repay operations; Compound V3 supports EIP-2612 permit natively |
+| Part 1 Module 5 | Fork testing / `vm.mockCall` | Essential for testing against live Aave/Compound state and simulating oracle price movements |
+| Part 1 Module 5 | Invariant / fuzz testing | Property-based testing for lending invariants: total debt ≤ total supply, HF checks, index monotonicity |
+| Part 1 Module 6 | Proxy patterns | Both Aave V3 (Pool proxy + logic libraries) and Compound V3 (Comet proxy + CometExt fallback) use proxy architecture |
 | Module 1 | SafeERC20 / token decimals | Safe transfers for supply/withdraw/liquidate; decimal normalization when computing collateral values across different tokens |
 | Module 2 | Constant product / mechanism design | AMMs use `x × y = k` to set prices; lending uses kinked curves to set rates — both replace human market-makers with math |
 | Module 2 | DEX liquidity for liquidation | Liquidators sell seized collateral on AMMs; pool depth determines liquidation feasibility for illiquid assets |
@@ -1859,8 +1809,8 @@ Study these codebases in order — each builds on the previous one's patterns:
 | Module 8 (Security) | Economic attack modeling | Reserve factor determines treasury growth; economic exploits target the gap between reserves and potential bad debt |
 | Module 8 (Security) | Invariant testing targets | Lending pool invariants (solvency, HF consistency, index monotonicity) are prime targets for formal verification |
 | Module 9 (Integration) | Full-stack lending integration | Capstone combines lending + AMMs + oracles + flash loans in a production-grade protocol |
-| Part 3 Module 1 (Governance) | Governance attack surface | Credit delegation and risk parameter changes create governance attack vectors; lending param manipulation |
-| Part 3 Module 5 (Cross-chain) | Cross-chain lending | L2 ↔ L1 collateral, shared liquidity across chains — extending lending architecture cross-chain |
+| Part 3 Module 8 (Governance) | Governance attack surface | Credit delegation and risk parameter changes create governance attack vectors; lending param manipulation |
+| Part 3 Module 6 (Cross-chain) | Cross-chain lending | L2 ↔ L1 collateral, shared liquidity across chains — extending lending architecture cross-chain |
 
 ---
 
@@ -1926,7 +1876,7 @@ Study these codebases in order — each builds on the previous one's patterns:
 ## 🎯 Practice Challenges
 
 - **[Damn Vulnerable DeFi #2 "Naive Receiver"](https://www.damnvulnerabledefi.xyz/)** — A flash loan receiver that can be drained by anyone initiating loans on its behalf. Tests your understanding of flash loan receiver security (directly relevant to Module 5).
-- **[Ethernaut #16 "Preservation"](https://ethernaut.openzeppelin.com/level/0x97E982a15FbB1C28F6B8ee971BEc15C78b3d263F)** — Delegatecall with storage collision. Relevant to understanding how proxy patterns (Part 1 Section 6) can go wrong in lending protocol upgrades.
+- **[Ethernaut #16 "Preservation"](https://ethernaut.openzeppelin.com/level/0x97E982a15FbB1C28F6B8ee971BEc15C78b3d263F)** — Delegatecall with storage collision. Relevant to understanding how proxy patterns (Part 1 Module 6) can go wrong in lending protocol upgrades.
 
 ---
 
