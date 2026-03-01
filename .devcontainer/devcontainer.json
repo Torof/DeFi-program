@@ -1,0 +1,25 @@
+{
+  "name": "DeFi Protocol Engineering",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+
+  "postCreateCommand": ".devcontainer/setup.sh",
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.fontSize": 14,
+        "editor.fontFamily": "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+        "editor.formatOnSave": true,
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "JuanBlanco.solidity",
+        "NomicFoundation.hardhat-solidity"
+      ]
+    }
+  },
+
+  "forwardPorts": [3000],
+
+  "remoteUser": "vscode"
+}
