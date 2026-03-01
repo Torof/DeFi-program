@@ -286,7 +286,7 @@ contract ShareMathTest is Test {
                 depositAmount,
                 "Roundtrip invariant holds at production scale"
             );
-        } catch {
+        } catch Panic(uint256) {
             fail("Reverse calculation overflowed at production scale -- check what ShareMath.sol already imports");
         }
     }
@@ -301,7 +301,7 @@ contract ShareMathTest is Test {
             Shares.wrap(largeAmount)
         ) returns (Shares shares) {
             assertEq(Shares.unwrap(shares), largeAmount, "Equal ratio should return input amount");
-        } catch {
+        } catch Panic(uint256) {
             fail("toShares overflowed on large values -- check what ShareMath.sol already imports");
         }
 
@@ -311,7 +311,7 @@ contract ShareMathTest is Test {
             Shares.wrap(largeAmount)
         ) returns (Assets assets) {
             assertEq(Assets.unwrap(assets), largeAmount, "Equal ratio should return input amount");
-        } catch {
+        } catch Panic(uint256) {
             fail("toAssets overflowed on large values -- check what ShareMath.sol already imports");
         }
     }
