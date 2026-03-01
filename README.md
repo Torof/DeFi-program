@@ -61,6 +61,22 @@ DeFi verticals (liquid staking, perpetuals, yield tokenization), trading infrast
 | 8 | Governance & DAOs | ~3 days | ⬜ |
 | 9 | Capstone: Perpetual Exchange | ~5-7 days | ⬜ |
 
+### Part 4 — EVM Mastery: Yul & Assembly (~6-7 weeks)
+
+Go from reading assembly snippets to writing production-grade Yul. Understand the machine underneath every DeFi protocol — the single biggest differentiator for senior roles.
+
+| # | Module | Duration | Status |
+|---|--------|----------|--------|
+| 1 | EVM Fundamentals | ~3 days | ⬜ |
+| 2 | Memory & Calldata | ~3 days | ⬜ |
+| 3 | Storage Deep Dive | ~3 days | ⬜ |
+| 4 | Control Flow & Functions | ~3 days | ⬜ |
+| 5 | External Calls | ~3 days | ⬜ |
+| 6 | Gas Optimization Patterns | ~3 days | ⬜ |
+| 7 | Reading Production Assembly | ~3 days | ⬜ |
+| 8 | Pure Yul Contracts | ~4 days | ⬜ |
+| 9 | Capstone: DeFi Primitive in Yul | ~5-7 days | ⬜ |
+
 ## Learning Approach
 
 Each module typically includes:
@@ -114,17 +130,28 @@ defi-auto-program/
 │   ├── 7-vaults-yield.md             # ERC-4626, yield aggregation
 │   ├── 8-defi-security.md            # Reentrancy, oracle manipulation
 │   └── 9-integration-capstone.md     # Decentralized stablecoin capstone
-└── part3/                            # Curriculum docs for Part 3
-    ├── README.md                     # Overview, module table, checklist
-    ├── 1-liquid-staking.md           # Lido, Rocket Pool, EigenLayer
-    ├── 2-perpetuals.md               # GMX, Synthetix, dYdX
-    ├── 3-yield-tokenization.md       # Pendle
-    ├── 4-dex-aggregation.md          # 1inch, UniswapX, CoW Protocol
-    ├── 5-mev.md                      # Flashbots, MEV-Boost, MEV-Share
-    ├── 6-cross-chain.md              # LayerZero, CCIP, Wormhole
-    ├── 7-l2-defi.md                  # Arbitrum, Base, Optimism
-    ├── 8-governance.md               # OZ Governor, Curve, Velodrome
-    └── 9-capstone.md                 # Perpetual exchange capstone
+├── part3/                            # Curriculum docs for Part 3
+│   ├── README.md                     # Overview, module table, checklist
+│   ├── 1-liquid-staking.md           # Lido, Rocket Pool, EigenLayer
+│   ├── 2-perpetuals.md               # GMX, Synthetix, dYdX
+│   ├── 3-yield-tokenization.md       # Pendle
+│   ├── 4-dex-aggregation.md          # 1inch, UniswapX, CoW Protocol
+│   ├── 5-mev.md                      # Flashbots, MEV-Boost, MEV-Share
+│   ├── 6-cross-chain.md              # LayerZero, CCIP, Wormhole
+│   ├── 7-l2-defi.md                  # Arbitrum, Base, Optimism
+│   ├── 8-governance.md               # OZ Governor, Curve, Velodrome
+│   └── 9-capstone.md                 # Perpetual exchange capstone
+└── part4/                            # Curriculum docs for Part 4
+    ├── README.md                     # Overview, learning arc
+    ├── 1-evm-fundamentals.md         # Stack machine, opcodes, gas model
+    ├── 2-memory-calldata.md          # mload/mstore, free memory pointer
+    ├── 3-storage.md                  # sload/sstore, slot computation
+    ├── 4-control-flow.md             # if/switch/for, function dispatch
+    ├── 5-external-calls.md           # call/staticcall/delegatecall
+    ├── 6-gas-optimization.md         # Solady patterns, bitmap tricks
+    ├── 7-production-assembly.md      # Reading Uniswap, OZ, Solady
+    ├── 8-pure-yul.md                 # Object notation, full Yul contracts
+    └── 9-capstone.md                 # DeFi primitive in Yul
 ```
 
 Each module file contains the full content for that topic.

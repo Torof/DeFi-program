@@ -44,3 +44,18 @@
 - [Module 7: L2-Specific DeFi](part3/7-l2-defi.md)
 - [Module 8: Governance & DAOs](part3/8-governance.md)
 - [Module 9: Capstone — Perpetual Exchange](part3/9-capstone.md)
+
+---
+
+# Part 4 — EVM Mastery: Yul & Assembly
+
+- [Overview](part4/README.md)
+- [Module 1: EVM Fundamentals](part4/1-evm-fundamentals.md)
+- [Module 2: Memory & Calldata](part4/2-memory-calldata.md)
+- [Module 3: Storage Deep Dive](part4/3-storage.md)
+- [Module 4: Control Flow & Functions](part4/4-control-flow.md)
+- [Module 5: External Calls](part4/5-external-calls.md)
+- [Module 6: Gas Optimization Patterns](part4/6-gas-optimization.md)
+- [Module 7: Reading Production Assembly](part4/7-production-assembly.md)
+- [Module 8: Pure Yul Contracts](part4/8-pure-yul.md)
+- [Module 9: Capstone — DeFi Primitive in Yul](part4/9-capstone.md)
