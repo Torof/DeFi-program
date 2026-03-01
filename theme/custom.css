@@ -516,6 +516,11 @@
   border-left-color: #ffb454;
 }
 
+/* Hide sub-sections (h3+) in sidebar — keep Parts, Modules, and h2 headings only */
+.sidebar .chapter li li ol {
+  display: none;
+}
+
 /* --- Navigation footer --- */
 .nav-chapters {
   font-family: var(--font-body);
