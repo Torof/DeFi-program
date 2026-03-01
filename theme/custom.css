@@ -1,0 +1,165 @@
+/* =============================================================
+   DeFi Protocol Engineering — Custom mdBook Theme
+   ============================================================= */
+
+/* --- Typography & Base --- */
+:root {
+  --content-max-width: 900px;
+}
+
+.content main {
+  font-size: 1.08rem;
+  line-height: 1.8;
+  max-width: var(--content-max-width);
+}
+
+/* Headings */
+.content main h1 {
+  font-size: 2rem;
+  border-bottom: 2px solid var(--sidebar-bg);
+  padding-bottom: 0.4em;
+  margin-top: 1.5em;
+}
+
+.content main h2 {
+  font-size: 1.55rem;
+  margin-top: 2em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--table-border-color);
+}
+
+.content main h3 {
+  font-size: 1.3rem;
+  margin-top: 1.6em;
+}
+
+.content main h4 {
+  font-size: 1.1rem;
+  margin-top: 1.4em;
+}
+
+/* Paragraphs — breathing room */
+.content main p {
+  margin-bottom: 1em;
+}
+
+/* --- Code blocks --- */
+.content main pre {
+  border-radius: 6px;
+  padding: 1em 1.2em;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  border: 1px solid var(--table-border-color);
+}
+
+.content main code {
+  font-size: 0.9em;
+  padding: 0.15em 0.35em;
+  border-radius: 3px;
+}
+
+/* --- Tables --- */
+.content main table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2em 0;
+  font-size: 0.95rem;
+}
+
+.content main table th {
+  background: var(--table-header-bg);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.6em 0.8em;
+  border-bottom: 2px solid var(--table-border-color);
+}
+
+.content main table td {
+  padding: 0.5em 0.8em;
+  border-bottom: 1px solid var(--table-border-color);
+}
+
+.content main table tr:hover {
+  background: rgba(128, 128, 128, 0.05);
+}
+
+/* --- Blockquotes (general) --- */
+.content main blockquote {
+  border-left: 4px solid #4a9eff;
+  background: rgba(74, 158, 255, 0.06);
+  padding: 0.8em 1.2em;
+  margin: 1em 0;
+  border-radius: 0 6px 6px 0;
+}
+
+/* --- Callout Boxes via Emoji Patterns --- */
+
+/* Quick Try — blue callout */
+.content main p:has(> strong:first-child) {
+  /* Base for all bold-start paragraphs */
+}
+
+/* Style paragraphs that start with specific emoji patterns.
+   These use :has() which works in modern browsers.
+   Fallback: they just render as normal paragraphs. */
+
+/* 💻 Quick Try — bright blue */
+.content main h4:has(a[href="#quick-try"]),
+.content main p[id*="quick-try"] {
+  /* anchor-based targeting if available */
+}
+
+/* --- Emoji-prefixed headings as section markers --- */
+
+/* 🔍 Deep Dive headings — purple accent */
+h4:where(:has(~ p, ~ pre)) {
+  /* fallback - can't easily target by text content in CSS alone */
+}
+
+/* --- Styled sections via adjacent sibling patterns --- */
+/* We'll use a JS-based approach for the callout detection instead */
+
+/* --- Horizontal rules as section dividers --- */
+.content main hr {
+  border: none;
+  border-top: 2px solid var(--table-border-color);
+  margin: 2.5em 0;
+}
+
+/* --- Checklist styling --- */
+.content main li input[type="checkbox"] {
+  margin-right: 0.5em;
+  transform: scale(1.15);
+}
+
+/* --- Navigation links at bottom --- */
+.content main p:last-of-type strong:first-child {
+  /* Navigation Previous/Next links */
+}
+
+/* --- Light theme adjustments --- */
+.light .content main blockquote {
+  background: rgba(74, 158, 255, 0.06);
+  border-left-color: #3b82f6;
+}
+
+/* --- Dark themes (Navy, Ayu, Coal) adjustments --- */
+.navy .content main blockquote,
+.coal .content main blockquote,
+.ayu .content main blockquote {
+  background: rgba(74, 158, 255, 0.08);
+  border-left-color: #60a5fa;
+}
+
+/* --- Sidebar tweaks --- */
+.sidebar .sidebar-scrollbox {
+  font-size: 0.9rem;
+}
+
+/* Part separators in sidebar */
+.sidebar .chapter li.part-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-top: 1.2em;
+  color: var(--sidebar-active);
+}

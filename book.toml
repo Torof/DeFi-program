@@ -6,11 +6,11 @@ src = "docs"
 
 [build]
 build-dir = "book"
-# Only process files referenced in SUMMARY.md
 create-missing = false
 
 [output.html]
-# Enable search
 search.enable = true
-# Code highlighting for Solidity
-additional-css = []
+default-theme = "navy"
+preferred-dark-theme = "navy"
+additional-css = ["theme/custom.css"]
+additional-js = ["theme/solidity-highlight.js", "theme/callouts.js"]
