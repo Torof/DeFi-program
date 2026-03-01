@@ -1,6 +1,6 @@
 # DeFi Protocol Engineering — Workspace
 
-Unified Foundry project for all curriculum exercises (Part 1, Part 2, Part 3).
+Unified Foundry project for all curriculum exercises (Part 1, Part 2, Part 3, Part 4).
 
 ## Structure
 
@@ -210,3 +210,61 @@ forge test --match-contract TransientGuardTest -vvv
 | Vault Invariant Testing | `src/part2/module8/exercise3-invariant/VaultHandler.sol` | `test/part2/module8/exercise3-invariant/VaultInvariant.t.sol` | Write tests that find bugs, handler + invariant pattern |
 | Precision Loss | `src/part2/module8/exercise4-precision-loss/RoundingExploit.sol` | `test/part2/module8/exercise4-precision-loss/PrecisionLoss.t.sol` | Unscaled accumulator truncation, Synthetix scaled pattern |
 | Access Control | `src/part2/module8/exercise5-access-control/AccessControlAttack.sol` | `test/part2/module8/exercise5-access-control/AccessControl.t.sol` | Re-initialization exploit, missing auth on critical functions |
+
+### Part 3: Modern DeFi Stack & Advanced Verticals
+
+#### Module 1: Liquid Staking & Restaking
+
+| Exercise | Scaffold | Tests | Concepts |
+|----------|----------|-------|----------|
+| WstETH Oracle | `src/part3/module1/exercise1-lst-oracle/WstETHOracle.sol` | `test/part3/module1/exercise1-lst-oracle/WstETHOracle.t.sol` | LST price derivation, exchange rate oracle |
+| LST Lending Pool | `src/part3/module1/exercise2-lst-lending-pool/LSTLendingPool.sol` | `test/part3/module1/exercise2-lst-lending-pool/LSTLendingPool.t.sol` | LST-aware collateral, rebasing token handling |
+
+#### Module 2: Perpetuals & Derivatives
+
+| Exercise | Scaffold | Tests | Concepts |
+|----------|----------|-------|----------|
+| Funding Rate Engine | `src/part3/module2/exercise1-funding-rate-engine/FundingRateEngine.sol` | `test/part3/module2/exercise1-funding-rate-engine/FundingRateEngine.t.sol` | Funding rate calculation, mark/index price |
+| Simple Perp Exchange | `src/part3/module2/exercise2-simple-perp-exchange/SimplePerpExchange.sol` | `test/part3/module2/exercise2-simple-perp-exchange/SimplePerpExchange.t.sol` | Position management, PnL, liquidation |
+
+#### Module 3: Yield Tokenization
+
+| Exercise | Scaffold | Tests | Concepts |
+|----------|----------|-------|----------|
+| Yield Tokenizer | `src/part3/module3/exercise1-yield-tokenizer/YieldTokenizer.sol` | `test/part3/module3/exercise1-yield-tokenizer/YieldTokenizer.t.sol` | PT/YT splitting, yield stripping |
+| PT Rate Oracle | `src/part3/module3/exercise2-pt-rate-oracle/PTRateOracle.sol` | `test/part3/module3/exercise2-pt-rate-oracle/PTRateOracle.t.sol` | Implied rate, time-to-maturity pricing |
+
+#### Module 4: DEX Aggregation & Intents
+
+| Exercise | Scaffold | Tests | Concepts |
+|----------|----------|-------|----------|
+| Split Router | `src/part3/module4/exercise1-split-router/SplitRouter.sol` | `test/part3/module4/exercise1-split-router/SplitRouter.t.sol` | Multi-path routing, split execution |
+| Intent Settlement | `src/part3/module4/exercise2-intent-settlement/IntentSettlement.sol` | `test/part3/module4/exercise2-intent-settlement/IntentSettlement.t.sol` | Intent-based trading, solver pattern |
+
+#### Module 5: MEV Deep Dive
+
+| Exercise | Scaffold | Tests | Concepts |
+|----------|----------|-------|----------|
+| Sandwich Simulation | `src/part3/module5/exercise1-sandwich-simulation/SandwichBot.sol` | `test/part3/module5/exercise1-sandwich-simulation/SandwichSim.t.sol` | Sandwich attack mechanics, profit extraction |
+| MEV Fee Hook | `src/part3/module5/exercise2-mev-fee-hook/MEVFeeHook.sol` | `test/part3/module5/exercise2-mev-fee-hook/MEVFeeHook.t.sol` | MEV-aware fee adjustment, hook-based defense |
+
+#### Module 6: Cross-Chain & Bridges
+
+| Exercise | Scaffold | Tests | Concepts |
+|----------|----------|-------|----------|
+| Cross-Chain Handler | `src/part3/module6/exercise1-cross-chain-handler/CrossChainHandler.sol` | `test/part3/module6/exercise1-cross-chain-handler/CrossChainHandler.t.sol` | Message passing, cross-chain execution |
+| Rate-Limited Token | `src/part3/module6/exercise2-rate-limited-token/RateLimitedToken.sol` | `test/part3/module6/exercise2-rate-limited-token/RateLimitedToken.t.sol` | Bridge security, rate limiting, token bucket |
+
+#### Module 7: L2-Specific DeFi
+
+| Exercise | Scaffold | Tests | Concepts |
+|----------|----------|-------|----------|
+| L2 Oracle Consumer | `src/part3/module7/exercise1-l2-oracle/L2OracleConsumer.sol` | `test/part3/module7/exercise1-l2-oracle/L2Oracle.t.sol` | L2 sequencer uptime, grace period handling |
+| L2 Gas Estimator | `src/part3/module7/exercise2-l2-gas-estimator/L2GasEstimator.sol` | `test/part3/module7/exercise2-l2-gas-estimator/L2GasEstimator.t.sol` | L1 data fee estimation, gas optimization |
+
+#### Module 8: Governance & DAOs
+
+| Exercise | Scaffold | Tests | Concepts |
+|----------|----------|-------|----------|
+| Governor System | `src/part3/module8/exercise1-governor/GovernorSystem.sol` | `test/part3/module8/exercise1-governor/GovernorSystem.t.sol` | OZ Governor, proposal lifecycle, voting |
+| Vote Escrow | `src/part3/module8/exercise2-vote-escrow/SimpleVoteEscrow.sol` | `test/part3/module8/exercise2-vote-escrow/SimpleVoteEscrow.t.sol` | ve-token locking, voting power decay |

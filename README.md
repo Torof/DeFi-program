@@ -13,7 +13,7 @@ The approach throughout is **read production code, then rebuild**. Every module 
 
 ## Structure
 
-The curriculum is split into three parts, progressing from foundational mechanics to advanced protocol design.
+The curriculum is split into four parts, progressing from foundational mechanics to advanced protocol design and EVM mastery.
 
 ### Part 1 — Solidity, EVM & Modern Tooling (~2.5-3 weeks)
 
@@ -181,19 +181,21 @@ workspace/                        # Unified Foundry project
 │   │   ├── module7/              # ERC-4626 vaults, yield strategies
 │   │   ├── module8/              # Security exercises, invariant tests
 │   │   └── module9/              # Decentralized stablecoin capstone
-│   └── part3/                    # Modern DeFi Stack
-│       ├── module1/              # LST oracle, LST lending pool
-│       ├── module2/              # Funding rate engine, perp exchange
-│       ├── module3/              # Yield tokenizer, PT rate oracle
-│       ├── module4/              # Split router, intent settlement
-│       ├── module5/              # Sandwich simulation, MEV fee hook
-│       ├── module6/              # Cross-chain handler, rate-limited token
-│       ├── module7/              # L2 oracle consumer, gas estimator
-│       └── module8/              # Governor system, vote escrow
+│   ├── part3/                    # Modern DeFi Stack
+│   │   ├── module1/              # LST oracle, LST lending pool
+│   │   ├── module2/              # Funding rate engine, perp exchange
+│   │   ├── module3/              # Yield tokenizer, PT rate oracle
+│   │   ├── module4/              # Split router, intent settlement
+│   │   ├── module5/              # Sandwich simulation, MEV fee hook
+│   │   ├── module6/              # Cross-chain handler, rate-limited token
+│   │   ├── module7/              # L2 oracle consumer, gas estimator
+│   │   └── module8/              # Governor system, vote escrow
+│   └── part4/                    # EVM Mastery: Yul & Assembly (TBD)
 └── test/
     ├── part1/
     ├── part2/
-    └── part3/
+    ├── part3/
+    └── part4/
 ```
 
 ## Review Cadence

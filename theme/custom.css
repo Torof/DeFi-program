@@ -517,7 +517,7 @@
 }
 
 /* Hide in-page headings from sidebar — show only Parts and Module names */
-.sidebar .chapter li.chapter-item ol {
+.sidebar .on-this-page {
   display: none;
 }
 

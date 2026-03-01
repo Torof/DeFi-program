@@ -65,3 +65,4 @@ Design and build a simplified perpetual futures exchange from scratch. Portfolio
 ---
 
 **Previous:** [Part 2 — DeFi Foundations](../part2/)
+**Next:** [Part 4 — EVM Mastery: Yul & Assembly](../part4/)
