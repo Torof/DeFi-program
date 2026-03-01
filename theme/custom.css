@@ -516,8 +516,8 @@
   border-left-color: #ffb454;
 }
 
-/* Hide sub-sections (h3+) in sidebar — keep Parts, Modules, and h2 headings only */
-.sidebar .chapter li li ol {
+/* Hide in-page headings from sidebar — show only Parts and Module names */
+.sidebar .chapter li.chapter-item ol {
   display: none;
 }
 
