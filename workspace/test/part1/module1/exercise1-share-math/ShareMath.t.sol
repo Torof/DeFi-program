@@ -223,9 +223,7 @@ contract ShareMathTest is Test {
         uint256 existingAssets,
         uint256 existingShares
     ) public {
-        // Bound to realistic DeFi ranges (18-decimal tokens).
-        // Keeping bounds at 1e18 ensures intermediate multiplications
-        // (assets * totalSupply) never overflow uint256.
+        // Bound to realistic DeFi ranges (18-decimal tokens)
         depositAmount = bound(depositAmount, 1, 1e18);
         existingAssets = bound(existingAssets, 1, 1e18);
         existingShares = bound(existingShares, 1, 1e18);
@@ -255,12 +253,8 @@ contract ShareMathTest is Test {
         );
     }
 
-    /// @dev Extended fuzz with larger bounds (up to uint128.max).
-    /// The forward calculation (toShares) always fits because uint128 * uint128
-    /// fits in uint256. But the REVERSE calculation (toAssets) can overflow
-    /// when shares are large — we skip those cases. This is exactly when you'd
-    /// need mulDiv for safe 512-bit intermediate math.
-    /// See: Module 1 lesson > mulDiv Deep Dive (#checked-arithmetic)
+    /// @dev Extended fuzz with larger bounds — tests the roundtrip invariant
+    /// at production scale where vault TVL and share supply can be substantial.
     function testFuzz_LargeBoundsRoundtrip(
         uint256 depositAmount,
         uint256 existingAssets,
@@ -279,24 +273,46 @@ contract ShareMathTest is Test {
 
         uint256 newAssets = existingAssets + depositAmount;
         uint256 newShares = existingShares + Shares.unwrap(shares);
-        // Skip if addition overflows
+        // Skip if addition overflows (not the concern of this test)
         if (newAssets < existingAssets || newShares < existingShares) return;
 
-        // Skip if reverse calculation (shares * newAssets) would overflow uint256.
-        // THIS is why mulDiv exists: at these scales, the naive (a * b) / c
-        // formula overflows and you need 512-bit intermediate math.
-        if (Shares.unwrap(shares) > 0 && newAssets > type(uint256).max / Shares.unwrap(shares)) return;
-
-        Assets redeemed = toAssets(
+        try calculator.convertToAssets(
             shares,
             Assets.wrap(newAssets),
             Shares.wrap(newShares)
-        );
+        ) returns (Assets redeemed) {
+            assertLe(
+                Assets.unwrap(redeemed),
+                depositAmount,
+                "Roundtrip invariant holds at production scale"
+            );
+        } catch {
+            fail("Reverse calculation overflowed at production scale -- check what ShareMath.sol already imports");
+        }
+    }
 
-        assertLe(
-            Assets.unwrap(redeemed),
-            depositAmount,
-            "Roundtrip invariant holds at uint128 bounds"
-        );
+    function test_HighTVLConversions() public {
+        // High TVL vault with large balances
+        uint256 largeAmount = 1 << 200;
+
+        try calculator.convertToShares(
+            Assets.wrap(largeAmount),
+            Assets.wrap(largeAmount),
+            Shares.wrap(largeAmount)
+        ) returns (Shares shares) {
+            assertEq(Shares.unwrap(shares), largeAmount, "Equal ratio should return input amount");
+        } catch {
+            fail("toShares overflowed on large values -- check what ShareMath.sol already imports");
+        }
+
+        try calculator.convertToAssets(
+            Shares.wrap(largeAmount),
+            Assets.wrap(largeAmount),
+            Shares.wrap(largeAmount)
+        ) returns (Assets assets) {
+            assertEq(Assets.unwrap(assets), largeAmount, "Equal ratio should return input amount");
+        } catch {
+            fail("toAssets overflowed on large values -- check what ShareMath.sol already imports");
+        }
     }
 }

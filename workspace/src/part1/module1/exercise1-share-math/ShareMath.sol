@@ -3,6 +3,8 @@
 // TransientGuard (Exercise 2) uses ^0.8.28 for the `transient` keyword.
 pragma solidity ^0.8.19;
 
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
 // ============================================================================
 // EXERCISE: Vault Share Calculator
 //
@@ -74,8 +76,7 @@ function subShares(Shares a, Shares b) pure returns (Shares) {
 /// @dev Formula: shares = (assets * totalSupply) / totalAssets
 ///      On first deposit (totalSupply == 0), shares = assets (1:1)
 ///      Rounding: round DOWN (favors the vault, not the depositor)
-// See: Module 1 > Checked Arithmetic (#checked-arithmetic) — unchecked usage
-// See: Module 1 > mulDiv Deep Dive — why (a * b) / c needs care at scale
+// See: Module 1 > Checked Arithmetic (#checked-arithmetic)
 function toShares(
     Assets assets,
     Assets totalAssets,
@@ -88,7 +89,6 @@ function toShares(
     //    (shares exist but no assets = broken vault state, division by zero)
     // 4. shares = (assets * totalSupply) / totalAssets
     //    - Solidity integer division already rounds down
-    //    - Use unchecked {} where the math is provably safe
     revert("Not implemented");
 }
 
@@ -98,7 +98,7 @@ function toShares(
 /// @notice Convert a share amount to assets.
 /// @dev Formula: assets = (shares * totalAssets) / totalSupply
 ///      Rounding: round DOWN (favors the vault, not the withdrawer)
-// See: Module 1 > Checked Arithmetic (#checked-arithmetic) — unchecked usage
+// See: Module 1 > Checked Arithmetic (#checked-arithmetic)
 function toAssets(
     Shares shares,
     Assets totalAssets,
@@ -108,7 +108,6 @@ function toAssets(
     // 1. Revert with ZeroShares() if shares is zero
     // 2. Revert with ZeroTotalSupply() if totalSupply is zero
     // 3. assets = (shares * totalAssets) / totalSupply
-    //    - Use unchecked {} where the math is provably safe
     revert("Not implemented");
 }
 
