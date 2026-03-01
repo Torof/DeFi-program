@@ -83,57 +83,98 @@ Deploy, call both. One reverts, one returns 0. Feel the difference.
 
 [Uniswap V4's `FullMath.sol`](https://github.com/Uniswap/v4-core/blob/d153b048868a60c2403a3ef5b2301bb247884d46/src/libraries/FullMath.sol) (originally from V3) is a masterclass in `unchecked` usage. Every operation is proven safe through the structure of 512-bit intermediate calculations. Study the `mulDiv` function to see how production DeFi handles complex fixed-point math safely.
 
-#### 🔍 Deep Dive: Understanding `mulDiv` - Math Explained
+#### 🔍 Deep Dive: Understanding `mulDiv` — Safe Precision Math
 
-**The problem it solves:**
-Computing `(a * b) / c` with full precision when the intermediate result `a * b` would overflow uint256.
+**The problem:**
+In DeFi, the formula `(a * b) / c` appears everywhere — vault shares, AMM pricing, interest rates. But in Solidity, the intermediate product `a * b` can overflow `uint256` before the division brings it back down. This is called **phantom overflow**: the final result fits in 256 bits, but the intermediate step doesn't.
 
-**Example scenario in DeFi:**
+**Concrete example with real numbers:**
+
 ```solidity
-// Calculate shares when depositing to a vault
-shares = (depositAmount * totalShares) / totalAssets
+// A vault with massive TVL
+uint256 depositAmount = 500_000e18;    // 500k tokens (18 decimals)
+uint256 totalShares   = 1_000_000e18;  // 1M shares
+uint256 totalAssets   = 2_000_000e18;  // 2M assets
 
-// If totalShares is huge (10^30) and depositAmount is significant (10^18),
-// the multiplication overflows uint256.max (about 10^77)
+// Expected: (500k * 1M) / 2M = 250k shares ✓ (fits in uint256)
+// But the intermediate product:
+// 500_000e18 * 1_000_000e18 = 5 * 10^41
+// That's fine here. But scale up to real DeFi TVLs...
+
+uint256 totalShares2 = 10**60;  // large share supply after years of compounding
+uint256 totalAssets2 = 10**61;
+
+// Now: 500_000e18 * 10^60 = 5 * 10^83 → EXCEEDS uint256.max (≈ 1.15 * 10^77)
+// The multiplication reverts even though the final answer (5 * 10^22) is tiny
 ```
 
-**The naive approach fails:**
+**The naive approach — broken at scale:**
 ```solidity
-// ❌ This overflows when a * b > type(uint256).max
-function mulDivBroken(uint256 a, uint256 b, uint256 c) pure returns (uint256) {
-    return (a * b) / c;  // BOOM! Reverts on large values
+// ❌ Phantom overflow: a * b exceeds uint256 even though result fits
+function shareBroken(uint256 assets, uint256 supply, uint256 total) pure returns (uint256) {
+    return (assets * supply) / total;  // Reverts on large values
 }
 ```
 
-**FullMath's solution - use 512-bit intermediate math:**
+**The fix — `mulDiv`:**
+```solidity
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+
+// ✅ Safe at any scale — computes in 512-bit intermediate space
+function shareFixed(uint256 assets, uint256 supply, uint256 total) pure returns (uint256) {
+    return Math.mulDiv(assets, supply, total);  // Never overflows
+}
+```
+
+That's it. Same formula, same result, safe at any scale. `mulDiv(a, b, c)` computes `(a * b) / c` using 512-bit intermediate math.
+
+**How it works under the hood:**
 
 ```
-Step 1: Multiply a * b = 512-bit result (stored as two uint256s)
+Step 1: Multiply a * b into a 512-bit result (two uint256 slots)
         ┌─────────────┬─────────────┐
-        │   high      │     low     │  = a * b (512 bits)
+        │    high      │     low     │  ← a * b stored across 512 bits
         └─────────────┴─────────────┘
 
-Step 2: Divide the 512-bit result by c = 256-bit result
+Step 2: Divide the full 512-bit value by c → result fits back in uint256
 ```
 
-**Why this works:**
-- uint256 max ≈ 10^77
-- Two uint256s can hold up to 10^154
-- Nearly impossible to overflow with real DeFi numbers
+- `uint256` max ≈ 10^77
+- Two `uint256` slots hold up to 10^154 — more than enough for any real DeFi scenario
+- The final result is exact (no precision loss from splitting the operation)
 
-**The mathematical guarantee:**
-If `a * b < 2^512` (virtually always true) AND `c != 0`, the result fits in uint256 and is exact.
+**Rounding direction matters:**
+
+In vault math, rounding isn't neutral — it determines who eats the dust:
+
+```solidity
+// Deposits: round DOWN → depositor gets slightly fewer shares (vault keeps dust)
+shares = Math.mulDiv(assets, totalSupply, totalAssets);  // default: round down
+
+// Withdrawals: round UP → withdrawer gets slightly fewer assets (vault keeps dust)
+assets = Math.mulDiv(shares, totalAssets, totalSupply, Math.Rounding.Ceil);
+```
+
+**The rule:** always round against the user, in favor of the vault. This prevents a roundtrip (deposit → withdraw) from being profitable, which would let attackers drain the vault 1 wei at a time.
 
 **When you'll see this in DeFi:**
 - [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) vault share calculations (`convertToShares`, `convertToAssets`)
 - AMM price calculations with large reserves
 - Fixed-point math libraries ([Ray/Wad math in Aave](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/math/WadRayMath.sol), [DSMath in MakerDAO](https://github.com/dapphub/ds-math/blob/master/src/math.sol))
 
+**Available libraries:**
+
+| Library | Style | When to use |
+|---------|-------|-------------|
+| [OpenZeppelin Math.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol) | Clean Solidity | Default choice — readable, audited, supports rounding modes |
+| [Solady FixedPointMathLib](https://github.com/Vectorized/solady/blob/main/src/utils/FixedPointMathLib.sol) | Assembly-optimized | Gas-critical paths (saves ~200 gas vs OZ) |
+| [Uniswap FullMath](https://github.com/Uniswap/v4-core/blob/main/src/libraries/FullMath.sol) | Assembly, unchecked | Uniswap-specific — study for learning, use OZ/Solady in practice |
+
 **How to read the code:**
-1. Start with the [tests in Uniswap's repo](https://github.com/Uniswap/v3-core/blob/main/test/FullMath.spec.ts) - see inputs/outputs, then read the [FullMath implementation](https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/FullMath.sol)
-2. Ignore the bit manipulation at first - focus on "why" not "how"
-3. The core insight: multiply first (in 512 bits), divide second (back to 256)
-4. Production code adds optimizations (assembly) - understand the concept first
+1. Start with [OpenZeppelin's `mulDiv`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol) — clean, well-commented Solidity
+2. The core insight: multiply first (in 512 bits), divide second (back to 256)
+3. Then compare with [Uniswap's FullMath](https://github.com/Uniswap/v4-core/blob/main/src/libraries/FullMath.sol) to see assembly optimizations
+4. Don't get stuck on the bit manipulation — understand the *concept* first, internals later
 
 > 🔍 **Deep dive:** [Consensys Smart Contract Best Practices](https://consensys.github.io/smart-contract-best-practices/) covers integer overflow/underflow security patterns. [Trail of Bits - Building Secure Contracts](https://github.com/crytic/building-secure-contracts) provides development guidelines including arithmetic safety.
 
