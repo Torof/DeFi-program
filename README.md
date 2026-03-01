@@ -1,5 +1,7 @@
 # DeFi Protocol Engineering
 
+[![Read the Book](https://img.shields.io/badge/Read_the_Book-torof.github.io-blue?style=for-the-badge)](https://torof.github.io/DeFi-program/)
+
 A structured, hands-on curriculum for going from experienced Solidity developer to DeFi protocol designer — covering the math, architecture, and security of production DeFi from first principles.
 
 ## About
