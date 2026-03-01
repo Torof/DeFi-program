@@ -45,13 +45,11 @@ using {addShares as +, subShares as -} for Shares global;
 // See: Module 1 > User-Defined Value Types (#user-defined-value-types)
 
 function addAssets(Assets a, Assets b) pure returns (Assets) {
-    // TODO: Add the two underlying uint256 values, return wrapped result
-    revert("Not implemented");
+    return Assets.wrap(Assets.unwrap(a) + Assets.unwrap(b));
 }
 
 function subAssets(Assets a, Assets b) pure returns (Assets) {
-    // TODO: Subtract b from a, return wrapped result
-    revert("Not implemented");
+    return Assets.wrap(Assets.unwrap(a) - Assets.unwrap(b));
 }
 
 // =============================================================
@@ -60,13 +58,11 @@ function subAssets(Assets a, Assets b) pure returns (Assets) {
 // See: Module 1 > User-Defined Value Types (#user-defined-value-types)
 
 function addShares(Shares a, Shares b) pure returns (Shares) {
-    // TODO: Add the two underlying uint256 values, return wrapped result
-    revert("Not implemented");
+    return Shares.wrap( Shares.unwrap(a) + Shares.unwrap(b));
 }
 
 function subShares(Shares a, Shares b) pure returns (Shares) {
-    // TODO: Subtract b from a, return wrapped result
-    revert("Not implemented");
+    return Shares.wrap( Shares.unwrap(a) - Shares.unwrap(b));
 }
 
 // =============================================================
@@ -89,7 +85,12 @@ function toShares(
     //    (shares exist but no assets = broken vault state, division by zero)
     // 4. shares = (assets * totalSupply) / totalAssets
     //    - Solidity integer division already rounds down
-    revert("Not implemented");
+    require( Assets.unwrap(assets) > 0, ZeroAssets());
+    if(Shares.unwrap(totalSupply) == 0) return Shares.wrap(Assets.unwrap(assets));
+    require(Assets.unwrap(totalAssets) > 0, ZeroTotalAssets());
+
+    return Shares.wrap(Math.mulDiv(Assets.unwrap(assets), Shares.unwrap(totalSupply), Assets.unwrap(totalAssets)));
+    // return Shares.wrap((Assets.unwrap(assets) * Shares.unwrap(totalSupply)) / Assets.unwrap(totalAssets));
 }
 
 // =============================================================
@@ -108,7 +109,11 @@ function toAssets(
     // 1. Revert with ZeroShares() if shares is zero
     // 2. Revert with ZeroTotalSupply() if totalSupply is zero
     // 3. assets = (shares * totalAssets) / totalSupply
-    revert("Not implemented");
+    require(Shares.unwrap(shares) > 0, ZeroShares());
+    require( Shares.unwrap(totalSupply) > 0, ZeroTotalSupply());
+
+    return Assets.wrap(Math.mulDiv(Shares.unwrap(shares), Assets.unwrap(totalAssets), Shares.unwrap(totalSupply)));
+    // return Assets.wrap((Shares.unwrap(shares) * Assets.unwrap(totalAssets)) / Shares.unwrap(totalSupply));
 }
 
 // =============================================================
@@ -123,7 +128,7 @@ contract ShareCalculator {
         Shares totalSupply
     ) external pure returns (Shares) {
         // TODO: Call the toShares free function and return the result
-        revert("Not implemented");
+        return toShares(assets, totalAssets, totalSupply);
     }
 
     function convertToAssets(
@@ -132,6 +137,6 @@ contract ShareCalculator {
         Shares totalSupply
     ) external pure returns (Assets) {
         // TODO: Call the toAssets free function and return the result
-        revert("Not implemented");
+        return toAssets(shares, totalAssets, totalSupply);
     }
 }
