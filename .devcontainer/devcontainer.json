@@ -10,11 +10,14 @@
         "editor.fontSize": 14,
         "editor.fontFamily": "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
         "editor.formatOnSave": true,
-        "terminal.integrated.defaultProfile.linux": "bash"
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "files.associations": {
+          "*.sol": "solidity"
+        }
       },
       "extensions": [
-        "JuanBlanco.solidity",
-        "NomicFoundation.hardhat-solidity"
+        "NomicFoundation.hardhat-solidity",
+        "tintinweb.solidity-visual-auditor"
       ]
     }
   },
