@@ -134,6 +134,17 @@
 .coal .content main h4 { color: #94a3b8; }
 .ayu .content main h4 { color: #c8a67a; }
 
+/* Content indentation — all body elements indented under headings */
+.content main p,
+.content main pre,
+.content main ul,
+.content main ol,
+.content main blockquote,
+.content main table,
+.content main .callout {
+  margin-left: 1.2em;
+}
+
 /* Paragraphs — breathing room */
 .content main p {
   margin-bottom: 1em;
