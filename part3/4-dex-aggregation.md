@@ -947,7 +947,7 @@ Both are valid approaches with different tradeoffs. Understanding both gives you
 ---
 
 <a id="exercises"></a>
-## 🎯 Module 4 Exercises
+## 🎯 Build Exercise: DEX Aggregation & Intents
 
 **Workspace:** `workspace/src/part3/module4/`
 
@@ -993,7 +993,7 @@ Run: `forge test --match-contract IntentSettlementTest -vvv`
 
 ---
 
-## 📋 Summary
+## 📋 Summary: DEX Aggregation & Intents
 
 **✓ Covered:**
 - The routing problem and split order optimization math

@@ -329,7 +329,7 @@ function rpow(uint256 x, uint256 n, uint256 base) internal pure returns (uint256
 
 ---
 
-#### 📋 Summary: CDP Model and MakerDAO
+## 📋 Summary: CDP Model and MakerDAO
 
 **✓ Covered:**
 - CDP model: mint stablecoins against collateral (not lending from a pool)
@@ -627,7 +627,7 @@ In `Clipper.kick()`, trace:
 
 ---
 
-#### 📋 Summary: Liquidations, PSM, and DSR
+## 📋 Summary: Liquidations, PSM, and DSR
 
 **✓ Covered:**
 - Liquidation 2.0: Dutch auctions (Dog + Clipper), why they replaced English auctions
@@ -652,7 +652,7 @@ The exercises across this module build a minimal CDP system that captures the es
 
 ---
 
-#### 📋 Summary: SimpleCDP
+## 📋 Summary: SimpleCDP
 
 **✓ Covered:**
 - Building the core CDP contracts: SimpleVat, SimpleJug, SimpleDog, SimplePSM
@@ -935,7 +935,7 @@ Map out the feedback loops. This is how decentralized monetary policy works.
 
 ---
 
-#### 📋 Summary: Stablecoin Landscape
+## 📋 Summary: Stablecoin Landscape
 
 **✓ Covered:**
 - Stablecoin taxonomy: fiat-backed, overcollateralized, algorithmic, delta-neutral

@@ -669,7 +669,7 @@ This connects directly to Module 6's cross-chain message handler pattern and Mod
 ---
 
 <a id="exercises"></a>
-## 🎯 Module 7 Exercises
+## 🎯 Build Exercise: L2-Specific DeFi
 
 **Workspace:** `workspace/src/part3/module7/`
 
@@ -716,7 +716,7 @@ Run: `forge test --match-contract L2GasEstimatorTest -vvv`
 
 ---
 
-## 📋 Summary
+## 📋 Summary: L2-Specific DeFi
 
 **✓ Covered:**
 - L2 architecture: optimistic vs ZK rollups and their DeFi implications

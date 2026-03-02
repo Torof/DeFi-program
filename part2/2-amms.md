@@ -409,7 +409,7 @@ Write comprehensive Foundry tests covering:
 - Add events: `Swap`, `Mint`, `Burn` (match [Uniswap V2's event signatures](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol#L13-L15))
 - Implement a simple TWAP (time-weighted average price) oracle: store cumulative price and timestamp on each swap, expose a function to compute average price over a period
 
-#### 📋 Summary: The Constant Product Formula
+## 📋 Summary: The Constant Product Formula
 
 **✓ Covered:**
 - Constant product formula (`x · y = k`) and swap output calculation
@@ -577,7 +577,7 @@ This is exactly what V3 does — but it adds complexity:
 
 V3 trades simplicity for capital efficiency. Keep this tradeoff in mind as you read the next part of this module.
 
-#### 📋 Summary: Reading Uniswap V2
+## 📋 Summary: Reading Uniswap V2
 
 **✓ Covered:**
 - Read V2 Pair, Factory, and Router contracts
@@ -904,7 +904,7 @@ Write tests that verify all three cases and check that amounts change continuous
 
 **Don't get stuck on:** `FullMath.sol` (it's mulDiv for precision — you know this from Part 1), `Oracle.sol` (save for Module 3).
 
-#### 📋 Summary: Concentrated Liquidity (V3)
+## 📋 Summary: Concentrated Liquidity (V3)
 
 **✓ Covered:**
 - Ticks (`price = 1.0001^i`), tick spacing, and fee tiers
@@ -996,7 +996,7 @@ Write Foundry tests covering:
 
 > **Common pitfall:** Not testing tick crossings in both directions. A swap buying token0 (decreasing price) crosses ticks differently than a swap buying token1 (increasing price). Test both directions.
 
-#### 📋 Summary: Simplified CLAMM Challenge
+## 📋 Summary: Simplified CLAMM Challenge
 
 **🎯 Learning goals:**
 - Build a simplified CLAMM with `addLiquidity`, `swap` (with tick-crossing loop), `removeLiquidity`
@@ -1155,7 +1155,7 @@ forge test --fork-url $MAINNET_RPC --match-contract V4Test
 4. **Read `Pool.sol` (library)** — V3's math adapted for V4's singleton, familiar territory
 5. **Read `PositionManager.sol`** in v4-periphery — How the user-facing contract interacts with PoolManager
 
-#### 📋 Summary: V4 Singleton & Flash Accounting
+## 📋 Summary: V4 Singleton & Flash Accounting
 
 **✓ Covered:**
 - Singleton pattern — all pools in one PoolManager contract
@@ -1356,7 +1356,7 @@ contract VolatilityHook is BaseHook {
 
 **The pattern:** V4 hooks are the composability layer for AMM innovation. Instead of forking an AMM (fragmenting liquidity), you plug into shared liquidity with custom logic.
 
-#### 📋 Summary: V4 Hooks
+## 📋 Summary: V4 Hooks
 
 **✓ Covered:**
 - V4 hook system — 10 lifecycle functions, address-encoded permissions
@@ -1878,7 +1878,7 @@ If your protocol uses LP tokens as collateral or manages liquidity:
 
 > **Deep dive:** [Arrakis documentation](https://docs.arrakis.fi/), [Gamma strategies overview](https://docs.gamma.xyz/), [Maverick AMM docs](https://docs.mav.xyz/), [Bunni V2 design](https://docs.bunni.pro/)
 
-#### 📋 Summary: Beyond Uniswap & Advanced AMM Topics
+## 📋 Summary: Beyond Uniswap & Advanced AMM Topics
 
 **✓ Covered:**
 - AMMs vs Order Books — tradeoffs, when each wins, the convergence toward hybrid systems

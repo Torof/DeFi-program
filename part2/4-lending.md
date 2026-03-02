@@ -582,7 +582,7 @@ All rates use RAY precision (27 decimals), matching Aave V3's internal math. The
 
 ---
 
-#### 📋 Summary: The Lending Model
+## 📋 Summary: The Lending Model
 
 **Covered:**
 - How DeFi lending works: overcollateralization → interest accrual → liquidation loop
@@ -779,7 +779,7 @@ The exercise tests cover: happy path supply/withdraw/borrow/repay, interest accr
 
 ---
 
-#### 📋 Summary: Aave V3 Supply and Borrow
+## 📋 Summary: Aave V3 Supply and Borrow
 
 **Covered:**
 - Aave V3 architecture: Pool proxy → logic libraries (Supply, Borrow, Liquidation, FlashLoan, Bridge, EMode)
@@ -988,7 +988,7 @@ The tests include field independence checks (setting LTV must not corrupt the th
 
 ---
 
-#### 📋 Summary: Aave V3 Risk Modes
+## 📋 Summary: Aave V3 Risk Modes
 
 **Covered:**
 - E-Mode: higher LTV/LT for correlated asset pairs (stablecoins, ETH derivatives)
@@ -1167,7 +1167,7 @@ Comet is dramatically simpler than Aave — one contract, ~4,300 lines. This mak
 
 ---
 
-#### 📋 Summary: Compound V3 (Comet)
+## 📋 Summary: Compound V3 (Comet)
 
 **Covered:**
 - Compound V3's single-asset model: one borrowable asset per market, simpler risk isolation
@@ -1382,7 +1382,7 @@ The tests cover: profitable liquidation end-to-end, exact profit calculation (5%
 
 ---
 
-#### 📋 Summary: Liquidation Mechanics
+## 📋 Summary: Liquidation Mechanics
 
 **Covered:**
 - Why liquidation exists: the immune system that prevents bad debt from price volatility
@@ -1488,7 +1488,7 @@ Write comprehensive Foundry tests:
 
 ---
 
-#### 📋 Summary: SimpleLendingPool
+## 📋 Summary: SimpleLendingPool
 
 **Covered:**
 - Building SimpleLendingPool.sol: state design (Reserve struct, UserPosition struct, index-based accounting)
@@ -1624,7 +1624,7 @@ Aave continues evolving within the V3 framework. These updates are important to 
 
 ---
 
-#### 📋 Summary: Synthesis and Advanced Patterns
+## 📋 Summary: Synthesis and Advanced Patterns
 
 **Covered:**
 - Architectural comparison: Aave V3 (multi-asset, composable, complex) vs Compound V3 (single-asset, isolated, simple)

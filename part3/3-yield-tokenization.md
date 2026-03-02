@@ -45,7 +45,7 @@
 **Wrap Up**
 - [DeFi Pattern Connections](#pattern-connections)
 - [Job Market Context](#job-market)
-- [Module Exercises](#exercises)
+- [Build Exercise: Yield Tokenization](#exercises)
 - [Summary](#summary)
 - [Resources](#resources)
 
@@ -995,7 +995,7 @@ Great answer: "Using simple compounding, `ptPrice = year / (year + rate * timeTo
 ---
 
 <a id="exercises"></a>
-## 🎯 Module 3 Exercises
+## 🎯 Build Exercise: Yield Tokenization
 
 **Workspace:** `workspace/src/part3/module3/`
 
@@ -1040,7 +1040,7 @@ Build a rate oracle that computes and tracks implied rates from PT prices:
 ---
 
 <a id="summary"></a>
-## 📋 Summary
+## 📋 Summary: Yield Tokenization
 
 **✓ Covered:**
 - The fixed-rate problem and zero-coupon bond analogy

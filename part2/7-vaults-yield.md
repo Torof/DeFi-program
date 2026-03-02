@@ -317,7 +317,7 @@ Tests verify:
 
 **Pro tip:** The ERC-4626 ecosystem is one of the fastest-growing in DeFi. Morpho, Euler V2, Yearn V3, Ethena (sUSDe), Lido (wstETH adapter), and hundreds of other protocols all use it. Being able to write, audit, and integrate ERC-4626 vaults is a high-demand skill.
 
-#### 📋 Summary: ERC-4626 — The Tokenized Vault Standard
+## 📋 Summary: ERC-4626 — The Tokenized Vault Standard
 
 **✓ Covered:**
 - The shares/assets abstraction and why it's the universal pattern for yield-bearing tokens
@@ -604,7 +604,7 @@ Tests verify:
 - DefendedVault attack fails: same attack leaves attacker with ~6 USDC (massive loss)
 - DefendedVault works correctly for normal operations: deposit, yield accrual, redeem all function properly with negligible virtual share loss (1 raw unit)
 
-#### 📋 Summary: The Inflation Attack and Defenses
+## 📋 Summary: The Inflation Attack and Defenses
 
 **✓ Covered:**
 - The inflation (donation/first-depositor) attack — step-by-step mechanics
@@ -810,7 +810,7 @@ Tests verify:
 - Redeem 8,000 shares: withdrawal queue drains idle first, then Strategy A, then partial Strategy B
 - Debt tracks original allocation (not yield) -- profit = strategy.totalValue() - debt
 
-#### 📋 Summary: Yield Aggregation — Yearn V3 Architecture
+## 📋 Summary: Yield Aggregation — Yearn V3 Architecture
 
 **✓ Covered:**
 - The yield aggregation problem — why allocating across multiple sources matters
@@ -1025,7 +1025,7 @@ Tests verify:
 - Sandwich attack is unprofitable: attacker deposits before harvest, redeems after -- gets zero profit because profit is locked
 - Consecutive harvests: remaining locked profit from a previous harvest carries over and combines with newly harvested profit
 
-#### 📋 Summary: Composable Yield Patterns and Security
+## 📋 Summary: Composable Yield Patterns and Security
 
 **✓ Covered:**
 - Auto-compounding: claim rewards → swap → re-deposit, keeper economics

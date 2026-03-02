@@ -267,7 +267,7 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 
 ---
 
-#### 📋 Summary: Flash Loan Mechanics
+## 📋 Summary: Flash Loan Mechanics
 
 **✓ Covered:**
 - The atomic guarantee: borrow → callback → repay or entire tx reverts
@@ -597,7 +597,7 @@ Result:
 
 ---
 
-#### 📋 Summary: Flash Loan Strategies
+## 📋 Summary: Flash Loan Strategies
 
 **✓ Covered:**
 - Four composition strategies: DEX arbitrage, flash loan liquidation, collateral swap, leverage/deleverage
@@ -768,7 +768,7 @@ Key difference:
 
 ---
 
-#### 📋 Summary: Flash Loan Security
+## 📋 Summary: Flash Loan Security
 
 **✓ Covered:**
 - Protocol builder security: never use spot prices, beware same-tx state manipulation, time-based defenses

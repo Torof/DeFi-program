@@ -153,7 +153,7 @@ Before you start, verify you're comfortable with these concepts from earlier mod
 
 If any of these feel fuzzy, revisit the module before starting. This capstone assumes you've internalized them.
 
-#### 📋 Summary: Overview & Design Philosophy
+## 📋 Summary: Overview & Design Philosophy
 
 **✓ Covered:**
 - Why a stablecoin is the ultimate Part 2 integration — touches every primitive from M1-M8
@@ -325,7 +325,7 @@ For gas optimization on the hot path (health factor checks happen on every mint/
 
 Packing BPS values as `uint16` (max 65,535 — more than enough for basis points) saves SLOADs on the hot path. This is the same optimization pattern Aave V3 uses in its reserve configuration bitmap (M4).
 
-#### 📋 Summary: Architecture Design
+## 📋 Summary: Architecture Design
 
 **✓ Covered:**
 - 4-contract structure with clear responsibilities and data flow
@@ -563,7 +563,7 @@ The complete lifecycle with what changes in storage at each step:
        └──→ Collateral transferred to bidder
 ```
 
-#### 📋 Summary: Core CDP Engine
+## 📋 Summary: Core CDP Engine
 
 **✓ Covered:**
 - Engine contract interface — 10 external functions with clear responsibilities
@@ -714,7 +714,7 @@ Don't accept vault shares directly. Require users to redeem their vault shares f
 
 **Recommendation for the capstone:** Strategy 1 (rate cap). It's the simplest to implement correctly, demonstrates awareness of the manipulation vector, and is the kind of defense an interviewer would want to discuss. Document the other strategies as considered alternatives in your Architecture Decision Record.
 
-#### 📋 Summary: Vault Share Collateral Pricing
+## 📋 Summary: Vault Share Collateral Pricing
 
 **✓ Covered:**
 - Two-step pricing pipeline — shares → underlying → USD
@@ -929,7 +929,7 @@ This is why Aave governance evaluates on-chain liquidity depth before listing ne
 
 > **🔗 Connection:** The slippage and AMM economics from M2 directly determine whether your liquidation system actually works in practice. A liquidation mechanism is only as reliable as the DEX liquidity behind it.
 
-#### 📋 Summary: Dutch Auction Liquidation
+## 📋 Summary: Dutch Auction Liquidation
 
 **✓ Covered:**
 - Liquidation system architecture — separate Liquidator contract calling Engine
@@ -1039,7 +1039,7 @@ If you charge a fee: the receiver must hold `amount + fee` at the end of the cal
 3. **Liquidation funding** — flash mint stablecoin → buy collateral from Dutch auction → sell collateral on DEX → burn flash mint + keep profit. This is the flash liquidation pattern from M4/M5, but using flash *mint* instead of flash *loan*.
 4. **Composability** — any protocol can integrate your stablecoin knowing that flash mint provides infinite temporary liquidity for atomic operations.
 
-#### 📋 Summary: Flash Mint
+## 📋 Summary: Flash Mint
 
 **✓ Covered:**
 - Flash mint vs flash loan — minting from thin air vs borrowing from a pool
@@ -1162,7 +1162,7 @@ contract SystemHandler is Test {
 
 **Dust amounts:** What happens with 1 wei of collateral or 1 wei of debt? Rounding in the health factor calculation could allow dust vaults that are technically unhealthy but too small to profitably liquidate.
 
-#### 📋 Summary: Testing & Hardening
+## 📋 Summary: Testing & Hardening
 
 **✓ Covered:**
 - 5 critical invariants — solvency, backing, accounting, health, conservation
@@ -1179,7 +1179,7 @@ contract SystemHandler is Test {
 ---
 
 <a id="build-order"></a>
-## 🛠️ Suggested Build Order
+## 🎯 Suggested Build Order
 
 This is guidance, not prescription. Adapt to your working style — but if you're not sure where to start, this sequence builds from simple to complex with testable milestones at each phase.
 

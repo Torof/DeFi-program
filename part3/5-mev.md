@@ -710,7 +710,7 @@ Try: call `getHash(1000, 0xdead0000000000000000000000000000000000000000000000000
 ---
 
 <a id="exercises"></a>
-## 🎯 Module 5 Exercises
+## 🎯 Build Exercise: MEV Deep Dive
 
 **Workspace:** `workspace/src/part3/module5/`
 
@@ -756,7 +756,7 @@ Run: `forge test --match-contract MEVFeeHookTest -vvv`
 
 ---
 
-## 📋 Summary
+## 📋 Summary: MEV Deep Dive
 
 **✓ Covered:**
 - MEV taxonomy: the full spectrum from benign (arbitrage) to harmful (sandwich)

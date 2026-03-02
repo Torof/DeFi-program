@@ -329,7 +329,7 @@ This 8-line function handles 90% of weird token edge cases. The remaining 10% (r
 
 ---
 
-#### 📋 Summary: ERC-20 Core Patterns & Weird Tokens
+## 📋 Summary: ERC-20 Core Patterns & Weird Tokens
 
 **✓ Covered:**
 - The approve/transferFrom two-step and how it shapes all DeFi interactions
@@ -834,7 +834,7 @@ Is your protocol permissionless or curated?
 ---
 
 <a id="build-token-test-suite"></a>
-### 🛠️ Build Exercises: Token Interaction Patterns (Foundry)
+## 🎯 Build Exercise: Token Interaction Patterns
 
 **Workspace:** [`workspace/src/part2/module1/`](../workspace/src/part2/module1/) — starter files: [`DefensiveVault.sol`](../workspace/src/part2/module1/exercise1-defensive-vault/DefensiveVault.sol), [`DecimalNormalizer.sol`](../workspace/src/part2/module1/exercise2-decimal-normalizer/DecimalNormalizer.sol), tests: [`DefensiveVault.t.sol`](../workspace/test/part2/module1/exercise1-defensive-vault/DefensiveVault.t.sol), [`DecimalNormalizer.t.sol`](../workspace/test/part2/module1/exercise2-decimal-normalizer/DecimalNormalizer.t.sol)
 
@@ -916,7 +916,7 @@ contract FeeOnTransferToken is ERC20 {
 
 ---
 
-#### 📋 Summary: Advanced Token Behaviors & Protocol Design
+## 📋 Summary: Advanced Token Behaviors & Protocol Design
 
 **✓ Covered:**
 - ERC-777 hooks — reentrancy through token transfers, not just ETH sends (imBTC, Hundred Finance exploits)

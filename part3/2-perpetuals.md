@@ -43,7 +43,7 @@
 **Wrap Up**
 - [DeFi Pattern Connections](#pattern-connections)
 - [Job Market Context](#job-market)
-- [Module Exercises](#exercises)
+- [Build Exercise: Perpetuals & Derivatives](#exercises)
 - [Resources](#resources)
 
 ---
@@ -1240,7 +1240,7 @@ Cascading liquidation is the perp equivalent of bank runs and is closely related
 ---
 
 <a id="exercises"></a>
-## 🎯 Module 2 Exercises
+## 🎯 Build Exercise: Perpetuals & Derivatives
 
 **Workspace:** `workspace/src/part3/module2/`
 

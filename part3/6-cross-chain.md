@@ -786,7 +786,7 @@ This pattern is used by Uniswap (governance on mainnet, execution across chains)
 ---
 
 <a id="exercises"></a>
-## 🎯 Module 6 Exercises
+## 🎯 Build Exercise: Cross-Chain & Bridges
 
 **Workspace:** `workspace/src/part3/module6/`
 
@@ -835,7 +835,7 @@ Run: `forge test --match-contract RateLimitedTokenTest -vvv`
 
 ---
 
-## 📋 Summary
+## 📋 Summary: Cross-Chain & Bridges
 
 **✓ Covered:**
 - Four bridge architectures and their trust tradeoffs (lock-and-mint, burn-and-mint, liquidity network, canonical)

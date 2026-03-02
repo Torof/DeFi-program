@@ -522,7 +522,7 @@ DeFi's composability means your protocol interacts with others in ways you can't
 
 **Pro tip:** In security-focused interviews, employers care less about memorizing every exploit and more about your *systematic thinking*. Show that you have a mental taxonomy of attack classes and can map any new vulnerability into it. That's what separates a protocol engineer from a developer.
 
-#### 📋 Summary: DeFi-Specific Attack Patterns
+## 📋 Summary: DeFi-Specific Attack Patterns
 
 **✓ Covered:**
 - Read-only reentrancy — the subtle variant where `view` functions read inconsistent state during callbacks
@@ -912,7 +912,7 @@ Write a comprehensive invariant test suite for your SimpleLendingPool from Modul
 - **Damn Vulnerable DeFi #3 "Truster"** — Approval via flash loan callback — write an invariant that catches the unexpected allowance
 - **Ethernaut #20 "Denial"** — Gas griefing that breaks withdrawal invariants
 
-#### 📋 Summary: Invariant Testing with Foundry
+## 📋 Summary: Invariant Testing with Foundry
 
 **✓ Covered:**
 - Why invariant testing beats unit/fuzz testing for DeFi protocols
@@ -1023,7 +1023,7 @@ Take your SimpleLendingPool from Module 4 and apply a structured review:
    - [ ] Slippage protection on all swaps
    - [ ] Return values of external calls are checked
 
-#### 📋 Summary: Reading Audit Reports
+## 📋 Summary: Reading Audit Reports
 
 **✓ Covered:**
 - Why audit reports are the densest source of vulnerability knowledge
@@ -1230,7 +1230,7 @@ Complete any remaining Damn Vulnerable DeFi and Ethernaut challenges not yet att
 - MEV-aware protocol design as a first-class security concern
 - Cross-chain bridge security (still the largest single-exploit category by dollar value)
 
-#### 📋 Summary: Security Tooling & Audit Preparation
+## 📋 Summary: Security Tooling & Audit Preparation
 
 **✓ Covered:**
 - Static analysis tooling — Slither (Python-based, broad detectors) and Aderyn (Rust-based, fast, complementary)

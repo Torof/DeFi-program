@@ -731,7 +731,7 @@ SHOULD NOT be governable (hardcode):
 ---
 
 <a id="exercises"></a>
-## 🎯 Module 8 Exercises
+## 🎯 Build Exercise: Governance & DAOs
 
 **Workspace:** `workspace/src/part3/module8/`
 
@@ -781,7 +781,7 @@ Run: `forge test --match-contract VoteEscrowTest -vvv`
 
 ---
 
-## 📋 Summary
+## 📋 Summary: Governance & DAOs
 
 **✓ Covered:**
 - On-chain governance: why it exists, the fundamental tension of decentralization vs agility

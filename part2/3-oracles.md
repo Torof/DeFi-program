@@ -460,7 +460,7 @@ Build an `OracleConsumer.sol` that reads Chainlink price feeds with all producti
 
 ---
 
-#### 📋 Summary: Oracle Fundamentals & Chainlink
+## 📋 Summary: Oracle Fundamentals & Chainlink
 
 **✓ Covered:**
 - The oracle problem: blockchains can't access external data natively
@@ -697,7 +697,7 @@ State transitions triggered by:
 
 ---
 
-#### 📋 Summary: TWAP Oracles & On-Chain Price Sources
+## 📋 Summary: TWAP Oracles & On-Chain Price Sources
 
 **✓ Covered:**
 - TWAP mechanics: cumulative price accumulators, window-based average computation
@@ -953,7 +953,7 @@ The tests demonstrate the full attack flow: attacker swaps 600K USDC into a pool
 
 ---
 
-#### 📋 Summary: Oracle Manipulation Attacks
+## 📋 Summary: Oracle Manipulation Attacks
 
 **✓ Covered:**
 - Four attack patterns: spot price manipulation (flash loan), TWAP manipulation (multi-block), stale oracle exploitation, donation/balance manipulation

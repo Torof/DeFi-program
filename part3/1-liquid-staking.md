@@ -39,7 +39,7 @@
 **Wrap Up**
 - [DeFi Pattern Connections](#pattern-connections)
 - [Job Market Context](#job-market)
-- [Module Exercises](#exercises)
+- [Build Exercise: Liquid Staking Integration](#exercises)
 - [Resources](#resources)
 
 ---
@@ -233,7 +233,7 @@ Request flow:
 - During extreme demand (mass exits), the queue lengthens and the peg can weaken — arbitrageurs must lock capital longer, reducing their incentive.
 - Post-Shapella, stETH has traded very close to 1:1 with ETH. The June 2022 de-peg (0.93 ETH) happened pre-Shapella when no withdrawal mechanism existed.
 
-#### 📋 Summary: Liquid Staking Fundamentals
+## 📋 Summary: Liquid Staking Fundamentals
 
 **Covered:**
 - Why liquid staking exists — capital efficiency for staked ETH
@@ -525,7 +525,7 @@ The rate is updated by Rocket Pool's Oracle DAO (a set of trusted nodes) rather 
 
 > **Repos:** [Lido](https://github.com/lidofinance/lido-dao) | [Rocket Pool](https://github.com/rocket-pool/rocketpool)
 
-#### 📋 Summary: Protocol Architecture
+## 📋 Summary: Protocol Architecture
 
 **Covered:**
 - Lido architecture — 6 key contracts with roles and data flow
@@ -723,7 +723,7 @@ This is not theoretical — Aave, Morpho, and every lending protocol that lists 
 
 **The systemic risk:** If many AVSes use the same operator set, and that operator set gets slashed on one AVS, the collateral damage cascades — all LRTs backed by those operators lose value simultaneously. This correlated slashing risk is the restaking-specific systemic concern.
 
-#### 📋 Summary: EigenLayer & Restaking
+## 📋 Summary: EigenLayer & Restaking
 
 **Covered:**
 - Restaking concept — recycling economic security, additional yield for additional risk
@@ -1017,7 +1017,7 @@ borrows ETH, and loops the leverage:
 | **P3M3** | Yield tokenization | Pendle splits LST yield into PT/YT — LSTs are the primary input |
 | **P3M9** | Capstone (perp exchange) | LSTs as margin collateral — pricing and liquidation mechanics carry over |
 
-#### 📋 Summary: LST Integration Patterns
+## 📋 Summary: LST Integration Patterns
 
 **Covered:**
 - Oracle pricing pipeline — two-step (exchange rate → Chainlink), with full numeric walkthroughs
@@ -1076,7 +1076,7 @@ borrows ETH, and loops the leverage:
 ---
 
 <a id="exercises"></a>
-## 🎯 Module Exercises
+## 🎯 Build Exercise: Liquid Staking Integration
 
 **Workspace:** `workspace/src/part3/module1/`
 
