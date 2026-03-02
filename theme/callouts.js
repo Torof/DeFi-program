@@ -99,6 +99,64 @@
     }
   }
 
+  // --- H3 "Concept:" Label Styling ---
+  // Colors the word "Concept" and underlines the topic name that follows.
+  // e.g. "💡 Concept: Checked Arithmetic (0.8.0)" →
+  //       💡 <span class="concept-keyword">Concept</span>: <span class="concept-topic">Checked Arithmetic</span> (0.8.0)
+  function styleConceptHeadings() {
+    var main = document.querySelector('.content main');
+    if (!main) return;
+
+    var h3s = main.querySelectorAll('h3');
+    h3s.forEach(function(h3) {
+      if (h3.dataset.conceptStyled) return;
+      var text = h3.textContent;
+      // Match: 💡 Concept: <topic> — with optional version suffix like (0.8.0)
+      if (text.indexOf('Concept:') === -1) return;
+
+      h3.dataset.conceptStyled = 'true';
+
+      // Walk text nodes to find and transform "Concept: Topic"
+      var walker = document.createTreeWalker(h3, NodeFilter.SHOW_TEXT, null, false);
+      var node;
+      while (node = walker.nextNode()) {
+        var conceptIdx = node.textContent.indexOf('Concept:');
+        if (conceptIdx === -1) continue;
+
+        var before = node.textContent.substring(0, conceptIdx);
+        var afterColon = node.textContent.substring(conceptIdx + 'Concept:'.length);
+
+        // Extract topic name: everything after "Concept: " up to an opening paren or end
+        var topicMatch = afterColon.match(/^\s*([^(]+?)(\s*\(.*)?$/);
+        var topicText = topicMatch ? topicMatch[1].trim() : afterColon.trim();
+        var suffix = topicMatch && topicMatch[2] ? topicMatch[2] : '';
+
+        // Build replacement nodes
+        var parent = node.parentNode;
+        var frag = document.createDocumentFragment();
+
+        if (before) frag.appendChild(document.createTextNode(before));
+
+        var kwSpan = document.createElement('span');
+        kwSpan.className = 'concept-keyword';
+        kwSpan.textContent = 'Concept';
+        frag.appendChild(kwSpan);
+
+        frag.appendChild(document.createTextNode(': '));
+
+        var topicSpan = document.createElement('span');
+        topicSpan.className = 'concept-topic';
+        topicSpan.textContent = topicText;
+        frag.appendChild(topicSpan);
+
+        if (suffix) frag.appendChild(document.createTextNode(suffix));
+
+        parent.replaceChild(frag, node);
+        break;
+      }
+    });
+  }
+
   // --- H2 Section Color Coding ---
   function colorSections() {
     var main = document.querySelector('.content main');
@@ -230,6 +288,7 @@
 
   // --- Initialize ---
   function init() {
+    styleConceptHeadings();
     colorSections();
     labelCodeBlocks();
     wrapCallouts();
