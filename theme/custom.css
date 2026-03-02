@@ -108,25 +108,14 @@
   background: #ffb454;
 }
 
-/* "Concept" keyword coloring in H3 headings */
+/* "Concept:" keyword coloring in H3 headings */
 .concept-keyword {
   font-weight: 700;
 }
-.light .concept-keyword { color: #b45309; }
-.navy .concept-keyword  { color: #fbbf24; }
-.coal .concept-keyword  { color: #fbbf24; }
-.ayu .concept-keyword   { color: #ffb454; }
-
-/* Topic name underline after "Concept:" */
-.concept-topic {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
-}
-.light .concept-topic { text-decoration-color: #3b82f6; }
-.navy .concept-topic  { text-decoration-color: #60a5fa; }
-.coal .concept-topic  { text-decoration-color: #60a5fa; }
-.ayu .concept-topic   { text-decoration-color: #ffb454; }
+.light .concept-keyword { color: #7c3aed; }
+.navy .concept-keyword  { color: #c4b5fd; }
+.coal .concept-keyword  { color: #c4b5fd; }
+.ayu .concept-keyword   { color: #d2a6ff; }
 
 /* H4 — Deep dives, patterns: body font (Inter), lighter weight, italic feel */
 .content main h4 {

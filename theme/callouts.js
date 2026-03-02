@@ -139,15 +139,10 @@
 
         var kwSpan = document.createElement('span');
         kwSpan.className = 'concept-keyword';
-        kwSpan.textContent = 'Concept';
+        kwSpan.textContent = 'Concept:';
         frag.appendChild(kwSpan);
 
-        frag.appendChild(document.createTextNode(': '));
-
-        var topicSpan = document.createElement('span');
-        topicSpan.className = 'concept-topic';
-        topicSpan.textContent = topicText;
-        frag.appendChild(topicSpan);
+        frag.appendChild(document.createTextNode(' ' + topicText));
 
         if (suffix) frag.appendChild(document.createTextNode(suffix));
 
