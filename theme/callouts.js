@@ -166,9 +166,11 @@
           h2.dataset.sectionColored = 'true';
 
           // Strip emoji, then style the keyword before ":"
-          // Rebuild the entire h2 content as: <span class="section-keyword">Keyword</span> Rest
-          // First, get the clean text (without emoji)
-          var cleanText = h2.textContent;
+          // Work inside the anchor tag if present (mdbook wraps heading text in <a>)
+          var anchor = h2.querySelector('a.header');
+          var container = anchor || h2;
+
+          var cleanText = container.textContent;
           var emojiIdx = cleanText.indexOf(s.emoji);
           if (emojiIdx !== -1) {
             cleanText = cleanText.substring(0, emojiIdx) +
@@ -187,23 +189,16 @@
             rest = '';
           }
 
-          // Rebuild h2 content
-          // Preserve the anchor <a> tag that mdbook inserts for heading links
-          var anchor = h2.querySelector('a.header');
-          h2.textContent = '';
+          // Rebuild content inside the container (anchor or h2)
+          container.textContent = '';
 
           var kwSpan = document.createElement('span');
           kwSpan.className = 'section-keyword';
           kwSpan.textContent = keyword;
-          h2.appendChild(kwSpan);
+          container.appendChild(kwSpan);
 
           if (rest) {
-            h2.appendChild(document.createTextNode(' ' + rest));
-          }
-
-          // Re-append the anchor link if it existed
-          if (anchor) {
-            h2.appendChild(anchor);
+            container.appendChild(document.createTextNode(' ' + rest));
           }
         }
       });
