@@ -21,42 +21,72 @@
   letter-spacing: -0.01em;
 }
 
-/* Headings — Space Grotesk for visual hierarchy */
+/* Headings — distinct visual hierarchy per level */
+
+/* H1 — Module title: largest, boldest, full underline */
 .content main h1 {
   font-family: var(--font-heading);
-  font-size: 2rem;
+  font-size: 2.1rem;
   font-weight: 700;
   border-bottom: 2px solid var(--sidebar-bg);
   padding-bottom: 0.4em;
   margin-top: 1.5em;
+  letter-spacing: -0.025em;
+}
+
+/* H2 — Major sections: bold, colored top accent bar, clear break */
+.content main h2 {
+  font-family: var(--font-heading);
+  font-size: 1.65rem;
+  font-weight: 700;
+  margin-top: 3.2em;
+  padding-top: 0.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--table-border-color);
+  border-top: 3px solid;
   letter-spacing: -0.02em;
 }
 
-.content main h2 {
-  font-family: var(--font-heading);
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-top: 3.2em;
-  padding-bottom: 0.3em;
-  border-bottom: 1px solid var(--table-border-color);
-  letter-spacing: -0.015em;
-}
+/* H2 top accent color per theme */
+.light .content main h2 { border-top-color: #3b82f6; }
+.navy .content main h2 { border-top-color: #60a5fa; }
+.coal .content main h2 { border-top-color: #60a5fa; }
+.ayu .content main h2 { border-top-color: #ffb454; }
 
+/* H2 section-specific colors override the default top accent */
+.content main h2.section-concept { border-top-color: #3b82f6; }
+.content main h2.section-exercise { border-top-color: #22c55e; }
+.content main h2.section-summary { border-top-color: #6366f1; }
+.content main h2.section-resources { border-top-color: #14b8a6; }
+.content main h2.section-links { border-top-color: #f59e0b; }
+.content main h2.section-job { border-top-color: #ef4444; }
+.content main h2.section-warning { border-top-color: #f97316; }
+.content main h2.section-study { border-top-color: #14b8a6; }
+.content main h2.section-build { border-top-color: #10b981; }
+.content main h2.section-check { border-top-color: #22c55e; }
+.content main h2.section-complete { border-top-color: #8b5cf6; }
+
+/* H3 — Concepts/sub-sections: medium weight, muted color, accent bar */
 .content main h3 {
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: 1.28rem;
   font-weight: 600;
   margin-top: 2.4em;
   padding-bottom: 0.25em;
   position: relative;
 }
 
+.light .content main h3 { color: #1e3a5f; }
+.navy .content main h3 { color: #93c5fd; }
+.coal .content main h3 { color: #93c5fd; }
+.ayu .content main h3 { color: #ffd599; }
+
 .content main h3::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
-  width: 40px;
+  width: 60px;
   height: 3px;
   border-radius: 2px;
 }
@@ -78,12 +108,19 @@
   background: #ffb454;
 }
 
+/* H4 — Deep dives, patterns: body font (Inter), lighter weight, italic feel */
 .content main h4 {
-  font-family: var(--font-heading);
-  font-size: 1.08rem;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
   font-weight: 600;
   margin-top: 2em;
+  letter-spacing: 0;
 }
+
+.light .content main h4 { color: #475569; }
+.navy .content main h4 { color: #94a3b8; }
+.coal .content main h4 { color: #94a3b8; }
+.ayu .content main h4 { color: #c8a67a; }
 
 /* Paragraphs — breathing room */
 .content main p {
