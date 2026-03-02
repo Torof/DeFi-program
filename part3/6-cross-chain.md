@@ -8,11 +8,12 @@
 2. [How Bridges Work: On-Chain Mechanics](#on-chain-mechanics)
 3. [Bridge Security: Anatomy of Exploits](#bridge-security)
 4. [Messaging Protocols: LayerZero & CCIP](#messaging-protocols)
-5. [Cross-Chain Token Standards](#token-standards)
-6. [Cross-Chain DeFi Patterns](#cross-chain-patterns)
-7. [Job Market Context](#job-market-context)
-8. [Exercises](#exercises)
-9. [Resources](#resources)
+5. [Build Exercise: Cross-Chain Message Handler](#exercise1-cross-chain-handler)
+6. [Cross-Chain Token Standards](#token-standards)
+7. [Build Exercise: Rate-Limited Bridge Token](#exercise2-rate-limited-token)
+8. [Cross-Chain DeFi Patterns](#cross-chain-patterns)
+9. [Job Market Context](#job-market-context)
+10. [Resources](#resources)
 
 ---
 
@@ -518,6 +519,32 @@ Layer 4: Manual Pause
 
 ---
 
+<a id="exercise1-cross-chain-handler"></a>
+## 🎯 Build Exercise: Cross-Chain Message Handler
+
+**Workspace:** `workspace/src/part3/module6/`
+
+Build a contract that receives and validates cross-chain messages, with full source verification, replay protection, and message dispatch.
+
+**What you'll implement:**
+- `setTrustedSource()` — configure known senders per source chain
+- `handleMessage()` — validate source, check replay, decode and dispatch
+- `_handleTransfer()` — process a cross-chain token transfer message
+- `_handleGovernance()` — process a cross-chain governance action
+
+**Concepts exercised:**
+- Source chain + sender verification pattern
+- Nonce/message ID replay protection
+- ABI encoding/decoding for cross-chain payloads
+- Message type dispatching
+- The receive-side security model that every cross-chain app needs
+
+**🎯 Goal:** Build the receive-side security foundation that every cross-chain application needs. If you understand this pattern, you can integrate any messaging protocol.
+
+Run: `forge test --match-contract CrossChainHandlerTest -vvv`
+
+---
+
 <a id="token-standards"></a>
 ## 💡 Cross-Chain Token Standards
 
@@ -641,6 +668,33 @@ WITH xERC20 rate limiting:
 - **MakerDAO** — debt ceiling per collateral type (Part 2 Module 6)
 
 The pattern is always the same: cap the blast radius of a single failure. The math is always: capacity, refill rate, current bucket level.
+
+---
+
+<a id="exercise2-rate-limited-token"></a>
+## 🎯 Build Exercise: Rate-Limited Bridge Token
+
+**Workspace:** `workspace/src/part3/module6/`
+
+Implement a token with per-bridge rate-limited minting — the xERC20 pattern.
+
+**What you'll implement:**
+- `setLimits()` — token owner configures minting/burning limits per bridge
+- `mint()` — bridge mints tokens, subject to rate limit
+- `burn()` — bridge burns tokens, subject to rate limit
+- `mintingCurrentLimitOf()` — view current available mint capacity for a bridge
+- `_refreshLimit()` — token bucket refill calculation
+
+**Concepts exercised:**
+- Token bucket rate limiting algorithm
+- Per-bridge access control and independent limits
+- Time-based refill math
+- Defense-in-depth: bounding blast radius of a bridge compromise
+- The ERC-7281 standard pattern
+
+**🎯 Goal:** Build a cross-chain token where no single bridge compromise can drain more than a bounded amount per day.
+
+Run: `forge test --match-contract RateLimitedTokenTest -vvv`
 
 ---
 
@@ -782,56 +836,6 @@ This pattern is used by Uniswap (governance on mainnet, execution across chains)
 - ❌ Not understanding rate limiting as a security mechanism
 
 **Pro tip:** The strongest signal of cross-chain expertise is thinking about *failure modes*. Any engineer can build a bridge that works — the skill is designing for what happens when it breaks. Mentioning xERC20 rate limits, defense-in-depth verification, and monitoring immediately signals production-level thinking.
-
----
-
-<a id="exercises"></a>
-## 🎯 Build Exercise: Cross-Chain & Bridges
-
-**Workspace:** `workspace/src/part3/module6/`
-
-### Exercise 1: Cross-Chain Message Handler
-
-Build a contract that receives and validates cross-chain messages, with full source verification, replay protection, and message dispatch.
-
-**What you'll implement:**
-- `setTrustedSource()` — configure known senders per source chain
-- `handleMessage()` — validate source, check replay, decode and dispatch
-- `_handleTransfer()` — process a cross-chain token transfer message
-- `_handleGovernance()` — process a cross-chain governance action
-
-**Concepts exercised:**
-- Source chain + sender verification pattern
-- Nonce/message ID replay protection
-- ABI encoding/decoding for cross-chain payloads
-- Message type dispatching
-- The receive-side security model that every cross-chain app needs
-
-**🎯 Goal:** Build the receive-side security foundation that every cross-chain application needs. If you understand this pattern, you can integrate any messaging protocol.
-
-Run: `forge test --match-contract CrossChainHandlerTest -vvv`
-
-### Exercise 2: Rate-Limited Bridge Token (xERC20 Pattern)
-
-Implement a token with per-bridge rate-limited minting — the xERC20 pattern.
-
-**What you'll implement:**
-- `setLimits()` — token owner configures minting/burning limits per bridge
-- `mint()` — bridge mints tokens, subject to rate limit
-- `burn()` — bridge burns tokens, subject to rate limit
-- `mintingCurrentLimitOf()` — view current available mint capacity for a bridge
-- `_refreshLimit()` — token bucket refill calculation
-
-**Concepts exercised:**
-- Token bucket rate limiting algorithm
-- Per-bridge access control and independent limits
-- Time-based refill math
-- Defense-in-depth: bounding blast radius of a bridge compromise
-- The ERC-7281 standard pattern
-
-**🎯 Goal:** Build a cross-chain token where no single bridge compromise can drain more than a bounded amount per day.
-
-Run: `forge test --match-contract RateLimitedTokenTest -vvv`
 
 ---
 

@@ -6,12 +6,13 @@
 
 1. [On-Chain Governance](#on-chain-governance)
 2. [OpenZeppelin Governor in Practice](#oz-governor)
-3. [ve-Tokenomics & the Curve Wars](#ve-tokenomics)
-4. [Governance Security](#governance-security)
-5. [Governance Minimization](#governance-minimization)
-6. [Job Market Context](#job-market-context)
-7. [Exercises](#exercises)
-8. [Resources](#resources)
+3. [Build Exercise: Governor + Timelock System](#exercise-governor)
+4. [ve-Tokenomics & the Curve Wars](#ve-tokenomics)
+5. [Build Exercise: Vote-Escrow Token](#exercise-vote-escrow)
+6. [Governance Security](#governance-security)
+7. [Governance Minimization](#governance-minimization)
+8. [Job Market Context](#job-market-context)
+9. [Resources](#resources)
 
 ---
 
@@ -264,6 +265,32 @@ This test pattern is exactly what your Exercise 1 will use.
 
 ---
 
+<a id="exercise-governor"></a>
+## 🎯 Build Exercise: Governor + Timelock System
+
+**Workspace:** `workspace/src/part3/module8/`
+
+Build a complete on-chain governance system using OpenZeppelin Governor with TimelockController, and demonstrate that snapshot-based voting defeats flash loan attacks.
+
+**What you'll implement:**
+- `GovernanceToken` — ERC20Votes with delegation and checkpointing
+- `MyGovernor` — Governor with configurable voting delay, period, quorum, and threshold
+- Full proposal lifecycle: propose → vote → queue → execute
+- Flash loan defense: prove snapshot voting blocks tokens acquired after proposal creation
+
+**Concepts exercised:**
+- OpenZeppelin Governor framework integration
+- ERC20Votes delegation and checkpointing
+- TimelockController role configuration
+- The full governance lifecycle in code
+- Flash loan attack vector and why snapshots prevent it
+
+**🎯 Goal:** Build production-standard governance and prove it's secure against flash loan manipulation.
+
+Run: `forge test --match-contract GovernorTest -vvv`
+
+---
+
 <a id="ve-tokenomics"></a>
 ## 💡 ve-Tokenomics & the Curve Wars
 
@@ -455,6 +482,34 @@ Velodrome's fix:
 | Immutable governance | Liquity zero-governance | This module, P2M9 capstone |
 | Cross-chain governance | Vote on L1, execute on L2 | Modules 6, 7 |
 | Emergency shutdown | MakerDAO ESM | Part 2 Module 6 |
+
+---
+
+<a id="exercise-vote-escrow"></a>
+## 🎯 Build Exercise: Vote-Escrow Token
+
+**Workspace:** `workspace/src/part3/module8/`
+
+Build a simplified ve-token with time-weighted voting power, linear decay, and gauge-style emission allocation.
+
+**What you'll implement:**
+- `createLock()` — lock tokens for a specified duration (1 week to 4 years)
+- `votingPower()` — calculate current voting power with linear decay
+- `increaseAmount()` — add more tokens to an existing lock
+- `increaseUnlockTime()` — extend lock duration
+- `voteForGauge()` — allocate voting power to a gauge (emission target)
+- `withdraw()` — reclaim tokens after lock expires
+
+**Concepts exercised:**
+- Vote-escrow mechanics (lock → power → decay)
+- Linear decay formula: `amount × (lockEnd - now) / maxLock`
+- Gauge voting and weight allocation
+- The incentive structure that makes ve-tokenomics work
+- Why time-locking prevents governance manipulation
+
+**🎯 Goal:** Build the core of a Curve-style vote-escrow system and understand why lock duration creates genuine skin-in-the-game for governance participants.
+
+Run: `forge test --match-contract VoteEscrowTest -vvv`
 
 ---
 
@@ -727,57 +782,6 @@ SHOULD NOT be governable (hardcode):
 - ❌ Not knowing the Beanstalk attack (the most important governance case study)
 
 **Pro tip:** In interviews, showing awareness that governance is both a feature AND an attack surface immediately sets you apart. Most candidates think about governance from the "how do we vote" perspective. Senior candidates think about it from the "how can this be exploited, and how do we minimize the attack surface" perspective.
-
----
-
-<a id="exercises"></a>
-## 🎯 Build Exercise: Governance & DAOs
-
-**Workspace:** `workspace/src/part3/module8/`
-
-### Exercise 1: Governor + Timelock System
-
-Build a complete on-chain governance system using OpenZeppelin Governor with TimelockController, and demonstrate that snapshot-based voting defeats flash loan attacks.
-
-**What you'll implement:**
-- `GovernanceToken` — ERC20Votes with delegation and checkpointing
-- `MyGovernor` — Governor with configurable voting delay, period, quorum, and threshold
-- Full proposal lifecycle: propose → vote → queue → execute
-- Flash loan defense: prove snapshot voting blocks tokens acquired after proposal creation
-
-**Concepts exercised:**
-- OpenZeppelin Governor framework integration
-- ERC20Votes delegation and checkpointing
-- TimelockController role configuration
-- The full governance lifecycle in code
-- Flash loan attack vector and why snapshots prevent it
-
-**🎯 Goal:** Build production-standard governance and prove it's secure against flash loan manipulation.
-
-Run: `forge test --match-contract GovernorTest -vvv`
-
-### Exercise 2: Simplified Vote-Escrow Token
-
-Build a simplified ve-token with time-weighted voting power, linear decay, and gauge-style emission allocation.
-
-**What you'll implement:**
-- `createLock()` — lock tokens for a specified duration (1 week to 4 years)
-- `votingPower()` — calculate current voting power with linear decay
-- `increaseAmount()` — add more tokens to an existing lock
-- `increaseUnlockTime()` — extend lock duration
-- `voteForGauge()` — allocate voting power to a gauge (emission target)
-- `withdraw()` — reclaim tokens after lock expires
-
-**Concepts exercised:**
-- Vote-escrow mechanics (lock → power → decay)
-- Linear decay formula: `amount × (lockEnd - now) / maxLock`
-- Gauge voting and weight allocation
-- The incentive structure that makes ve-tokenomics work
-- Why time-locking prevents governance manipulation
-
-**🎯 Goal:** Build the core of a Curve-style vote-escrow system and understand why lock duration creates genuine skin-in-the-game for governance participants.
-
-Run: `forge test --match-contract VoteEscrowTest -vvv`
 
 ---
 

@@ -6,13 +6,14 @@
 
 1. [L2 Architecture for DeFi Developers](#l2-architecture)
 2. [The L2 Gas Model](#gas-model)
-3. [Sequencer Uptime & Oracle Safety](#sequencer-uptime)
-4. [Transaction Ordering & MEV on L2](#l2-mev)
-5. [L2-Native Protocol Design](#l2-native)
-6. [Multi-Chain Deployment Patterns](#multi-chain)
-7. [Job Market Context](#job-market-context)
-8. [Exercises](#exercises)
-9. [Resources](#resources)
+3. [Build Exercise: L2 Gas Estimator](#exercise-gas-estimator)
+4. [Sequencer Uptime & Oracle Safety](#sequencer-uptime)
+5. [Build Exercise: L2-Aware Oracle Consumer](#exercise-oracle-consumer)
+6. [Transaction Ordering & MEV on L2](#l2-mev)
+7. [L2-Native Protocol Design](#l2-native)
+8. [Multi-Chain Deployment Patterns](#multi-chain)
+9. [Job Market Context](#job-market-context)
+10. [Resources](#resources)
 
 ---
 
@@ -266,6 +267,31 @@ Call `compactSwap(addr, 1000, true)` and `verboseSwap(addr, 1000, 900, addr, 999
 
 ---
 
+<a id="exercise-gas-estimator"></a>
+## 🎯 Build Exercise: L2 Gas Estimator
+
+**Workspace:** `workspace/src/part3/module7/`
+
+Build a utility that estimates and compares L1 data costs for different calldata encodings, demonstrating why calldata optimization matters on L2.
+
+**What you'll implement:**
+- `estimateL1DataGas()` — calculate L1 gas cost for arbitrary calldata
+- `compareEncodings()` — compare packed vs standard ABI encoding for the same swap parameters
+- `shouldSplitRoute()` — determine if splitting a swap saves money after accounting for extra calldata cost
+- Gas comparison tests proving that calldata size is the dominant L2 cost factor
+
+**Concepts exercised:**
+- L1 data cost calculation (16 gas per non-zero byte, 4 per zero byte)
+- Calldata optimization techniques (packed encoding)
+- Break-even analysis: routing improvement vs extra calldata cost
+- The L2 cost model that flips L1 optimization priorities
+
+**🎯 Goal:** Prove quantitatively that calldata size is the dominant cost on L2, and understand when routing optimizations are worth the extra calldata.
+
+Run: `forge test --match-contract L2GasEstimatorTest -vvv`
+
+---
+
 <a id="sequencer-uptime"></a>
 ## ⚠️ Sequencer Uptime & Oracle Safety
 
@@ -384,6 +410,32 @@ Returns:
 | **Oracles** | Return stale data | Revert or flag staleness |
 
 **Connection to Part 2 Module 3 (Oracles):** The staleness checks you learned for oracle prices extend to sequencer status. Same pattern — check freshness before trusting the data.
+
+---
+
+<a id="exercise-oracle-consumer"></a>
+## 🎯 Build Exercise: L2-Aware Oracle Consumer
+
+**Workspace:** `workspace/src/part3/module7/`
+
+Build an oracle consumer that integrates Chainlink's L2 Sequencer Uptime Feed with a grace period pattern, protecting a lending protocol from stale-price liquidations.
+
+**What you'll implement:**
+- `isSequencerUp()` — check the sequencer uptime feed
+- `isGracePeriodPassed()` — check if enough time has elapsed since restart
+- `getPrice()` — return price only when safe (sequencer up + grace period passed + price fresh)
+- `isLiquidationAllowed()` — combine all safety checks
+- `isBorrowAllowed()` — same checks for new borrows
+
+**Concepts exercised:**
+- Chainlink sequencer uptime feed integration
+- Grace period pattern (Aave PriceOracleSentinel)
+- Defense-in-depth: multiple safety conditions combined
+- L2-specific risk handling that doesn't exist on L1
+
+**🎯 Goal:** Build the oracle safety layer that every L2 lending protocol needs. Your implementation should handle: sequencer down, sequencer just restarted (within grace period), stale price, and normal operation.
+
+Run: `forge test --match-contract L2OracleTest -vvv`
 
 ---
 
@@ -665,54 +717,6 @@ This connects directly to Module 6's cross-chain message handler pattern and Mod
 - ❌ Not knowing about EIP-4844's impact on L2 economics
 
 **Pro tip:** Most DeFi teams are building on L2 now. Demonstrating awareness of sequencer uptime checks, L2 gas optimization, and chain-specific MEV dynamics shows you've actually shipped on L2, not just read about it. Mentioning Aave's PriceOracleSentinel by name signals deep familiarity.
-
----
-
-<a id="exercises"></a>
-## 🎯 Build Exercise: L2-Specific DeFi
-
-**Workspace:** `workspace/src/part3/module7/`
-
-### Exercise 1: L2-Aware Oracle Consumer
-
-Build an oracle consumer that integrates Chainlink's L2 Sequencer Uptime Feed with a grace period pattern, protecting a lending protocol from stale-price liquidations.
-
-**What you'll implement:**
-- `isSequencerUp()` — check the sequencer uptime feed
-- `isGracePeriodPassed()` — check if enough time has elapsed since restart
-- `getPrice()` — return price only when safe (sequencer up + grace period passed + price fresh)
-- `isLiquidationAllowed()` — combine all safety checks
-- `isBorrowAllowed()` — same checks for new borrows
-
-**Concepts exercised:**
-- Chainlink sequencer uptime feed integration
-- Grace period pattern (Aave PriceOracleSentinel)
-- Defense-in-depth: multiple safety conditions combined
-- L2-specific risk handling that doesn't exist on L1
-
-**🎯 Goal:** Build the oracle safety layer that every L2 lending protocol needs. Your implementation should handle: sequencer down, sequencer just restarted (within grace period), stale price, and normal operation.
-
-Run: `forge test --match-contract L2OracleTest -vvv`
-
-### Exercise 2: L2 Gas Estimator
-
-Build a utility that estimates and compares L1 data costs for different calldata encodings, demonstrating why calldata optimization matters on L2.
-
-**What you'll implement:**
-- `estimateL1DataGas()` — calculate L1 gas cost for arbitrary calldata
-- `compareEncodings()` — compare packed vs standard ABI encoding for the same swap parameters
-- `shouldSplitRoute()` — determine if splitting a swap saves money after accounting for extra calldata cost
-- Gas comparison tests proving that calldata size is the dominant L2 cost factor
-
-**Concepts exercised:**
-- L1 data cost calculation (16 gas per non-zero byte, 4 per zero byte)
-- Calldata optimization techniques (packed encoding)
-- Break-even analysis: routing improvement vs extra calldata cost
-- The L2 cost model that flips L1 optimization priorities
-
-**🎯 Goal:** Prove quantitatively that calldata size is the dominant cost on L2, and understand when routing optimizations are worth the extra calldata.
-
-Run: `forge test --match-contract L2GasEstimatorTest -vvv`
 
 ---
 

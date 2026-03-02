@@ -17,6 +17,7 @@
 - [How Splitting Works](#how-splitting-works)
 - [Deep Dive: Implied Rate Math](#implied-rate-math)
 - [Deep Dive: YT Yield Accumulator](#yt-yield-accumulator)
+- [Build Exercise: Yield Tokenizer](#exercise-yield-tokenizer)
 
 **ERC-5115: Standardized Yield**
 - [SY vs ERC-4626](#sy-vs-erc4626)
@@ -34,6 +35,7 @@
 - [Rate-Space Trading: The Key Insight](#rate-space-trading)
 - [Deep Dive: The AMM Curve](#amm-curve-deep-dive)
 - [LP Considerations](#lp-considerations)
+- [Build Exercise: PT Rate Oracle](#exercise-pt-rate-oracle)
 
 **Strategies & Composability**
 - [Fixed Income: Buy PT](#strategy-buy-pt)
@@ -45,7 +47,6 @@
 **Wrap Up**
 - [DeFi Pattern Connections](#pattern-connections)
 - [Job Market Context](#job-market)
-- [Build Exercise: Yield Tokenization](#exercises)
 - [Summary](#summary)
 - [Resources](#resources)
 
@@ -390,6 +391,30 @@ The yield comes from the shares becoming MORE valuable.
 Fewer shares are needed to cover the fixed principal,
 and the "excess" shares fund the yield payout.
 ```
+
+---
+
+<a id="exercise-yield-tokenizer"></a>
+## 🎯 Build Exercise: Yield Tokenizer
+
+### Exercise 1: YieldTokenizer
+
+**Workspace:**
+- Scaffold: `workspace/src/part3/module3/exercise1-yield-tokenizer/YieldTokenizer.sol`
+- Tests: `workspace/test/part3/module3/exercise1-yield-tokenizer/YieldTokenizer.t.sol`
+
+Build the core PT/YT splitting mechanism from an ERC-4626 vault:
+- Accept vault shares → internally mint PT + YT balances
+- Track yield using the vault's exchange rate as the accumulator
+- YT holders claim accrued yield (paid out in vault shares)
+- PT holders redeem at maturity (principal value in vault shares)
+- Before maturity: "unsplit" by burning PT + YT balances
+
+**5 TODOs:** `tokenize()`, `getAccruedYield()`, `claimYield()`, `redeemAtMaturity()`, `redeemBeforeMaturity()`
+
+**🎯 Goal:** Implement the same accumulator pattern from Module 2's FundingRateEngine, but now driven by an external exchange rate instead of an internal calculation.
+
+**Run:** `forge test --match-contract YieldTokenizerTest -vvv`
 
 ---
 
@@ -787,6 +812,30 @@ LPing in Pendle pools has unique properties compared to standard AMMs:
 
 ---
 
+<a id="exercise-pt-rate-oracle"></a>
+## 🎯 Build Exercise: PT Rate Oracle
+
+### Exercise 2: PTRateOracle
+
+**Workspace:**
+- Scaffold: `workspace/src/part3/module3/exercise2-pt-rate-oracle/PTRateOracle.sol`
+- Tests: `workspace/test/part3/module3/exercise2-pt-rate-oracle/PTRateOracle.t.sol`
+
+Build a rate oracle that computes and tracks implied rates from PT prices:
+- Calculate implied annual rate from PT price and time-to-maturity
+- Calculate PT fair value from a target annual rate
+- Record rate observations with timestamps
+- Compute Time-Weighted Average Rate (TWAR) — same accumulator pattern as Uniswap V2's TWAP oracle
+- Calculate YT break-even rate for profitability analysis
+
+**5 TODOs:** `getImpliedRate()`, `getPTPrice()`, `recordObservation()`, `getTimeWeightedRate()`, `getYTBreakEven()`
+
+**🎯 Goal:** Master the implied rate math and connect rate-oracle tracking to the TWAP accumulator pattern from Part 2 Module 3 (Oracles).
+
+**Run:** `forge test --match-contract PTRateOracleTest -vvv`
+
+---
+
 ## 💡 Strategies & Composability
 
 <a id="strategy-buy-pt"></a>
@@ -991,51 +1040,6 @@ Great answer: "Using simple compounding, `ptPrice = year / (year + rate * timeTo
 - Institutional adoption of fixed-rate DeFi products
 - Competition from Spectra (formerly APWine) and potential new entrants
 - ERC-5115 adoption beyond Pendle
-
----
-
-<a id="exercises"></a>
-## 🎯 Build Exercise: Yield Tokenization
-
-**Workspace:** `workspace/src/part3/module3/`
-
-### Exercise 1: YieldTokenizer
-
-**Workspace:**
-- Scaffold: `workspace/src/part3/module3/exercise1-yield-tokenizer/YieldTokenizer.sol`
-- Tests: `workspace/test/part3/module3/exercise1-yield-tokenizer/YieldTokenizer.t.sol`
-
-Build the core PT/YT splitting mechanism from an ERC-4626 vault:
-- Accept vault shares → internally mint PT + YT balances
-- Track yield using the vault's exchange rate as the accumulator
-- YT holders claim accrued yield (paid out in vault shares)
-- PT holders redeem at maturity (principal value in vault shares)
-- Before maturity: "unsplit" by burning PT + YT balances
-
-**5 TODOs:** `tokenize()`, `getAccruedYield()`, `claimYield()`, `redeemAtMaturity()`, `redeemBeforeMaturity()`
-
-**🎯 Goal:** Implement the same accumulator pattern from Module 2's FundingRateEngine, but now driven by an external exchange rate instead of an internal calculation.
-
-**Run:** `forge test --match-contract YieldTokenizerTest -vvv`
-
-### Exercise 2: PTRateOracle
-
-**Workspace:**
-- Scaffold: `workspace/src/part3/module3/exercise2-pt-rate-oracle/PTRateOracle.sol`
-- Tests: `workspace/test/part3/module3/exercise2-pt-rate-oracle/PTRateOracle.t.sol`
-
-Build a rate oracle that computes and tracks implied rates from PT prices:
-- Calculate implied annual rate from PT price and time-to-maturity
-- Calculate PT fair value from a target annual rate
-- Record rate observations with timestamps
-- Compute Time-Weighted Average Rate (TWAR) — same accumulator pattern as Uniswap V2's TWAP oracle
-- Calculate YT break-even rate for profitability analysis
-
-**5 TODOs:** `getImpliedRate()`, `getPTPrice()`, `recordObservation()`, `getTimeWeightedRate()`, `getYTBreakEven()`
-
-**🎯 Goal:** Master the implied rate math and connect rate-oracle tracking to the TWAP accumulator pattern from Part 2 Module 3 (Oracles).
-
-**Run:** `forge test --match-contract PTRateOracleTest -vvv`
 
 ---
 

@@ -14,6 +14,7 @@
 - [Two Models: Rebasing vs Non-Rebasing](#rebasing-vs-non-rebasing)
 - [Deep Dive: The Exchange Rate](#exchange-rate)
 - [Withdrawal Queue (Post-Shapella)](#withdrawal-queue)
+- [Build Exercise: LST Oracle Consumer](#exercise1)
 
 **Protocol Architecture**
 - [Lido Architecture](#lido-architecture)
@@ -35,11 +36,11 @@
 - [LSTs as Collateral in Lending](#lst-collateral)
 - [LSTs in AMMs](#lst-amms)
 - [LSTs in Vaults](#lst-vaults)
+- [Build Exercise: LST Collateral Lending Pool](#exercise2)
 
 **Wrap Up**
 - [DeFi Pattern Connections](#pattern-connections)
 - [Job Market Context](#job-market)
-- [Build Exercise: Liquid Staking Integration](#exercises)
 - [Resources](#resources)
 
 ---
@@ -232,6 +233,39 @@ Request flow:
 - The withdrawal queue creates an arbitrage loop: if stETH trades below 1 ETH on a DEX, arbitrageurs buy cheap stETH → request withdrawal → receive 1 ETH → profit. This keeps the peg tight.
 - During extreme demand (mass exits), the queue lengthens and the peg can weaken — arbitrageurs must lock capital longer, reducing their incentive.
 - Post-Shapella, stETH has traded very close to 1:1 with ETH. The June 2022 de-peg (0.93 ETH) happened pre-Shapella when no withdrawal mechanism existed.
+
+---
+
+<a id="exercise1"></a>
+## 🎯 Build Exercise: LST Oracle Consumer
+
+**Workspace:** `workspace/src/part3/module1/`
+
+Build a `WstETHOracle` contract that correctly prices wstETH in USD using a two-step pipeline.
+
+**What you'll implement:**
+- `getWstETHValueUSD(uint256 wstETHAmount)` — exchange rate × Chainlink ETH/USD, with staleness checks on both data sources
+- `getWstETHValueUSDSafe(uint256 wstETHAmount)` — same pipeline but with dual oracle pattern: uses `min(protocolRate, marketRate)` for the stETH → ETH conversion
+- Staleness checks on both Chainlink feeds (ETH/USD and stETH/ETH)
+- Decimal normalization across the pipeline
+
+**What's provided:**
+- Mock wstETH contract with configurable exchange rate (`stEthPerToken`)
+- Mock Chainlink aggregator for ETH/USD and stETH/ETH feeds
+- Interfaces for `IWstETH` and Chainlink `AggregatorV3Interface`
+
+**Tests verify:**
+- Basic pricing matches manual calculation (known exchange rate × known price)
+- Dual oracle uses market price during simulated de-peg (stETH/ETH < 1.0)
+- Staleness check reverts on stale ETH/USD feed
+- Staleness check reverts on stale stETH/ETH feed
+- Exchange rate growth over time produces correct price increase
+- Zero amount reverts with `ZeroAmount` error
+- Decimal normalization is correct across the pipeline
+
+**🎯 Goal:** Internalize the two-step LST pricing pipeline and the dual oracle safety pattern. This is the exact oracle design used by Aave, Morpho, and every lending protocol that accepts wstETH.
+
+---
 
 ## 📋 Summary: Liquid Staking Fundamentals
 
@@ -1017,6 +1051,43 @@ borrows ETH, and loops the leverage:
 | **P3M3** | Yield tokenization | Pendle splits LST yield into PT/YT — LSTs are the primary input |
 | **P3M9** | Capstone (perp exchange) | LSTs as margin collateral — pricing and liquidation mechanics carry over |
 
+---
+
+<a id="exercise2"></a>
+## 🎯 Build Exercise: LST Collateral Lending Pool
+
+**Workspace:** `workspace/src/part3/module1/`
+
+Build a simplified lending pool that accepts wstETH as collateral, using the oracle from Exercise 1.
+
+**What you'll implement:**
+- `depositCollateral(uint256 wstETHAmount)` — deposit wstETH as collateral
+- `borrow(uint256 stablecoinAmount)` — borrow stablecoin against wstETH collateral
+- `repay(uint256 stablecoinAmount)` — repay borrowed stablecoin
+- `withdrawCollateral(uint256 wstETHAmount)` — withdraw collateral (health check after)
+- `liquidate(address user)` — liquidate unhealthy position, transfer wstETH to liquidator
+- `getHealthFactor(address user)` — calculate HF using safe (dual oracle) valuation
+- E-Mode toggle: when borrowing ETH-denominated assets, use higher LTV
+
+**What's provided:**
+- `WstETHOracle` from Exercise 1 (imported, already deployed)
+- Mock stablecoin ERC-20 for borrowing
+- Mock wstETH with configurable exchange rate
+- Mock Chainlink feeds for both price sources
+
+**Tests verify:**
+- Full lifecycle: deposit → borrow → repay → withdraw
+- Health factor increases as wstETH exchange rate grows (staking rewards)
+- De-peg scenario: stETH/ETH drops to 0.93, previously healthy position becomes liquidatable
+- Liquidation transfers wstETH to liquidator, burns repaid stablecoin
+- E-Mode allows higher LTV when borrowing ETH-denominated asset
+- Cannot withdraw below minimum health factor
+- Cannot borrow above debt ceiling
+
+**🎯 Goal:** Practice building a lending integration that correctly handles LST-specific concerns — two-step pricing, de-peg risk, and E-Mode for correlated assets. These are production patterns used by every major lending protocol.
+
+---
+
 ## 📋 Summary: LST Integration Patterns
 
 **Covered:**
@@ -1072,69 +1143,6 @@ borrows ETH, and loops the leverage:
 **Pro tip:** In interviews, when discussing LST integration, always mention the de-peg scenario unprompted. Saying "we'd use a dual oracle pattern because of the June 2022 de-peg risk" signals real-world awareness, not just textbook knowledge. Protocol teams remember June 2022 — it shaped how every subsequent LST integration was designed.
 
 **Pro tip:** If asked about EigenLayer/restaking, focus on the risk analysis (risk stacking, correlated slashing, LTV implications) rather than trying to explain the full architecture. Teams care more about how you'd evaluate the risk of accepting restaked assets than about memorizing contract names.
-
----
-
-<a id="exercises"></a>
-## 🎯 Build Exercise: Liquid Staking Integration
-
-**Workspace:** `workspace/src/part3/module1/`
-
-### Exercise 1: LST Oracle Consumer
-
-Build a `WstETHOracle` contract that correctly prices wstETH in USD using a two-step pipeline.
-
-**What you'll implement:**
-- `getWstETHValueUSD(uint256 wstETHAmount)` — exchange rate × Chainlink ETH/USD, with staleness checks on both data sources
-- `getWstETHValueUSDSafe(uint256 wstETHAmount)` — same pipeline but with dual oracle pattern: uses `min(protocolRate, marketRate)` for the stETH → ETH conversion
-- Staleness checks on both Chainlink feeds (ETH/USD and stETH/ETH)
-- Decimal normalization across the pipeline
-
-**What's provided:**
-- Mock wstETH contract with configurable exchange rate (`stEthPerToken`)
-- Mock Chainlink aggregator for ETH/USD and stETH/ETH feeds
-- Interfaces for `IWstETH` and Chainlink `AggregatorV3Interface`
-
-**Tests verify:**
-- Basic pricing matches manual calculation (known exchange rate × known price)
-- Dual oracle uses market price during simulated de-peg (stETH/ETH < 1.0)
-- Staleness check reverts on stale ETH/USD feed
-- Staleness check reverts on stale stETH/ETH feed
-- Exchange rate growth over time produces correct price increase
-- Zero amount reverts with `ZeroAmount` error
-- Decimal normalization is correct across the pipeline
-
-**🎯 Goal:** Internalize the two-step LST pricing pipeline and the dual oracle safety pattern. This is the exact oracle design used by Aave, Morpho, and every lending protocol that accepts wstETH.
-
-### Exercise 2: LST Collateral Lending Pool
-
-Build a simplified lending pool that accepts wstETH as collateral, using the oracle from Exercise 1.
-
-**What you'll implement:**
-- `depositCollateral(uint256 wstETHAmount)` — deposit wstETH as collateral
-- `borrow(uint256 stablecoinAmount)` — borrow stablecoin against wstETH collateral
-- `repay(uint256 stablecoinAmount)` — repay borrowed stablecoin
-- `withdrawCollateral(uint256 wstETHAmount)` — withdraw collateral (health check after)
-- `liquidate(address user)` — liquidate unhealthy position, transfer wstETH to liquidator
-- `getHealthFactor(address user)` — calculate HF using safe (dual oracle) valuation
-- E-Mode toggle: when borrowing ETH-denominated assets, use higher LTV
-
-**What's provided:**
-- `WstETHOracle` from Exercise 1 (imported, already deployed)
-- Mock stablecoin ERC-20 for borrowing
-- Mock wstETH with configurable exchange rate
-- Mock Chainlink feeds for both price sources
-
-**Tests verify:**
-- Full lifecycle: deposit → borrow → repay → withdraw
-- Health factor increases as wstETH exchange rate grows (staking rewards)
-- De-peg scenario: stETH/ETH drops to 0.93, previously healthy position becomes liquidatable
-- Liquidation transfers wstETH to liquidator, burns repaid stablecoin
-- E-Mode allows higher LTV when borrowing ETH-denominated asset
-- Cannot withdraw below minimum health factor
-- Cannot borrow above debt ceiling
-
-**🎯 Goal:** Practice building a lending integration that correctly handles LST-specific concerns — two-step pricing, de-peg risk, and E-Mode for correlated assets. These are production patterns used by every major lending protocol.
 
 ---
 

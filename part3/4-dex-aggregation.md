@@ -10,15 +10,16 @@
 1. [The Routing Problem](#routing-problem)
 2. [Split Order Math](#split-order-math)
 3. [Aggregator On-Chain Patterns](#aggregator-patterns)
-4. [The Intent Paradigm](#intent-paradigm)
-5. [EIP-712 Order Structures](#eip712-orders)
-6. [Dutch Auction Price Decay](#dutch-auction)
-7. [Settlement Contract Architecture](#settlement-architecture)
-8. [Solvers & the Filler Ecosystem](#solvers)
-9. [CoW Protocol: Batch Auctions](#cow-protocol)
-10. [Job Market Context](#job-market-context)
-11. [Exercises](#exercises)
-12. [Resources](#resources)
+4. [Build Exercise: Split Router](#exercise-split-router)
+5. [The Intent Paradigm](#intent-paradigm)
+6. [EIP-712 Order Structures](#eip712-orders)
+7. [Dutch Auction Price Decay](#dutch-auction)
+8. [Build Exercise: Intent Settlement](#exercise-intent-settlement)
+9. [Settlement Contract Architecture](#settlement-architecture)
+10. [Solvers & the Filler Ecosystem](#solvers)
+11. [CoW Protocol: Batch Auctions](#cow-protocol)
+12. [Job Market Context](#job-market-context)
+13. [Resources](#resources)
 
 ---
 
@@ -290,6 +291,31 @@ function unoswap(
 Don't try to understand the full router in one pass. The core pattern is the multi-call loop above; everything else is gas optimization and edge-case handling.
 
 > 🔍 **Code:** [1inch Limit Order Protocol](https://github.com/1inch/limit-order-protocol) — V6 aggregation router source is not publicly available; the limit-order-protocol repo is the best open-source reference for 1inch's on-chain patterns
+
+---
+
+<a id="exercise-split-router"></a>
+## 🎯 Build Exercise: Split Router
+
+### Exercise 1: SplitRouter
+
+Build a simple DEX router that splits trades across two constant-product pools.
+
+**What you'll implement:**
+- `getAmountOut()` — constant-product AMM output calculation (refresher from Part 2)
+- `getOptimalSplit()` — find the best split ratio across two pools
+- `splitSwap()` — execute a split trade, pulling tokens and swapping through both pools
+- `singleSwap()` — execute a single-pool trade (for comparison)
+
+**Concepts exercised:**
+- AMM output formula applied to routing
+- Split order optimization math
+- Multi-call execution pattern (the core of every aggregator)
+- Gas-aware decision making (when splitting beats single-pool)
+
+**🎯 Goal:** Prove that splitting a large trade across two unequal pools gives more output than routing through either pool alone.
+
+Run: `forge test --match-contract SplitRouterTest -vvv`
 
 ---
 
@@ -578,6 +604,31 @@ Deploy, call `currentOutput()` immediately (1950). Wait 30+ seconds, call again 
 - **Gradual Dutch Auctions (GDAs)** — Paradigm's design for NFTs and token sales
 
 The formula is identical across all of these. What changes is: who's buying, what's being sold, and how the decay parameters are tuned.
+
+---
+
+<a id="exercise-intent-settlement"></a>
+## 🎯 Build Exercise: Intent Settlement
+
+### Exercise 2: IntentSettlement
+
+Build a simplified intent settlement system with EIP-712 orders and Dutch auction price decay.
+
+**What you'll implement:**
+- `hashOrder()` — EIP-712 struct hashing for the order type
+- `getDigest()` — full EIP-712 digest with domain separator
+- `resolveDecay()` — Dutch auction price calculation at current timestamp
+- `fill()` — complete settlement: verify signature, check deadline, resolve decay, execute atomic swap
+
+**Concepts exercised:**
+- EIP-712 typed data hashing and domain separators
+- Signature verification with ECDSA recovery
+- Dutch auction formula (linear decay)
+- Settlement contract security: replay protection, deadline enforcement, minimum output
+
+**🎯 Goal:** Build the core of a UniswapX-style settlement contract. Sign orders off-chain in tests using `vm.sign`, fill them on-chain with Dutch auction price decay.
+
+Run: `forge test --match-contract IntentSettlementTest -vvv`
 
 ---
 
@@ -943,53 +994,6 @@ Both are valid approaches with different tradeoffs. Understanding both gives you
 - ❌ Not knowing about Permit2 and its role in the intent flow
 
 **Pro tip:** The intent space is moving fast. Knowing UniswapX's callback pattern and CoW's batch settlement model signals you're current. Mentioning Permit2 integration, exclusive filler windows, and cross-chain intents shows real depth.
-
----
-
-<a id="exercises"></a>
-## 🎯 Build Exercise: DEX Aggregation & Intents
-
-**Workspace:** `workspace/src/part3/module4/`
-
-### Exercise 1: SplitRouter
-
-Build a simple DEX router that splits trades across two constant-product pools.
-
-**What you'll implement:**
-- `getAmountOut()` — constant-product AMM output calculation (refresher from Part 2)
-- `getOptimalSplit()` — find the best split ratio across two pools
-- `splitSwap()` — execute a split trade, pulling tokens and swapping through both pools
-- `singleSwap()` — execute a single-pool trade (for comparison)
-
-**Concepts exercised:**
-- AMM output formula applied to routing
-- Split order optimization math
-- Multi-call execution pattern (the core of every aggregator)
-- Gas-aware decision making (when splitting beats single-pool)
-
-**🎯 Goal:** Prove that splitting a large trade across two unequal pools gives more output than routing through either pool alone.
-
-Run: `forge test --match-contract SplitRouterTest -vvv`
-
-### Exercise 2: IntentSettlement
-
-Build a simplified intent settlement system with EIP-712 orders and Dutch auction price decay.
-
-**What you'll implement:**
-- `hashOrder()` — EIP-712 struct hashing for the order type
-- `getDigest()` — full EIP-712 digest with domain separator
-- `resolveDecay()` — Dutch auction price calculation at current timestamp
-- `fill()` — complete settlement: verify signature, check deadline, resolve decay, execute atomic swap
-
-**Concepts exercised:**
-- EIP-712 typed data hashing and domain separators
-- Signature verification with ECDSA recovery
-- Dutch auction formula (linear decay)
-- Settlement contract security: replay protection, deadline enforcement, minimum output
-
-**🎯 Goal:** Build the core of a UniswapX-style settlement contract. Sign orders off-chain in tests using `vm.sign`, fill them on-chain with Dutch auction price decay.
-
-Run: `forge test --match-contract IntentSettlementTest -vvv`
 
 ---
 

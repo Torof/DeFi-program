@@ -17,6 +17,7 @@
 - [Margin and Leverage](#margin-and-leverage)
 - [Deep Dive: PnL Calculation with Worked Examples](#pnl-calculation)
 - [Deep Dive: Liquidation Price Derivation](#liquidation-price)
+- [Build Exercise: Funding Rate Engine](#exercise1)
 
 **GMX Architecture**
 - [The GMX Model: Liquidity Pool as Counterparty](#gmx-model)
@@ -39,11 +40,11 @@
 - [Insurance Fund](#insurance-fund)
 - [Auto-Deleveraging (ADL)](#adl)
 - [Cascading Liquidation](#cascading-liquidation)
+- [Build Exercise: Perpetual Exchange](#exercise2)
 
 **Wrap Up**
 - [DeFi Pattern Connections](#pattern-connections)
 - [Job Market Context](#job-market)
-- [Build Exercise: Perpetuals & Derivatives](#exercises)
 - [Resources](#resources)
 
 ---
@@ -467,6 +468,27 @@ single-tick move triggers liquidation.
 The table makes it visceral: at 50x, a 1% move liquidates you; at 100x, the position is liquidatable the instant it opens. On a volatile asset like ETH, a 1% move can happen between two blocks.
 
 **Funding payments shift liquidation price:** The formulas above assume no funding. In practice, accumulated funding payments reduce (or increase) remaining margin, which shifts the effective liquidation price over time. This is why long-duration highly-leveraged positions are particularly dangerous — even if price stays flat, funding can slowly drain your margin.
+
+---
+
+<a id="exercise1"></a>
+## 🎯 Build Exercise: Funding Rate Engine
+
+**Workspace:** `workspace/src/part3/module2/`
+
+**File:** `workspace/src/part3/module2/exercise1-funding-rate-engine/FundingRateEngine.sol`
+**Test:** `workspace/test/part3/module2/exercise1-funding-rate-engine/FundingRateEngine.t.sol`
+
+Build the core funding rate accumulator pattern:
+- Global cumulative funding index (per-second continuous funding)
+- Skew-based funding rate calculation (longs OI vs shorts OI)
+- Per-position funding settlement using the accumulator
+- Correct sign handling (longs pay when positive, shorts pay when negative)
+- Time-weighted accumulation with `vm.warp` testing
+
+**What you'll learn:** The O(1) accumulator pattern that appears everywhere in DeFi. After this exercise, you'll recognize it instantly in Aave, Compound, Synthetix, and every perp protocol.
+
+**Run:** `forge test --match-contract FundingRateEngineTest -vvv`
 
 ---
 
@@ -1183,6 +1205,29 @@ Cascading liquidation is the perp equivalent of bank runs and is closely related
 
 ---
 
+<a id="exercise2"></a>
+## 🎯 Build Exercise: Perpetual Exchange
+
+**Workspace:** `workspace/src/part3/module2/`
+
+**File:** `workspace/src/part3/module2/exercise2-simple-perp-exchange/SimplePerpExchange.sol`
+**Test:** `workspace/test/part3/module2/exercise2-simple-perp-exchange/SimplePerpExchange.t.sol`
+
+Build a simplified perpetual exchange combining all concepts:
+- Position lifecycle: open long/short → accrue funding → close with PnL
+- Oracle-based pricing (mock Chainlink, reuses P3M1 pattern)
+- Leverage enforcement (max leverage check at open)
+- Margin tracking (collateral + PnL + funding = remaining margin)
+- Keeper-triggered liquidation with incentive fee
+- LP pool as counterparty (deposit/withdraw liquidity)
+- Insurance fund for bad debt absorption
+
+**What you'll learn:** How all the pieces fit together — funding, margin, PnL, liquidation, and LP pool accounting in one contract. This is a simplified version of what you'll build at full scale in the Part 3 Capstone (Module 9).
+
+**Run:** `forge test --match-contract SimplePerpExchangeTest -vvv`
+
+---
+
 <a id="pattern-connections"></a>
 ## 🔗 DeFi Pattern Connections
 
@@ -1236,45 +1281,6 @@ Cascading liquidation is the perp equivalent of bank runs and is closely related
 - Describing ADL without understanding why it's controversial
 
 **Pro tip:** Perp protocol development is one of the hottest DeFi hiring areas. If you can explain the funding rate accumulator, implement a basic perp exchange, and discuss the trade-offs between pool-based and order book models with nuance, you'll stand out from most candidates. Understanding MEV implications (P3M5) of perp designs is an additional differentiator.
-
----
-
-<a id="exercises"></a>
-## 🎯 Build Exercise: Perpetuals & Derivatives
-
-**Workspace:** `workspace/src/part3/module2/`
-
-### Exercise 1: Funding Rate Engine
-
-**File:** `workspace/src/part3/module2/exercise1-funding-rate-engine/FundingRateEngine.sol`
-**Test:** `workspace/test/part3/module2/exercise1-funding-rate-engine/FundingRateEngine.t.sol`
-
-Build the core funding rate accumulator pattern:
-- Global cumulative funding index (per-second continuous funding)
-- Skew-based funding rate calculation (longs OI vs shorts OI)
-- Per-position funding settlement using the accumulator
-- Correct sign handling (longs pay when positive, shorts pay when negative)
-- Time-weighted accumulation with `vm.warp` testing
-
-**What you'll learn:** The O(1) accumulator pattern that appears everywhere in DeFi. After this exercise, you'll recognize it instantly in Aave, Compound, Synthetix, and every perp protocol.
-
-### Exercise 2: SimplePerpExchange
-
-**File:** `workspace/src/part3/module2/exercise2-simple-perp-exchange/SimplePerpExchange.sol`
-**Test:** `workspace/test/part3/module2/exercise2-simple-perp-exchange/SimplePerpExchange.t.sol`
-
-Build a simplified perpetual exchange combining all concepts:
-- Position lifecycle: open long/short → accrue funding → close with PnL
-- Oracle-based pricing (mock Chainlink, reuses P3M1 pattern)
-- Leverage enforcement (max leverage check at open)
-- Margin tracking (collateral + PnL + funding = remaining margin)
-- Keeper-triggered liquidation with incentive fee
-- LP pool as counterparty (deposit/withdraw liquidity)
-- Insurance fund for bad debt absorption
-
-**What you'll learn:** How all the pieces fit together — funding, margin, PnL, liquidation, and LP pool accounting in one contract. This is a simplified version of what you'll build at full scale in the Part 3 Capstone (Module 9).
-
-**Run:** `forge test --match-contract FundingRateEngineTest -vvv` and `forge test --match-contract SimplePerpExchangeTest -vvv`
 
 ---
 

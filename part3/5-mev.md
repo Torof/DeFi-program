@@ -6,13 +6,14 @@
 
 1. [The Invisible Tax](#invisible-tax)
 2. [Sandwich Attacks: Anatomy & Math](#sandwich-attacks)
-3. [Arbitrage & Liquidation MEV](#good-mev)
-4. [The Post-Merge MEV Supply Chain](#supply-chain)
-5. [MEV Protection Mechanisms](#protection)
-6. [MEV-Aware Protocol Design](#mev-aware-design)
-7. [Job Market Context](#job-market-context)
-8. [Exercises](#exercises)
-9. [Resources](#resources)
+3. [Build Exercise: Sandwich Attack Simulation](#exercise1-sandwich-simulation)
+4. [Arbitrage & Liquidation MEV](#good-mev)
+5. [The Post-Merge MEV Supply Chain](#supply-chain)
+6. [MEV Protection Mechanisms](#protection)
+7. [MEV-Aware Protocol Design](#mev-aware-design)
+8. [Build Exercise: MEV-Aware Dynamic Fee Hook](#exercise2-mev-fee-hook)
+9. [Job Market Context](#job-market-context)
+10. [Resources](#resources)
 
 ---
 
@@ -222,6 +223,31 @@ Try: `cleanSwap(20000e18)` → 9.091 ETH. Then `sandwichedSwap(20000e18, 10000e1
 3. **Vault rebalances** — automated vault strategies that swap on-chain are sandwich targets
 4. **Oracle updates** — TWAP oracles can be manipulated through related ordering attacks
 5. **Module 4's intent paradigm** — designed specifically to eliminate the sandwich surface by moving execution off-chain
+
+---
+
+<a id="exercise1-sandwich-simulation"></a>
+## 🎯 Build Exercise: Sandwich Attack Simulation
+
+**Workspace:** `workspace/src/part3/module5/`
+
+Build a test-only exercise that simulates a sandwich attack on a simple constant-product pool, measures the extraction, and verifies that slippage protection defeats it.
+
+**What you'll implement:**
+- `SimplePool` — a minimal constant-product AMM with `swap()`
+- `SandwichBot` — a contract that executes front-run → victim swap → back-run atomically
+- Test scenarios measuring user loss and attacker profit
+- Slippage defense: verify that tight slippage makes sandwich revert
+
+**Concepts exercised:**
+- Sandwich attack mechanics (the three-step pattern)
+- AMM price impact math applied to adversarial scenarios
+- Slippage as a defense mechanism
+- Thinking adversarially about transaction ordering
+
+**🎯 Goal:** Prove quantitatively that sandwiches work on large trades with loose slippage, and fail against tight slippage limits.
+
+Run: `forge test --match-contract SandwichSimTest -vvv`
 
 ---
 
@@ -665,6 +691,31 @@ Try: call `getHash(1000, 0xdead0000000000000000000000000000000000000000000000000
 
 ---
 
+<a id="exercise2-mev-fee-hook"></a>
+## 🎯 Build Exercise: MEV-Aware Dynamic Fee Hook
+
+**Workspace:** `workspace/src/part3/module5/`
+
+Implement a simplified V4-style hook that detects potential sandwich patterns and applies a dynamic fee surcharge.
+
+**What you'll implement:**
+- `MEVFeeHook` — tracks swap directions per pool per block
+- `beforeSwap()` — detects opposite-direction swaps in the same block and returns a dynamic fee (normal or surcharge)
+- `isSandwichLikely()` — view function that checks whether both swap directions occurred in the current block
+- Test scenarios: normal swaps (low fee) vs sandwich-pattern swaps (high fee)
+
+**Concepts exercised:**
+- MEV detection heuristics (opposite-direction swaps in same block)
+- Dynamic fee mechanism design
+- The MEV internalization principle (capturing MEV for LPs)
+- Uniswap V4 hook design patterns
+
+**🎯 Goal:** Build a fee mechanism where normal users pay 0.3% but sandwich bots effectively pay 1%+, making the attack unprofitable.
+
+Run: `forge test --match-contract MEVFeeHookTest -vvv`
+
+---
+
 <a id="job-market-context"></a>
 ## 💼 Job Market Context
 
@@ -706,53 +757,6 @@ Try: call `getHash(1000, 0xdead0000000000000000000000000000000000000000000000000
 - ❌ Not connecting MEV to protocol design decisions
 
 **Pro tip:** The strongest signal of MEV expertise is understanding that MEV can't be eliminated — only redirected. Protocol designers choose WHERE the value goes: to searchers (bad), to validators (neutral), or back to users/LPs (good). Showing you think about this tradeoff immediately separates you from candidates who only know the attack taxonomy.
-
----
-
-<a id="exercises"></a>
-## 🎯 Build Exercise: MEV Deep Dive
-
-**Workspace:** `workspace/src/part3/module5/`
-
-### Exercise 1: Sandwich Simulation
-
-Build a test-only exercise that simulates a sandwich attack on a simple constant-product pool, measures the extraction, and verifies that slippage protection defeats it.
-
-**What you'll implement:**
-- `SimplePool` — a minimal constant-product AMM with `swap()`
-- `SandwichBot` — a contract that executes front-run → victim swap → back-run atomically
-- Test scenarios measuring user loss and attacker profit
-- Slippage defense: verify that tight slippage makes sandwich revert
-
-**Concepts exercised:**
-- Sandwich attack mechanics (the three-step pattern)
-- AMM price impact math applied to adversarial scenarios
-- Slippage as a defense mechanism
-- Thinking adversarially about transaction ordering
-
-**🎯 Goal:** Prove quantitatively that sandwiches work on large trades with loose slippage, and fail against tight slippage limits.
-
-Run: `forge test --match-contract SandwichSimTest -vvv`
-
-### Exercise 2: MEV-Aware Dynamic Fee Hook
-
-Implement a simplified V4-style hook that detects potential sandwich patterns and applies a dynamic fee surcharge.
-
-**What you'll implement:**
-- `MEVFeeHook` — tracks swap directions per pool per block
-- `beforeSwap()` — detects opposite-direction swaps in the same block and returns a dynamic fee (normal or surcharge)
-- `isSandwichLikely()` — view function that checks whether both swap directions occurred in the current block
-- Test scenarios: normal swaps (low fee) vs sandwich-pattern swaps (high fee)
-
-**Concepts exercised:**
-- MEV detection heuristics (opposite-direction swaps in same block)
-- Dynamic fee mechanism design
-- The MEV internalization principle (capturing MEV for LPs)
-- Uniswap V4 hook design patterns
-
-**🎯 Goal:** Build a fee mechanism where normal users pay 0.3% but sandwich bots effectively pay 1%+, making the attack unprofitable.
-
-Run: `forge test --match-contract MEVFeeHookTest -vvv`
 
 ---
 
