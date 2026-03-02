@@ -57,7 +57,7 @@ This section teaches how memory actually works at the opcode level — the layou
 
 **Why this matters:** Every time you write `bytes memory`, `abi.encode`, `new`, or even just call a function that returns data, Solidity is managing memory behind the scenes. Understanding the layout lets you write assembly that cooperates with Solidity — or intentionally bypasses it for gas savings.
 
-EVM memory is a **byte-addressable array** that starts at zero and grows upward. It's initialized to all zeros and only exists during the current call frame (not persisted across transactions).
+EVM memory is a **byte-addressable array** that starts at zero and grows upward. It's initialized to all zeros — this is a deliberate design choice: zero-initialization means `mload` on unwritten memory returns 0 (not garbage), so Solidity can safely use uninitialized memory for zeroing variables. It also means the zero slot at 0x60 doesn't need an explicit write. Memory only exists during the current call frame (not persisted across transactions).
 
 But Solidity doesn't use memory starting from byte 0. It **reserves** the first 128 bytes (0x00–0x7f) for special purposes:
 
@@ -83,7 +83,7 @@ EVM Memory Layout (Solidity Convention)
 | Scratch space | 0x00–0x3f | 64 bytes | Temporary storage for hashing (keccak256) and inline computations. Solidity may overwrite this at any time, so it's only safe for immediate use. |
 | Free memory pointer | 0x40–0x5f | 32 bytes | Stores the address of the next available byte. This is how Solidity tracks memory allocation. |
 | Zero slot | 0x60–0x7f | 32 bytes | Guaranteed to be zero. Used as the initial value for empty dynamic memory arrays (`bytes memory`, `uint256[]`). Do not write to this. |
-| Allocatable | 0x80+ | Grows | Your data starts here. Every allocation bumps the free memory pointer forward. |
+| Allocatable | 0x80+ | Grows | Your data starts here. 0x80 = 128 = 4 × 32, i.e., right after the four reserved 32-byte words. Every allocation bumps the free memory pointer forward. |
 
 > **This is why every Solidity contract starts with `6080604052`.** In Module 1 you saw this init code and we said "Module 2 explains why." Here's the answer:
 > - `60 80` → PUSH1 0x80 (the starting address for allocations)
@@ -123,9 +123,21 @@ The three memory opcodes you'll use most:
 | `MLOAD` | `[offset]` | `[value]` | Read 32 bytes from `memory[offset..offset+31]` |
 | `MSTORE8` | `[offset, value]` | — | Write 1 byte to `memory[offset]` (lowest byte of value) |
 
-> **Note:** Solidity 0.8.24+ (Cancun) also uses `MCOPY(dest, src, size)` ([EIP-5656](https://eips.ethereum.org/EIPS/eip-5656)) for memory-to-memory copies, replacing the older `mstore`/`mload` loop pattern. You'll see it in compiler output but rarely write it by hand.
+**MSIZE** — returns the highest memory offset that has been accessed (rounded up to a multiple of 32). It's a highwater mark, not a "bytes used" counter — it only grows, never shrinks. In Yul: `msize()`. Gas: 2. Primarily useful for computing expansion costs or as a gas-cheap way to get a unique memory offset (since each call to `msize()` reflects all prior memory access).
+
+**MCOPY — efficient memory-to-memory copy:**
+
+> Introduced in [EIP-5656](https://eips.ethereum.org/EIPS/eip-5656) (Cancun fork, March 2024)
+
+`MCOPY(dest, src, size)` copies `size` bytes within memory from `src` to `dest`. Before MCOPY, the only options were:
+1. **mload/mstore loop** — Load 32 bytes, store 32 bytes, repeat. Costs 6 gas per word (3+3) plus loop overhead
+2. **Identity precompile** — `staticcall` to `0x04` with memory data. Works but has CALL overhead (~100+ gas)
+
+MCOPY does it in a single opcode: 3 gas base + 3 per word copied + any memory expansion cost. It correctly handles overlapping source and destination regions (like C's `memmove`). The Solidity compiler (0.8.24+) automatically emits MCOPY instead of mload/mstore loops when targeting Cancun or later.
 
 **Key insight:** `MLOAD` and `MSTORE` always operate on **32-byte words**, even if you conceptually only need a few bytes. The offset can be any byte position (not just multiples of 32), which means reads and writes can overlap.
+
+> **Big-endian matters here.** The EVM uses **big-endian** byte ordering: the most significant byte is at the lowest address. When you `mstore(0x80, 0xCAFE)`, the value `0xCAFE` is right-aligned (stored in bytes 30-31 of the 32-byte word), with leading zeros filling bytes 0-29. This is the opposite of x86 CPUs (little-endian). Every mstore, mload, calldataload, and sload follows this convention. Understanding big-endian alignment is essential for the `0x1c` offset pattern, address masking, and manual ABI encoding.
 
 **Tracing `mstore(0x80, 0xCAFE)`:**
 
@@ -160,7 +172,7 @@ assembly {
 
 `mload(0x81)` reads bytes 0x81 through 0xA0. This overlaps the stored value but is shifted by 1 byte, giving a completely different number. In practice, always use aligned offsets (multiples of 32) unless you're doing intentional byte manipulation.
 
-> **Memory expansion cost (recap from Module 1):** The *total accumulated* memory cost for a call frame is `3 * words + words² / 512`, where `words` is the highest memory offset used divided by 32 (rounded up). When you access a new, higher offset, the EVM charges the *difference* between the new total and the previous total. So the first expansion is cheap (just the linear term), but pushing into kilobytes becomes quadratic. This is why production assembly is careful about how much memory it touches.
+> **Memory expansion cost (recap from Module 1):** The *total accumulated* memory cost for a call frame is `3 * words + words² / 512`, where `words` is the highest memory offset used divided by 32 (rounded up). When you access a new, higher offset, the EVM charges the *difference* between the new total and the previous total. So the first expansion is cheap (just the linear term), but pushing into kilobytes becomes quadratic. **Why quadratic?** Without it, an attacker could allocate gigabytes of node memory for linear gas cost — a DoS vector against validators. The quadratic penalty makes large allocations prohibitively expensive: 1 MB of memory costs ~2.1 million gas (more than a single block's gas limit), ensuring no transaction can force excessive memory allocation on nodes. This is why production assembly is careful about how much memory it touches.
 
 ---
 
@@ -344,12 +356,14 @@ Calldata is the **read-only input** to a contract call. Every external function 
 |--------|------------|-------------|-----|--------|
 | `CALLDATALOAD` | `[offset]` | `[word]` | 3 | Read 32 bytes from calldata at offset |
 | `CALLDATASIZE` | — | `[size]` | 2 | Total byte length of calldata |
-| `CALLDATACOPY` | `[destOffset, srcOffset, size]` | — | 3 + 3*words + expansion | Copy calldata to memory |
+| `CALLDATACOPY` | `[destOffset, srcOffset, size]` | — | 3 + 3*words + expansion | Copy calldata to memory (bulk copy, cheaper than repeated CALLDATALOAD for large data) |
 
 **Calldata is special:**
-- **Read-only** — you can't write to it (no "calldatastore")
-- **Cheaper than memory** — CALLDATALOAD costs 3 gas flat, no expansion cost
+- **Read-only** — you can't write to it. There's no "calldatastore" opcode. **Why?** Calldata is part of the transaction payload — it was signed by the sender and verified by the network. Allowing modification would break the cryptographic link between what was signed and what executes. It also simplifies execution: since calldata can't change, the EVM doesn't need to track mutations or handle write conflicts. The read-only guarantee means anyone can verify that a contract executed exactly what the user signed
+- **Cheaper than memory** — CALLDATALOAD costs 3 gas flat, no expansion cost, no allocation
 - **Immutable** — the same data throughout the entire call
+
+> **Memory isolation between call frames:** Each external call (CALL, STATICCALL, DELEGATECALL) starts with **fresh, zeroed memory**. The called contract cannot see or modify the caller's memory. The only way to pass data between frames is via calldata (input) and returndata (output). This isolation is a security feature — a malicious contract can't corrupt the caller's memory layout or FMP.
 
 **Static type layout — the simple case:**
 
@@ -366,13 +380,35 @@ Offset:  0x00            0x04                         0x24
 
 Each static parameter occupies exactly 32 bytes, starting at offset `4 + 32*n`:
 - Parameter 0: `calldataload(4)` → `to`
-- Parameter 1: `calldataload(36)` → `amount` (36 = 4 + 32)
+- Parameter 1: `calldataload(36)` → `amount` (36 = 0x24 = 4 + 32)
 
-> **Address encoding:** Addresses are 20 bytes but are **left-padded** with 12 zero bytes in ABI encoding to fill a 32-byte word. When reading an address from calldata, you need to mask out the upper 12 bytes: `and(calldataload(4), 0xffffffffffffffffffffffffffffffffffffffff)`.
+**How the selector is computed:** The 4-byte function selector is `bytes4(keccak256("transfer(address,uint256)"))`. The canonical signature uses the **full type names** (no parameter names, no spaces, `uint256` not `uint`). In Yul, extracting it from calldata: `shr(224, calldataload(0))` — load 32 bytes at offset 0, shift right by 224 bits (256 - 32 = 224) to isolate the top 4 bytes. Module 4 covers full selector dispatch patterns.
+
+> **Address encoding — a common point of confusion:** Addresses are 20 bytes but occupy a full 32-byte ABI slot. The address sits in the **low 20 bytes** (right-aligned, like all `uintN` types), with 12 zero bytes of **left-padding**. When you read an address from calldata in assembly with `calldataload(4)`, you get a 32-byte word where the address is in the bottom 20 bytes. Mask with `and(calldataload(4), 0xffffffffffffffffffffffffffffffffffffffff)` to extract just the address. The padding direction matches how the EVM stores all integer types — big-endian, right-aligned. Addresses are `uint160` under the hood.
 
 💻 **Quick Try:**
 
 Send a `transfer(address,uint256)` call in [Remix](https://remix.ethereum.org/) and examine the calldata in the debugger. You'll see exactly this layout — 4 bytes of selector, then 32-byte chunks for each argument.
+
+💻 **Quick Try — CALLDATACOPY:**
+
+```solidity
+contract CalldataDemo {
+    // Copy all calldata to memory and return it as bytes
+    function echoCalldata() external pure returns (bytes memory) {
+        assembly {
+            let ptr := mload(0x40)                    // get FMP
+            let size := calldatasize()                // total calldata bytes
+            mstore(ptr, size)                         // store length for bytes memory
+            calldatacopy(add(ptr, 0x20), 0, size)     // copy ALL calldata after length
+            mstore(0x40, add(add(ptr, 0x20), size))   // bump FMP
+            return(ptr, add(0x20, size))               // return as bytes
+        }
+    }
+}
+```
+
+Deploy, call `echoCalldata()`, and you'll see the raw calldata bytes including the selector. `calldatacopy` is the bulk-copy workhorse — it copies `size` bytes from calldata at `srcOffset` to memory at `destOffset`, paying 3 gas per 32-byte word plus any memory expansion cost.
 
 ---
 
@@ -380,6 +416,8 @@ Send a `transfer(address,uint256)` call in [Remix](https://remix.ethereum.org/) 
 ### 🔍 Deep Dive: Dynamic Type Encoding (Head/Tail)
 
 Static types are simple — value at a fixed offset. **Dynamic types** (bytes, string, arrays) use a two-part encoding: a **head** section with offset pointers, and a **tail** section with actual data.
+
+**Why offset pointers instead of inline data?** If dynamic data were inlined, you couldn't know where parameter N starts without parsing all parameters before it — because earlier dynamic values have variable length. The offset pointer design gives every parameter a fixed head position (`4 + 32*n`), so any parameter can be accessed in O(1) with a single CALLDATALOAD. The actual data lives in the tail, pointed to by the offset. This is a classic computer science trade-off: an extra indirection (one pointer dereference) in exchange for random access to any parameter.
 
 **Example: `foo(uint256 x, bytes memory data, uint256 y)` called with `foo(42, hex"deadbeef", 7)`**
 
@@ -444,6 +482,38 @@ function readDynamicLength(uint256, bytes calldata) external pure returns (uint2
 
 Call `readDynamicLength(42, hex"DEADBEEF")` and you get `len = 4`. The offset pointer at position 0x24 contains `0x40` (64 — pointing past both parameter slots), so `dataStart = 0x04 + 0x40 = 0x44`, and `calldataload(0x44)` reads the length word.
 
+#### Nested Dynamic Types
+
+When dynamic types contain other dynamic types (e.g., `bytes[]`, `uint256[][]`, or structs with dynamic fields), the encoding becomes multi-level. Each level adds another layer of offset pointers.
+
+**Example: `function bar(bytes[] memory items)` called with two byte arrays:**
+
+```
+CALLDATA LAYOUT:
+
+Head:
+0x04    [000...0020]           offset to items array (0x20 from param start)
+
+Array header at 0x24:
+0x24    [000...0002]           items.length = 2
+
+Array offset table at 0x44:
+0x44    [000...0040]           offset to items[0] (relative to array start at 0x24)
+0x64    [000...0080]           offset to items[1] (relative to array start at 0x24)
+
+items[0] data at 0x24 + 0x40 = 0x64:
+0x64    [000...0003]           length of items[0] = 3 bytes
+0x84    [aabbcc00...00]        items[0] data
+
+items[1] data at 0x24 + 0x80 = 0xa4:
+0xa4    [000...0002]           length of items[1] = 2 bytes
+0xc4    [ddee0000...00]        items[1] data
+```
+
+**The pattern:** Each nesting level adds its own offset table. To reach `items[1]`, you follow: parameter offset → array offset table → item 1 offset → length → data. That's 4 CALLDATALOAD operations. This is why deeply nested dynamic types are gas-expensive to decode and why protocols like Uniswap flatten their data structures when possible.
+
+> **In practice:** You'll rarely decode nested dynamic types by hand. Solidity handles the indirection automatically. But understanding the layout helps when debugging failed transactions — tools like `cast calldata-decode` show the structure, and knowing how offsets chain lets you verify the raw bytes.
+
 ---
 
 <a id="abi-encoding"></a>
@@ -453,7 +523,7 @@ Call `readDynamicLength(42, hex"DEADBEEF")` and you get `len = 4`. The offset po
 
 **Encoding static types:**
 
-Every static type is padded to exactly 32 bytes:
+Every static type is padded to exactly 32 bytes. **Why 32 bytes?** The EVM's word size is 256 bits (32 bytes). MLOAD, MSTORE, and CALLDATALOAD all operate on 32-byte chunks. By padding every value to 32 bytes, the ABI ensures that any parameter can be read with a single CALLDATALOAD or MLOAD — no bit shifting, no partial-word extraction. This trades space efficiency for simplicity and gas efficiency at the opcode level. A `uint8` wastes 31 bytes of padding, but reading it is one opcode (3 gas) instead of a load-shift-mask sequence.
 
 ```
 abi.encode(uint256(42)):
@@ -615,7 +685,14 @@ After any external call (`CALL`, `STATICCALL`, `DELEGATECALL`), the return data 
 | `RETURNDATASIZE` | — | `[size]` | Size of the last call's return data |
 | `RETURNDATACOPY` | `[destOffset, srcOffset, size]` | — | Copy return data to memory |
 
-> **Note:** These opcodes are covered briefly here. Module 5 (External Calls) covers the full pattern of making calls and handling their return data.
+**Important behaviors:**
+- Before any external call, `RETURNDATASIZE` returns **0** (this is the PUSH0 trick from Module 1)
+- After a successful call, it returns the size of the return data
+- After a reverted call, it returns the size of the **revert data** (error bytes)
+- `RETURNDATACOPY` with `srcOffset + size > RETURNDATASIZE` causes a revert — you cannot read beyond available data
+- The return data buffer is **overwritten** by each subsequent call (including calls within the same function)
+
+> **Note:** Module 5 (External Calls) covers the full pattern of making calls and handling their return data.
 
 ---
 
@@ -923,7 +1000,9 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract CalldataDecoderTest -vvv
 - Reserved regions: scratch space (0x00-0x3f), FMP (0x40-0x5f), zero slot (0x60-0x7f)
 - Allocatable memory starts at 0x80 (that's what `6080604052` sets up)
 - The free memory pointer at 0x40 must be read and bumped for proper allocations
-- `mload`/`mstore` always operate on 32-byte words (big-endian)
+- `mload`/`mstore` always operate on 32-byte words (big-endian, right-aligned values)
+- `KECCAK256(offset, size)` reads from memory — you must store data in memory before hashing
+- `LOG` topics are stack values, but log **data** is read from memory (`LOG1(offset, size, topic)`)
 - Scratch space is safe for temporary operations (hashing, error encoding)
 - `memory-safe-assembly` tells the compiler your assembly respects the FMP
 
@@ -965,7 +1044,11 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract CalldataDecoderTest -vvv
 - [Solidity Docs — ABI Specification](https://docs.soliditylang.org/en/latest/abi-spec.html) — Complete encoding rules for all types
 - [Solidity Docs — Inline Assembly](https://docs.soliditylang.org/en/latest/assembly.html) — Memory-safe annotation and Yul memory opcodes
 
+### Formal Specification
+- [Ethereum Yellow Paper — Appendix H](https://ethereum.github.io/yellowpaper/paper.pdf) — Formal definitions of MLOAD, MSTORE, MSIZE, CALLDATALOAD, CALLDATACOPY, RETURN, REVERT. The memory expansion cost formula appears in equation (326)
+
 ### EIPs
+- [EIP-5656](https://eips.ethereum.org/EIPS/eip-5656) — MCOPY opcode (Cancun fork)
 - [EIP-712: Typed Structured Data Hashing](https://eips.ethereum.org/EIPS/eip-712) — Uses ABI encoding for structured hashing in signatures
 
 ### Production Code

@@ -12,6 +12,11 @@
 
 ## 📚 Table of Contents
 
+**What the EVM Actually Is**
+- [The State Transition Function](#state-transition)
+- [Accounts: The Data Model](#accounts)
+- [Transactions and Gas Pricing](#transactions)
+
 **The Machine**
 - [The Stack Machine](#stack-machine)
   - [Deep Dive: Tracing Stack Execution](#tracing-stack)
@@ -20,7 +25,9 @@
 **Cost & Context**
 - [Gas Model — Why Things Cost What They Cost](#gas-model)
   - [Deep Dive: EIP-2929 Warm/Cold Access](#warm-cold)
+  - [Deep Dive: SSTORE Cost — The State Machine](#sstore-state-machine)
   - [Deep Dive: Memory Expansion Cost](#memory-expansion)
+  - [Deep Dive: Failure Modes](#failure-modes)
   - [The 63/64 Rule](#63-64-rule)
 - [Execution Context at the Opcode Level](#execution-context)
 
@@ -35,6 +42,152 @@
 **Wrap-Up**
 - [Summary](#summary)
 - [Resources](#resources)
+
+---
+
+## What the EVM Actually Is
+
+Before diving into opcodes and gas costs, you need the mental model that ties everything together. The EVM isn't just "a thing that runs Solidity." It's a precisely defined state machine — and understanding that framing makes every other concept in Part 4 click.
+
+<a id="state-transition"></a>
+### 💡 Concept: The State Transition Function
+
+**Why this matters:** Every EVM concept you'll learn — opcodes, gas, storage, memory — is a piece of one unified system. That system is formally a **state transition function**:
+
+```
+σ' = Υ(σ, T)
+
+Where:
+  σ  = current world state (all accounts, all storage, all code)
+  T  = a transaction (from, to, value, data, gas limit, ...)
+  Υ  = the EVM state transition function
+  σ' = the new world state after executing T
+```
+
+That's it. The entire Ethereum execution layer is this one function. A block is just a sequence of transactions applied one after another: `σ₀ → T₁ → σ₁ → T₂ → σ₂ → ... → σₙ`. Every node runs the same function on the same inputs and must arrive at the same output — this is what "deterministic execution" means, and why the EVM has no floating point, no randomness, no I/O, and no threads.
+
+**What "world state" contains:**
+
+```
+World State (σ)
+├── Account 0x1234...
+│   ├── nonce: 5
+│   ├── balance: 1.5 ETH
+│   ├── storageRoot: 0xabc...  (root hash of this account's storage trie)
+│   └── codeHash: 0xdef...     (hash of this account's bytecode)
+├── Account 0x5678...
+│   ├── ...
+└── ... (every account that has ever been touched)
+```
+
+Every opcode you'll learn modifies some part of this state. `SSTORE` modifies an account's storage trie. `CALL` with value modifies balances. `CREATE` adds a new account. `LOG` appends to the transaction receipt (not part of world state, but part of the block). Understanding the state transition model makes it clear *why* SSTORE costs 20,000 gas (it modifies the world state that every node must persist) while ADD costs 3 gas (it only affects the ephemeral stack, which disappears after execution).
+
+---
+
+<a id="accounts"></a>
+### 💡 Concept: Accounts — The Data Model
+
+**Why this matters:** Every address on Ethereum is an account with four fields. When you read or write storage, check balances, deploy contracts, or send ETH — you're operating on these fields. Understanding the account model tells you exactly what each opcode touches.
+
+**The two account types:**
+
+| | EOA (Externally Owned Account) | Contract Account |
+|---|---|---|
+| **Controlled by** | Private key | Code (bytecode) |
+| **Has code?** | No (`codeHash` = hash of empty) | Yes |
+| **Has storage?** | No (`storageRoot` = empty trie) | Yes |
+| **Can initiate tx?** | Yes | No (only responds to calls) |
+| **Created by** | Generating a key pair | CREATE or CREATE2 opcode |
+
+**The four fields every account has:**
+
+```
+Account State
+┌──────────────┬────────────────────────────────────────────────────┐
+│ nonce        │ For EOAs: number of transactions sent             │
+│              │ For contracts: number of contracts created         │
+│              │ Starts at 0. Incremented by each tx / CREATE       │
+│              │ This is why CREATE addresses depend on nonce       │
+├──────────────┼────────────────────────────────────────────────────┤
+│ balance      │ Wei held by this account                          │
+│              │ Modified by: value transfers, SELFDESTRUCT,       │
+│              │ gas payments, coinbase rewards                    │
+│              │ Opcodes: BALANCE, SELFBALANCE, CALL with value    │
+├──────────────┼────────────────────────────────────────────────────┤
+│ storageRoot  │ Root hash of the account's storage trie           │
+│              │ A Merkle Patricia Trie mapping uint256 → uint256  │
+│              │ This is what SLOAD/SSTORE read/write              │
+│              │ Empty for EOAs. Module 3 covers the trie in depth │
+├──────────────┼────────────────────────────────────────────────────┤
+│ codeHash     │ keccak256 hash of the account's EVM bytecode      │
+│              │ Set once during CREATE. Immutable after deployment │
+│              │ EOAs have keccak256("") = 0xc5d2...               │
+│              │ Opcodes: EXTCODEHASH, EXTCODESIZE, EXTCODECOPY    │
+└──────────────┴────────────────────────────────────────────────────┘
+```
+
+**How this connects to opcodes you'll learn:**
+
+| Account field | Reading opcodes | Writing operations |
+|--------------|----------------|-------------------|
+| nonce | (no direct opcode) | Incremented by tx execution or CREATE |
+| balance | `BALANCE(addr)`, `SELFBALANCE` | `CALL` with value, block rewards |
+| storageRoot | `SLOAD(slot)` | `SSTORE(slot, value)` |
+| codeHash | `EXTCODEHASH(addr)` | Set once by CREATE/CREATE2 |
+
+> **Why EXTCODESIZE(addr) == 0 doesn't always mean EOA:** During a constructor, the contract's code hasn't been stored yet (it's returned at the end). So `EXTCODESIZE` returns 0 for a contract mid-construction. This is a classic security footgun — don't use code size checks for access control.
+
+---
+
+<a id="transactions"></a>
+### 💡 Concept: Transactions and Gas Pricing
+
+**Why this matters:** Gas costs are meaningless without understanding how gas is paid for. The transaction type determines how gas pricing works, and the block gas limit constrains what's possible in a single block.
+
+**Transaction types on Ethereum today:**
+
+| Type | EIP | Gas pricing | Key feature |
+|------|-----|------------|-------------|
+| Type 0 (legacy) | Pre-EIP-2718 | Single `gasPrice` | Simple: you pay `gasPrice × gasUsed` |
+| Type 1 | [EIP-2930](https://eips.ethereum.org/EIPS/eip-2930) | Single `gasPrice` + access list | Pre-declare accessed addresses/slots for a discount |
+| Type 2 | [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559) | `maxFeePerGas` + `maxPriorityFeePerGas` | Base fee burned, priority fee to validator |
+| Type 3 | [EIP-4844](https://eips.ethereum.org/EIPS/eip-4844) | Type 2 + `maxFeePerBlobGas` | Blob data for L2 rollups |
+
+**EIP-1559 gas pricing (the standard today):**
+
+```
+Transaction specifies:
+  gasLimit              — max gas units you're willing to use
+  maxFeePerGas          — max wei per gas you'll pay
+  maxPriorityFeePerGas  — tip to the validator per gas unit
+
+Block has:
+  baseFee               — protocol-set minimum price, burned (not paid to validator)
+                           Adjusts up/down based on block utilization
+
+Actual cost per gas unit:
+  effectiveGasPrice = baseFee + min(maxPriorityFeePerGas, maxFeePerGas - baseFee)
+
+Total cost:
+  gasUsed × effectiveGasPrice
+  └── baseFee portion is burned (removed from supply)
+  └── priority fee portion goes to the block validator
+```
+
+**How this relates to opcodes:**
+- `GASPRICE` returns the `effectiveGasPrice` — what you're actually paying per gas unit
+- `BASEFEE` returns the current block's base fee — useful for MEV bots calculating profitability
+- `GAS` returns remaining gas — the gas limit minus gas consumed so far
+
+**The block gas limit:**
+
+Each block has a **gas limit** (~30 million gas as of 2025, adjustable by validators). This is the hard ceiling on total computation per block. It means:
+- A single transaction can use at most ~30M gas (the full block)
+- In practice, blocks contain many transactions sharing this budget
+- Complex DeFi operations (500K+ gas) consume ~1.5-2% of a block
+- This is why gas optimization matters: cheaper operations → more transactions per block → lower fees for everyone
+
+> **Connection to everything else:** When you see that SSTORE costs 20,000 gas and a block fits ~30M gas, you can calculate: a block can do at most ~1,500 fresh storage writes. That's the physical constraint that drives every storage optimization pattern in DeFi.
 
 ---
 
@@ -53,6 +206,31 @@ Key properties:
 - Every item on the stack is a **256-bit (32-byte) word** — this is why `uint256` is the native type
 - Maximum stack depth is **1024** — this is where Solidity's "stack too deep" error comes from
 - Most opcodes pop their inputs from the stack and push their result back
+
+> **Why 256-bit words?** This wasn't arbitrary. Ethereum's core cryptographic operations — keccak-256 (hashing), secp256k1 (signatures), and 256-bit addresses — all produce or operate on 256-bit values. Making the word size match the crypto output means no awkward multi-word assembly is needed for the most common operations: a hash result fits in one stack item, a public key coordinate fits in one stack item, and arithmetic over these values is a single opcode. Smaller word sizes (64-bit, 128-bit) would require multiple stack items per hash or key, complicating every EVM operation. Larger sizes (512-bit) would waste space and gas. 256 bits is the natural fit for a blockchain VM.
+
+> **Why a 1024 stack limit?** Each stack item is 32 bytes, so a full stack consumes 32 KB of memory. Capping at 1024 keeps the per-call memory footprint bounded and predictable, which matters when every node must execute every transaction. It also simplifies implementation — validators can pre-allocate a fixed-size array for the stack. In practice, most contract calls use well under 100 stack items. The limit mainly prevents pathological contracts from consuming excessive memory during execution. The "stack too deep" error you see at compile time is actually Solidity's 16-item working limit (due to DUP/SWAP range), not the 1024 hard cap.
+
+**Byte ordering: Big-Endian**
+
+The EVM uses **big-endian** byte ordering — the most significant byte is stored at the lowest address. This is the opposite of x86/ARM CPUs (little-endian) and is critical to understand before writing any assembly:
+
+```
+The number 0xCAFE stored as a 256-bit word (32 bytes):
+
+Byte index:  0  1  2  ... 28 29 30 31
+Value:       00 00 00 ... 00 00 CA FE
+             ↑ most significant          ↑ least significant
+             (high byte)                 (low byte)
+```
+
+Small values are **right-aligned** (padded with leading zeros). This matters everywhere:
+- `mstore(0x00, 0xCAFE)` puts `CA` at byte 30 and `FE` at byte 31 — not at byte 0
+- Addresses (20 bytes) sit in bytes 12-31 of a 32-byte word, with bytes 0-11 being zeros
+- Error selectors (4 bytes) sit in bytes 28-31, which is why `revert(0x1c, 0x04)` works (0x1c = 28)
+- `shr(224, calldataload(0))` extracts a 4-byte selector by shifting right to discard the lower 224 bits
+
+This right-alignment is consistent across all data locations: stack, memory, calldata, storage, and return data. Once you internalize it, every byte-level pattern in assembly makes sense.
 
 ```
 Stack grows upward:
@@ -75,7 +253,9 @@ Stack grows upward:
 | `DUP1`-`DUP16` | 3 | Duplicate the Nth item to top | `DUP1` copies top item |
 | `SWAP1`-`SWAP16` | 3 | Swap top with Nth item | `SWAP1` swaps top two |
 
-> The DUP/SWAP limit of 16 is a hard EVM constraint. When Solidity needs more than 16 values simultaneously, it spills to memory — or you get "stack too deep." This is why optimizing local variable count matters, and why the `via_ir` compiler pipeline helps (it's smarter about stack management).
+> **Why exactly 16?** The DUP and SWAP opcodes are encoded as single-byte ranges: `DUP1`=`0x80` through `DUP16`=`0x8F`, and `SWAP1`=`0x90` through `SWAP16`=`0x9F`. Each range spans exactly 16 values (one hex digit: 0-F). Extending to DUP32/SWAP32 would require a two-byte encoding or consuming another opcode range, increasing bytecode size and breaking the clean single-byte opcode design. The limit of 16 is a direct consequence of fitting within one byte of opcode space.
+>
+> When Solidity needs more than 16 values simultaneously, it spills to memory — or you get "stack too deep." This is why optimizing local variable count matters, and why the `via_ir` compiler pipeline helps (it's smarter about stack management, using memory spills efficiently).
 
 💻 **Quick Try:**
 
@@ -185,18 +365,66 @@ Without DUP, you'd have to push `a` twice from calldata (more expensive). DUP co
 | **Arithmetic** | ADD, MUL, SUB, DIV, SDIV, MOD, SMOD, EXP, ADDMOD, MULMOD | 3-50+ | Math in assembly |
 | **Comparison** | LT, GT, SLT, SGT, EQ, ISZERO | 3 | Conditionals |
 | **Bitwise** | AND, OR, XOR, NOT, SHL, SHR, SAR, BYTE | 3-5 | Packing, masking, shifts |
-| **Environment** | ADDRESS, CALLER, CALLVALUE, CALLDATALOAD, CALLDATASIZE, CALLDATACOPY, CODESIZE, GASPRICE, RETURNDATASIZE, RETURNDATACOPY | 2-3 | Reading execution context |
+| **Environment** | ADDRESS, CALLER, CALLVALUE, CALLDATALOAD, CALLDATASIZE, CALLDATACOPY, CODESIZE, GASPRICE, RETURNDATASIZE, RETURNDATACOPY, EXTCODESIZE, EXTCODECOPY, EXTCODEHASH | 2-2600 | Reading execution context and external code |
 | **Block** | BLOCKHASH, COINBASE, TIMESTAMP, NUMBER, PREVRANDAO, GASLIMIT, CHAINID, BASEFEE, BLOBBASEFEE | 2-20 | Time/block info |
-| **Memory** | MLOAD, MSTORE, MSTORE8, MSIZE | 3* | Temporary data, ABI encoding |
+| **Memory** | MLOAD, MSTORE, MSTORE8, MSIZE, MCOPY | 3* | Temporary data, ABI encoding |
 | **Storage** | SLOAD, SSTORE | 100-20000 | Persistent state |
 | **Transient** | TLOAD, TSTORE | 100 | Same-tx temporary state |
 | **Flow** | JUMP, JUMPI, JUMPDEST, PC, STOP, RETURN, REVERT, INVALID | 1-8 | Control flow, function returns |
-| **System** | CALL, STATICCALL, DELEGATECALL, CREATE, CREATE2, SELFDESTRUCT | 100-32000+ | External interaction |
+| **System** | CALL, STATICCALL, DELEGATECALL, CALLCODE, CREATE, CREATE2, SELFDESTRUCT | 100-32000+ | External interaction |
 | **Stack** | POP, PUSH1-32, DUP1-16, SWAP1-16 | 2-3 | Stack manipulation |
-| **Logging** | LOG0, LOG1, LOG2, LOG3, LOG4 | 375+ | Events |
+| **Logging** | LOG0-LOG4 | 375 + 375/topic + 8/byte | Events (375 base for receipt entry, each topic costs 375 for Bloom filter indexing, data costs 8/byte) |
 | **Hashing** | KECCAK256 | 30+6/word | Mapping keys, signatures |
 
 *Memory opcodes have a base cost of 3 plus memory expansion cost (covered in the gas model section).
+
+**Control flow: JUMP, JUMPI, JUMPDEST, and the Program Counter**
+
+The EVM executes bytecode sequentially, one opcode at a time. A **program counter (PC)** tracks the current position in the bytecode. Most opcodes advance the PC by 1 (or more for PUSH instructions that have immediate data). Control flow opcodes alter the PC directly:
+
+| Opcode | Gas | What it does |
+|--------|-----|-------------|
+| `JUMP` | 8 | Pop destination from stack, set PC to that value. The destination **must** be a JUMPDEST |
+| `JUMPI` | 10 | Pop destination and condition. If condition ≠ 0, jump. Otherwise continue sequentially |
+| `JUMPDEST` | 1 | Marks a valid jump destination. No-op at runtime, but without it JUMP/JUMPI revert |
+| `PC` | 2 | Push the current program counter value. Deprecated — rarely used in practice |
+
+```
+Bytecode:   PUSH1 0x05  PUSH1 0x0A  JUMPI  PUSH1 0xFF  JUMPDEST  STOP
+PC:         0           2           4      5           7          8
+                                    │                  ▲
+                                    └──────────────────┘
+                                    If top of stack ≠ 0,
+                                    jump to PC=7 (JUMPDEST)
+```
+
+**Why JUMPDEST exists:** Without it, an attacker could JUMP into the middle of a PUSH instruction's data, where the data bytes happen to look like valid opcodes. JUMPDEST forces explicit marking of valid targets, preventing this class of bytecode injection. Every `if`, `for`, `while`, `switch`, and function call in Solidity compiles down to JUMP/JUMPI/JUMPDEST sequences.
+
+> **In Yul**, you never write JUMP directly. `if`, `switch`, and `for` compile to JUMP/JUMPI under the hood. But understanding this is essential when you read raw bytecode (e.g., using `cast disassemble`) or debug at the opcode level. Module 4 covers how the compiler generates these patterns for selector dispatch and function calls.
+
+**CREATE and CREATE2 — Contract deployment opcodes:**
+
+| Opcode | Gas | Stack args | Address computation |
+|--------|-----|-----------|-------------------|
+| `CREATE` | 32000 + code deposit | value, offset, size | `keccak256(rlp(sender, nonce))` — nonce-dependent, non-deterministic |
+| `CREATE2` | 32000 + code deposit + keccak256 cost | value, offset, size, salt | `keccak256(0xff ++ sender ++ salt ++ keccak256(initCode))` — deterministic |
+
+Both read creation code from memory (at `offset`, `size` bytes), execute it, and store whatever RETURN outputs as the new contract's runtime code. They push the new contract's address on success, or 0 on failure.
+
+```
+CREATE:   address = keccak256(rlp(sender, nonce))[12:]
+          ↑ Changes every time — depends on sender's nonce
+
+CREATE2:  address = keccak256(0xFF, sender, salt, keccak256(initCode))[12:]
+          ↑ Same inputs → same address, even before deployment
+```
+
+**Why CREATE2 matters for DeFi:**
+- **Uniswap V2/V3 pair factories** use CREATE2 with the token pair as salt → deterministic pool addresses. Anyone can compute the pool address off-chain without querying the factory
+- **EIP-1167 minimal proxy factories** deploy clones at deterministic addresses using CREATE2
+- **Counterfactual deployment** — you can compute a contract's address before deploying it, enabling patterns like pre-funding a contract or governance voting on a deployment before it happens
+
+> **Code deposit cost:** After the creation code runs and RETURNs runtime bytecode, the EVM charges an additional 200 gas per byte of runtime code stored. A 10 KB contract costs an extra 2,000,000 gas just for storage. This is why contract size matters — the 24,576-byte limit ([EIP-170](https://eips.ethereum.org/EIPS/eip-170)) caps deployment cost and state growth.
 
 **PUSH0 — The newest stack opcode:**
 
@@ -227,9 +455,127 @@ Context:            CALLER, CALLVALUE
 Hashing:            KECCAK256
 ```
 
-**What you can safely skip for now:** `BLOCKHASH` (rarely used in DeFi), `COINBASE`/`PREVRANDAO` (validator-related), `BLOBBASEFEE` (L2-specific), `PC` (deprecated pattern). You'll encounter these if you need them, but they're not in the critical path.
+**Other opcodes worth knowing:**
+
+- `SIGNEXTEND(b, x)` — Extends the sign bit of a `b+1`-byte value to fill 32 bytes. Used when working with signed integers smaller than `int256`. Uniswap V3's `int24` tick values use this for sign-correct comparisons
+- `SELFBALANCE` — Returns `address(this).balance` for 5 gas, vs `BALANCE(ADDRESS)` which costs 100-2600 gas. Added in [EIP-1884](https://eips.ethereum.org/EIPS/eip-1884) specifically because checking your own balance is very common
+- `BYTE(n, x)` — Extracts the `n`th byte from `x` (big-endian, 0 = most significant). Useful in low-level ABI decoding and byte-level manipulation
+- `COINBASE` — Returns the block's fee recipient (validator/builder). Used in MEV contexts and [EIP-4788](https://eips.ethereum.org/EIPS/eip-4788) related patterns (beacon block root accessible from the consensus layer, enabling on-chain Beacon state proofs)
+- `PREVRANDAO` — Provides randomness from the Beacon chain (post-merge). Not truly random (validators know it ~1 slot ahead), but usable for non-critical randomness. Don't use for lottery/raffle — use Chainlink VRF instead
+
+**What you can safely skip for now:** `BLOCKHASH` (rarely used in DeFi, returns zero for blocks > 256 ago), `BLOBBASEFEE` (L2-specific), `PC` (deprecated — `PUSH` + label is preferred).
+
+> **EOF (EVM Object Format):** [EIP-7692](https://eips.ethereum.org/EIPS/eip-7692) (proposed for a future fork) restructures EVM bytecode into a validated container format with separated code/data sections, typed function signatures, and removal of dynamic JUMPs. This would eliminate JUMPDEST scanning, enable static analysis, and improve safety. It's the biggest planned EVM change since the Merge. The new opcodes (RJUMP, CALLF, RETF, DATALOAD) would replace JUMP/JUMPI patterns. Not yet live, but worth tracking — it will significantly change how Yul compiles to bytecode.
 
 > **SELFDESTRUCT is deprecated.** [EIP-6780](https://eips.ethereum.org/EIPS/eip-6780) (Dencun fork, March 2024) neutered `SELFDESTRUCT` — it only works within the same transaction as contract creation. It no longer deletes contract code or transfers remaining balance. Don't use it in new code.
+
+**EXTCODESIZE, EXTCODECOPY, EXTCODEHASH — reading other contracts:**
+
+These opcodes inspect another contract's deployed bytecode:
+
+| Opcode | Gas | What it returns |
+|--------|-----|----------------|
+| `EXTCODESIZE(addr)` | 100 warm / 2600 cold | Byte length of `addr`'s runtime code |
+| `EXTCODECOPY(addr, destOffset, codeOffset, size)` | 100/2600 + memory | Copies code from `addr` into memory |
+| `EXTCODEHASH(addr)` | 100 warm / 2600 cold | `keccak256` of `addr`'s runtime code |
+
+**DeFi relevance:** `EXTCODESIZE` is how `Address.isContract()` checks work — an EOA has code size 0. But beware: a contract in its constructor also has code size 0 (the runtime code hasn't been deployed yet). `EXTCODEHASH` is useful for verifying a contract's implementation hasn't changed (governance checks, proxy verification). `EXTCODECOPY` enables on-chain bytecode analysis (used by some MEV protection contracts).
+
+**MCOPY — efficient memory-to-memory copy:**
+
+> Introduced in [EIP-5656](https://eips.ethereum.org/EIPS/eip-5656) (Cancun fork, March 2024)
+
+`MCOPY(destOffset, srcOffset, size)` copies `size` bytes from `srcOffset` to `destOffset` in memory. Before MCOPY, the only way to copy memory was byte-by-byte loops or using the `identity` precompile at address `0x04`. MCOPY is a single opcode (3 gas base + 3/word + expansion cost), handles overlapping regions correctly, and is significantly cheaper for large copies. Module 2 covers this in depth.
+
+**CALLCODE — the predecessor to DELEGATECALL:**
+
+`CALLCODE` is an older opcode that's functionally similar to `DELEGATECALL`, but with one critical difference: it does **not** preserve `msg.sender`. In a CALLCODE, the called code sees `msg.sender` as the calling contract, not the original external caller. `DELEGATECALL` (introduced in [EIP-7](https://eips.ethereum.org/EIPS/eip-7)) fixed this. You should never use CALLCODE in new code — it exists only for backward compatibility. If you see it in legacy contracts, treat it as a red flag.
+
+**STATICCALL — read-only external calls:**
+
+`STATICCALL` works exactly like `CALL` but with one restriction: any operation that modifies state will revert. This includes SSTORE, LOG, CREATE, CREATE2, SELFDESTRUCT, TSTORE, and CALL with nonzero value. The EVM enforces this at the opcode level — the restriction propagates through the entire call tree. Any sub-call within a STATICCALL also cannot modify state.
+
+**Why it matters:** Every `view` and `pure` function in Solidity compiles to `STATICCALL` when called externally. This is the EVM-level guarantee that view functions can't modify state. It's also why oracles and price feeds use view functions — the caller has a cryptographic guarantee that the call didn't change anything.
+
+**RETURNDATASIZE and RETURNDATACOPY — reading call results:**
+
+After any external call (CALL, STATICCALL, DELEGATECALL), the called contract's return data is available via `RETURNDATASIZE` (returns byte length) and `RETURNDATACOPY(destOffset, srcOffset, size)` (copies return data to memory). Before any call is made, `RETURNDATASIZE` returns 0 — which is why pre-Shanghai code used it as a gas-cheap way to push zero (the PUSH0 trick mentioned above).
+
+> **Module 5** covers the full pattern: making an external call, checking success, then using RETURNDATACOPY to process the result.
+
+**Execution frames — the call stack:**
+
+Every CALL, STATICCALL, DELEGATECALL, and CREATE starts a new **execution frame**. Each frame has its own:
+- **Stack** — fresh, empty stack (not shared with the caller)
+- **Memory** — fresh, zeroed memory (not shared with the caller)
+- **Program counter** — starts at 0 in the called code
+
+What IS shared between frames:
+- **Storage** — the same contract's storage (or the caller's storage for DELEGATECALL)
+- **Transient storage** — shared within the transaction
+- **Gas** — forwarded from the parent (minus the 1/64 retention)
+
+This isolation is why a called contract can't corrupt the caller's stack or memory. The only communication channels are: calldata (input), returndata (output), storage (for DELEGATECALL), and state changes (logs, balance transfers).
+
+**CALL, STATICCALL, DELEGATECALL — Stack Signatures:**
+
+When you write `call(gas, addr, value, argsOffset, argsSize, retOffset, retSize)` in Yul, each argument maps directly to a stack position. Understanding the full signature — and how it differs across call types — is essential for reading and writing assembly:
+
+| Opcode | Stack args (top → bottom) | Key difference |
+|--------|--------------------------|---------------|
+| `CALL` | gas, addr, value, argsOffset, argsSize, retOffset, retSize | Full call — 7 args, can send ETH |
+| `STATICCALL` | gas, addr, argsOffset, argsSize, retOffset, retSize | 6 args — no `value`, state changes revert |
+| `DELEGATECALL` | gas, addr, argsOffset, argsSize, retOffset, retSize | 6 args — no `value`, runs in caller's context |
+| `CALLCODE` | gas, addr, value, argsOffset, argsSize, retOffset, retSize | 7 args — deprecated, like DELEGATECALL but wrong msg.sender |
+
+All four return `1` (success) or `0` (failure) on the stack. They do **not** revert the caller on failure — you must check the return value explicitly.
+
+```
+CALL in Yul — the 7 arguments:
+
+┌─────────┬──────────┬────────────┬────────────┬──────────┬───────────┬──────────┐
+│   gas   │   addr   │   value    │ argsOffset │ argsSize │ retOffset │ retSize  │
+│         │          │            │            │          │           │          │
+│ How much│ Target   │ Wei to     │ Where in   │ How many │ Where to  │ How many │
+│ gas to  │ contract │ send with  │ memory is  │ bytes of │ write     │ bytes of │
+│ forward │          │ the call   │ calldata   │ calldata │ returndata│ returndata│
+└─────────┴──────────┴────────────┴────────────┴──────────┴───────────┴──────────┘
+                          ▲
+                          │
+            STATICCALL and DELEGATECALL
+            remove this argument (6 args total)
+```
+
+**Why the return value matters:** Unlike Solidity's `address.call()` which returns `(bool success, bytes memory data)`, the raw opcode only pushes a `0` or `1`. If you forget to check:
+
+```solidity
+assembly {
+    // WRONG — ignoring return value, execution continues silently on failure
+    call(gas(), target, 0, 0, 0, 0, 0)
+
+    // RIGHT — check and revert on failure
+    let success := call(gas(), target, 0, 0, 0, 0, 0)
+    if iszero(success) { revert(0, 0) }
+}
+```
+
+**Extra costs for CALL with value:** Sending ETH (value > 0) adds 9,000 gas (the `callValueTransfer` cost). If the target account doesn't exist yet, add another 25,000 gas (the `newAccountGas` cost). This is why `CALL` with value is much more expensive than `STATICCALL`.
+
+> **Module 5** covers the complete call pattern: encoding calldata in memory, making the call, checking success, and decoding returndata with RETURNDATACOPY.
+
+**Yul `verbatim` — escape hatch for unsupported opcodes:**
+
+Yul provides `verbatim_<n>i_<m>o(data, ...)` to inject raw bytecode that Yul doesn't natively support. For example, if a new EIP adds an opcode before Solidity supports it:
+
+```solidity
+assembly {
+    // verbatim_1i_1o: 1 stack input, 1 stack output
+    // 0x5c = TLOAD opcode byte (before Solidity had native tload support)
+    let val := verbatim_1i_1o(hex"5c", slot)
+}
+```
+
+You'll rarely need this in practice — most new opcodes get Yul built-ins quickly. But it's useful for experimental EIPs or custom chains with non-standard opcodes. Solady used `verbatim` for early TLOAD/TSTORE support before the Cancun fork.
 
 **Precompiled contracts:**
 
@@ -247,6 +593,8 @@ The EVM has special contracts at addresses `0x01` through `0x0a` that implement 
 | `0x0a` | KZG point evaluation | 50000 | High — Blob verification (EIP-4844) |
 
 The key one for DeFi: **ecrecover** (`0x01`). Every time you call `ECDSA.recover()` or use `permit()`, Solidity compiles it to a `STATICCALL` to address `0x01`. At 3,000 gas per call, signature verification is relatively expensive — this is why batching permit signatures matters in gas-sensitive paths.
+
+**How precompile gas works:** Unlike regular opcodes with fixed costs, precompile gas is computed per-call based on the input. For `ecrecover` it's a flat 3,000 gas. For `modexp` (0x05), the gas formula considers the exponent size and modulus size — it can range from 200 to millions of gas. For BN256 pairing (0x08), it's `45,000 × number_of_pairs`. You invoke precompiles just like a regular STATICCALL — the EVM checks if the target address is 0x01-0x0a and, if so, runs native code instead of interpreting EVM bytecode.
 
 💻 **Quick Try:** ([evm.codes playground](https://www.evm.codes/playground))
 
@@ -270,27 +618,35 @@ Now look up `SSTORE`. Compare the gas cost (20,000 for a fresh write!) to `ADD` 
 **The gas schedule in tiers:**
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        EVM Gas Tiers                            │
-├──────────────┬───────────┬──────────────────────────────────────┤
-│ Tier         │ Gas Cost  │ Opcodes                              │
-├──────────────┼───────────┼──────────────────────────────────────┤
-│ Zero         │ 0         │ STOP, RETURN, REVERT                 │
-│ Base         │ 2         │ ADDRESS, CALLER, CALLVALUE,          │
-│              │           │ CALLDATASIZE, TIMESTAMP, CHAINID     │
-│ Very Low     │ 3         │ ADD, SUB, NOT, LT, GT, EQ,          │
-│              │           │ PUSH, DUP, SWAP, MLOAD, MSTORE      │
-│ Low          │ 5         │ MUL, DIV, MOD, SHL, SHR, SAR        │
-│ Mid          │ 8         │ JUMP, ADDMOD, MULMOD                 │
-│ High         │ 10        │ JUMPI, EXP (base)                    │
-│ Transient    │ 100       │ TLOAD, TSTORE                        │
-│ Storage Read │ 100-2100  │ SLOAD (warm: 100, cold: 2100)        │
-│ Storage Write│ 2900-20000│ SSTORE (update: 2900+, new: 20000)   │
-│ Hashing      │ 30+       │ KECCAK256 (30 + 6 per 32-byte word) │
-│ External Call│ 100-2600+ │ CALL, STATICCALL, DELEGATECALL       │
-│ Logging      │ 375+      │ LOG0 (375 + 8 per byte + topic cost) │
-│ Create       │ 32000+    │ CREATE, CREATE2                      │
-└──────────────┴───────────┴──────────────────────────────────────┘
+┌──────────────┬───────────┬──────────────────────────┬──────────────────────────────────┐
+│ Tier         │ Gas Cost  │ Opcodes                  │ Why this cost?                   │
+├──────────────┼───────────┼──────────────────────────┼──────────────────────────────────┤
+│ Zero         │ 0         │ STOP, RETURN, REVERT     │ Terminate execution — no work    │
+│ Base         │ 2         │ CALLER, CALLVALUE,       │ Read from execution context —    │
+│              │           │ TIMESTAMP, CHAINID       │ already in memory, no computation│
+│ Very Low     │ 3         │ ADD, SUB, NOT, LT, GT,   │ Single ALU operation on values   │
+│              │           │ PUSH, DUP, SWAP, MLOAD   │ already on stack or in memory    │
+│ Low          │ 5         │ MUL, DIV, SHL, SHR, SAR  │ 256-bit multiply/divide is more  │
+│              │           │                          │ work than add/compare            │
+│ Mid          │ 8         │ JUMP, ADDMOD, MULMOD     │ JUMP validates JUMPDEST; modular │
+│              │           │                          │ arithmetic = multiply + divide   │
+│ High         │ 10        │ JUMPI, EXP (base)        │ Conditional + branch prediction; │
+│              │           │                          │ EXP adds 50/byte of exponent     │
+│ Transient    │ 100       │ TLOAD, TSTORE            │ Flat cost — data discarded after │
+│              │           │                          │ tx, no permanent state burden    │
+│ Storage Read │ 100-2100  │ SLOAD                    │ Cold = trie node loading from    │
+│              │           │                          │ disk; warm = cached in memory    │
+│ Storage Write│ 2900-20000│ SSTORE                   │ Modifies world state trie — all  │
+│              │           │                          │ nodes must persist permanently   │
+│ Hashing      │ 30+       │ KECCAK256                │ 30 base + 6/word — CPU-intensive │
+│              │           │                          │ hash scales with input size      │
+│ External Call│ 100-2600+ │ CALL, STATICCALL,        │ New execution frame + cold addr  │
+│              │           │ DELEGATECALL             │ = trie lookup for target account │
+│ Logging      │ 375+      │ LOG0-LOG4                │ 375 receipt + 375/topic (Bloom   │
+│              │           │                          │ filter) + 8/byte (data storage)  │
+│ Create       │ 32000+    │ CREATE, CREATE2          │ New account + code execution +   │
+│              │           │                          │ 200/byte code deposit cost       │
+└──────────────┴───────────┴──────────────────────────┴──────────────────────────────────┘
 ```
 
 **The key insight:** There's a ~6,600x cost difference between the cheapest and most expensive common operations (ADD at 3 gas vs SSTORE at 20,000 gas). This single fact explains most gas optimization patterns:
@@ -376,6 +732,44 @@ Multi-token operations (swaps, multi-collateral lending) access many different s
 
 > **Practical tip:** When you see `forge snapshot` gas differences between test runs, remember that test setup may warm slots. Use `vm.record()` and `vm.accesses()` in Foundry to see exactly which slots are accessed.
 
+#### 🔍 Deep Dive: SSTORE Cost — The State Machine
+
+SSTORE's gas cost isn't a single number — it depends on the **original value** (at transaction start), the **current value** (after any prior writes in this transaction), and the **new value** you're writing. [EIP-2200](https://eips.ethereum.org/EIPS/eip-2200) defines four cases:
+
+```
+SSTORE Gas Schedule (simplified):
+────────────────────────────────────────────────────────────────
+Original  Current   New       Gas Cost    What happened
+────────────────────────────────────────────────────────────────
+0         0         nonzero   20,000      Fresh write (new slot)
+nonzero   nonzero   nonzero   2,900       Update existing value
+nonzero   nonzero   0         2,900       Delete (+ refund)
+nonzero   0         nonzero   20,000      Re-create after delete
+────────────────────────────────────────────────────────────────
+
+Special case: If new == current → 100 gas (SLOAD cost, no-op write)
+```
+
+**Why it matters — the Uniswap V2 reentrancy guard optimization:**
+
+```solidity
+// Expensive pattern (V2 original):  0 → 1 → 0
+unlocked = 1;   // 20,000 gas (fresh write)
+// ... do work ...
+unlocked = 0;   // 2,900 gas (but 0→1→0 lifecycle refunded partially)
+
+// Cheap pattern (V2 optimized):  1 → 2 → 1
+unlocked = 2;   // 2,900 gas (update nonzero → nonzero)
+// ... do work ...
+unlocked = 1;   // 2,900 gas (update nonzero → nonzero)
+```
+
+Using `1 → 2 → 1` instead of `0 → 1 → 0` saves ~15,000 gas per guarded call, because it never crosses the zero/nonzero boundary that triggers the 20,000-gas fresh write cost.
+
+> **Gas refunds** ([EIP-3529](https://eips.ethereum.org/EIPS/eip-3529)): When you SSTORE to zero (clear a slot), you receive a refund of **4,800 gas**. But refunds are capped at **1/5 of total gas used** in the transaction, preventing "gas token" exploits that abused refunds for on-chain gas banking. The refund mechanism is why clearing storage (setting to zero) is encouraged — it reduces state size.
+
+> **Full state machine coverage:** Module 3 (Storage Deep Dive) covers the complete SSTORE cost state machine with a flow chart showing all branches, including EIP-2200 dirty tracking and EIP-3529 refund caps in detail.
+
 ---
 
 <a id="memory-expansion"></a>
@@ -391,7 +785,7 @@ memory_cost = 3 * words + (words² / 512)
 where words = ceil(memory_size / 32)
 ```
 
-The `words²` term means memory cost grows **quadratically**. For small amounts of memory (a few hundred bytes), it's negligible. For large amounts, it becomes dominant:
+The `words²` term means memory cost grows **quadratically**. This is intentional DoS prevention — without the quadratic term, an attacker could allocate gigabytes of memory for linear cost, forcing every validating node to allocate that memory. The quadratic penalty makes large allocations prohibitively expensive, bounding the resources any single transaction can consume. For small amounts of memory (a few hundred bytes), it's negligible. For large amounts, it becomes dominant:
 
 ```
 Memory Size    Words    Cost (gas)
@@ -439,6 +833,95 @@ The takeaway: keep memory usage bounded. Most DeFi operations (ABI encoding a fe
 - **returndata copying:** `RETURNDATACOPY` copies return data to memory. Large return values (like arrays from view functions) expand memory
 
 > This is covered in depth in Module 2 (Memory & Calldata). For now, the key takeaway: memory is cheap for small amounts, expensive for large amounts, and the cost is non-linear.
+
+---
+
+<a id="failure-modes"></a>
+#### 🔍 Deep Dive: Failure Modes
+
+Not all failures are equal in the EVM. Understanding the distinction is critical for writing safe assembly and debugging production reverts.
+
+**The four ways execution can stop abnormally:**
+
+| Failure Mode | Opcode | Gas consumed | Returndata available? | When it happens |
+|-------------|--------|-------------|----------------------|----------------|
+| **REVERT** | `0xFD` | Only gas used so far | Yes — can include error message | Explicit `revert()`, `require()` failure |
+| **INVALID** | `0xFE` | **ALL** remaining gas | No | `assert()` pre-0.8.1, designated invalid opcode |
+| **Out of gas** | (none) | **ALL** remaining gas | No | Gas exhausted during execution |
+| **Stack overflow/underflow** | (none) | **ALL** remaining gas | No | Stack exceeds 1024 items, or pops from empty stack |
+
+The critical distinction: **REVERT** refunds unused gas and can pass error data. Everything else burns all remaining gas with no information.
+
+```
+Normal execution:
+  Gas budget: 100,000 → uses 30,000 → 70,000 refunded to caller
+  ┌──────────────────────┬───────────────────────────────┐
+  │   Gas used: 30,000   │      Refunded: 70,000         │
+  └──────────────────────┴───────────────────────────────┘
+
+REVERT:
+  Gas budget: 100,000 → uses 30,000 → state rolled back, 70,000 refunded
+  ┌──────────────────────┬───────────────────────────────┐
+  │  Gas used: 30,000 🔴 │      Refunded: 70,000         │
+  └──────────────────────┴───────────────────────────────┘
+  State: rolled back ↩   Return data: available ✓
+
+INVALID / Out of gas / Stack overflow:
+  Gas budget: 100,000 → ALL consumed, state rolled back, no error info
+  ┌──────────────────────────────────────────────────────┐
+  │            ALL gas consumed: 100,000 🔴              │
+  └──────────────────────────────────────────────────────┘
+  State: rolled back ↩   Return data: none ✗
+```
+
+**Why this matters in assembly:**
+
+In Yul, `revert(offset, size)` uses the REVERT opcode — it returns unused gas and can pass error data back to the caller. But if you make a mistake that causes out-of-gas or stack overflow, ALL gas is consumed with no error message, making debugging much harder.
+
+```solidity
+assembly {
+    // REVERT — returns unused gas, includes 4-byte error selector + message
+    mstore(0x00, 0x08c379a000000000000000000000000000000000000000000000000000000000)
+    mstore(0x04, 0x20)         // offset to string data
+    mstore(0x24, 0x0d)         // string length: 13
+    mstore(0x44, "Access denied")
+    revert(0x00, 0x64)         // Returns error data, refunds unused gas
+
+    // INVALID — consumes ALL gas, no return data, no information
+    invalid()                   // 0xFE opcode — you almost never want this
+}
+```
+
+**REVERT vs INVALID across Solidity versions:**
+
+| Solidity construct | Pre-0.8.1 | Post-0.8.1 |
+|---|---|---|
+| `require(false, "msg")` | REVERT | REVERT |
+| `assert(false)` | INVALID (all gas burned!) | REVERT with `Panic(0x01)` |
+| Division by zero | INVALID | REVERT with `Panic(0x12)` |
+| Array out of bounds | INVALID | REVERT with `Panic(0x32)` |
+| Arithmetic overflow | Wraps silently (no check) | REVERT with `Panic(0x11)` |
+
+Post-0.8.1, Solidity almost never emits INVALID. But in **raw assembly, you're responsible** — the compiler won't insert safety checks for you. Every division, every array access, every assumption about values must be validated explicitly or you risk a silent all-gas-consuming failure.
+
+**DeFi implications:**
+
+1. **Gas griefing attacks** — If a callback target can force an out-of-gas or INVALID condition, the caller loses all forwarded gas. This is why safe external calls use bounded gas forwarding (`call(gasLimit, ...)` rather than `call(gas(), ...)`) when calling untrusted contracts
+
+2. **Error propagation in assembly** — When a sub-call reverts, its error data is available via `RETURNDATASIZE` / `RETURNDATACOPY`. The standard pattern to bubble up the revert reason:
+
+```solidity
+assembly {
+    let success := call(gas(), target, 0, 0x00, calldatasize(), 0, 0)
+    if iszero(success) {
+        // Copy the revert reason from the sub-call and re-throw it
+        returndatacopy(0, 0, returndatasize())
+        revert(0, returndatasize())
+    }
+}
+```
+
+3. **Debugging "out of gas"** — When a transaction fails with no return data, it's either out-of-gas, stack overflow, or INVALID. Use `cast run <txhash> --trace` to step through opcodes and find where execution diverges. Module 5 covers this debugging workflow in detail.
 
 ---
 
@@ -889,7 +1372,34 @@ You'll see a hex string starting with something like `608060405234...`. This is 
 
 The creation code essentially says: "Copy bytes X through Y of myself into memory, then RETURN that memory region." The EVM stores whatever is returned as the contract's runtime code.
 
-> **Brief for now:** Module 8 (Pure Yul Contracts) goes deep into writing creation code and runtime code by hand using Yul's `object` notation. For now, just know that every contract has two bytecode forms and that `forge inspect` lets you examine them.
+**What happens step by step during deployment:**
+
+```
+1. Transaction with no 'to' field → EVM knows this is contract creation
+2. EVM creates a new account with address = keccak256(rlp(sender, nonce))
+3. EVM executes the transaction's data field as code (this is the creation code)
+4. Creation code runs:
+   a. 6080604052 — Initialize free memory pointer to 0x80
+   b. Constructor logic executes (set state variables, etc.)
+   c. CODECOPY — Copy the runtime portion of itself into memory
+   d. RETURN — Hand runtime code back to the EVM
+5. EVM charges code deposit cost: 200 gas × len(runtime code)
+6. EVM stores the returned bytes as the contract's code
+7. Contract is live — future calls execute the runtime code only
+```
+
+**Constructor arguments:** When a constructor takes parameters, the Solidity compiler appends ABI-encoded arguments after the creation code bytecode. During deployment, the creation code reads these arguments using `CODECOPY` (not `CALLDATALOAD` — constructor args aren't in calldata, they're part of the deployment bytecode itself). This is why `forge create` and deployment scripts ABI-encode constructor args and concatenate them with the bytecode.
+
+**Immutables:** Variables declared `immutable` are set during construction but stored directly in the **runtime bytecode**, not in storage. The creation code computes their values, then patches them into the runtime code before RETURNing it. This is why immutables cost zero gas to read (they're just PUSH instructions in the bytecode) but cannot be changed after deployment — they're literally baked into the contract's code.
+
+```
+// Reading an immutable at runtime:
+PUSH32 0x000000000000000000000000...actualValue   ← embedded in bytecode
+// vs reading from storage:
+PUSH1 0x00  SLOAD                                  ← 100-2100 gas per read
+```
+
+> Module 8 (Pure Yul Contracts) goes deep into writing creation code and runtime code by hand using Yul's `object` notation. For now, understand the two-phase model and that `forge inspect` lets you examine both forms.
 
 <a id="how-to-study"></a>
 📖 **How to Study EVM Bytecode:**
@@ -954,20 +1464,29 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract GasExplorerTest -vvv`
 ## 📋 Summary: EVM Fundamentals
 
 **✓ Covered:**
-- The EVM is a stack machine — 256-bit words, LIFO, max depth 1024
-- Opcodes organized by category — arithmetic, comparison, bitwise, memory, storage, flow, system
-- Gas model — tiers from 2 gas (context opcodes) to 20,000 gas (new storage write), with EIP-2929 warm/cold access and quadratic memory expansion
+- The EVM is a stack machine — 256-bit words (matching keccak-256 and secp256k1), LIFO, max depth 1024 (32 KB)
+- Why DUP/SWAP limited to 16 — single-byte opcode encoding (0x80-0x8F, 0x90-0x9F)
+- Opcodes organized by category — arithmetic, comparison, bitwise, memory, storage, flow, system, environment
+- Control flow — JUMP/JUMPI/JUMPDEST, program counter, why JUMPDEST exists (bytecode injection prevention)
+- CREATE/CREATE2 — nonce-dependent vs deterministic addresses, code deposit cost (200 gas/byte)
+- Gas model — tiers from 2 gas (context opcodes) to 20,000 gas (new storage write), with "why" for each tier
+- SSTORE cost state machine — 4 branches based on original→current→new values, gas refunds capped at 1/5
+- EIP-2929 warm/cold access — first access loads trie nodes (expensive), subsequent cached (cheap)
+- Quadratic memory expansion — DoS prevention via non-linear cost
 - The 63/64 rule — external calls retain 1/64 gas at each depth
 - Execution context — every Solidity global maps to a 2-3 gas opcode
+- Execution frames — each CALL gets fresh stack + memory, shares storage + transient storage
 - Calldata layout — selector (4 bytes) + ABI-encoded arguments
-- PUSH0 (EIP-3855) — the newest stack opcode, replaced the RETURNDATASIZE trick
-- Precompiled contracts — special native contracts at `0x01`-`0x0a`, ecrecover (`0x01`) powers every permit/signature
+- Contract bytecode — creation code (constructor + CODECOPY + RETURN) vs runtime code, immutables baked into bytecode
+- PUSH0, MCOPY, SELFBALANCE, STATICCALL restrictions, verbatim
+- Precompiled contracts — 0x01-0x0a, gas computed per-call based on input
 - Yul basics — `let`, `if`, `switch`, `for`, named variables mapped to stack by the compiler
-- Contract bytecode — creation code (runs once) vs runtime code (stored on-chain)
 
 **Key numbers to remember:**
 - ADD/SUB: 3 gas | MUL/DIV: 5 gas | SLOAD cold: 2100 gas | SSTORE new: 20,000 gas
-- TLOAD/TSTORE: 100 gas | KECCAK256: 30 + 6/word | CALL warm: 100 gas
+- TLOAD/TSTORE: 100 gas | KECCAK256: 30 + 6/word | CALL cold: 2600 gas | CALL warm: 100 gas
+- LOG2 (typical Transfer): ~1,893 gas | CREATE: 32,000+ gas | Code deposit: 200 gas/byte
+- SSTORE update: 2,900 gas | SSTORE refund (clear): 4,800 gas | Max refund: 1/5 of total gas
 
 **Next:** [Module 2 — Memory & Calldata](2-memory-calldata.md) — deep dive into mload/mstore, the free memory pointer, ABI encoding by hand, and returndata handling.
 
@@ -982,13 +1501,20 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract GasExplorerTest -vvv`
 - [Yul Documentation](https://docs.soliditylang.org/en/latest/yul.html) — Official Solidity docs on Yul syntax
 
 ### EIPs Referenced
+- [EIP-7](https://eips.ethereum.org/EIPS/eip-7) — DELEGATECALL (replaced CALLCODE)
 - [EIP-150](https://eips.ethereum.org/EIPS/eip-150) — 63/64 gas forwarding rule (Tangerine Whistle)
+- [EIP-170](https://eips.ethereum.org/EIPS/eip-170) — Contract code size limit (24,576 bytes)
 - [EIP-1153](https://eips.ethereum.org/EIPS/eip-1153) — Transient storage: TLOAD/TSTORE at 100 gas (Dencun fork)
+- [EIP-1884](https://eips.ethereum.org/EIPS/eip-1884) — SELFBALANCE opcode (Istanbul fork)
+- [EIP-2200](https://eips.ethereum.org/EIPS/eip-2200) — SSTORE cost state machine (Istanbul fork)
 - [EIP-2929](https://eips.ethereum.org/EIPS/eip-2929) — Cold/warm access costs (Berlin fork)
 - [EIP-2930](https://eips.ethereum.org/EIPS/eip-2930) — Access list transaction type (Berlin fork)
 - [EIP-3529](https://eips.ethereum.org/EIPS/eip-3529) — Reduced SSTORE refunds (London fork)
 - [EIP-3855](https://eips.ethereum.org/EIPS/eip-3855) — PUSH0 opcode (Shanghai fork)
+- [EIP-4788](https://eips.ethereum.org/EIPS/eip-4788) — Beacon block root in EVM (Dencun fork)
+- [EIP-5656](https://eips.ethereum.org/EIPS/eip-5656) — MCOPY opcode (Cancun fork)
 - [EIP-6780](https://eips.ethereum.org/EIPS/eip-6780) — SELFDESTRUCT deprecation (Dencun fork)
+- [EIP-7692](https://eips.ethereum.org/EIPS/eip-7692) — EOF (EVM Object Format) meta-EIP (proposed)
 
 ### Production Code to Study
 - [Solady](https://github.com/Vectorized/solady) — Gas-optimized Solidity with heavy assembly usage
