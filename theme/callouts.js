@@ -186,6 +186,10 @@
 
     paragraphs.forEach(function(p) {
       if (p.closest('.callout')) return;
+      // Skip paragraphs inside blockquotes — these are inline references
+      // (e.g. "> 🔍 **Deep dive:** ...") where the emoji, label, and content
+      // are all in one <p>. Hiding that <p> hides the content entirely.
+      if (p.closest('blockquote')) return;
 
       var text = p.textContent;
 
