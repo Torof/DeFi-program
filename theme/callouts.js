@@ -64,6 +64,8 @@
   function isStopElement(el) {
     if (!el) return true;
     if (el.matches('h1, h2, h3, h4, hr')) return true;
+    // Stop at callout wrappers already created by Pass 1
+    if (el.matches('.callout')) return true;
     // Another callout-starting paragraph
     if (el.matches('p') && callouts.some(function(c) {
       return el.textContent.indexOf(c.emoji) === 0;
