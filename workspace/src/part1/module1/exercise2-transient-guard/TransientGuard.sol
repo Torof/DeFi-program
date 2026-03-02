@@ -47,12 +47,16 @@ contract AssemblyReentrancyGuard {
         // TODO: Implement using inline assembly
         //
         // Steps:
-        //   1. In an assembly block, read slot 0 with tload(0)
-        //      - If the value is non-zero, the lock is held → revert
-        //      - Hint: revert(0, 0) reverts with empty data in assembly
-        //   2. Still in the same assembly block, write 1 to slot 0 with tstore(0, 1)
-        //   3. Execute the function body (_)
-        //   4. In a second assembly block, clear the lock: tstore(0, 0)
+        //   1. In an assembly block:
+        //      a. Read slot 0 with tload(0)
+        //         - If the value is non-zero, the lock is held → revert
+        //         - Hint: revert(0, 0) reverts with empty data in assembly
+        //      b. Write 1 to slot 0 with tstore(0, 1) to acquire the lock
+        //   2. Execute the function body (_)
+        //      ⚠️ The _; must be OUTSIDE the assembly block — it's Solidity, not Yul
+        //   3. In a SECOND assembly block (after _), clear the lock: tstore(0, 0)
+        //
+        // Structure: assembly { check + lock } → _; → assembly { unlock }
         _;
     }
 }

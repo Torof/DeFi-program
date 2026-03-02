@@ -26,13 +26,11 @@
 <a id="checked-arithmetic"></a>
 ### 💡 Concept: Checked Arithmetic (0.8.0)
 
-**Why this matters:** Before Solidity 0.8, integer overflow/underflow was silent and deadly. A simple `balances[user] -= amount` could wrap from 0 to `type(uint256).max`, draining contracts. Every pre-0.8 contract needed SafeMath just to avoid this. Now it's built into the language.
+**Why this matters:** You know the history — pre-0.8 overflow was silent, SafeMath was everywhere. Since 0.8.0, arithmetic reverts on overflow by default. The real question for DeFi work is: **when do you turn it off, and how do you prove it's safe?**
 
 > Introduced in [Solidity 0.8.0](https://www.soliditylang.org/blog/2020/12/16/solidity-v0.8.0-release-announcement/) (December 2020)
 
-**The change:** Arithmetic operations now revert on overflow/underflow by default. `uint256(0) - 1` reverts instead of wrapping to `type(uint256).max`.
-
-**What this eliminated:** SafeMath — a library that was in literally every pre-0.8 contract. You'll still see it in older protocol code (Uniswap V2, Compound V2, original MakerDAO), so recognize it when you encounter it, but never use it in new code.
+> **Legacy context:** You'll still encounter SafeMath in Uniswap V2, Compound V2, and original MakerDAO. Recognize it, never use it in new code.
 
 **The `unchecked {}` escape hatch:**
 
@@ -139,8 +137,8 @@ Step 1: Multiply a * b into a 512-bit result (two uint256 slots)
 Step 2: Divide the full 512-bit value by c → result fits back in uint256
 ```
 
-- `uint256` max ≈ 10^77
-- Two `uint256` slots hold up to 10^154 — more than enough for any real DeFi scenario
+- `uint256` max ≈ 10^77 (that's 1 followed by 77 zeros — an astronomically large number)
+- Two `uint256` slots hold up to 10^154 (10 to the power of 154) — more than enough for any real DeFi scenario
 - The final result is exact (no precision loss from splitting the operation)
 
 **Rounding direction matters:**
@@ -170,10 +168,44 @@ assets = Math.mulDiv(shares, totalAssets, totalSupply, Math.Rounding.Ceil);
 | [Solady FixedPointMathLib](https://github.com/Vectorized/solady/blob/main/src/utils/FixedPointMathLib.sol) | Assembly-optimized | Gas-critical paths (saves ~200 gas vs OZ) |
 | [Uniswap FullMath](https://github.com/Uniswap/v4-core/blob/main/src/libraries/FullMath.sol) | Assembly, unchecked | Uniswap-specific — study for learning, use OZ/Solady in practice |
 
+**The actual assembly — from Uniswap V4's FullMath.sol:**
+
+Here's the core of the 512-bit multiplication (simplified from the full function):
+
+```solidity
+// From Uniswap V4 FullMath.sol — the 512-bit multiply step
+assembly {
+    // mul(a, b) — EVM multiply opcode, keeps only the LOW 256 bits.
+    // If a * b > 2^256, the overflow is silently discarded (no revert in assembly).
+    let prod0 := mul(a, b)
+
+    // mulmod(a, b, not(0)) — a single EVM opcode that computes (a * b) mod (2^256 - 1)
+    // without intermediate overflow. Gives a different "view" of the same product.
+    let mm := mulmod(a, b, not(0))
+
+    // The difference between mm and prod0, adjusted for borrow (the lt check),
+    // gives us the HIGH 256 bits of the full product.
+    // If prod1 == 0, no overflow occurred and simple a * b / c suffices.
+    let prod1 := sub(sub(mm, prod0), lt(mm, prod0))
+}
+// Full 512-bit product = prod1 * 2^256 + prod0
+// The rest of the function divides this 512-bit value by the denominator.
+```
+
+**Reading this code — every symbol explained:**
+- `mul(a, b)` → the EVM MUL opcode (3 gas). In assembly, overflow wraps — no revert
+- `mulmod(a, b, m)` → the EVM MULMOD opcode (8 gas). Computes `(a * b) % m` without intermediate overflow
+- `not(0)` → bitwise NOT of zero, flips all bits: gives `0xFFFF...FFFF` = 2^256 - 1 (the largest uint256)
+- `lt(mm, prod0)` → "less than" comparison, returns 1 if `mm < prod0`, 0 otherwise. Acts as a borrow flag for the subtraction
+- `sub(a, b)` → subtraction. The nested `sub(sub(mm, prod0), lt(...))` subtracts with borrow to extract the high bits
+- `:=` → Yul's assignment operator (like `=` in Solidity, but for assembly variables)
+
+You don't need to prove WHY the extraction math works. The key insight: two views of the same product (mod 2^256 vs mod 2^256 - 1), combined, recover the full 512-bit value. Trust the library, understand the concept.
+
 **How to read the code:**
 1. Start with [OpenZeppelin's `mulDiv`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol) — clean, well-commented Solidity
 2. The core insight: multiply first (in 512 bits), divide second (back to 256)
-3. Then compare with [Uniswap's FullMath](https://github.com/Uniswap/v4-core/blob/main/src/libraries/FullMath.sol) to see assembly optimizations
+3. Then compare with [Uniswap's FullMath](https://github.com/Uniswap/v4-core/blob/main/src/libraries/FullMath.sol) to see the assembly optimizations above in full context
 4. Don't get stuck on the bit manipulation — understand the *concept* first, internals later
 
 > 🔍 **Deep dive:** [Consensys Smart Contract Best Practices](https://consensys.github.io/smart-contract-best-practices/) covers integer overflow/underflow security patterns. [Trail of Bits - Building Secure Contracts](https://github.com/crytic/building-secure-contracts) provides development guidelines including arithmetic safety.
@@ -446,11 +478,101 @@ function swapWithFallback(
 - Always handle the catch-all `catch (bytes memory)` — custom errors land here
 - Never silently swallow errors (`catch {}`) unless you genuinely intend to ignore failures
 
+**Understanding what each catch branch receives:**
+
+When an external call fails, what your catch block receives depends on HOW it failed:
+
+| Failure type | `catch Error(string)` | `catch Panic(uint256)` | `catch (bytes memory)` |
+|---|---|---|---|
+| `revert("message")` / `require(false, "msg")` | ✅ Caught | — | ✅ Also caught (ABI-encoded) |
+| `revert CustomError(params)` | — | — | ✅ Caught (4-byte selector + params) |
+| `assert(false)` / overflow / div-by-zero | — | ✅ Caught (panic code) | ✅ Also caught |
+| Out of gas in the sub-call | — | — | ✅ Caught, **but `reason` is empty** |
+| `revert()` with no argument | — | — | ✅ Caught, **`reason` is empty** |
+
+The critical edge case: **empty returndata**. When a call runs out of gas or uses bare `revert()`, catch receives zero-length bytes. If you try to read `bytes4(reason)` on empty data, you get a panic. Always check length first:
+
+```solidity
+catch (bytes memory reason) {
+    if (reason.length >= 4) {
+        bytes4 selector = bytes4(reason);
+
+        if (selector == IPool.InsufficientLiquidity.selector) {
+            // Decode the error parameters — skip the 4-byte selector
+            (uint256 available, uint256 required) = abi.decode(
+                // reason[4:] is a bytes slice — everything after the selector
+                reason[4:],
+                (uint256, uint256)
+            );
+            // Now you have the actual values from the error
+            emit SwapFailedWithDetails(available, required);
+        } else if (selector == IPool.Expired.selector) {
+            // Handle differently
+        } else {
+            // Unknown error — re-throw it (explained below)
+            assembly { revert(add(reason, 32), mload(reason)) }
+        }
+    } else {
+        // Empty or very short reason — could be:
+        //   - Out of gas in the sub-call
+        //   - Bare revert() with no data
+        //   - Very old contract without error messages
+        // Don't try to decode — propagate or handle generically
+        revert SwapFailed();
+    }
+}
+```
+
+**The re-throw pattern — explained line by line:**
+
+You'll see this assembly line everywhere in production DeFi code. Here's what each piece does:
+
+```solidity
+assembly { revert(add(reason, 32), mload(reason)) }
+```
+
+- `reason` — a `bytes memory` variable. In memory, it's laid out as: [32 bytes: length][actual bytes data...]
+- `mload(reason)` — reads the first 32 bytes at that memory address, which is the **length** of the bytes array
+- `add(reason, 32)` — skips past the length prefix, pointing to where the **actual data** starts
+- `revert(offset, size)` — the EVM REVERT opcode: stops execution and returns the specified memory range as returndata
+
+In plain English: "take the raw error bytes exactly as received from the sub-call and re-throw them." This preserves the original error selector and parameters through each call layer, no matter how deep.
+
+**Multi-hop error propagation:**
+
+In DeFi, calls are often 3-4 levels deep: User → Router → Pool → Callback. Understanding how errors flow through this chain is critical:
+
+```
+User → Router.swap()
+         │
+         └→ try Pool.swap()
+                   │
+                   └→ Callback.uniswapV3SwapCallback()
+                              │
+                              └─ reverts: InsufficientBalance(100, 200)
+                                  │
+                   ┌───────────────┘
+                   │ Pool doesn't catch — error propagates UP automatically
+                   │ (Solidity's default: uncaught reverts bubble up)
+         ┌─────────┘
+         │ Router's catch receives: reason = 0xf4d678b8...0064...00c8
+         │   (that's InsufficientBalance.selector + abi.encode(100, 200))
+         │
+         │ Router can now:
+         │   1. Decode it → know exactly what went wrong
+         │   2. Re-throw it → user sees the original error
+         │   3. Try fallback pool → graceful degradation
+         │   4. Wrap it → revert RouterSwapFailed(primaryPool, reason)
+```
+
+**Without the re-throw pattern**, each layer wraps or loses the original error. The caller sees "Swap failed" instead of "InsufficientBalance(100, 200)." For debugging, for frontends, and for MEV searchers — the original error data is invaluable.
+
 **Where this appears in DeFi:**
-- **Aggregators** (1inch, Paraswap): try Pool A, catch → try Pool B
-- **Liquidators**: try to liquidate, catch → skip to next position
-- **Keepers** (Gelato, Chainlink Automation): try execution, catch → log and retry
-- **Flash loans**: decode callback errors for debugging
+- **Aggregators** (1inch, Paraswap): try Pool A, catch → decode error → try Pool B with adjusted parameters
+- **Liquidation bots**: try to liquidate, catch → check if it's "healthy position" (skip) vs "insufficient gas" (retry)
+- **Keepers** (Gelato, Chainlink Automation): try execution, catch → log specific error for monitoring dashboards
+- **Flash loans**: decode callback errors — was it the user's callback that failed, or the repayment?
+- **Routers** (Uniswap Universal Router): multi-hop swaps where each hop can fail independently
 
 > Forward reference: You'll implement cross-contract error handling in Part 2 Module 5 (Flash Loans) where callback errors must be decoded and handled.
 
@@ -663,6 +785,31 @@ packed = packed | int256(uint256(uint128(amount1)));
 // Wrap it in the UDVT
 BalanceDelta delta = BalanceDelta.wrap(packed);
 ```
+
+**The actual Uniswap V4 code — assembly version:**
+
+In production, Uniswap V4 packs with assembly for gas savings. Here's their `toBalanceDelta`:
+
+```solidity
+// From Uniswap V4 — src/types/BalanceDelta.sol
+function toBalanceDelta(int128 _amount0, int128 _amount1)
+    pure returns (BalanceDelta balanceDelta)
+{
+    assembly {
+        // shl(128, _amount0) — shift amount0 left by 128 bits (same as << 128)
+        // and(_amount1, 0x00..00ffffffffffffffffffffffffffffffff) — mask to 128 bits
+        //   (the mask is 16 bytes of 0xFF = the low 128 bits)
+        //   This does the same job as the triple-cast chain: prevents sign-extension
+        // or(..., ...) — combine both halves into one 256-bit value
+        balanceDelta := or(
+            shl(128, _amount0),
+            and(_amount1, 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff)
+        )
+    }
+}
+```
+
+Same concept as the Solidity version above — shift left, mask, OR. The assembly version saves gas by avoiding the intermediate casts and doing the masking with a single `and` opcode. Functionally identical.
 
 **Step-by-step unpacking:**
 
