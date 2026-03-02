@@ -141,6 +141,11 @@ contract EIP1271Account {
         //                              v := byte(0, mload(add(signature, 96))) }
         // 2. If recovered signer == owner(), return EIP1271_MAGIC_VALUE
         // 3. Otherwise return 0xffffffff
+        //
+        // ⚠️ Edge case: ecrecover returns address(0) for invalid signatures
+        //    (malformed v/r/s values). Always check signer != address(0)
+        //    before comparing to owner, otherwise a zero-address owner
+        //    would validate ANY invalid signature.
         // Hint: address signer = ecrecover(hash, v, r, s);
         revert("Not implemented");
     }

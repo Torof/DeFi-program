@@ -87,14 +87,17 @@ contract FlashAccounting {
         // TODO: Implement
         // 1. Compute the slot for this user's delta: keccak256(abi.encode(user, address(0)))
         //    (using address(0) as a placeholder for "native token")
-        // 2. Load the current delta from transient storage
-        // 3. If delta is negative (user owes):
-        //    - User must send abs(delta) ETH with this call
-        //    - Verify msg.value == abs(delta)
-        // 4. If delta is positive (user is owed):
-        //    - Contract sends delta ETH to user
-        // 5. Set the delta to 0 in transient storage
-        // 6. Revert with NotSettled() if msg.value doesn't match requirement
+        // 2. Load the current delta from transient storage (it's an int256)
+        // 3. If delta is negative (user owes the contract):
+        //    - User must send exactly abs(delta) ETH with this call
+        //    - Verify msg.value == uint256(-delta)
+        //    - If msg.value doesn't match → revert NotSettled()
+        // 4. If delta is positive (contract owes the user):
+        //    - Contract sends delta ETH to user via call{value: uint256(delta)}
+        //    - ⚠️ User must NOT send ETH in this case (msg.value must be 0)
+        //    - If user sends ETH when contract owes them → revert NotSettled()
+        // 5. If delta is zero → no-op (nothing to settle)
+        // 6. Set the delta to 0 in transient storage (clear the debt)
         revert("Not implemented");
     }
 

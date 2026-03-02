@@ -94,27 +94,84 @@ function swap(address tokenIn, uint256 amountIn) external {
 }
 ```
 
+💻 **Quick Try:**
+
+See cold/warm access in action. Deploy this in Remix or run with Foundry:
+
+```solidity
+contract ColdWarmDemo {
+    uint256 public valueA;
+    uint256 public valueB;
+
+    /// @dev Call this, then check gas — the second SLOAD is ~2000 gas cheaper
+    function readTwice() external view returns (uint256, uint256) {
+        uint256 a = valueA;   // Cold SLOAD: ~2,100 gas
+        uint256 b = valueA;   // Warm SLOAD: ~100 gas (same slot!)
+        return (a, b);
+    }
+
+    /// @dev Compare gas with readTwice — both SLOADs here are cold (different slots)
+    function readDifferent() external view returns (uint256, uint256) {
+        uint256 a = valueA;   // Cold SLOAD: ~2,100 gas
+        uint256 b = valueB;   // Cold SLOAD: ~2,100 gas (different slot)
+        return (a, b);
+    }
+}
+```
+
+Call both functions and compare gas. `readTwice` costs ~2,200 total (2,100 + 100). `readDifferent` costs ~4,200 total (2,100 + 2,100). That 2,000 gas difference per slot is why DeFi protocols pack related data together.
+
 **Optimization: Access Lists (EIP-2930)**
 
-[EIP-2930](https://eips.ethereum.org/EIPS/eip-2930) introduced **access lists** — a way to pre-declare which addresses and storage slots your transaction will touch. Pre-declared items start "warm," avoiding the cold surcharge at the cost of a smaller upfront fee (1,900 gas per address, 100 gas per slot in the access list).
+<a id="eip-2930"></a>
+
+[EIP-2930](https://eips.ethereum.org/EIPS/eip-2930) introduced **access lists** — a way to pre-declare which addresses and storage slots your transaction will touch. Pre-declared items start "warm," avoiding the cold surcharge at a smaller upfront cost.
+
+**The economics:**
+
+| Cost | Amount |
+|------|--------|
+| Access list: per address entry | 2,400 gas |
+| Access list: per storage slot entry | 1,900 gas |
+| Cold CALL/BALANCE (without access list) | 2,600 gas |
+| Cold SLOAD (without access list) | 2,100 gas |
+| Warm access (after pre-warming) | 100 gas |
+
+**When access lists save gas** — the math:
 
 ```
-When to use access lists:
-- Transaction touches many storage slots in external contracts
-- You know exactly which slots will be accessed
-- The cold→warm savings exceed the access list declaration cost
+Per address:   save (2,600 - 100) = 2,500 cold penalty, pay 2,400 entry = net save 100 gas ✓
+Per slot:      save (2,100 - 100) = 2,000 cold penalty, pay 1,900 entry = net save 100 gas ✓
+```
 
-When NOT to use:
-- Simple transfers (overhead exceeds savings)
-- You don't know which slots will be accessed (dynamic routing)
+The savings are modest per item (100 gas), but they compound across complex transactions. A multi-hop DEX swap touching 3 contracts with 9 storage slots saves ~1,200 gas.
+
+**When access lists DON'T help:**
+- **Simple transfers** — only 1-2 cold accesses, overhead may exceed savings
+- **Dynamic routing** — you don't know which slots will be accessed until runtime
+- **Already-warm slots** — accessing a contract you've already called wastes the entry cost
+
+**How to generate access lists:**
+
+```bash
+# Use eth_createAccessList RPC to auto-detect which addresses/slots a tx touches
+cast access-list \
+  --rpc-url $RPC_URL \
+  --from 0xYourAddress \
+  0xRouterAddress \
+  "swap(address,uint256,uint256)" \
+  0xTokenA 1000000 0
+
+# Returns: list of addresses + slots the transaction will access
+# Add this to your transaction for gas savings
 ```
 
 **Real DeFi impact:**
 
 In a multi-hop Uniswap V3 swap touching 3 pools:
 - **Without access list**: 3 cold CALL + ~9 cold SLOAD = 3×2,600 + 9×2,100 = **26,700 gas** in cold penalties
-- **With access list**: 3×1,900 + 9×100 = 6,600 gas upfront, all accesses warm = ~1,200 gas during execution = **7,800 gas total**
-- **Savings**: ~19,000 gas (~71% reduction in access costs)
+- **With access list**: 3×2,400 + 9×1,900 = 24,300 gas upfront, all accesses warm = ~1,200 gas during execution = **25,500 gas total**
+- **Savings**: ~1,200 gas — modest, but MEV bots compete on margins this small
 
 #### 🔗 DeFi Pattern Connection
 
@@ -191,6 +248,21 @@ block.blobbasefee // Current block's blob base fee (EIP-4844)
 tx.gasprice      // Actual gas price of the transaction (base + tip)
 ```
 
+💻 **Quick Try:**
+
+```solidity
+contract BaseFeeReader {
+    /// @dev Returns the current base fee and the effective priority fee
+    function feeInfo() external view returns (uint256 baseFee, uint256 priorityFee) {
+        baseFee = block.basefee;
+        // tx.gasprice = baseFee + priorityFee, so:
+        priorityFee = tx.gasprice - block.basefee;
+    }
+}
+```
+
+Deploy and call `feeInfo()`. On a local Foundry/Hardhat chain, `baseFee` starts at a default value and `priorityFee` reflects your gas price setting. On mainnet, you'd see the real fluctuating base fee.
+
 #### 💼 Job Market Context
 
 **Interview question:**
@@ -254,9 +326,22 @@ contract GasToken {
 
 #### 💼 Job Market Context
 
-**Interview question:** "What were gas tokens and why don't they work anymore?"
+**What DeFi teams expect you to know:**
 
-**What to say:** "Gas tokens like CHI and GST2 exploited the SSTORE gas refund mechanism. You'd write to storage slots during low gas prices, then clear them during high gas prices to get refunds of 15,000 gas per slot. EIP-3529 in the London upgrade reduced the refund to 4,800 gas and capped total refunds at 20% of transaction gas, making the pattern unprofitable. It also removed the SELFDESTRUCT refund entirely."
+1. **"What were gas tokens and why don't they work anymore?"**
+   - Good answer: "Gas tokens exploited SSTORE refunds by storing data cheaply and clearing it during high gas periods. EIP-3529 reduced refunds from 15,000 to 4,800 gas and capped total refunds at 20% of transaction gas."
+   - Great answer: Adds that the 20% cap means you can't use gas refunds to subsidize large transactions, and that SELFDESTRUCT refunds were removed entirely — breaking any economic model that relied on contract destruction for gas recovery.
+
+2. **"How does SSTORE gas work for writing the same value?"**
+   - Good answer: "Writing the same value that's already in the slot costs only 100 gas (warm access, no state change). The EVM detects no-op writes and charges minimally."
+   - Great answer: Adds the optimization insight — Uniswap V2's reentrancy guard uses 1→2→1 instead of 0→1→0 because non-zero-to-non-zero writes (5,000 gas) are cheaper than zero-to-non-zero (20,000 gas), and the partial refund for clearing is now too small to offset the initial cost.
+
+**Interview Red Flags:**
+- 🚩 Designing token economics that rely on gas refunds — the 20% cap makes this unreliable
+- 🚩 Not knowing the SSTORE cost state machine (zero→nonzero, nonzero→nonzero, nonzero→zero, same value)
+- 🚩 "SELFDESTRUCT gives a gas refund" — hasn't been true since London upgrade (2021)
+
+**Pro tip:** Understanding the SSTORE state machine is a recurring theme across all of Part 4 (EVM deep dive). The cost differences between create (20,000), update (5,000), and reset (with 4,800 refund) directly shape how production protocols design their storage layouts.
 
 ---
 
@@ -388,6 +473,39 @@ function getAmountsOut(uint256 amountIn, address[] calldata path)
     }
 }
 ```
+
+💻 **Quick Try:**
+
+Verify CREATE2 address computation yourself:
+
+```solidity
+contract CREATE2Demo {
+    event Deployed(address addr);
+
+    function deploy(bytes32 salt) external returns (address) {
+        // Deploy a minimal contract via CREATE2
+        SimpleChild child = new SimpleChild{salt: salt}();
+        emit Deployed(address(child));
+        return address(child);
+    }
+
+    function predict(bytes32 salt) external view returns (address) {
+        // Compute the address WITHOUT deploying
+        return address(uint160(uint256(keccak256(abi.encodePacked(
+            bytes1(0xff),
+            address(this),           // deployer
+            salt,                    // user-chosen salt
+            keccak256(type(SimpleChild).creationCode)  // init code hash
+        )))));
+    }
+}
+
+contract SimpleChild {
+    uint256 public value = 42;
+}
+```
+
+Call `predict(0x01)`, then call `deploy(0x01)`. The addresses match — deterministic, no storage reads needed. This is the core of Uniswap's pool address computation.
 
 **Safe (Gnosis Safe) wallet deployment:**
 
@@ -878,6 +996,35 @@ Where:
 3. **Block has 0 blobs**: excess_blob_gas decreases by up to 393,216 → fee drops
 4. **After ~8.5 consecutive max blocks**: excess accumulates enough for fee to roughly triple (e^1 ≈ 2.718)
 
+**Concrete numerical verification:**
+
+Let's trace the blob base fee through a sequence of full blocks to see the exponential in action:
+
+```
+Starting state: excess_blob_gas = 0, blob_base_fee = 1 wei (minimum)
+
+Block 1: 6 blobs (max) → excess += (6 - 3) × 131,072 = +393,216
+  excess = 393,216
+  fee = 1 × e^(393,216 / 3,338,477) = 1 × e^0.1178 ≈ 1.125 wei
+
+Block 2: 6 blobs again → excess += 393,216
+  excess = 786,432
+  fee = 1 × e^(786,432 / 3,338,477) = 1 × e^0.2355 ≈ 1.266 wei
+
+Block 5: still max → excess = 1,966,080
+  fee = 1 × e^0.589 ≈ 1.80 wei
+
+Block 9: still max → excess = 3,539,000
+  fee = 1 × e^1.06 ≈ 2.89 wei  (roughly tripled from minimum)
+
+Block 20: still max → excess = 7,864,320
+  fee = 1 × e^2.36 ≈ 10.5 wei  (10x from minimum)
+```
+
+The key insight: it takes ~20 **consecutive** max-capacity blocks (about 4 minutes at 12s/block) to reach just 10x the minimum fee. The system is designed to stay cheap under normal usage. Only sustained, extreme demand drives fees up — and a single empty block starts bringing them back down.
+
+In plain terms: `e^(excess / fraction)` means the fee grows **exponentially** — slowly at first, then accelerating. The large denominator (3,338,477) is a dampening factor that keeps the growth gentle.
+
 **Why this matters:**
 
 The fee adjusts gradually — it takes many consecutive full blocks to drive fees up significantly. In practice, blob demand rarely sustains max capacity for long, so blob fees stay **very low** most of the time.
@@ -1009,6 +1156,13 @@ Deploy in Remix (set EVM to `cancun`) and call `currentBlobBaseFee()`. In a loca
 4. **Future scaling**: EIP-4844 is step 1. Full danksharding will increase from 6 max blobs per block to potentially 64+, further reducing costs.
 
 **Pro tip:** When interviewing for L2-focused teams, frame EIP-4844 as a protocol design lever: "Post-Dencun, I'd design for higher frequency, smaller transactions because the L1 data cost bottleneck is largely gone." This shows you think about infrastructure economics, not just smart contract logic.
+
+**MEV implications of blobs:**
+
+EIP-4844 affects MEV economics in subtle ways:
+- **L2 sequencer MEV**: Cheaper L2 transactions mean more transaction volume, which means more MEV opportunities for L2 sequencers. This is why shared sequencer designs and L2 MEV protection (Flashbots Protect on L2) are becoming critical
+- **Cross-domain MEV**: With blobs, L2s batch data to L1 faster and cheaper. This tightens the window for cross-L1/L2 arbitrage — searchers must be faster
+- **L1 builder dynamics**: Blob transactions compete for inclusion alongside regular transactions. Builders must optimize for both fee markets simultaneously, adding complexity to block building algorithms
 
 ---
 
