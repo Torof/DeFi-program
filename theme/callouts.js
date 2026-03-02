@@ -149,7 +149,8 @@
   }
 
   // --- H2 Section Color Coding ---
-  // Detects emoji in H2, applies the CSS class, then strips the emoji from display.
+  // Detects emoji in H2, applies CSS class, strips emoji, colors the keyword
+  // before ":" to match the section border color, and removes the ":".
   function colorSections() {
     var main = document.querySelector('.content main');
     if (!main) return;
@@ -163,17 +164,46 @@
         if (text.indexOf(s.emoji) !== -1) {
           h2.classList.add(s.cls);
           h2.dataset.sectionColored = 'true';
-          // Strip the emoji from display (and trailing variation selector + space)
-          var walker = document.createTreeWalker(h2, NodeFilter.SHOW_TEXT, null, false);
-          var node;
-          while (node = walker.nextNode()) {
-            var idx = node.textContent.indexOf(s.emoji);
-            if (idx !== -1) {
-              var cleaned = node.textContent.substring(0, idx) +
-                node.textContent.substring(idx + s.emoji.length).replace(/^\uFE0F?\s?/, '');
-              node.textContent = cleaned;
-              break;
-            }
+
+          // Strip emoji, then style the keyword before ":"
+          // Rebuild the entire h2 content as: <span class="section-keyword">Keyword</span> Rest
+          // First, get the clean text (without emoji)
+          var cleanText = h2.textContent;
+          var emojiIdx = cleanText.indexOf(s.emoji);
+          if (emojiIdx !== -1) {
+            cleanText = cleanText.substring(0, emojiIdx) +
+              cleanText.substring(emojiIdx + s.emoji.length).replace(/^\uFE0F?\s?/, '');
+          }
+          cleanText = cleanText.trim();
+
+          // Split on first ":" if present
+          var colonIdx = cleanText.indexOf(':');
+          var keyword, rest;
+          if (colonIdx !== -1) {
+            keyword = cleanText.substring(0, colonIdx).trim();
+            rest = cleanText.substring(colonIdx + 1).trim();
+          } else {
+            keyword = cleanText;
+            rest = '';
+          }
+
+          // Rebuild h2 content
+          // Preserve the anchor <a> tag that mdbook inserts for heading links
+          var anchor = h2.querySelector('a.header');
+          h2.textContent = '';
+
+          var kwSpan = document.createElement('span');
+          kwSpan.className = 'section-keyword';
+          kwSpan.textContent = keyword;
+          h2.appendChild(kwSpan);
+
+          if (rest) {
+            h2.appendChild(document.createTextNode(' ' + rest));
+          }
+
+          // Re-append the anchor link if it existed
+          if (anchor) {
+            h2.appendChild(anchor);
           }
         }
       });

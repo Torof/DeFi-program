@@ -66,6 +66,22 @@
 .content main h2.section-check { border-top-color: #22c55e; }
 .content main h2.section-complete { border-top-color: #8b5cf6; }
 
+/* H2 section keyword coloring — matches border-top color */
+.section-keyword {
+  font-weight: 700;
+}
+.section-concept .section-keyword  { color: #3b82f6; }
+.section-exercise .section-keyword { color: #22c55e; }
+.section-summary .section-keyword  { color: #6366f1; }
+.section-resources .section-keyword { color: #14b8a6; }
+.section-links .section-keyword    { color: #f59e0b; }
+.section-job .section-keyword      { color: #ef4444; }
+.section-warning .section-keyword  { color: #f97316; }
+.section-study .section-keyword    { color: #14b8a6; }
+.section-build .section-keyword    { color: #10b981; }
+.section-check .section-keyword    { color: #22c55e; }
+.section-complete .section-keyword { color: #8b5cf6; }
+
 /* H3 — Concepts/sub-sections: medium weight, muted color, accent bar */
 .content main h3 {
   font-family: var(--font-heading);
