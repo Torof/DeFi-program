@@ -93,19 +93,19 @@
 
 /* H3 accent colors per theme */
 .light .content main h3::after {
-  background: #3b82f6;
+  background: #1e40af;
 }
 
 .navy .content main h3::after {
-  background: #60a5fa;
+  background: #3b82f6;
 }
 
 .coal .content main h3::after {
-  background: #60a5fa;
+  background: #3b82f6;
 }
 
 .ayu .content main h3::after {
-  background: #ffb454;
+  background: #3b82f6;
 }
 
 /* "Concept:" keyword coloring in H3 headings */
