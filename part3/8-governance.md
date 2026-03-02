@@ -264,6 +264,14 @@ This test pattern is exactly what your Exercise 1 will use.
 
 > 🔍 **Code:** [OpenZeppelin Governor](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/governance)
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"Walk through the lifecycle of an on-chain governance proposal."**
+   - Good answer: "Someone proposes a change, token holders vote, if it passes it goes through a timelock, then anyone can execute it."
+   - Great answer: "Five phases: (1) Propose — proposer submits targets, values, calldatas on-chain; a snapshot of all voting power is recorded. (2) Voting delay — 1-2 days for community review. (3) Active voting — holders cast for/against/abstain using power at the snapshot block, not current balance, preventing flash loan attacks. (4) Queue — if quorum met and majority for, queued in TimelockController with mandatory delay (24-48h) — the safety net giving users time to exit. (5) Execute — after timelock expires, anyone triggers execution. Total: 5-14 days."
+
 ---
 
 <a id="exercise-governor"></a>
@@ -499,6 +507,18 @@ Velodrome's fix:
 | Cross-chain governance | Vote on L1, execute on L2 | Modules 6, 7 |
 | Emergency shutdown | MakerDAO ESM | Part 2 Module 6 |
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How does vote-escrow prevent governance manipulation?"**
+   - Good answer: "Users lock tokens for a period, so they can't flash-borrow or quickly acquire and dump voting power."
+   - Great answer: "Three layers of resistance: (1) Time commitment — tokens locked 1-4 years, making flash-borrow impossible. An attacker must buy AND lock tokens, creating massive economic exposure. (2) Linear decay — power decreases as the lock approaches expiry, forcing continuous re-locking. (3) Incentive alignment — voters earn protocol fees, so voting against the protocol's interest reduces their own revenue. The formula `amount * (lockEnd - now) / maxLock` means 10,000 tokens locked 4 years = 40,000 tokens locked 1 year — the market prices this cost."
+
+2. **"Explain the Curve Wars — what are protocols competing for?"**
+   - Good answer: "Protocols compete for veCRV votes that direct CRV emissions to their pools, attracting liquidity."
+   - Great answer: "Curve emits CRV to LPs, but allocation depends on weekly gauge votes by veCRV holders. More emissions = higher LP rewards = more liquidity. Convex aggregates CRV permanently as veCRV; vlCVX holders control Convex's votes, creating meta-governance. On Votium, protocols pay $1 in bribes to vlCVX holders, directing ~$1.50 of CRV emissions — profitable for both sides. The key insight: governance voting power has quantifiable economic value, and a market naturally forms around it."
+
 ---
 
 <a id="exercise-vote-escrow"></a>
@@ -682,6 +702,14 @@ Compound:
   Governor Bravo → all parameter and upgrade changes
 ```
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How did the Beanstalk governance attack work, and how would you prevent it?"**
+   - Good answer: "The attacker flash-borrowed tokens, voted on a malicious proposal, and executed it all in one transaction. Prevention: snapshot voting and timelocks."
+   - Great answer: "Beanstalk had three fatal flaws: no snapshot voting (tokens acquired in the same block could vote), no voting delay (voting started immediately), and no timelock (proposals executed instantly). The attacker flash-borrowed $1B of tokens, created a proposal to drain the treasury, voted FOR, and executed it — all in one transaction ($182M loss). Standard OpenZeppelin Governor defaults prevent this entirely: snapshot voting means tokens must be held BEFORE proposal creation; voting delay prevents same-block voting; timelock delays execution 24-48h. The lesson: governance security is as critical as smart contract security."
+
 ---
 
 <a id="governance-minimization"></a>
@@ -769,6 +797,14 @@ SHOULD NOT be governable (hardcode):
   ✗ Token supply (usually) — governance shouldn't be able to inflate supply
 ```
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What are the tradeoffs between governance and immutability?"**
+   - Good answer: "Governance allows protocols to adapt but introduces attack surfaces. Immutability is more trustless but can't fix bugs."
+   - Great answer: "The spectrum runs from full governance (multisig) through token-based governance (Governor + Timelock) to zero governance (Liquity — no admin keys, no upgradability). Full governance enables rapid response but every governable parameter is an attack surface. Zero governance eliminates these risks but can't adapt. The optimal approach is progressive decentralization: start with multisig, transition to token governance as the protocol matures, then systematically reduce what's governable. The key principle: only make governable what MUST change — core accounting math should be immutable; risk parameters should be governable."
+
 ---
 
 <a id="summary-governance"></a>
@@ -791,42 +827,12 @@ SHOULD NOT be governable (hardcode):
 <a id="job-market-context"></a>
 ## 💼 Job Market Context
 
-### 1. "Walk through the lifecycle of an on-chain governance proposal."
-
-**Good answer:** "Someone proposes a change, token holders vote for or against, if it passes it goes through a timelock, then anyone can execute it."
-
-**Great answer:** "Five phases: (1) Propose — the proposer submits targets, values, calldatas, and a description on-chain. They need a minimum token balance (proposal threshold) to prevent spam. At this moment, a snapshot of all voting power is recorded. (2) Voting delay — typically 1-2 days, giving the community time to review. (3) Active voting — token holders cast for/against/abstain using their voting power at the snapshot block, not their current balance. This prevents flash loan attacks. (4) Queue — if quorum is met and majority votes for, the proposal is queued in a TimelockController with a mandatory delay (24-48 hours). This is the safety net — users who disagree can exit. (5) Execute — after the timelock expires, anyone can trigger execution. The TimelockController calls the target contracts with the encoded function calls. Total time: 5-14 days depending on configuration."
-
-### 2. "How does vote-escrow prevent governance manipulation?"
-
-**Good answer:** "Users lock tokens for a period, which means they can't flash-borrow or quickly acquire and dump voting power."
-
-**Great answer:** "Vote-escrow adds three layers of manipulation resistance: (1) Time commitment — tokens are locked for 1-4 years, making it impossible to flash-borrow voting power. An attacker would need to buy tokens on the market AND lock them up, creating massive economic exposure. (2) Linear decay — voting power decreases as the lock approaches expiry, forcing continuous re-locking. An attacker can't lock once and maintain power indefinitely. (3) Incentive alignment — because voters earn protocol fees (in Curve) or pool-specific fees (in Velodrome), voting against the protocol's interest reduces the voter's own revenue. The economic formula is: votingPower = lockedAmount × (lockEnd - now) / maxLockTime. This means 10,000 tokens locked for 4 years gives the same power as 40,000 tokens locked for 1 year — the market prices this, creating a real economic cost to governance influence."
-
-### 3. "Explain the Curve Wars — what are protocols competing for?"
-
-**Good answer:** "Protocols compete for veCRV votes that direct CRV emissions to their pools, attracting liquidity."
-
-**Great answer:** "The Curve Wars are a meta-governance competition for liquidity. Curve emits CRV tokens to liquidity providers, but the allocation depends on weekly gauge votes by veCRV holders. More emissions to a pool means higher LP rewards, which attracts more liquidity, which means deeper trading for that token pair. For stablecoin protocols, deep Curve liquidity is existential — it's where peg stability comes from. So protocols compete for veCRV votes through bribes. Convex Finance aggregates CRV from thousands of users and locks it permanently as veCRV. The vlCVX token controls Convex's votes, creating a meta-governance layer. On platforms like Votium, protocols pay $1 in bribes to vlCVX holders, which typically directs $1.50+ of CRV emissions — a profitable arbitrage that sustains the entire flywheel. The key insight: governance voting power has quantifiable economic value, and a market naturally forms around it."
-
-### 4. "How did the Beanstalk governance attack work, and how would you prevent it?"
-
-**Good answer:** "The attacker flash-borrowed tokens, voted on a malicious proposal, and executed it all in one transaction. Prevention: snapshot voting and timelocks."
-
-**Great answer:** "Beanstalk had three fatal governance design flaws: no snapshot-based voting (tokens acquired in the same block could vote), no voting delay (voting started immediately), and no timelock (proposals executed instantly). The attacker flash-borrowed $1B of tokens from Aave and SushiSwap, created a malicious proposal to drain the treasury, voted FOR with overwhelming power, and executed it — all in a single transaction. The $182M loss was entirely preventable with standard OpenZeppelin Governor defaults: snapshot voting means tokens must be held BEFORE the proposal is created; voting delay means voting can't start in the same block; timelock means execution is delayed 24-48 hours. These three defenses together make flash loan governance attacks economically impossible. The lesson isn't just technical — it's that governance security is as critical as smart contract security."
-
-### 5. "What are the tradeoffs between governance and immutability?"
-
-**Good answer:** "Governance allows protocols to adapt but introduces attack surfaces. Immutability is more trustless but can't fix bugs."
-
-**Great answer:** "The spectrum runs from full governance (multisig) through token-based governance (Governor + Timelock) to zero governance (Liquity). Full governance enables rapid response to bugs, market changes, and competitive pressure — but every governable parameter is an attack surface. Governance can be bought, bribed, or exploited. Zero governance eliminates these risks entirely — Liquity has no admin keys, no governance token, no upgradability. But it also can't fix bugs, adapt interest rates to market conditions, or add new collateral types. The optimal approach is progressive decentralization: start with a multisig for rapid iteration, transition to token-based governance as the protocol matures, then systematically reduce what's governable over time. The key principle: only make governable what MUST change. Core accounting math should be immutable; risk parameters should be governable; somewhere in between, the protocol designer makes judgment calls."
-
 **Interview red flags:**
-- ❌ Not knowing about snapshot-based voting and flash loan prevention
-- ❌ Thinking governance is "just voting" (it's a complex security + economic system)
-- ❌ Not understanding why timelocks exist (user exit rights, not just delay)
-- ❌ Treating all governance as good or all governance as bad (it's a spectrum)
-- ❌ Not knowing the Beanstalk attack (the most important governance case study)
+- Not knowing about snapshot-based voting and flash loan prevention
+- Thinking governance is "just voting" (it's a complex security + economic system)
+- Not understanding why timelocks exist (user exit rights, not just delay)
+- Treating all governance as good or all governance as bad (it's a spectrum)
+- Not knowing the Beanstalk attack (the most important governance case study)
 
 **Pro tip:** In interviews, showing awareness that governance is both a feature AND an attack surface immediately sets you apart. Most candidates think about governance from the "how do we vote" perspective. Senior candidates think about it from the "how can this be exploited, and how do we minimize the attack surface" perspective.
 

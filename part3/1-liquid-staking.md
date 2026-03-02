@@ -280,6 +280,18 @@ Build a `WstETHOracle` contract that correctly prices wstETH in USD using a two-
 
 **Next:** How Lido and Rocket Pool actually implement this — the contract architecture that makes liquid staking work.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How would you integrate wstETH as collateral in a lending protocol?"**
+   - Good answer: "Use the exchange rate to convert wstETH to ETH, then Chainlink for ETH/USD."
+   - Great answer: "Two-step pricing: `getStETHByWstETH()` for the exchange rate, then Chainlink ETH/USD. But I'd also use a Chainlink stETH/ETH market feed as a second oracle, taking the minimum — the dual oracle pattern. During a de-peg (like June 2022), the exchange rate says 1:1 but the market says 0.93. Without the dual oracle, positions appear healthier than they really are, and liquidations don't fire when they should."
+
+2. **"Explain the difference between stETH and wstETH and when you'd use each."**
+   - Good answer: "stETH rebases, wstETH doesn't."
+   - Great answer: "Both represent the same underlying staked ETH. stETH uses rebasing — your balance grows daily as oracle reports update `totalPooledEther`. Internally, stETH tracks shares, and `balanceOf()` returns `shares × totalPooledEther / totalShares`. wstETH is a wrapper that exposes those shares directly as a standard ERC-20 — your balance is fixed, and the exchange rate `stEthPerToken` grows instead. You'd use wstETH for any DeFi integration — lending, vaults, AMMs — because rebasing breaks contracts that cache balances."
+
 ---
 
 ## 💡 Protocol Architecture
@@ -576,6 +588,14 @@ The rate is updated by Rocket Pool's Oracle DAO (a set of trusted nodes) rather 
 > **🧭 Checkpoint — Before Moving On:**
 > Can you explain the difference between stETH and wstETH in terms of how they represent staking rewards? Can you calculate a wstETH → stETH conversion given a `stEthPerToken` value? If you can, you understand the foundation that everything else in this module builds on.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How does Lido's oracle work, and what are the trust assumptions?"**
+   - Good answer: "Oracle committee reports beacon chain balances, triggering rebase."
+   - Great answer: "A permissioned oracle committee (5/9 quorum) submits beacon chain balance reports to `AccountingOracle`. The report updates `totalPooledEther`, which changes every stETH holder's `balanceOf()` return value. Sanity checks cap the maximum APR and maximum balance drop to limit damage from a compromised oracle. The trust assumption is that the oracle committee honestly reports balances — if they inflate the report, stETH becomes temporarily overvalued. This is similar to how Chainlink oracles are a trust assumption for price feeds."
+
 ---
 
 ## 💡 EigenLayer & Restaking
@@ -769,6 +789,14 @@ This is not theoretical — Aave, Morpho, and every lending protocol that lists 
 **Key insight:** The risk stacking diagram is what DeFi integration comes down to. Every LTV ratio, oracle design choice, and liquidation parameter for LSTs and LRTs is ultimately a judgment about which risk layers you're willing to accept and at what discount. This is the analysis that protocol risk teams perform — and being able to articulate it is a strong interview signal.
 
 **Next:** Putting it all together — how to actually integrate LSTs into DeFi protocols.
+
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What are the risks of accepting LRTs as collateral?"**
+   - Good answer: "Smart contract risk, slashing risk, liquidity risk."
+   - Great answer: "Risk stacking — an LRT like weETH carries five layers of risk: ETH market risk, validator slashing, LST protocol risk, EigenLayer smart contract and AVS slashing risk, and the LRT protocol's own risk. Each layer compounds. I'd set LTV significantly lower than for plain wstETH (maybe 65% vs 80%), require deeper liquidity on DEX for liquidation viability, set higher liquidation bonus to compensate bidders for the added complexity of selling an LRT, and impose tighter debt ceilings."
 
 ---
 
@@ -1100,40 +1128,20 @@ Build a simplified lending pool that accepts wstETH as collateral, using the ora
 
 **Key insight:** LST integration is really about two things: (1) correctly converting to underlying value via the exchange rate, and (2) defensively handling the edge case where market price diverges from exchange rate (de-peg). The dual oracle pattern handles both. Everything else — LTV ratios, E-Mode, liquidation parameters — follows from understanding these two points.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What happened during the June 2022 stETH de-peg and what did it teach us?"**
+   - Good answer: "stETH traded below 1 ETH. It was caused by selling pressure."
+   - Great answer: "3AC and Celsius faced insolvency and had to liquidate stETH positions. Pre-Shapella, there was no withdrawal queue — the only exit was selling on DEX. Massive sell pressure pushed stETH/ETH to 0.93. This wasn't a protocol failure — Lido's backing was fine. It was a liquidity/market failure. The lesson: exchange rate and market price can diverge, so lending protocols need dual oracle pricing. Post-Shapella (April 2023), the withdrawal queue creates an arbitrage floor that prevents deep de-pegs."
+
 ---
 
 <a id="job-market"></a>
 ## 💼 Job Market Context
 
-### Interview Questions
-
-**1. "How would you integrate wstETH as collateral in a lending protocol?"**
-
-- Good: "Use the exchange rate to convert wstETH to ETH, then Chainlink for ETH/USD."
-- Great: "Two-step pricing: `getStETHByWstETH()` for the exchange rate, then Chainlink ETH/USD. But I'd also use a Chainlink stETH/ETH market feed as a second oracle, taking the minimum — the dual oracle pattern. During a de-peg (like June 2022), the exchange rate says 1:1 but the market says 0.93. Without the dual oracle, positions appear healthier than they really are, and liquidations don't fire when they should."
-
-**2. "What are the risks of accepting LRTs as collateral?"**
-
-- Good: "Smart contract risk, slashing risk, liquidity risk."
-- Great: "Risk stacking — an LRT like weETH carries five layers of risk: ETH market risk, validator slashing, LST protocol risk, EigenLayer smart contract and AVS slashing risk, and the LRT protocol's own risk. Each layer compounds. I'd set LTV significantly lower than for plain wstETH (maybe 65% vs 80%), require deeper liquidity on DEX for liquidation viability, set higher liquidation bonus to compensate bidders for the added complexity of selling an LRT, and impose tighter debt ceilings."
-
-**3. "Explain the difference between stETH and wstETH and when you'd use each."**
-
-- Good: "stETH rebases, wstETH doesn't."
-- Great: "Both represent the same underlying staked ETH. stETH uses rebasing — your balance grows daily as oracle reports update `totalPooledEther`. Internally, stETH tracks shares, and `balanceOf()` returns `shares × totalPooledEther / totalShares`. wstETH is a wrapper that exposes those shares directly as a standard ERC-20 — your balance is fixed, and the exchange rate `stEthPerToken` grows instead. You'd use wstETH for any DeFi integration — lending, vaults, AMMs — because rebasing breaks contracts that cache balances. stETH exists for user-facing simplicity."
-
-**4. "How does Lido's oracle work, and what are the trust assumptions?"**
-
-- Good: "Oracle committee reports beacon chain balances, triggering rebase."
-- Great: "A permissioned oracle committee (5/9 quorum) submits beacon chain balance reports to `AccountingOracle`. The report updates `totalPooledEther`, which changes every stETH holder's `balanceOf()` return value. Sanity checks cap the maximum APR and maximum balance drop to limit damage from a compromised oracle. The trust assumption is that the oracle committee honestly reports balances — if they inflate the report, stETH becomes temporarily overvalued. This is similar to how Chainlink oracles are a trust assumption for price feeds."
-
-**5. "What happened during the June 2022 stETH de-peg and what did it teach us?"**
-
-- Good: "stETH traded below 1 ETH. It was caused by selling pressure."
-- Great: "3AC and Celsius faced insolvency and had to liquidate stETH positions. Pre-Shapella, there was no withdrawal queue — the only exit was selling on DEX. Massive sell pressure pushed stETH/ETH to 0.93. This wasn't a protocol failure — Lido's backing was fine. It was a liquidity/market failure. The lesson: exchange rate and market price can diverge, so lending protocols need dual oracle pricing. Post-Shapella (April 2023), the withdrawal queue creates an arbitrage floor that prevents deep de-pegs."
-
-### Interview Red Flags
-
+**Interview Red Flags:**
 - Saying "stETH is always worth 1 ETH" without qualifying that this is the protocol rate, not the market rate
 - Not knowing why DeFi protocols prefer wstETH over stETH
 - Treating LSTs and LRTs as having the same risk profile

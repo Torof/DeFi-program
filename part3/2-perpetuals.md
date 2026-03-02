@@ -505,6 +505,18 @@ Build the core funding rate accumulator pattern:
 
 **Next:** How production protocols (GMX, Synthetix, dYdX) implement these fundamentals with very different architectural trade-offs.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How does a funding rate work and why is it necessary?"**
+   - Good answer: Explains the mechanism (longs pay shorts when mark > index) and that it keeps the perp price tracking spot.
+   - Great answer: Explains the accumulator pattern, why continuous funding is more gas-efficient than periodic, how skew-based funding differs from mark-vs-index, and connects to delta-neutral yield strategies (Ethena).
+
+2. **"Explain the funding rate accumulator pattern and where else it appears in DeFi."**
+   - Good answer: Global counter, per-position snapshot, O(1) settlement.
+   - Great answer: Connects to Compound's borrowIndex, Aave's liquidityIndex, ERC-4626 share pricing, and Synthetix's debtRatio. Explains that it's the same mathematical technique (proportional claim on a growing/shrinking pool) applied in different contexts. Can sketch the Solidity implementation from memory.
+
 ---
 
 ## 💡 GMX Architecture
@@ -983,6 +995,14 @@ Hyperliquid is a purpose-built L1 for perpetuals with sub-second finality:
 
 **Next:** Liquidation mechanics specific to perpetuals — how they differ from lending liquidations and the role of insurance funds.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"Compare GMX's LP pool model with a traditional order book."**
+   - Good answer: Lists the basic differences (oracle vs order book, pool vs traders as counterparty).
+   - Great answer: Discusses trade-offs in depth — capital efficiency (order book wins), bootstrapping ease (pool wins), LP risk profile (options-like payoff), frontrunning protection (two-step execution), and when each model is more appropriate.
+
 ---
 
 ## 💡 Liquidation in Perpetuals
@@ -1269,32 +1289,22 @@ Build a simplified perpetual exchange combining all concepts:
 
 **Next:** Cross-cutting DeFi pattern connections and job market context for perpetuals knowledge.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What happens when the insurance fund is depleted?"**
+   - Good answer: ADL kicks in and profitable positions are forcefully closed.
+   - Great answer: Explains the full cascade — insurance fund depletion, ADL ranking by profit-to-collateral ratio, trust implications for traders, how protocols size insurance funds, and mitigation strategies (OI caps, dynamic fees, position limits). Mentions that in Synthetix, the debt pool itself absorbs bad debt (no separate insurance fund), and how this is socialized across all stakers.
+
+2. **"How would you design a liquidation engine that minimizes cascading risk?"**
+   - Good answer: Open interest caps, position size limits, insurance fund.
+   - Great answer: Multi-layer defense — (1) prevention via dynamic fees and OI caps, (2) gradual liquidation (partial rather than full position close), (3) price impact fees on liquidation execution, (4) insurance fund sizing based on VaR modeling, (5) ADL as absolute last resort with clear ordering. Mentions that oracle-based systems have different cascade dynamics than order book systems.
+
 ---
 
 <a id="job-market"></a>
 ## 💼 Job Market Context
-
-**What DeFi teams expect:**
-
-1. **"How does a funding rate work and why is it necessary?"**
-   - Good answer: Explains the mechanism (longs pay shorts when mark > index) and that it keeps the perp price tracking spot.
-   - Great answer: Explains the accumulator pattern, why continuous funding is more gas-efficient than periodic, how skew-based funding differs from mark-vs-index, and connects to delta-neutral yield strategies (Ethena).
-
-2. **"Compare GMX's LP pool model with a traditional order book."**
-   - Good answer: Lists the basic differences (oracle vs order book, pool vs traders as counterparty).
-   - Great answer: Discusses trade-offs in depth — capital efficiency (order book wins), bootstrapping ease (pool wins), LP risk profile (options-like payoff), frontrunning protection (two-step execution), and when each model is more appropriate.
-
-3. **"What happens when the insurance fund is depleted?"**
-   - Good answer: ADL kicks in and profitable positions are forcefully closed.
-   - Great answer: Explains the full cascade — insurance fund depletion → ADL ranking by profit-to-collateral ratio → trust implications for traders → how protocols size insurance funds → mitigation strategies (OI caps, dynamic fees, position limits). Mentions that in Synthetix, the debt pool itself absorbs bad debt (no separate insurance fund), and how this is socialized across all stakers.
-
-4. **"How would you design a liquidation engine that minimizes cascading risk?"**
-   - Good answer: Open interest caps, position size limits, insurance fund.
-   - Great answer: Multi-layer defense — (1) prevention via dynamic fees and OI caps, (2) gradual liquidation (partial rather than full position close), (3) price impact fees on liquidation execution, (4) insurance fund sizing based on VaR modeling, (5) ADL as absolute last resort with clear ordering. Mentions that oracle-based systems have different cascade dynamics than order book systems.
-
-5. **"Explain the funding rate accumulator pattern and where else it appears in DeFi."**
-   - Good answer: Global counter, per-position snapshot, O(1) settlement.
-   - Great answer: Connects to Compound's borrowIndex, Aave's liquidityIndex, ERC-4626 share pricing, and Synthetix's debtRatio. Explains that it's the same mathematical technique (proportional claim on a growing/shrinking pool) applied in different contexts. Can sketch the Solidity implementation from memory.
 
 **Interview red flags:**
 - Not understanding that LPs in GMX take real risk (they're not just earning passive fees)

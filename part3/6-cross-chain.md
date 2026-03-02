@@ -159,6 +159,14 @@ contract MiniLockBridge {
 
 Deploy with some ETH, call `lock{value: 1 ether}()`, check `minted` = 1 ETH. Then call `exploitMint(100 ether)` — you just "bridged" 100 ETH that don't exist. Call `burn(1 ether)` to get your real ETH back. This is the core of every bridge exploit: minting without corresponding locks.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"Compare lock-and-mint vs liquidity network bridges."**
+   - Good answer: "Lock-and-mint locks tokens on source and mints wrapped tokens on destination. Liquidity networks use LPs to provide native tokens. Lock-and-mint creates wrapped token risk; liquidity networks give native assets but need LP capital."
+   - Great answer: "The fundamental difference is the trust model and asset quality. Lock-and-mint creates a derivative whose value depends entirely on the bridge's security — if compromised, all wrapped tokens become worthless, cascading through every protocol that accepts them as collateral. Liquidity networks like Across use real assets on each chain, fronted by LPs who get repaid from the source deposit. The tradeoff is capital efficiency: lock-and-mint just needs a vault, while liquidity networks need LP capital on every chain. The industry is moving toward liquidity networks and intent-based bridging because wrapped token risk is too high for DeFi composability."
+
 ---
 
 <a id="on-chain-mechanics"></a>
@@ -369,6 +377,14 @@ When evaluating a bridge for protocol integration:
 - **Part 2 Module 9 (Capstone):** Your stablecoin must consider what happens if a collateral token's bridge is compromised
 - **Part 3 Module 1 (LSTs):** wstETH bridged to L2s introduces bridge dependency — if the bridge fails, all bridged wstETH loses its peg
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What went wrong in the Nomad bridge hack?"**
+   - Good answer: "A bug in the initialization set the zero root as valid, so any message could pass verification. The bridge was drained of $190M."
+   - Great answer: "Nomad used optimistic verification — `confirmAt` tracked which Merkle roots were processable. During initialization, `confirmAt[0x00]` was set to 1. In Solidity, unset mapping keys return zero, so any fake message's root defaulted to `0x00`, and `confirmAt[0x00]` returned 1 — passing the 'is this root confirmed?' check. The exploit was so simple it was crowd-looted: anyone could copy the attacker's calldata. The lesson: Solidity's default values interact with security checks in non-obvious ways — bridge verification must be rock-solid."
+
 ---
 
 ## 📋 Summary: Bridge Fundamentals & Security
@@ -532,6 +548,18 @@ Layer 4: Manual Pause
 
 > 🔍 **Code:** [LayerZero V2](https://github.com/LayerZero-Labs/LayerZero-v2) | [Chainlink CCIP](https://github.com/smartcontractkit/ccip)
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What security checks would you implement when receiving a cross-chain message?"**
+   - Good answer: "Verify the source chain and sender address, check for replay, validate the payload."
+   - Great answer: "Three mandatory checks: (1) Source verification — maintain a mapping of trusted contract addresses per source chain, only process messages from known peers. (2) Replay protection — track processed message IDs using the messaging protocol's GUID or an application nonce. (3) Payload validation — decode the message type, validate all fields against expected ranges, handle unknown types by reverting. Beyond the three, add rate limiting on the receiver side as defense-in-depth, and emit events for every processed message for off-chain monitoring."
+
+2. **"Explain the tradeoff between LayerZero and CCIP for cross-chain messaging."**
+   - Good answer: "LayerZero lets applications configure their own security. CCIP has a fixed, multi-layer security model."
+   - Great answer: "The core tradeoff is flexibility vs opinionated security. LayerZero V2 lets each app choose its DVN configuration — powerful but puts security responsibility on the developer. CCIP hardcodes multi-layer verification: DON commits, an independent Risk Management Network re-verifies, plus per-token rate limits. You can't misconfigure it, but you also can't customize it. For high-value protocols, CCIP's defense-in-depth is compelling; for wide chain coverage or custom verification, LayerZero's flexibility wins. Large protocols often integrate both."
+
 ---
 
 <a id="exercise1-cross-chain-handler"></a>
@@ -683,6 +711,14 @@ WITH xERC20 rate limiting:
 - **MakerDAO** — debt ceiling per collateral type (Part 2 Module 6)
 
 The pattern is always the same: cap the blast radius of a single failure. The math is always: capacity, refill rate, current bucket level.
+
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How would you design a cross-chain token resilient to bridge failure?"**
+   - Good answer: "Use xERC20 with rate-limited minting per bridge, so a single compromise can't create unlimited tokens."
+   - Great answer: "Implement xERC20 (ERC-7281) with per-bridge rate limits using a token bucket algorithm. Each authorized bridge gets an independent minting cap that refills over time. If Bridge A is compromised, the attacker can only mint up to Bridge A's daily limit — not unlimited tokens — while Bridges B and C continue normally. Calibrate limits so no single bridge's cap exceeds what the protocol can absorb as bad debt. Add monitoring for total supply anomalies across chains. This turns a catastrophic risk into a bounded, manageable one."
 
 ---
 
@@ -843,36 +879,6 @@ This pattern is used by Uniswap (governance on mainnet, execution across chains)
 
 <a id="job-market-context"></a>
 ## 💼 Job Market Context
-
-### 1. "Compare lock-and-mint vs liquidity network bridges."
-
-**Good answer:** "Lock-and-mint locks tokens on source and mints wrapped tokens on destination. Liquidity networks use LPs to provide native tokens on the destination. Lock-and-mint creates wrapped token risk; liquidity networks give native assets but need LP capital."
-
-**Great answer:** "The fundamental difference is in the trust model and asset quality. Lock-and-mint creates a derivative (wrapped token) whose value depends entirely on the bridge's security — if the bridge is compromised, all wrapped tokens become worthless, creating systemic risk for any protocol that accepts them as collateral. Liquidity networks like Across avoid this by using real assets on each chain, fronted by LPs who get repaid from the source deposit. The tradeoff is capital efficiency: lock-and-mint just needs a vault, while liquidity networks need LP capital staked on every supported chain. The industry is moving toward liquidity networks and intent-based bridging because the wrapped token risk is too high for DeFi composability — a single bridge exploit shouldn't cascade through every protocol that holds the wrapped token."
-
-### 2. "What went wrong in the Nomad bridge hack?"
-
-**Good answer:** "A bug in the initialization set the zero root as valid, so any message could pass verification. The bridge was drained of $190M."
-
-**Great answer:** "Nomad used optimistic verification — messages are assumed valid unless challenged. The `confirmAt` mapping tracked which Merkle roots were confirmed. During a routine upgrade, `confirmAt[0x00]` was set to 1, meaning the zero root was treated as confirmed. In Solidity, any key not explicitly set in a mapping returns zero. So when an attacker submitted a fake message, its root defaulted to 0x00 in the messages mapping, and `confirmAt[0x00]` returned 1 — passing the 'is this root confirmed?' check. The exploit was so simple it was crowd-looted: anyone could copy the attacker's calldata and drain more. The lesson is about Solidity's default values interacting with security checks — the `!= 0` check that was supposed to filter out unconfirmed roots instead became a universal pass-through."
-
-### 3. "How would you design a cross-chain token resilient to bridge failure?"
-
-**Good answer:** "Use xERC20 with rate-limited minting per bridge, so a single bridge compromise can't create unlimited tokens."
-
-**Great answer:** "I'd implement the xERC20 (ERC-7281) pattern with per-bridge rate limits. The token issuer authorizes multiple bridges, each with an independent minting cap that refills over time — a token bucket rate limiter. If Bridge A is compromised, the attacker can only mint up to Bridge A's daily limit, not unlimited tokens. Meanwhile, Bridge B and C continue operating normally. The rate limits should be calibrated so that no single bridge's limit exceeds what the protocol can absorb as bad debt. I'd also add monitoring: track total supply across all chains and alert if minting exceeds expected patterns. For maximum security, the token's `burn` function should also be rate-limited — preventing an attacker from rapidly cycling burn→mint to drain liquidity. This turns a catastrophic risk into a bounded, manageable risk."
-
-### 4. "What security checks would you implement when receiving a cross-chain message?"
-
-**Good answer:** "Verify the source chain and sender address, check for replay, validate the payload."
-
-**Great answer:** "Three mandatory checks: (1) Source verification — maintain a mapping of trusted contract addresses per source chain. Only process messages from known peers. This prevents spoofed messages from unauthorized contracts. (2) Replay protection — track processed message IDs. Cross-chain messages can potentially be replayed due to reorgs or retries. Use the messaging protocol's unique message GUID or an application-level nonce. (3) Payload validation — decode the message type, validate all decoded fields against expected ranges, and handle unknown types gracefully (revert, don't silently ignore). Beyond these three, I'd add rate limiting on the receiver side as defense-in-depth — even if verification is correct, cap the maximum action per time period. And monitoring: emit events for every cross-chain message processed, with source chain, sender, and payload hash for off-chain alerting."
-
-### 5. "Explain the tradeoff between LayerZero and CCIP for cross-chain messaging."
-
-**Good answer:** "LayerZero lets applications configure their own security. CCIP has a fixed, multi-layer security model."
-
-**Great answer:** "The core tradeoff is flexibility vs opinionated security. LayerZero V2 lets each application choose its DVN (Decentralized Verifier Network) configuration — you can require messages to be verified by 3 of 5 specific DVNs, or use a single trusted DVN for cheaper verification. This is powerful but puts security responsibility on the application developer. CCIP hardcodes a multi-layer model: the DON commits messages, an independent Risk Management Network re-verifies them, and per-token rate limits cap maximum transfers. You can't customize the security model, but you also can't misconfigure it. For high-value protocols, CCIP's defense-in-depth is compelling because it doesn't depend on the application developer making good security choices. For protocols that need wide chain coverage or custom verification logic, LayerZero's flexibility is more useful. In practice, large protocols often integrate both."
 
 **Interview red flags:**
 - ❌ Not knowing about the major bridge exploits (Ronin, Wormhole, Nomad)

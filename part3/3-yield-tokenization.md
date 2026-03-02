@@ -392,6 +392,18 @@ Fewer shares are needed to cover the fixed principal,
 and the "excess" shares fund the yield payout.
 ```
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"Explain how Pendle creates fixed-rate products in DeFi."**
+   - Good answer: "Pendle splits yield-bearing tokens into PT (principal) and YT (yield). PT trades at a discount and can be redeemed at par at maturity, giving buyers a fixed rate."
+   - Great answer: "Pendle wraps yield-bearing tokens into SY (ERC-5115), then splits them into PT and YT with a shared maturity. PT is a zero-coupon bond — buying at a discount locks in a fixed rate calculated as `(1/ptPrice - 1) * year/timeToMaturity`. YT captures variable yield using a global exchange rate accumulator with per-user snapshots, the same O(1) pattern as Compound's borrowIndex. The custom AMM trades in rate-space rather than price-space, which is essential because PT must converge to 1.0 at maturity — something constant-product AMMs can't handle."
+
+2. **"How does Pendle's YT track yield?"**
+   - Good answer: "It uses the SY exchange rate to calculate accrued yield per holder."
+   - Great answer: "Pendle uses the same accumulator pattern as Compound/Aave. The global `pyIndexStored` tracks the latest SY exchange rate. Each user has a `userIndex` snapshotted at purchase or last claim. Accrued yield is `ytBalance * (pyIndexStored - userIndex) / userIndex` — an O(1) calculation. Critically, YT overrides `_beforeTokenTransfer` to settle yield before any transfer. Without this, transferring YT would incorrectly shift accumulated yield to the recipient. This settlement-on-transfer pattern appears in every token that tracks per-holder rewards."
+
 ---
 
 <a id="exercise-yield-tokenizer"></a>
@@ -824,6 +836,18 @@ LPing in Pendle pools has unique properties compared to standard AMMs:
 
 > 💡 **LP convergence insight:** A Pendle LP position held to maturity essentially has zero IL because both sides of the pool converge to the same value (1 SY = 1 PT = 1 underlying). This is unique among AMM designs.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"Why can't you use Uniswap's x*y=k AMM for PT trading?"**
+   - Good answer: "PT converges to 1.0 at maturity, and standard AMMs don't account for time."
+   - Great answer: "x*y=k treats both assets as having independent, freely floating prices. PT has a deterministic future value — it equals 1 underlying at maturity. Near maturity, a standard AMM would still allow wide price swings, enabling trades at absurd discounts or premiums. Pendle's AMM operates in rate-space: the curve uses `ln(ptProportion/syProportion) / timeToMaturity * scalar`, which naturally flattens as maturity approaches. This is inspired by Notional Finance's logit curve, and the scalar parameter plays a role analogous to Curve's amplification factor A."
+
+2. **"How does PT pricing change as maturity approaches?"**
+   - Good answer: "PT price converges to 1.0 as maturity approaches."
+   - Great answer: "Using simple compounding, `ptPrice = year / (year + rate * timeToMaturity)`. As timeToMaturity approaches 0, ptPrice approaches 1.0 regardless of the implied rate. Even at a 100% implied rate, with 1 day to maturity, PT trades at 0.99726. This convergence is built into Pendle's AMM curve — the `timeToMaturity` in the denominator of the rate formula means the curve naturally flattens, reducing price sensitivity of swaps. This is why Pendle LPs experience decreasing IL over time, unlike standard AMMs where IL is path-dependent and potentially permanent."
+
 ---
 
 <a id="exercise-pt-rate-oracle"></a>
@@ -988,6 +1012,14 @@ DeFi composability at its finest:
   Each layer adds a new financial primitive.
 ```
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What are the risks of buying YT?"**
+   - Good answer: "Time decay — YT loses value as maturity approaches. If actual yield is lower than implied, you lose money."
+   - Great answer: "YT is leveraged long yield exposure with time decay. The break-even rate equals the implied rate at purchase — if average actual yield stays below that, YT is unprofitable. Key risks: (1) Time decay — shorter remaining period means less yield to capture, (2) Rate compression — if staking yields fall, YT can lose most of its value rapidly, (3) Smart contract risk on both Pendle and the underlying protocol, (4) Liquidity risk — YT markets are thinner than PT markets, so exiting a position can have high slippage. The leverage works both ways — a small cost buys yield exposure on a large notional, but the maximum loss is 100% of the YT purchase price."
+
 ---
 
 <a id="summary"></a>
@@ -1007,42 +1039,12 @@ DeFi composability at its finest:
 
 **Key insight:** The accumulator pattern appears for the third time in this curriculum. Whether it's vault share pricing (P2M7), funding rates (P3M2), or yield tracking (P3M3), the math is identical: global growing counter + per-user snapshot + delta = amount owed.
 
-**Next:** Job market context — interview questions and what DeFi teams expect around yield tokenization knowledge.
+**Next:** Cross-module concept links and resources.
 
 ---
 
 <a id="job-market"></a>
 ## 💼 Job Market Context
-
-**1. "Explain how Pendle creates fixed-rate products in DeFi."**
-
-Good answer: "Pendle splits yield-bearing tokens into PT (principal) and YT (yield). PT trades at a discount and can be redeemed at par at maturity, giving buyers a fixed rate."
-
-Great answer: "Pendle wraps yield-bearing tokens into SY (ERC-5115), then splits them into PT and YT with a shared maturity. PT is a zero-coupon bond — buying at a discount locks in a fixed rate calculated as `(1/ptPrice - 1) * year/timeToMaturity`. YT captures variable yield using a global exchange rate accumulator with per-user snapshots, the same O(1) pattern as Compound's borrowIndex. The custom AMM trades in rate-space rather than price-space, which is essential because PT must converge to 1.0 at maturity — something constant-product AMMs can't handle."
-
-**2. "Why can't you use Uniswap's x*y=k AMM for PT trading?"**
-
-Good answer: "PT converges to 1.0 at maturity, and standard AMMs don't account for time."
-
-Great answer: "x*y=k treats both assets as having independent, freely floating prices. PT has a deterministic future value — it equals 1 underlying at maturity. Near maturity, a standard AMM would still allow wide price swings, enabling trades at absurd discounts or premiums. Pendle's AMM operates in rate-space: the curve uses `ln(ptProportion/syProportion) / timeToMaturity * scalar`, which naturally flattens as maturity approaches. This is inspired by Notional Finance's logit curve, and the scalar parameter plays a role analogous to Curve's amplification factor A."
-
-**3. "What are the risks of buying YT?"**
-
-Good answer: "Time decay — YT loses value as maturity approaches. If actual yield is lower than implied, you lose money."
-
-Great answer: "YT is leveraged long yield exposure with time decay. The break-even rate equals the implied rate at purchase — if average actual yield stays below that, YT is unprofitable. Key risks: (1) Time decay — shorter remaining period means less yield to capture, (2) Rate compression — if staking yields fall, YT can lose most of its value rapidly, (3) Smart contract risk on both Pendle and the underlying protocol, (4) Liquidity risk — YT markets are thinner than PT markets, so exiting a position can have high slippage. The leverage works both ways — a small cost buys yield exposure on a large notional, but the maximum loss is 100% of the YT purchase price."
-
-**4. "How does Pendle's YT track yield?"**
-
-Good answer: "It uses the SY exchange rate to calculate accrued yield per holder."
-
-Great answer: "Pendle uses the same accumulator pattern as Compound/Aave. The global `pyIndexStored` tracks the latest SY exchange rate. Each user has a `userIndex` snapshotted at purchase or last claim. Accrued yield is `ytBalance * (pyIndexStored - userIndex) / userIndex` — an O(1) calculation. Critically, YT overrides `_beforeTokenTransfer` to settle yield before any transfer. Without this, transferring YT would incorrectly shift accumulated yield to the recipient. This settlement-on-transfer pattern appears in every token that tracks per-holder rewards."
-
-**5. "How does PT pricing change as maturity approaches?"**
-
-Good answer: "PT price converges to 1.0 as maturity approaches."
-
-Great answer: "Using simple compounding, `ptPrice = year / (year + rate * timeToMaturity)`. As timeToMaturity → 0, ptPrice → 1.0 regardless of the implied rate. Even at a 100% implied rate, with 1 day to maturity, PT trades at 0.99726. This convergence is built into Pendle's AMM curve — the `timeToMaturity` in the denominator of the rate formula means the curve naturally flattens, reducing price sensitivity of swaps. This is why Pendle LPs experience decreasing IL over time, unlike standard AMMs where IL is path-dependent and potentially permanent."
 
 **Interview Red Flags:**
 - ❌ Confusing PT and YT roles (which one gives fixed rate?)

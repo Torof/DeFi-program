@@ -225,6 +225,14 @@ Try: `cleanSwap(20000e18)` → 9.091 ETH. Then `sandwichedSwap(20000e18, 10000e1
 4. **Oracle updates** — TWAP oracles can be manipulated through related ordering attacks
 5. **Module 4's intent paradigm** — designed specifically to eliminate the sandwich surface by moving execution off-chain
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"Explain how a sandwich attack works and how to prevent it."**
+   - Good answer: "An attacker front-runs and back-runs a user's swap. The front-run pushes the price up, the user swaps at a worse rate, and the attacker sells for profit. Prevention: tight slippage limits or private mempools."
+   - Great answer: "A sandwich exploits the public mempool and AMM nonlinear price impact. The attacker calculates the optimal front-run amount — enough to shift the price but within the user's slippage tolerance — then submits front-run, victim, back-run as an atomic bundle to a builder. Prevention exists at multiple levels: user-level tight slippage, private RPCs like Flashbots Protect, application-level intent systems like UniswapX where there's no on-chain tx to sandwich, and protocol-level V4 hooks that surcharge same-block opposite-direction swaps."
+
 ---
 
 <a id="exercise1-sandwich-simulation"></a>
@@ -453,6 +461,14 @@ This is the most debated topic in Ethereum governance:
 
 > 🔍 **Code:** [MEV-Boost](https://github.com/flashbots/mev-boost) | [Flashbots Builder](https://github.com/flashbots/builder)
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What is Proposer-Builder Separation and why does it matter?"**
+   - Good answer: "PBS separates block construction from block proposal. Builders create blocks, proposers select the highest bid. This prevents validators from directly extracting MEV."
+   - Great answer: "PBS is Ethereum's architectural response to MEV centralization. Post-Merge, specialized builders construct optimized blocks from user transactions plus searcher bundles, and proposers simply select the highest bid via MEV-Boost. Relays sit in between as blind escrows so proposers can't steal MEV. Competition at each layer drives most value up to the proposer. The current tension is builder centralization — top 3 builders produce the majority of blocks, creating censorship risk. The community is addressing this through inclusion lists and longer-term enshrined PBS (ePBS)."
+
 ---
 
 <a id="protection"></a>
@@ -582,6 +598,18 @@ function reveal(uint256 amount, bytes32 salt) external {
 | Time-weighted prices | TWAP oracles | Part 2 Module 3 |
 | Keeper delay | GMX two-step execution | Part 3 Module 2 |
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What's the difference between MEV-Share and Flashbots Protect?"**
+   - Good answer: "Flashbots Protect hides your transaction from sandwich bots. MEV-Share goes further by letting searchers bid for backrun rights and giving users a rebate."
+   - Great answer: "They're different layers of the same stack. Protect is simple privacy — your tx goes to a private mempool, preventing sandwiches. MEV-Share adds an economic layer: your tx is still private from sandwich bots, but hints are revealed to searchers — enough to evaluate backrun opportunities, not enough to sandwich. Searchers competitively bid for backrun rights, and the user receives a configurable rebate. Protect eliminates the tax; MEV-Share eliminates the tax AND turns leftover MEV into user revenue."
+
+2. **"How does cross-domain MEV work with L2s?"**
+   - Good answer: "Price differences between L1 and L2 create arbitrage. L2 sequencers control ordering, creating L2-specific MEV."
+   - Great answer: "Prices on L2s lag mainnet by the sequencer's batch submission delay, creating predictable arb windows. The centralized L2 sequencer is the de facto block builder and can extract MEV directly. This drives shared sequencing proposals that coordinate ordering across L2s, reducing cross-domain MEV. As L2 volume grows, cross-domain MEV is becoming dominant — which is why protocols like UniswapX V2 are building cross-chain intent settlement."
+
 ---
 
 <a id="mev-aware-design"></a>
@@ -704,6 +732,14 @@ contract CommitRevealDemo {
 
 Try: call `getHash(1000, 0xdead000000000000000000000000000000000000000000000000000000000000)` → copy the returned hash → `commit(hash)` → `reveal(1000, 0xdead...)` → returns `true`. The bid was hidden until reveal. This is how governance votes and sealed-bid auctions prevent frontrunning.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How would you design a protocol to minimize MEV extraction?"**
+   - Good answer: "Use batch auctions, private execution, and tight slippage controls to reduce the MEV surface."
+   - Great answer: "Four principles: (1) Minimize information leakage — route through intents or private channels. (2) Reduce ordering dependence — batch operations so tx order doesn't affect outcomes. (3) Internalize MEV — use V4 hooks or MEV taxes to capture extraction value for LPs. (4) Time-weight operations — spread large actions via TWAP execution to reduce per-block extractable value. The key mindset is: assume adversarial ordering and design so that ordering doesn't affect outcomes."
+
 ---
 
 <a id="exercise2-mev-fee-hook"></a>
@@ -750,36 +786,6 @@ Run: `forge test --match-contract MEVFeeHookTest -vvv`
 
 <a id="job-market-context"></a>
 ## 💼 Job Market Context
-
-### 1. "Explain how a sandwich attack works and how to prevent it."
-
-**Good answer:** "An attacker front-runs and back-runs a user's swap. The front-run pushes the price in the user's direction, the user swaps at a worse price, and the attacker reverses for profit. Prevention: tight slippage limits or using private mempools."
-
-**Great answer:** "A sandwich exploits the public mempool and the nonlinear price impact of AMMs. The attacker sees a pending swap, calculates the optimal front-run amount — enough to push the price but not enough to exceed the user's slippage tolerance — then submits front-run → victim → back-run as an atomic bundle to a builder. Profit scales with trade size and pool illiquidity. Prevention exists at multiple levels: (1) user-level — tight slippage, private RPCs like Flashbots Protect; (2) application-level — intent-based systems like UniswapX where there's no on-chain tx to sandwich; (3) protocol-level — MEV taxes via V4 hooks that charge higher fees on same-block opposite-direction swaps, making sandwiches unprofitable. The most effective defense is intent-based execution — separating the WHAT from the HOW means there's nothing in the mempool to attack."
-
-### 2. "What is Proposer-Builder Separation and why does it matter?"
-
-**Good answer:** "PBS separates block construction from block proposal. Builders create blocks, proposers (validators) select the highest bid. This prevents validators from directly extracting MEV."
-
-**Great answer:** "PBS is Ethereum's architectural response to MEV centralization. Pre-Merge, miners both built and proposed blocks — giving them direct MEV extraction power. Post-Merge, specialized builders construct optimized blocks from user transactions plus searcher bundles, and proposers simply select the highest bid via MEV-Boost. Relays sit in between as blind escrows — the proposer commits to a block without seeing its contents, preventing bid theft. The economics are key: competition at each layer drives most MEV value up to the proposer. The current tension is centralization — top 3 builders produce the majority of blocks, creating censorship risk. The community is addressing this through inclusion lists that let proposers force-include transactions, and longer-term through enshrined PBS (ePBS) that moves the relay trust model into the protocol itself."
-
-### 3. "How would you design a protocol to minimize MEV extraction?"
-
-**Good answer:** "Use batch auctions, private execution, and tight slippage controls to reduce the MEV surface."
-
-**Great answer:** "Four principles: (1) Minimize information leakage — route user orders through intents or private channels so attackers can't see pending actions. (2) Reduce ordering dependence — batch operations so transaction order within a batch doesn't affect outcomes, like CoW Protocol's uniform clearing prices. (3) Internalize MEV — use V4 hooks or MEV taxes to capture extraction value and redistribute to LPs. If you can't prevent MEV, capture it. (4) Time-weight operations — spread large actions across blocks via TWAP execution to reduce per-block extractable value. The specific choice depends on the protocol: for swaps, intent-based execution is the gold standard; for liquidations, Dutch auctions replace gas priority with time-based price discovery; for governance, commit-reveal prevents vote frontrunning. The key mindset is: assume adversarial ordering and design so that ordering doesn't affect outcomes."
-
-### 4. "What's the difference between MEV-Share and Flashbots Protect?"
-
-**Good answer:** "Flashbots Protect hides your transaction from sandwich bots. MEV-Share goes further by letting searchers bid for backrun rights and giving users a rebate."
-
-**Great answer:** "They're different layers of the same stack. Flashbots Protect is simple privacy — your transaction goes to a private mempool instead of the public one, preventing sandwiches. MEV-Share adds an economic layer: your transaction is still private from sandwich bots, but MEV-Share reveals *hints* to searchers — enough to evaluate backrun opportunities, not enough to sandwich. Searchers competitively bid for the right to backrun, and the user receives a configurable percentage of the winning bid as a rebate. So Protect eliminates the tax; MEV-Share eliminates the tax AND turns leftover MEV into user revenue. The tradeoff is trust — you're relying on Flashbots' infrastructure with your transaction ordering in both cases."
-
-### 5. "How does cross-domain MEV work with L2s?"
-
-**Good answer:** "Price differences between L1 and L2 create arbitrage opportunities. L2 sequencers control ordering on their chain, creating L2-specific MEV."
-
-**Great answer:** "Cross-domain MEV spans multiple chains — L1↔L2 or L2↔L2. Prices on L2s lag mainnet by the sequencer's batch submission delay, creating predictable arbitrage windows. The L2 sequencer controls transaction ordering on its chain, making it the de facto block builder — centralized sequencers can extract MEV directly or sell ordering rights. This is why shared sequencing proposals exist: a shared sequencer coordinates ordering across multiple L2s, reducing cross-domain MEV and enabling atomic cross-chain operations. The key tension is between decentralization (reduces extraction) and performance (centralized sequencers are faster). As L2 volume grows, cross-domain MEV is becoming a dominant category, which is why protocols like UniswapX V2 are building cross-chain intent settlement."
 
 **Interview red flags:**
 - ❌ Thinking MEV only means sandwich attacks (it's a broad spectrum)
