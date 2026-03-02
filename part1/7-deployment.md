@@ -12,7 +12,7 @@
 
 ---
 
-## From Local to Production
+## 💡 From Local to Production
 
 <a id="deployment-pipeline"></a>
 ### 💡 Concept: The Deployment Pipeline

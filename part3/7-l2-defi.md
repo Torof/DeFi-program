@@ -16,7 +16,7 @@
 
 ---
 
-## Overview
+## 📚 Overview
 
 Most DeFi activity has migrated to L2s — Arbitrum, Base, and Optimism collectively host more DeFi transactions than Ethereum mainnet. But L2s aren't just "cheap Ethereum" — they have distinct sequencer behavior, gas models, finality properties, and design constraints that affect every protocol deployed on them.
 
@@ -31,9 +31,9 @@ Most DeFi activity has migrated to L2s — Arbitrum, Base, and Optimism collecti
 ---
 
 <a id="l2-architecture"></a>
-## L2 Architecture for DeFi Developers
+## 📖 L2 Architecture for DeFi Developers
 
-### 💡 Rollup Types
+### 💡 Concept: Rollup Types
 
 You don't need to understand rollup internals deeply, but you need to know how the two types affect your DeFi code:
 
@@ -116,9 +116,9 @@ block.basefee    // L2 base fee — much lower than L1
 ---
 
 <a id="gas-model"></a>
-## The L2 Gas Model
+## 💡 The L2 Gas Model
 
-### 💡 Two Components of L2 Cost
+### 💡 Concept: Two Components of L2 Cost
 
 This is the most important L2 concept for DeFi developers. Every L2 transaction pays for two things:
 
@@ -267,9 +267,9 @@ Call `compactSwap(addr, 1000, true)` and `verboseSwap(addr, 1000, 900, addr, 999
 ---
 
 <a id="sequencer-uptime"></a>
-## Sequencer Uptime & Oracle Safety
+## ⚠️ Sequencer Uptime & Oracle Safety
 
-### 💡 The Sequencer Downtime Problem
+### 💡 Concept: The Sequencer Downtime Problem
 
 This is the most critical L2-specific DeFi issue. Real money has been lost because of it.
 
@@ -388,9 +388,9 @@ Returns:
 ---
 
 <a id="l2-mev"></a>
-## Transaction Ordering & MEV on L2
+## 💡 Transaction Ordering & MEV on L2
 
-### 💡 A Different MEV Landscape
+### 💡 Concept: A Different MEV Landscape
 
 Module 5 covered L1 MEV in depth. L2 MEV is fundamentally different because the sequencer controls ordering:
 
@@ -452,9 +452,9 @@ Shared sequencing: multiple L2s share a sequencer
 ---
 
 <a id="l2-native"></a>
-## L2-Native Protocol Design
+## 📖 L2-Native Protocol Design
 
-### 💡 What Cheap Gas Enables
+### 💡 Concept: What Cheap Gas Enables
 
 L2's low gas costs don't just make existing patterns cheaper — they enable entirely new protocol designs that wouldn't be viable on L1.
 
@@ -548,9 +548,9 @@ The numbers are modest per user, but for large vaults the compounding frequency 
 ---
 
 <a id="multi-chain"></a>
-## Multi-Chain Deployment Patterns
+## 📖 Multi-Chain Deployment Patterns
 
-### 💡 Same Protocol, Different Parameters
+### 💡 Concept: Same Protocol, Different Parameters
 
 When deploying a protocol across chains, you need chain-specific configuration:
 

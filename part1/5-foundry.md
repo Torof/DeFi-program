@@ -23,7 +23,7 @@
 
 ---
 
-## Foundry Essentials for DeFi Development
+## 💡 Foundry Essentials for DeFi Development
 
 <a id="why-foundry"></a>
 ### 💡 Concept: Why Foundry
@@ -382,7 +382,7 @@ Set up the project structure you'll use throughout Part 2:
 
 ---
 
-## Fuzz Testing and Invariant Testing
+## 💡 Fuzz Testing and Invariant Testing
 
 <a id="fuzz-testing"></a>
 ### 💡 Concept: Fuzz Testing
@@ -837,7 +837,7 @@ Search for tests with names like `test_RevertWhen_*`, `test_EdgeCase_*`, `testFu
 
 ---
 
-## Fork Testing and Gas Optimization
+## 💡 Fork Testing and Gas Optimization
 
 <a id="fork-testing"></a>
 ### 💡 Concept: Fork Testing for DeFi

@@ -16,7 +16,7 @@
 
 ---
 
-## Overview
+## 📚 Overview
 
 Maximal Extractable Value (MEV) is the invisible tax on every DeFi transaction. If you swap on a DEX, someone might sandwich you. If you submit a liquidation, someone might front-run it. If you create a new pool, someone will arbitrage it within the same block.
 
@@ -31,9 +31,9 @@ Understanding MEV is essential for both sides: as a **protocol designer** (minim
 ---
 
 <a id="invisible-tax"></a>
-## The Invisible Tax
+## 💡 The Invisible Tax
 
-### 💡 What is MEV?
+### 💡 Concept: What is MEV?
 
 Originally "Miner Extractable Value" (pre-Merge), now **Maximal Extractable Value** — the total value that can be extracted by anyone who controls transaction ordering within a block.
 
@@ -68,9 +68,9 @@ BENIGN ────────────────────────�
 ---
 
 <a id="sandwich-attacks"></a>
-## Sandwich Attacks: Anatomy & Math
+## 💡 Sandwich Attacks: Anatomy & Math
 
-### 💡 How a Sandwich Attack Works
+### 💡 Concept: How a Sandwich Attack Works
 
 This is the most important MEV attack to understand — it directly costs users money on every unprotected swap.
 
@@ -226,9 +226,9 @@ Try: `cleanSwap(20000e18)` → 9.091 ETH. Then `sandwichedSwap(20000e18, 10000e1
 ---
 
 <a id="good-mev"></a>
-## Arbitrage & Liquidation MEV
+## 💡 Arbitrage & Liquidation MEV
 
-### 💡 The "Good" MEV
+### 💡 Concept: The "Good" MEV
 
 Not all MEV harms users. Arbitrage and liquidation MEV serve essential functions in DeFi.
 
@@ -307,9 +307,9 @@ The gas auction is "wasteful" (bots overpay for gas), but the underlying liquida
 ---
 
 <a id="supply-chain"></a>
-## The Post-Merge MEV Supply Chain
+## 💡 The Post-Merge MEV Supply Chain
 
-### 💡 Proposer-Builder Separation (PBS)
+### 💡 Concept: Proposer-Builder Separation (PBS)
 
 Before the Merge, miners both built and proposed blocks — they could extract MEV directly. Post-Merge, **Proposer-Builder Separation** splits these roles:
 
@@ -415,9 +415,9 @@ This is the most debated topic in Ethereum governance:
 ---
 
 <a id="protection"></a>
-## MEV Protection Mechanisms
+## 💡 MEV Protection Mechanisms
 
-### 💡 Defending Against the Invisible Tax
+### 💡 Concept: Defending Against the Invisible Tax
 
 Protection operates at four levels: transaction privacy, order flow auctions, application design, and cryptographic schemes.
 
@@ -544,9 +544,9 @@ function reveal(uint256 amount, bytes32 salt) external {
 ---
 
 <a id="mev-aware-design"></a>
-## MEV-Aware Protocol Design
+## 📖 MEV-Aware Protocol Design
 
-### 💡 Building Protocols That Resist Extraction
+### 💡 Concept: Building Protocols That Resist Extraction
 
 Four design principles that every DeFi protocol should follow:
 

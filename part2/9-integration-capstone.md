@@ -60,10 +60,10 @@
 
 ---
 
-## Overview & Design Philosophy
+## 📚 Overview & Design Philosophy
 
 <a id="why-capstone"></a>
-### 💡 Why a Stablecoin Capstone
+### 💡 Concept: Why a Stablecoin Capstone
 
 You've spent 8 modules building DeFi primitives in isolation — an AMM here, a lending pool there, a vault somewhere else. A stablecoin protocol is where they all converge. It touches every primitive you've learned:
 
@@ -81,7 +81,7 @@ Module 6's key takeaway said it: "Stablecoins are the ultimate integration test.
 **This is not a guided exercise.** You built scaffolded exercises in M1-M8. This is different — you'll design the architecture, make trade-offs, and own every decision. The curriculum provides architectural guidance, design considerations, and deep dives on new concepts. The implementation is yours.
 
 <a id="stablecoin-landscape"></a>
-### 💡 The Stablecoin Landscape: Where Your Protocol Sits
+### 💡 Concept: The Stablecoin Landscape: Where Your Protocol Sits
 
 Before designing, understand the field you're entering.
 
@@ -105,7 +105,7 @@ Your protocol's design position: **immutable like Liquity, multi-collateral like
 > 📖 **Study these:** Before you start building, spend time reading [MakerDAO dss](https://github.com/makerdao/dss) (the canonical CDP protocol) and [Liquity](https://github.com/liquity/dev) (the immutable alternative). Your protocol borrows from both philosophies.
 
 <a id="design-principles"></a>
-### 💡 Design Principles: Immutable, Permissionless, Crypto-Native
+### 💡 Concept: Design Principles: Immutable, Permissionless, Crypto-Native
 
 Three principles define every design decision in your protocol.
 
@@ -167,10 +167,10 @@ If any of these feel fuzzy, revisit the module before starting. This capstone as
 
 ---
 
-## Architecture Design
+## 📖 Architecture Design
 
 <a id="contract-structure"></a>
-### 💡 Contract Structure: The 4 Core Contracts
+### 💡 Concept: Contract Structure: The 4 Core Contracts
 
 Your protocol has four contracts with clear responsibilities and clean interfaces between them.
 
@@ -207,7 +207,7 @@ Your protocol has four contracts with clear responsibilities and clean interface
 > **🔗 Connection:** This 4-contract architecture mirrors MakerDAO's separation (Vat = Engine, Spotter = PriceFeed, Dog+Clipper = Liquidator, Dai = Stablecoin) but simplified. You studied MakerDAO's modular architecture in Module 6 — same philosophy, cleaner boundaries.
 
 <a id="data-structures"></a>
-### 💡 Core Data Structures
+### 💡 Concept: Core Data Structures
 
 These are the key structs you'll design. Think carefully about what goes where — per-vault vs per-collateral-type vs global.
 
@@ -248,7 +248,7 @@ Design considerations:
 - **Why `tokenDecimals` cached?** Gas. You'll call decimal normalization on every health factor check. Calling `ERC20(token).decimals()` every time costs ~2,600 gas per SLOAD. Caching saves this on the hot path.
 
 <a id="design-decisions"></a>
-### 💡 Design Decisions You'll Make
+### 💡 Concept: Design Decisions You'll Make
 
 These are real architectural choices with trade-offs. Think through each one before coding. There's no single right answer — what matters is that you can explain *why* you chose what you chose.
 
@@ -303,7 +303,7 @@ When a Dutch auction expires without fully covering the debt, someone must eat t
 
 > Think through these before writing code. Your answers shape the entire architecture. Write them down — they become your Architecture Decision Record for the portfolio.
 
-### 💡 Deployment & Authorization
+### 💡 Concept: Deployment & Authorization
 
 Your 4 contracts have mutual dependencies. Think about deployment order and how contracts authorize each other:
 
@@ -316,7 +316,7 @@ Since the protocol is immutable (no setters), these addresses must be set at dep
 
 This is a real production concern — MakerDAO's deployment scripts handle complex interdependencies across 10+ contracts. Your 4-contract system is simpler, but the authorization wiring still needs to be correct.
 
-### 💡 Storage Layout Considerations
+### 💡 Concept: Storage Layout Considerations
 
 For gas optimization on the hot path (health factor checks happen on every mint/withdraw), think about how `CollateralConfig` fields pack into storage slots:
 
@@ -343,10 +343,10 @@ Packing BPS values as `uint16` (max 65,535 — more than enough for basis points
 
 ---
 
-## Core CDP Engine
+## 💡 Core CDP Engine
 
 <a id="engine-contract"></a>
-### 💡 The StablecoinEngine Contract
+### 💡 Concept: The StablecoinEngine Contract
 
 This is where the core logic lives. The Engine manages all vaults, tracks all debt, and enforces all safety rules.
 
@@ -455,7 +455,7 @@ Step 5: Health factor
 > **🔗 Connection:** You practiced this exact decimal normalization in M4's health factor exercise. The addition here is the vault share pricing path (Step 2 above), which adds the `convertToAssets()` layer.
 
 <a id="stability-fees"></a>
-### 💡 Stability Fee Accrual via Rate Accumulator
+### 💡 Concept: Stability Fee Accrual via Rate Accumulator
 
 Your stability fee system is the same pattern you built in M6's SimpleJug. Each collateral type has its own `rateAccumulator` that grows per-second via compound interest.
 
@@ -517,7 +517,7 @@ seizeCollateral    → drip NEEDED    (debt settlement must be accurate)
 The rule: **drip before any operation that reads or modifies debt.**
 
 <a id="vault-lifecycle"></a>
-### 💡 The Vault Lifecycle
+### 💡 Concept: The Vault Lifecycle
 
 The complete lifecycle with what changes in storage at each step:
 
@@ -577,7 +577,7 @@ The complete lifecycle with what changes in storage at each step:
 
 ---
 
-## Vault Share Collateral Pricing
+## 💡 Vault Share Collateral Pricing
 
 <a id="pricing-challenge"></a>
 ### 🔍 Deep Dive: The Pricing Challenge
@@ -610,7 +610,7 @@ ERC-4626 vault shares (two steps):
 The extra step is where the complexity — and the security risk — lives.
 
 <a id="pricing-pipeline"></a>
-### 💡 The Pricing Pipeline
+### 💡 Concept: The Pricing Pipeline
 
 **Two-step pricing for vault shares:**
 
@@ -731,10 +731,10 @@ Don't accept vault shares directly. Require users to redeem their vault shares f
 
 ---
 
-## Dutch Auction Liquidation
+## 💡 Dutch Auction Liquidation
 
 <a id="liquidation-design"></a>
-### 💡 Designing Your Liquidation System
+### 💡 Concept: Designing Your Liquidation System
 
 You built a Dutch auction liquidator in M6's SimpleDog exercise — `bark()` to start an auction and `take()` for bidders to buy collateral at the declining price. Your capstone liquidation system follows the same pattern, adapted for your protocol's architecture.
 
@@ -831,7 +831,7 @@ Pro: Smoothest curve. Con: Requires `exp()` approximation on-chain, extra gas.
 > 📖 **Study:** MakerDAO's [abaci.sol](https://github.com/makerdao/dss/blob/master/src/abaci.sol) implements all three decrease functions. Read `LinearDecrease`, `StairstepExponentialDecrease`, and `ExponentialDecrease` to see how a production protocol handles this choice.
 
 <a id="partial-fills"></a>
-### 💡 Partial Fills and Bad Debt
+### 💡 Concept: Partial Fills and Bad Debt
 
 **Partial fills:** A bidder doesn't have to buy all the collateral. They specify a maximum amount, pay the current price, and the auction continues with the remaining lot. When the cumulative payments cover the full debt (`tab`), the auction ends and surplus collateral returns to the vault owner.
 
@@ -917,7 +917,7 @@ Setup:
   NOT simply burned. Design this carefully — it mirrors the flash mint fee issue.
 ```
 
-### 💡 Liquidation Economics: DEX Interaction
+### 💡 Concept: Liquidation Economics: DEX Interaction
 
 After a bidder receives collateral from the auction, they typically need to sell it on a DEX (AMM) to realize profit. This creates a connection to M2 that affects your protocol's design:
 
@@ -945,7 +945,7 @@ This is why Aave governance evaluates on-chain liquidity depth before listing ne
 
 ---
 
-## Flash Mint
+## 💡 Flash Mint
 
 <a id="flash-mint-vs-loan"></a>
 ### 🔍 Deep Dive: Flash Mint vs Flash Loan
@@ -978,7 +978,7 @@ If your stablecoin trades above $1.00 on a DEX:
 This arbitrage pushes the price back toward $1.00. It requires zero capital and works atomically — anyone can do it, so the peg corrects quickly.
 
 <a id="flash-mint-erc3156"></a>
-### 💡 ERC-3156 Adapted for Minting
+### 💡 Concept: ERC-3156 Adapted for Minting
 
 The ERC-3156 interface you learned in M5 maps directly to flash minting. The Stablecoin token itself implements `IERC3156FlashLender`:
 
@@ -1032,7 +1032,7 @@ If fee is zero: `_burn(address(receiver), amount)`. Simpler, maximizes arbitrage
 If you charge a fee: the receiver must hold `amount + fee` at the end of the callback. But you can't simply `_burn(amount + fee)` — that destroys the fee, breaking Invariant 2 (Backing). The fee stablecoin wasn't minted against any CDP debt, so burning it creates a gap between `totalSupply` and total debt. Instead: `_burn(amount)` to undo the flash mint, then `transferFrom(receiver, surplus, fee)` to route the fee to the protocol surplus address. This way the fee remains in circulation as protocol revenue, and the backing invariant holds.
 
 <a id="flash-mint-uses"></a>
-### 💡 Use Cases: Peg Stability and Beyond
+### 💡 Concept: Use Cases: Peg Stability and Beyond
 
 1. **Peg arbitrage** — described above. The primary peg maintenance mechanism.
 2. **Self-liquidation** — flash mint stablecoin → repay own debt → withdraw collateral → sell collateral for stablecoin → burn flash mint. Zero-capital exit from an underwater position.
@@ -1054,7 +1054,7 @@ If you charge a fee: the receiver must hold `amount + fee` at the end of the cal
 
 ---
 
-## Testing & Hardening
+## 🎯 Testing & Hardening
 
 <a id="critical-invariants"></a>
 ### 🔍 Deep Dive: The 5 Critical Invariants
@@ -1135,7 +1135,7 @@ contract SystemHandler is Test {
 > **🔗 Connection:** This is the same handler + ghost variable + invariant assertion pattern from M8's VaultInvariantTest exercise. Same methodology, bigger system.
 
 <a id="fuzz-fork"></a>
-### 💡 Fuzz and Fork Testing
+### 💡 Concept: Fuzz and Fork Testing
 
 **Fuzz tests:** Beyond invariants, write targeted fuzz tests:
 - Random deposit/mint sequences should never create a vault with HF < 1.0

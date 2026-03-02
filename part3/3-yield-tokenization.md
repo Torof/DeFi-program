@@ -51,10 +51,10 @@
 
 ---
 
-## The Fixed-Rate Problem
+## 💡 The Fixed-Rate Problem
 
 <a id="why-yield-tokenization"></a>
-### 💡 Why Yield Tokenization?
+### 💡 Concept: Why Yield Tokenization?
 
 **The problem:** All yield in DeFi is variable. Staking APR fluctuates daily. Aave supply rates change every block. Vault yields swing with market conditions. There is no native way to lock in a fixed rate.
 
@@ -119,10 +119,10 @@ Invariant: PT price + YT price = 1 underlying (arbitrage-enforced)
 
 ---
 
-## Core Mechanism: The PT/YT Split
+## 💡 Core Mechanism: The PT/YT Split
 
 <a id="how-splitting-works"></a>
-### 💡 How Splitting Works
+### 💡 Concept: How Splitting Works
 
 The mechanism is elegant in its simplicity:
 
@@ -393,10 +393,10 @@ and the "excess" shares fund the yield payout.
 
 ---
 
-## ERC-5115: Standardized Yield
+## 💡 ERC-5115: Standardized Yield
 
 <a id="sy-vs-erc4626"></a>
-### 💡 SY vs ERC-4626
+### 💡 Concept: SY vs ERC-4626
 
 Pendle introduced [ERC-5115](https://eips.ethereum.org/EIPS/eip-5115) (Standardized Yield) because ERC-4626 wasn't general enough for all yield sources.
 
@@ -472,10 +472,10 @@ YT yield = the vertical distance between entry and exit.
 
 ---
 
-## Pendle Architecture
+## 📖 Pendle Architecture
 
 <a id="pendle-system-overview"></a>
-### 💡 System Overview
+### 💡 Concept: System Overview
 
 Pendle V2 (current version) has a clean layered architecture:
 
@@ -611,10 +611,10 @@ contract PendlePrincipalToken {
 
 ---
 
-## The Pendle AMM
+## 💡 The Pendle AMM
 
 <a id="why-xy-k-fails"></a>
-### 💡 Why Constant Product Fails for PT
+### 💡 Concept: Why Constant Product Fails for PT
 
 Standard AMMs (Uniswap's `x × y = k`) assume the two tokens have an independent, freely floating price relationship. PT breaks this assumption because PT has a **known future value**: at maturity, 1 PT = 1 underlying. Always.
 
@@ -660,7 +660,7 @@ It allows prices that make no economic sense.
 > 💡 **Analogy:** Imagine a bond market where the exchange allows a 1-year Treasury to trade at 50 cents on the dollar with 1 day until maturity. No rational market would allow this. But a standard AMM has no mechanism to prevent it.
 
 <a id="rate-space-trading"></a>
-### 💡 Rate-Space Trading: The Key Insight
+### 💡 Concept: Rate-Space Trading: The Key Insight
 
 Pendle's AMM (inspired by [Notional Finance](https://docs.notional.finance/)) solves this by trading in **rate space** instead of **price space**.
 
@@ -787,10 +787,10 @@ LPing in Pendle pools has unique properties compared to standard AMMs:
 
 ---
 
-## Strategies & Composability
+## 💡 Strategies & Composability
 
 <a id="strategy-buy-pt"></a>
-### 💡 Strategy 1: Fixed Income — Buy PT
+### 💡 Concept: Strategy 1: Fixed Income — Buy PT
 
 **Mechanism:** Buy PT at a discount → hold to maturity → redeem at 1:1.
 
@@ -823,7 +823,7 @@ Result:
 **Use cases:** DAO treasury management, yield hedging, risk-off positioning.
 
 <a id="strategy-buy-yt"></a>
-### 💡 Strategy 2: Yield Speculation — Buy YT
+### 💡 Concept: Strategy 2: Yield Speculation — Buy YT
 
 **Mechanism:** Buy YT → receive all yield on the underlying until maturity.
 
@@ -854,7 +854,7 @@ Break-even analysis:
 **The points/airdrop meta:** In 2024, YT became hugely popular for airdrop farming. If an underlying protocol distributes points or airdrops to holders, YT holders receive them (since YT represents yield entitlement). Buying 100 YT for 3 wstETH gives airdrop exposure on 100 wstETH — massive leverage on potential airdrops.
 
 <a id="strategy-lp"></a>
-### 💡 Strategy 3: LP in Pendle Pool
+### 💡 Concept: Strategy 3: LP in Pendle Pool
 
 LPing in Pendle pools provides exposure to both sides with unique IL characteristics:
 
@@ -870,7 +870,7 @@ Total APY can be attractive: 5-15% on stable pools, higher on volatile ones
 ```
 
 <a id="pt-as-collateral"></a>
-### 💡 PT as Collateral
+### 💡 Concept: PT as Collateral
 
 **The insight:** PT has a known minimum value at maturity (1 underlying). This makes it excellent collateral — lenders know exactly what it's worth at a specific date.
 
@@ -912,7 +912,7 @@ DeFi composability at its finest:
 
 ---
 
-## DeFi Pattern Connections
+## 🔗 DeFi Pattern Connections
 
 <a id="pattern-connections"></a>
 ### 🔗 Patterns Across the Curriculum
@@ -941,7 +941,7 @@ Each is the SAME mathematical pattern: a global counter that grows, per-user sna
 
 ---
 
-## Job Market Context
+## 💼 Job Market Context
 
 <a id="job-market"></a>
 ### 💼 What DeFi Teams Expect

@@ -30,7 +30,7 @@
 
 ---
 
-## Foundational EVM Concepts
+## 💡 Foundational EVM Concepts
 
 These pre-Dencun EVM changes underpin everything else in this module. The gas table above references "cold" and "warm" costs — this section explains where those numbers come from, along with other foundational concepts every DeFi developer must know.
 
@@ -558,7 +558,7 @@ CREATE2 address depends on init code hash. If you can SELFDESTRUCT a contract an
 
 ---
 
-## Dencun Upgrade — EIP-1153 & EIP-4844
+## 💡 Dencun Upgrade — EIP-1153 & EIP-4844
 
 <a id="transient-storage-deep-dive"></a>
 ### 💡 Concept: Transient Storage Deep Dive (EIP-1153)
@@ -1465,7 +1465,7 @@ Build a "flash accounting" pattern using transient storage:
 
 ---
 
-## Pectra Upgrade — EIP-7702 and Beyond
+## 💡 Pectra Upgrade — EIP-7702 and Beyond
 
 <a id="eip-7702"></a>
 ### 💡 Concept: EIP-7702 — EOA Code Delegation
@@ -1974,7 +1974,7 @@ After BLS precompile:
 
 ---
 
-## Looking Ahead
+## 📚 Looking Ahead
 
 <a id="eof"></a>
 ### 💡 Concept: EOF — EVM Object Format

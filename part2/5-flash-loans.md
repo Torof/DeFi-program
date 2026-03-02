@@ -47,7 +47,7 @@ Flash loans are also the primary tool used in oracle manipulation attacks (Modul
 
 ---
 
-## Flash Loan Mechanics
+## 💡 Flash Loan Mechanics
 
 💻 **Quick Try:**
 
@@ -62,7 +62,7 @@ Before diving into providers and callbacks, feel the atomic guarantee on a mainn
 ```
 
 <a id="atomic-guarantee"></a>
-### 💡 The Atomic Guarantee
+### 💡 Concept: The Atomic Guarantee
 
 A flash loan works because of Ethereum's transaction model: either every operation in a transaction succeeds, or the entire transaction reverts. The flash loan provider transfers tokens to your contract, calls your callback function, then checks that the tokens (plus a fee) have been returned. If the check fails, the whole transaction unwinds.
 
@@ -118,7 +118,7 @@ The key insight: from the blockchain's perspective, if repayment fails, the loan
 **The critical property:** Steps ②-⑤ all happen within a single EVM call stack. The provider checks repayment at ⑥ — if it fails, the EVM unwinds everything. This is why flash loans are "risk-free" for the provider: they either get repaid or the loan never existed.
 
 <a id="flash-loan-providers"></a>
-### 💡 Flash Loan Providers
+### 💡 Concept: Flash Loan Providers
 
 **Aave V3** — The original and most widely used.
 
@@ -280,7 +280,7 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 
 ---
 
-## Composing Flash Loan Strategies
+## 📖 Composing Flash Loan Strategies
 
 💻 **Quick Try:**
 
@@ -321,7 +321,7 @@ Run with `forge test --match-test testSpotPriceDifference --fork-url $ETH_RPC_UR
 ---
 
 <a id="dex-arbitrage"></a>
-### 💡 Strategy 1: DEX Arbitrage
+### 💡 Concept: Strategy 1: DEX Arbitrage
 
 The classic flash loan use case: a price discrepancy between two DEXes.
 
@@ -390,7 +390,7 @@ In practice, profitable flash loan arbitrage isn't done by humans submitting tra
 The searcher keeps a thin margin. The builder captures most of the MEV. This is why the arbitrage profit from the example above ($793) would net the searcher maybe $50-100 after builder tips. The economics only work at scale with hundreds of opportunities per day.
 
 <a id="flash-liquidation"></a>
-### 💡 Strategy 2: Flash Loan Liquidation
+### 💡 Concept: Strategy 2: Flash Loan Liquidation
 
 You built a basic liquidation in Module 4. Now do it with zero capital:
 
@@ -458,7 +458,7 @@ Test on mainnet fork:
 - Verify: profit = (collateral seized × collateral price × (1 + liquidation bonus)) - debt repaid - swap fees
 
 <a id="collateral-swap"></a>
-### 💡 Strategy 3: Collateral Swap
+### 💡 Concept: Strategy 3: Collateral Swap
 
 A user has ETH collateral backing a USDC loan on Aave, but wants to switch to WBTC collateral without closing the position.
 
@@ -510,7 +510,7 @@ This delegation pattern is critical for interview discussions — it shows you u
 **Workspace exercise:** The full scaffold with TODOs is in [`CollateralSwap.sol`](../workspace/src/part2/module5/exercise3-collateral-swap/CollateralSwap.sol).
 
 <a id="leverage-deleverage"></a>
-### 💡 Strategy 4: Leverage/Deleverage in One Transaction
+### 💡 Concept: Strategy 4: Leverage/Deleverage in One Transaction
 
 **Leveraging up:** A user wants 3x long ETH exposure.
 1. Flash-borrow ETH
@@ -610,7 +610,7 @@ Result:
 
 ---
 
-## Security, Anti-Patterns, and the Bigger Picture
+## ⚠️ Security, Anti-Patterns, and the Bigger Picture
 
 <a id="flash-security"></a>
 ### ⚠️ Flash Loan Security for Protocol Builders
@@ -681,7 +681,7 @@ function executeOperation(
 **Parameter validation:** The `params` bytes are arbitrary and user-controlled. If you decode them into addresses or amounts, validate everything. An attacker could craft params that route funds to their own address.
 
 <a id="flash-vs-accounting"></a>
-### 💡 Flash Loans vs Flash Accounting: The Evolution
+### 💡 Concept: Flash Loans vs Flash Accounting: The Evolution
 
 Flash loans (Aave, Balancer V2) are a specific feature: borrow tokens, use them, return them.
 
@@ -888,7 +888,7 @@ Flash loans add complexity (callback architecture, approval management, extra ga
 
 ---
 
-## Key Takeaways
+## 📋 Key Takeaways
 
 1. **Flash loans eliminate capital as a barrier.** This is both powerful (anyone can liquidate or arbitrage) and dangerous (anyone can attack with unlimited capital). Design your protocols assuming every user has infinite temporary capital.
 

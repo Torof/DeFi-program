@@ -15,7 +15,7 @@
 
 ---
 
-## Overview
+## 📚 Overview
 
 Every major DeFi protocol needs a mechanism for parameter updates, upgrades, and strategic decisions. Governance is how protocols evolve after deployment — and also one of the most exploited attack surfaces in DeFi.
 
@@ -30,9 +30,9 @@ Every major DeFi protocol needs a mechanism for parameter updates, upgrades, and
 ---
 
 <a id="on-chain-governance"></a>
-## On-Chain Governance
+## 💡 On-Chain Governance
 
-### 💡 Why Governance Exists
+### 💡 Concept: Why Governance Exists
 
 Protocols need to change after deployment:
 - **Risk parameters**: LTV ratios, interest rate curves, collateral types (Part 2 Module 4)
@@ -75,9 +75,9 @@ Total: 5-14 days from proposal to execution
 ---
 
 <a id="oz-governor"></a>
-## OpenZeppelin Governor in Practice
+## 💡 OpenZeppelin Governor in Practice
 
-### 💡 The Standard Governance Stack
+### 💡 Concept: The Standard Governance Stack
 
 OpenZeppelin Governor is the industry standard — used by most new DeFi protocols. Understanding its code is essential.
 
@@ -265,9 +265,9 @@ This test pattern is exactly what your Exercise 1 will use.
 ---
 
 <a id="ve-tokenomics"></a>
-## ve-Tokenomics & the Curve Wars
+## 💡 ve-Tokenomics & the Curve Wars
 
-### 💡 Vote-Escrow: Locking for Influence
+### 💡 Concept: Vote-Escrow: Locking for Influence
 
 The ve (vote-escrow) model is one of DeFi's most influential innovations. It transforms a governance token from a speculative asset into an incentive-alignment tool.
 
@@ -459,9 +459,9 @@ Velodrome's fix:
 ---
 
 <a id="governance-security"></a>
-## Governance Security
+## ⚠️ Governance Security
 
-### 💡 When Governance Itself Is the Attack Surface
+### 💡 Concept: When Governance Itself Is the Attack Surface
 
 ### The Beanstalk Attack ($182M, April 2022)
 
@@ -600,9 +600,9 @@ Compound:
 ---
 
 <a id="governance-minimization"></a>
-## Governance Minimization
+## 💡 Governance Minimization
 
-### 💡 Less Governance Can Be Better
+### 💡 Concept: Less Governance Can Be Better
 
 Every governable parameter is an attack surface. The more things governance can change, the more ways the protocol can be exploited or manipulated.
 

@@ -48,10 +48,10 @@
 
 ---
 
-## Perpetual Futures Fundamentals
+## 💡 Perpetual Futures Fundamentals
 
 <a id="what-is-a-perpetual"></a>
-### 💡 What is a Perpetual?
+### 💡 Concept: What is a Perpetual?
 
 **Why this matters:** Perpetual futures are the highest-volume DeFi instrument. On many days, perp volume exceeds spot DEX volume across all chains. If you're building DeFi infrastructure, you will encounter perp protocols — either directly (GMX, Synthetix, dYdX) or through their downstream effects on oracle prices, liquidation cascading, and MEV.
 
@@ -81,7 +81,7 @@ Traditional Future:                    Perpetual Future:
 - **Open interest** — total value of all open positions (a measure of how much leverage is in the system)
 
 <a id="mark-vs-index"></a>
-### 💡 Mark Price vs Index Price
+### 💡 Concept: Mark Price vs Index Price
 
 Understanding the relationship between mark and index price is fundamental to how perpetuals work.
 
@@ -278,7 +278,7 @@ contract MiniFunding {
 Deploy, call `update()` a few times (wait a few seconds between calls), and watch `cumulative` grow. Then note a `snapshot()` value, wait, call `update()` again, and compute `pending()` — you'll see how the delta captures exactly the funding accrued since your snapshot. This is the pattern that makes O(1) settlement possible.
 
 <a id="margin-and-leverage"></a>
-### 💡 Margin and Leverage
+### 💡 Concept: Margin and Leverage
 
 **Margin** is the collateral you deposit to back a leveraged position. **Leverage** amplifies your exposure: with 10x leverage, a $100 deposit controls a $1,000 position.
 
@@ -470,10 +470,10 @@ The table makes it visceral: at 50x, a 1% move liquidates you; at 100x, the posi
 
 ---
 
-## GMX Architecture
+## 📖 GMX Architecture
 
 <a id="gmx-model"></a>
-### 💡 The GMX Model: Liquidity Pool as Counterparty
+### 💡 Concept: The GMX Model: Liquidity Pool as Counterparty
 
 **Why this matters:** GMX pioneered a radically different perpetual architecture. Instead of matching buyers and sellers (order book) or using a virtual AMM curve, GMX has traders trade directly against a liquidity pool. The pool is the counterparty to every trade. This model has been forked dozens of times and is the basis for many L2 perp protocols.
 
@@ -521,7 +521,7 @@ In adverse conditions: large losses when directional moves hit.
 > **Connection to Module 1 (LSTs):** GMX V2 accepts wstETH and other LSTs as LP collateral and position collateral. The oracle pricing pipeline from P3M1 Exercise 1 is exactly what GMX uses to value LST collateral. As a GMX LP, you earn both trading fees AND staking yield on your LST collateral.
 
 <a id="gmx-v2"></a>
-### 💡 GMX V2: GM Pools and Position Tracking
+### 💡 Concept: GMX V2: GM Pools and Position Tracking
 
 GMX V2 (launched 2023) restructured liquidity into **isolated per-market pools** called GM pools. Each market (ETH/USD, BTC/USD, ARB/USD, etc.) has its own separate pool with its own LP tokens.
 
@@ -720,10 +720,10 @@ GMX V2's codebase is large (~100+ contracts). Here's a focused reading path:
 
 ---
 
-## Synthetix & Alternative Models
+## 💡 Synthetix & Alternative Models
 
 <a id="synthetix-debt-pool"></a>
-### 💡 Synthetix: The Debt Pool Model
+### 💡 Concept: Synthetix: The Debt Pool Model
 
 **Why this is architecturally interesting:** Synthetix takes a completely different approach from GMX. Instead of an LP pool that acts as counterparty, Synthetix uses a **shared debt pool** where all SNX stakers collectively take the other side of every trade. This has profound implications for risk distribution.
 
@@ -837,7 +837,7 @@ function currentDebt(address staker) public view returns (uint256) {
 This is the same share-based math as ERC-4626 vaults (P2M7), but applied to debt rather than assets. Your `debtShares` represent your proportional claim on the total system debt.
 
 <a id="synthetix-perps-v2"></a>
-### 💡 Synthetix Perps V2: Skew-Based Funding
+### 💡 Concept: Synthetix Perps V2: Skew-Based Funding
 
 Synthetix Perps V2 (deployed on Optimism) introduced a different funding rate model: **skew-based funding** rather than the traditional mark-vs-index approach.
 
@@ -876,7 +876,7 @@ Longs pay 2% to shorts → incentivizes new shorts / long closures
 **Pyth oracle integration:** Synthetix Perps V2 was one of the first major protocols to use Pyth's pull-based oracle model, where prices are fetched off-chain and submitted on-chain at time of execution. This gives much higher price update frequency than traditional Chainlink push-based feeds (sub-second vs every heartbeat/deviation threshold).
 
 <a id="dydx"></a>
-### 💡 dYdX: Order Book Model (Awareness)
+### 💡 Concept: dYdX: Order Book Model (Awareness)
 
 dYdX takes yet another approach: a full limit order book on a dedicated Cosmos app-chain (dYdX Chain).
 
@@ -898,7 +898,7 @@ dYdX takes yet another approach: a full limit order book on a dedicated Cosmos a
 **Why it's relevant:** dYdX V4 has become the highest-volume decentralized perp protocol. Understanding the order book model helps you appreciate the design trade-offs in pool-based models like GMX and Synthetix.
 
 <a id="hyperliquid"></a>
-### 💡 Hyperliquid (Awareness)
+### 💡 Concept: Hyperliquid (Awareness)
 
 Hyperliquid is a purpose-built L1 for perpetuals with sub-second finality:
 
@@ -911,7 +911,7 @@ Hyperliquid is a purpose-built L1 for perpetuals with sub-second finality:
 **Why it matters:** Hyperliquid demonstrates that app-specific chains for perps can achieve CeFi-level performance. The competitive landscape is shifting from "which smart contract design is best" to "which execution environment is best for perps."
 
 <a id="architecture-comparison"></a>
-### 💡 Architecture Comparison
+### 💡 Concept: Architecture Comparison
 
 | Feature | GMX V2 | Synthetix Perps V2 | dYdX V4 | Hyperliquid |
 |---------|--------|-------------------|---------|-------------|
@@ -934,10 +934,10 @@ Hyperliquid is a purpose-built L1 for perpetuals with sub-second finality:
 
 ---
 
-## Liquidation in Perpetuals
+## 💡 Liquidation in Perpetuals
 
 <a id="perp-vs-lending-liquidation"></a>
-### 💡 Why Perp Liquidation Differs from Lending
+### 💡 Concept: Why Perp Liquidation Differs from Lending
 
 You studied liquidation in lending protocols (P2M4). Perp liquidation shares the same concept (position becomes undercollateralized → someone closes it for a fee) but differs in critical ways:
 
@@ -1043,7 +1043,7 @@ Liquidation is a competitive MEV opportunity. Multiple keeper bots race to liqui
 > **Connection to P2M4 (Lending):** The liquidation keeper pattern is identical to Aave/Compound liquidation bots. The code structure is nearly the same — check position health, call liquidate function, collect reward. The main difference is the speed requirement: lending liquidation bots can be lazy (check every few blocks), perp liquidation bots must be fast (check every block, or use event-driven monitoring).
 
 <a id="insurance-fund"></a>
-### 💡 Insurance Fund
+### 💡 Concept: Insurance Fund
 
 **The problem:** When a position is liquidated at exactly the maintenance margin, the remaining margin covers the liquidation fee. But in fast markets, the price can blow past the liquidation price before a keeper executes the liquidation. The position becomes **underwater** — remaining margin is negative, and closing the position at the current price creates a loss that no one has paid for.
 
@@ -1074,7 +1074,7 @@ Price drops to $2,730:                 Price drops to $2,680 (gap!):
 > **Connection to P2M6 (Stablecoins):** The insurance fund concept parallels Liquity's stability pool — both are reserves that absorb losses from underwater positions. The stability pool absorbs bad CDP debt; the insurance fund absorbs bad perp position debt. Same pattern, different context.
 
 <a id="adl"></a>
-### 💡 Auto-Deleveraging (ADL)
+### 💡 Concept: Auto-Deleveraging (ADL)
 
 **When the insurance fund is depleted**, the protocol must find another source of funds to cover bad debt. Auto-deleveraging (ADL) is the last resort.
 
@@ -1118,7 +1118,7 @@ Protocol runs ADL:
 4. Position size limits (no single position can create catastrophic bad debt)
 
 <a id="cascading-liquidation"></a>
-### 💡 Cascading Liquidation
+### 💡 Concept: Cascading Liquidation
 
 **The nightmare scenario:** A large liquidation creates price impact, which triggers more liquidations, which create more price impact, creating a liquidation cascade — a self-reinforcing spiral.
 

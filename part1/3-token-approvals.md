@@ -22,7 +22,7 @@
 
 ---
 
-## The Approval Problem and EIP-2612
+## 💡 The Approval Problem and EIP-2612
 
 <a id="traditional-approvals-broken"></a>
 ### 💡 Concept: Why Traditional Approvals Are Broken
@@ -407,7 +407,7 @@ function testDepositWithPermit() public {
 
 ---
 
-## Permit2 — Universal Approval Infrastructure
+## 💡 Permit2 — Universal Approval Infrastructure
 
 <a id="how-permit2-works"></a>
 ### 💡 Concept: How Permit2 Works
@@ -962,7 +962,7 @@ The tests pin a specific block number (`19_000_000`) so results are deterministi
 
 ---
 
-## Security Considerations and Edge Cases
+## ⚠️ Security Considerations and Edge Cases
 
 <a id="permit-attack-vectors"></a>
 ### 💡 Concept: Permit/Permit2 Attack Vectors

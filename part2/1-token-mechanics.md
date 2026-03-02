@@ -27,7 +27,7 @@
 
 ---
 
-## Why This Module Comes First
+## 💡 Why This Module Comes First
 
 **Why this matters:** Every DeFi protocol moves tokens. AMMs swap them, lending pools custody them, vaults compound them. Before you build any of that, you need to deeply understand how token interactions actually work at the contract level — not just the [ERC-20 interface](https://eips.ethereum.org/EIPS/eip-20), but the real-world edge cases that have caused millions in losses.
 
@@ -37,7 +37,7 @@
 
 ---
 
-## ERC-20 Core Patterns & Weird Tokens
+## 💡 ERC-20 Core Patterns & Weird Tokens
 
 <a id="approval-model"></a>
 ### 💡 Concept: The Approval Model
@@ -343,7 +343,7 @@ This 8-line function handles 90% of weird token edge cases. The remaining 10% (r
 
 ---
 
-## Advanced Token Behaviors & Protocol Design
+## 💡 Advanced Token Behaviors & Protocol Design
 
 <a id="advanced-token-behaviors"></a>
 ### ⚠️ Advanced Token Behaviors That Break Protocols
@@ -935,7 +935,7 @@ contract FeeOnTransferToken is ERC20 {
 ---
 
 <a id="practice-challenges"></a>
-## Practice Challenges
+## 🎯 Practice Challenges
 
 After completing this module, try these challenges to test your understanding:
 
@@ -957,7 +957,7 @@ After completing this module, try these challenges to test your understanding:
 
 ---
 
-## Key Takeaways for Protocol Development
+## 📋 Key Takeaways for Protocol Development
 
 After completing this module, you should have internalized these patterns:
 
@@ -1031,7 +1031,7 @@ shares = convertToShares(received); // Use received, not amount
 
 ---
 
-## Resources
+## 📚 Resources
 
 **Reference implementations:**
 - [OpenZeppelin ERC20 (v5.x)](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/token/ERC20)

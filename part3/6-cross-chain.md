@@ -16,7 +16,7 @@
 
 ---
 
-## Overview
+## 📚 Overview
 
 Cross-chain bridges are both essential infrastructure and the most attacked category in DeFi — over $2.5B lost to bridge exploits. This module covers bridge architectures, the on-chain mechanics, security models, messaging protocols, and how to build cross-chain-aware applications.
 
@@ -30,9 +30,9 @@ Cross-chain bridges are both essential infrastructure and the most attacked cate
 ---
 
 <a id="bridge-architectures"></a>
-## Bridge Architectures
+## 💡 Bridge Architectures
 
-### 💡 The Four Models
+### 💡 Concept: The Four Models
 
 DeFi liquidity is fragmented across Ethereum, Arbitrum, Base, Optimism, Polygon, and dozens of other chains. Bridges solve this — but each architecture makes different trust tradeoffs.
 
@@ -160,9 +160,9 @@ Deploy with some ETH, call `lock{value: 1 ether}()`, check `minted` = 1 ETH. The
 ---
 
 <a id="on-chain-mechanics"></a>
-## How Bridges Work: On-Chain Mechanics
+## 💡 How Bridges Work: On-Chain Mechanics
 
-### 💡 The Lock-and-Mint Contract Pattern
+### 💡 Concept: The Lock-and-Mint Contract Pattern
 
 ```solidity
 /// @notice Simplified bridge vault (source chain side)
@@ -258,9 +258,9 @@ The industry is moving from (1) toward (4) and (5). Every new bridge architectur
 ---
 
 <a id="bridge-security"></a>
-## Bridge Security: Anatomy of Exploits
+## ⚠️ Bridge Security: Anatomy of Exploits
 
-### 💡 Why Bridges Are the Highest-Risk DeFi Category
+### 💡 Concept: Why Bridges Are the Highest-Risk DeFi Category
 
 Bridges hold massive TVL as locked collateral, and cross-chain verification is fundamentally hard. A single bug in verification = unlimited minting of wrapped tokens. Over $2.5B lost to bridge exploits in 2022 alone.
 
@@ -370,9 +370,9 @@ When evaluating a bridge for protocol integration:
 ---
 
 <a id="messaging-protocols"></a>
-## Messaging Protocols: LayerZero & CCIP
+## 💡 Messaging Protocols: LayerZero & CCIP
 
-### 💡 Beyond Token Bridges: Arbitrary Messaging
+### 💡 Concept: Beyond Token Bridges: Arbitrary Messaging
 
 Token bridges move assets. Messaging protocols move arbitrary data — function calls, state updates, governance votes. This enables cross-chain DeFi: deposit collateral on Arbitrum, borrow on Optimism. Vote on Ethereum, execute on Base.
 
@@ -519,9 +519,9 @@ Layer 4: Manual Pause
 ---
 
 <a id="token-standards"></a>
-## Cross-Chain Token Standards
+## 💡 Cross-Chain Token Standards
 
-### 💡 The xERC20 Problem
+### 💡 Concept: The xERC20 Problem
 
 If your protocol deploys a token across multiple chains, you face a dilemma: which bridge(s) can mint it?
 
@@ -645,9 +645,9 @@ The pattern is always the same: cap the blast radius of a single failure. The ma
 ---
 
 <a id="cross-chain-patterns"></a>
-## Cross-Chain DeFi Patterns
+## 📖 Cross-Chain DeFi Patterns
 
-### 💡 Building on Multiple Chains
+### 💡 Concept: Building on Multiple Chains
 
 ### Pattern 1: Cross-Chain Swaps
 

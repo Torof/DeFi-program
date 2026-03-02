@@ -52,10 +52,10 @@ MakerDAO (now rebranded to Sky Protocol) pioneered CDPs and remains the largest 
 
 ---
 
-## The CDP Model and MakerDAO/Sky Architecture
+## 💡 The CDP Model and MakerDAO/Sky Architecture
 
 <a id="how-cdps-work"></a>
-### 💡 How CDPs Work
+### 💡 Concept: How CDPs Work
 
 The core lifecycle:
 
@@ -343,7 +343,7 @@ function rpow(uint256 x, uint256 n, uint256 base) internal pure returns (uint256
 
 ---
 
-## Liquidations, PSM, and DAI Savings Rate
+## 💡 Liquidations, PSM, and DAI Savings Rate
 
 💻 **Quick Try:**
 
@@ -368,7 +368,7 @@ emit log_named_uint("DAI currently in auctions (dirt, RAD)", dirt);
 Even if `count` is 0 (no active auctions), you'll see the circuit breaker parameters — `hole` caps how much DAI can be raised simultaneously, preventing the cascade that caused Black Thursday.
 
 <a id="liquidation-auctions"></a>
-### 💡 Liquidation 2.0: Dutch Auctions
+### 💡 Concept: Liquidation 2.0: Dutch Auctions
 
 MakerDAO's original liquidation system (Liquidation 1.2) used English auctions — participants bid DAI in increasing amounts, with capital locked for the duration. This was slow and capital-inefficient, and it catastrophically failed on "Black Thursday" (March 12, 2020) when network congestion prevented liquidation bots from bidding, allowing attackers to win auctions for $0 and causing $8.3 million in bad debt.
 
@@ -531,7 +531,7 @@ Step 4: Liquidator calls Clipper.take() at t=1800s (price = $1,767)
 **Key insight:** The liquidator doesn't need to wait for the absolute best price — they just need `auction_price < market_price - swap_fees - gas`. The competition between liquidators (and MEV searchers) pushes the buy time earlier, reducing the vault owner's penalty. More competition = better outcomes for everyone except the liquidator margins.
 
 <a id="psm"></a>
-### 💡 Peg Stability Module (PSM)
+### 💡 Concept: Peg Stability Module (PSM)
 
 The PSM allows 1:1 swaps between DAI and approved stablecoins (primarily USDC) with a small fee (typically 0%). It serves as the primary peg maintenance mechanism:
 
@@ -543,7 +543,7 @@ The PSM is controversial because it makes DAI heavily dependent on USDC (a centr
 **Contract architecture:** The PSM is essentially a special Vault type that accepts USDC (or other stablecoins) as collateral at a 100% collateral ratio and auto-generates DAI. The `tin` (fee in) and `tout` (fee out) parameters control the swap fees in each direction.
 
 <a id="dsr"></a>
-### 💡 Dai Savings Rate (DSR)
+### 💡 Concept: Dai Savings Rate (DSR)
 
 The DSR lets DAI holders earn interest by locking DAI in the `Pot` contract. The interest comes from stability fees paid by Vault owners — it's a mechanism to increase DAI demand (and thus support the peg) by making holding DAI attractive.
 
@@ -551,7 +551,7 @@ The DSR lets DAI holders earn interest by locking DAI in the `Pot` contract. The
 
 **Sky Savings Rate (SSR):** The Sky rebrand introduced a parallel savings rate for USDS using an [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) vault (sUSDS). This is significant because ERC-4626 is the standard vault interface — meaning sUSDS is natively composable with any protocol that supports ERC-4626.
 
-### 💡 The Sky Rebrand: What Changed
+### 💡 Concept: The Sky Rebrand: What Changed
 
 In September 2024, MakerDAO rebranded to Sky Protocol. Key changes:
 - DAI → USDS (1:1 convertible, both remain active)
@@ -641,7 +641,7 @@ In `Clipper.kick()`, trace:
 
 ---
 
-## Build a Simplified CDP Engine
+## 🎯 Build a Simplified CDP Engine
 
 <a id="simple-cdp"></a>
 ### 🛠️ SimpleCDP.sol
@@ -663,10 +663,10 @@ The exercises across this module build a minimal CDP system that captures the es
 
 ---
 
-## Stablecoin Landscape and Design Trade-offs
+## 💡 Stablecoin Landscape and Design Trade-offs
 
 <a id="stablecoin-taxonomy"></a>
-### 💡 Taxonomy of Stablecoins
+### 💡 Concept: Taxonomy of Stablecoins
 
 **1. Fiat-backed (USDC, USDT)** — Centralized issuer holds bank deposits or T-bills equal to the stablecoin supply. Simple, stable, but requires trust in the issuer and is subject to censorship (addresses can be blacklisted).
 
@@ -677,7 +677,7 @@ The exercises across this module build a minimal CDP system that captures the es
 **4. Delta-neutral / yield-bearing (USDe by Ethena)** — Holds crypto collateral and hedges price exposure using perpetual futures short positions. The yield comes from positive funding rates. Novel design but carries exchange counterparty risk and funding rate reversal risk.
 
 <a id="liquity"></a>
-### 💡 Liquity: A Different CDP Design
+### 💡 Concept: Liquity: A Different CDP Design
 
 Liquity (LUSD) takes a minimalist approach compared to MakerDAO:
 
@@ -750,7 +750,7 @@ The death spiral: when confidence in UST dropped, holders rushed to redeem UST f
 **The lesson:** Without external collateral backing, algorithmic stablecoins rely on reflexive confidence. When confidence breaks, there's nothing to stop the spiral. Every algorithmic stablecoin that relies purely on its own governance/seigniorage token for backing has either failed or abandoned that model.
 
 <a id="ethena"></a>
-### 💡 Ethena (USDe): The Delta-Neutral Model
+### 💡 Concept: Ethena (USDe): The Delta-Neutral Model
 
 Ethena mints USDe against crypto collateral (primarily staked ETH) and simultaneously opens a short perpetual futures position of equal size. The net exposure is zero (delta-neutral), meaning the collateral value doesn't change with ETH price movements.
 
@@ -775,7 +775,7 @@ Ethena mints USDe against crypto collateral (primarily staked ETH) and simultane
 
 > **🔗 Connection:** The funding rate mechanics here connect directly to Part 3 Module 2 (Perpetuals), where you'll study how funding rates work in detail. Ethena is essentially using a DeFi primitive (perpetual funding) as a stablecoin backing mechanism.
 
-### 💡 GHO: Aave's Native Stablecoin
+### 💡 Concept: GHO: Aave's Native Stablecoin
 
 GHO is a decentralized stablecoin minted directly within Aave V3. It extends the lending protocol with stablecoin issuance — users who already have collateral in Aave can mint GHO against it without removing their collateral from the lending pool.
 
@@ -789,7 +789,7 @@ GHO is a decentralized stablecoin minted directly within Aave V3. It extends the
 **Why it matters:** GHO shows how a lending protocol can evolve into a stablecoin issuer without building separate infrastructure. Since you studied Aave V3 in Module 4, GHO is a natural extension of that knowledge.
 
 <a id="crvusd"></a>
-### 💡 crvUSD: Curve's Soft-Liquidation Model (LLAMMA)
+### 💡 Concept: crvUSD: Curve's Soft-Liquidation Model (LLAMMA)
 
 Curve's stablecoin crvUSD introduces a novel liquidation mechanism called LLAMMA (Lending-Liquidating AMM Algorithm) that replaces the traditional discrete liquidation threshold with continuous soft liquidation.
 
@@ -813,7 +813,7 @@ Curve's stablecoin crvUSD introduces a novel liquidation mechanism called LLAMMA
 
 > **🔗 Connection:** crvUSD's LLAMMA is essentially an AMM (Module 2) repurposed as a liquidation mechanism (Module 4). It shows how DeFi primitives can be combined in unexpected ways.
 
-### 💡 FRAX: The Evolution from Algorithmic to Fully Backed
+### 💡 Concept: FRAX: The Evolution from Algorithmic to Fully Backed
 
 FRAX started as a "fractional-algorithmic" stablecoin — partially backed by collateral (USDC) and partially by its governance token (FXS). The collateral ratio would adjust algorithmically based on market conditions.
 
@@ -838,7 +838,7 @@ FRAX started as a "fractional-algorithmic" stablecoin — partially backed by co
 | Failure mode | Bad debt, USDC dep. | Bad debt | Same as Aave | LLAMMA IL | Funding reversal | Regulatory |
 
 <a id="stablecoin-trilemma"></a>
-### 💡 The Fundamental Trilemma
+### 💡 Concept: The Fundamental Trilemma
 
 Stablecoins face a trilemma between:
 1. **Decentralization** — no central point of failure or censorship
@@ -1018,7 +1018,7 @@ The `dust` parameter prevents tiny vaults whose gas costs for liquidation would 
 
 ---
 
-## Key Takeaways
+## 📋 Key Takeaways
 
 1. **CDPs mint money.** Unlike lending protocols that redistribute existing assets, CDP systems create new stablecoins backed by collateral. This is closer to how central banks work than how commercial banks work.
 

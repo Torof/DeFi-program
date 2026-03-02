@@ -22,7 +22,7 @@
 
 ---
 
-## Overview
+## 📚 Overview
 
 In practice, no single DEX has the best price for every trade. DEX aggregators solve the routing problem — finding optimal execution across fragmented liquidity. More recently, intent-based trading is replacing explicit transaction construction: users sign *what* they want, and solvers compete to figure out *how* to fill it.
 
@@ -31,9 +31,9 @@ This module covers both models — from traditional split-routing to the intent/
 ---
 
 <a id="routing-problem"></a>
-## The Routing Problem
+## 💡 The Routing Problem
 
-### 💡 Why Aggregation Exists
+### 💡 Concept: Why Aggregation Exists
 
 **The problem:** No single DEX has the best price for every trade.
 
@@ -65,9 +65,9 @@ This module covers all three, with emphasis on the intent model — that's where
 ---
 
 <a id="split-order-math"></a>
-## Split Order Math
+## 💡 Split Order Math
 
-### 💡 When Does Splitting Beat a Single Pool?
+### 💡 Concept: When Does Splitting Beat a Single Pool?
 
 This connects directly to your AMM math from Part 2 Module 2. Recall the constant product formula:
 
@@ -190,9 +190,9 @@ The math is the same as Part 2 Module 2's AMM analysis, applied to optimization 
 ---
 
 <a id="aggregator-patterns"></a>
-## Aggregator On-Chain Patterns
+## 💡 Aggregator On-Chain Patterns
 
-### 💡 The Multi-Call Executor Pattern
+### 💡 Concept: The Multi-Call Executor Pattern
 
 Every aggregator — 1inch, Paraswap, 0x, CowSwap — uses the same on-chain pattern. The off-chain router determines the optimal path; the on-chain executor just follows instructions:
 
@@ -294,9 +294,9 @@ Don't try to understand the full router in one pass. The core pattern is the mul
 ---
 
 <a id="intent-paradigm"></a>
-## The Intent Paradigm
+## 💡 The Intent Paradigm
 
-### 💡 From Transactions to Intents
+### 💡 Concept: From Transactions to Intents
 
 This is arguably the most important paradigm shift in DeFi since AMMs:
 
@@ -357,9 +357,9 @@ Solver: "I'll give you 1920 USDC — routing through V3 + Curve,
 ---
 
 <a id="eip712-orders"></a>
-## EIP-712 Order Structures
+## 💡 EIP-712 Order Structures
 
-### 💡 How Intent Orders Are Signed
+### 💡 Concept: How Intent Orders Are Signed
 
 EIP-712 enables typed, structured data signing — the user sees exactly what they're signing in their wallet, not just a hex blob. This is the foundation of every intent protocol.
 
@@ -465,9 +465,9 @@ This is exactly how your Exercise 2 tests will work.
 ---
 
 <a id="dutch-auction"></a>
-## Dutch Auction Price Decay
+## 💡 Dutch Auction Price Decay
 
-### 💡 How Price Discovery Works in Intents
+### 💡 Concept: How Price Discovery Works in Intents
 
 In traditional limit orders, the user sets a fixed price. In intent-based trading, a **Dutch auction** finds the market price through time decay. The output the solver must provide starts high and decreases over time:
 
@@ -582,9 +582,9 @@ The formula is identical across all of these. What changes is: who's buying, wha
 ---
 
 <a id="settlement-architecture"></a>
-## Settlement Contract Architecture
+## 📖 Settlement Contract Architecture
 
-### 💡 The UniswapX Reactor Pattern
+### 💡 Concept: The UniswapX Reactor Pattern
 
 The **Reactor** is UniswapX's on-chain settlement engine. It's where the trust guarantee lives — no matter what the solver does off-chain, the on-chain contract enforces that the user gets what they signed for.
 
@@ -684,9 +684,9 @@ This is powerful — the solver can flash-swap from Uniswap, arbitrage across po
 ---
 
 <a id="solvers"></a>
-## Solvers & the Filler Ecosystem
+## 💡 Solvers & the Filler Ecosystem
 
-### 💡 What Solvers Actually Do
+### 💡 Concept: What Solvers Actually Do
 
 A solver (or "filler") is a service that fills intent orders profitably. This is one of the hottest areas in DeFi right now — teams are actively hiring solver engineers.
 
@@ -789,9 +789,9 @@ contract MySolver is IReactorCallback {
 ---
 
 <a id="cow-protocol"></a>
-## CoW Protocol: Batch Auctions
+## 💡 CoW Protocol: Batch Auctions
 
-### 💡 A Different Approach to Intents
+### 💡 Concept: A Different Approach to Intents
 
 While UniswapX uses Dutch auctions for individual orders, CoW Protocol collects orders into **batches** and finds optimal execution for the entire batch at once.
 

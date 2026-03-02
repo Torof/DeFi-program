@@ -68,7 +68,7 @@ If any of these feel unfamiliar, review Part 1 and the OpenZeppelin documentatio
 
 ---
 
-## DeFi-Specific Attack Patterns
+## ⚠️ DeFi-Specific Attack Patterns
 
 <a id="read-only-reentrancy"></a>
 ### ⚠️ Read-Only Reentrancy
@@ -539,10 +539,10 @@ DeFi's composability means your protocol interacts with others in ways you can't
 
 ---
 
-## Invariant Testing with Foundry
+## 💡 Invariant Testing with Foundry
 
 <a id="why-invariant-testing"></a>
-### 💡 Why Invariant Testing Is the Most Powerful DeFi Testing Tool
+### 💡 Concept: Why Invariant Testing Is the Most Powerful DeFi Testing Tool
 
 Unit tests verify specific scenarios you think of. Fuzz tests verify single functions with random inputs. Invariant tests verify that properties hold across random *sequences* of function calls — finding edge cases no human would think to test.
 
@@ -928,9 +928,9 @@ Write a comprehensive invariant test suite for your SimpleLendingPool from Modul
 
 ---
 
-## Reading Audit Reports
+## 💡 Reading Audit Reports
 
-### 💡 Why This Skill Matters
+### 💡 Concept: Why This Skill Matters
 
 Audit reports are the densest source of real-world vulnerability knowledge. A single report can contain 10-20 findings, each one a potential exploit pattern you might encounter in your own code. Learning to read them efficiently — understanding severity classifications, root cause analysis, and recommended fixes — is one of the highest-ROI activities for a protocol builder.
 
@@ -1039,7 +1039,7 @@ Take your SimpleLendingPool from Module 4 and apply a structured review:
 
 ---
 
-## Security Tooling & Audit Preparation
+## 💡 Security Tooling & Audit Preparation
 
 <a id="static-analysis"></a>
 ### 🛠️ Static Analysis Tools
@@ -1166,7 +1166,7 @@ Auditors are a final validation, not a substitute for your own security work. Pr
 - Don't deploy code that differs from what was audited
 
 <a id="security-first"></a>
-### 💡 Building Security-First
+### 💡 Concept: Building Security-First
 
 The security mindset isn't a checklist — it's a way of thinking about code:
 

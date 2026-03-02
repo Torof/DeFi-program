@@ -53,10 +53,10 @@ Understanding ERC-4626 deeply — the math, the interface, the security pitfalls
 
 ---
 
-## ERC-4626 — The Tokenized Vault Standard
+## 💡 ERC-4626 — The Tokenized Vault Standard
 
 <a id="core-abstraction"></a>
-### 💡 The Core Abstraction
+### 💡 Concept: The Core Abstraction
 
 An ERC-4626 vault is an ERC-20 token that represents proportional ownership of a pool of underlying assets. The two key quantities:
 
@@ -152,7 +152,7 @@ ERC-4626 extends ERC-20 with these core functions:
 This ensures the vault can never be drained by rounding exploits.
 
 <a id="share-math"></a>
-### 💡 The Share Math
+### 💡 Concept: The Share Math
 
 ```
 shares = assets × totalSupply / totalAssets    (for deposits — rounds down)
@@ -332,7 +332,7 @@ Tests verify:
 
 ---
 
-## The Inflation Attack and Defenses
+## ⚠️ The Inflation Attack and Defenses
 
 <a id="inflation-attack"></a>
 ### ⚠️ The Attack
@@ -620,10 +620,10 @@ Tests verify:
 
 ---
 
-## Yield Aggregation — Yearn V3 Architecture
+## 💡 Yield Aggregation — Yearn V3 Architecture
 
 <a id="yield-aggregation"></a>
-### 💡 The Yield Aggregation Problem
+### 💡 Concept: The Yield Aggregation Problem
 
 A single yield source (e.g., supplying USDC on Aave) gives you one return. But there are dozens of yield sources for USDC: Aave, Compound, Morpho, Curve pools, Balancer pools, DSR, etc. Each has different risk, return, and capacity. A yield aggregator's job is to:
 
@@ -634,7 +634,7 @@ A single yield source (e.g., supplying USDC on Aave) gives you one return. But t
 5. Account for profits and losses correctly
 
 <a id="yearn-allocator"></a>
-### 💡 Yearn V3: The Allocator Vault Pattern
+### 💡 Concept: Yearn V3: The Allocator Vault Pattern
 
 Yearn V3 redesigned their vault system around ERC-4626 composability:
 
@@ -730,7 +730,7 @@ Timeline:
 **The trade-off:** Longer unlock times are more sandwich-resistant but delay yield recognition for legitimate depositors. Most vaults use 6-24 hours as a balance.
 
 <a id="curator-model"></a>
-### 💡 The Curator Model
+### 💡 Concept: The Curator Model
 
 The broader trend in DeFi (2024-25) extends Yearn's pattern: protocols like [Morpho](https://github.com/morpho-org/metamorpho) and [Euler V2](https://github.com/euler-xyz/euler-vault-kit) allow third-party "curators" to deploy ERC-4626 vaults that allocate to their underlying lending markets. Curators set risk parameters, choose which markets to allocate to, and earn management/performance fees. Users choose a curator based on risk appetite and track record.
 
@@ -827,7 +827,7 @@ Tests verify:
 
 ---
 
-## Composable Yield Patterns and Security
+## 📖 Composable Yield Patterns and Security
 
 <a id="yield-strategies"></a>
 ### 📋 Yield Strategy Comparison
@@ -844,7 +844,7 @@ Tests verify:
 *APY ranges are illustrative and vary significantly with market conditions. Higher APY = higher risk.*
 
 <a id="auto-compounding"></a>
-### 💡 Pattern 1: Auto-Compounding
+### 💡 Concept: Pattern 1: Auto-Compounding
 
 Many yield sources distribute rewards in a separate token (e.g., COMP tokens from Compound, CRV from Curve). Auto-compounding sells these reward tokens for the underlying asset and re-deposits:
 
@@ -858,7 +858,7 @@ Many yield sources distribute rewards in a separate token (e.g., COMP tokens fro
 **Build consideration:** The harvest transaction pays gas and incurs swap slippage. Only economical when accumulated rewards exceed costs. Most vaults use keeper bots that call harvest based on profitability calculations.
 
 <a id="leveraged-yield"></a>
-### 💡 Pattern 2: Leveraged Yield (Recursive Borrowing)
+### 💡 Concept: Pattern 2: Leveraged Yield (Recursive Borrowing)
 
 Combine lending with borrowing to amplify yield:
 
@@ -950,7 +950,7 @@ HEALTH FACTOR CHECK
 ```
 
 <a id="lp-staking"></a>
-### 💡 Pattern 3: LP + Staking
+### 💡 Concept: Pattern 3: LP + Staking
 
 Provide liquidity to an AMM pool, then stake the LP tokens for additional rewards:
 

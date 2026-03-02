@@ -60,7 +60,7 @@ This module teaches you to consume oracle data safely and understand the attack 
 
 ---
 
-## Oracle Fundamentals and Chainlink Architecture
+## 💡 Oracle Fundamentals and Chainlink Architecture
 
 💻 **Quick Try:**
 
@@ -76,7 +76,7 @@ AggregatorV3Interface feed = AggregatorV3Interface(0x5f4eC3Df9cbd43714FE2740f5E3
 ```
 
 <a id="oracle-problem"></a>
-### 💡 The Oracle Problem
+### 💡 Concept: The Oracle Problem
 
 **Why this matters:** Smart contracts execute deterministically — given the same state and input, they always produce the same output. This is a feature (consensus depends on it), but it means contracts can't natively access off-chain data like asset prices, weather, sports scores, or API results.
 
@@ -87,7 +87,7 @@ An oracle is any mechanism that feeds external data into a smart contract. The c
 ---
 
 <a id="oracle-types"></a>
-### 💡 Types of Price Oracles
+### 💡 Concept: Types of Price Oracles
 
 **1. Centralized oracles** — A single entity publishes price data on-chain. Simple, fast, but a single point of failure. If the entity goes down, gets hacked, or acts maliciously, every protocol depending on it breaks.
 
@@ -114,7 +114,7 @@ An oracle is any mechanism that feeds external data into a smart contract. The c
 ---
 
 <a id="chainlink-architecture"></a>
-### 💡 Chainlink Architecture Deep Dive
+### 💡 Concept: Chainlink Architecture Deep Dive
 
 **Why this matters:** [Chainlink](https://chain.link/) is the dominant oracle provider in DeFi, securing hundreds of billions in value. Understanding its architecture is essential.
 
@@ -245,7 +245,7 @@ The [Proxy layer](https://docs.chain.link/architecture-overview/architecture-dec
 ---
 
 <a id="alternative-oracles"></a>
-### 💡 Alternative Oracle Networks (Awareness)
+### 💡 Concept: Alternative Oracle Networks (Awareness)
 
 Chainlink dominates, but other oracle networks are gaining traction:
 
@@ -479,7 +479,7 @@ Build an `OracleConsumer.sol` that reads Chainlink price feeds with all producti
 
 ---
 
-## TWAP Oracles and On-Chain Price Sources
+## 💡 TWAP Oracles and On-Chain Price Sources
 
 💻 **Quick Try:**
 
@@ -498,7 +498,7 @@ int24 twapTick = int24(tickDelta / 1800);
 ```
 
 <a id="twap"></a>
-### 💡 TWAP: Time-Weighted Average Price
+### 💡 Concept: TWAP: Time-Weighted Average Price
 
 You studied TWAP briefly in Module 2 (Uniswap V2's cumulative price accumulators). Now let's go deeper into when and how to use TWAP oracles.
 
@@ -711,7 +711,7 @@ State transitions triggered by:
 
 ---
 
-## Oracle Manipulation Attacks
+## ⚠️ Oracle Manipulation Attacks
 
 <a id="attack-surface"></a>
 ### ⚠️ The Attack Surface
@@ -857,7 +857,7 @@ Attacker can donate tokens directly, inflating `totalAssets` without minting sha
 ---
 
 <a id="oev"></a>
-### 💡 Oracle Extractable Value (OEV) — Awareness
+### 💡 Concept: Oracle Extractable Value (OEV) — Awareness
 
 **Oracle Extractable Value (OEV)** is the value that can be captured by controlling the *timing* or *ordering* of oracle updates. It's the oracle-specific subset of MEV.
 

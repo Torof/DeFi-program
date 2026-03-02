@@ -21,7 +21,7 @@
 
 ---
 
-## Language-Level Changes That Matter for DeFi
+## 💡 Language-Level Changes That Matter for DeFi
 
 <a id="checked-arithmetic"></a>
 ### 💡 Concept: Checked Arithmetic (0.8.0)
@@ -1272,7 +1272,7 @@ Build a **vault share calculator** — the exact math that underpins every ERC-4
 
 ---
 
-## Solidity 0.8.24+ — The Bleeding Edge
+## 💡 Solidity 0.8.24+ — The Bleeding Edge
 
 <a id="transient-storage"></a>
 ### 💡 Concept: Transient Storage Support (0.8.24+)

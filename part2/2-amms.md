@@ -54,7 +54,7 @@
 
 ---
 
-## Why This Is the Longest Module
+## 💡 Why This Is the Longest Module
 
 **Why this matters:** AMMs are the foundation of decentralized finance. Lending protocols need them for liquidations. Aggregators route through them. Yield strategies compose on top of them. Intent systems like [UniswapX](https://uniswap.org/whitepaper-uniswapx.pdf) exist to improve on them. If you're going to build your own protocols, you need to understand AMMs deeply — not just the interface, but the math, the design trade-offs, and the evolution from V2's elegant simplicity through V3's concentrated liquidity to V4's programmable hooks.
 
@@ -66,10 +66,10 @@ This module is 12 days because you're building one from scratch, then studying t
 
 ---
 
-## The Constant Product Formula
+## 💡 The Constant Product Formula
 
 <a id="amm-math"></a>
-### 💡 The Math
+### 💡 Concept: The Math
 
 **Why this matters:** Every AMM begins with a single equation: **x · y = k**
 
@@ -422,7 +422,7 @@ Write comprehensive Foundry tests covering:
 
 ---
 
-## Reading Uniswap V2
+## 💡 Reading Uniswap V2
 
 ### Why V2 Matters
 
@@ -592,10 +592,10 @@ V3 trades simplicity for capital efficiency. Keep this tradeoff in mind as you r
 
 ---
 
-## Concentrated Liquidity (Uniswap V3 Concepts)
+## 💡 Concentrated Liquidity (Uniswap V3 Concepts)
 
 <a id="v3-problem"></a>
-### 💡 The Problem V3 Solves
+### 💡 Concept: The Problem V3 Solves
 
 **Why this matters:** In V2, liquidity is spread uniformly across the entire price range from 0 to infinity. For a stablecoin pair like DAI/USDC, the price almost always stays between 0.99 and 1.01 — meaning ~99.5% of LP capital is sitting idle at extreme price ranges that never get traded. This is massively capital-inefficient.
 
@@ -608,7 +608,7 @@ V3 lets LPs choose a specific price range for their liquidity. Capital between 0
 ---
 
 <a id="v3-concepts"></a>
-### 💡 Core V3 Concepts
+### 💡 Concept: Core V3 Concepts
 
 **Ticks:**
 
@@ -921,7 +921,7 @@ Write tests that verify all three cases and check that amounts change continuous
 
 ---
 
-## Build a Simplified Concentrated Liquidity Pool (Self-Directed Challenge)
+## 🎯 Build a Simplified Concentrated Liquidity Pool (Self-Directed Challenge)
 
 ### What to Build
 
@@ -1050,9 +1050,9 @@ V4 trades the simplicity of independent pool contracts for a singleton that trac
 
 ---
 
-## Uniswap V4 — Singleton Architecture and Flash Accounting
+## 💡 Uniswap V4 — Singleton Architecture and Flash Accounting
 
-### 💡 Architectural Revolution
+### 💡 Concept: Architectural Revolution
 
 **Why this matters:** V4 is a fundamentally different architecture from V2/V3. The two key innovations make it significantly more gas-efficient and composable.
 
@@ -1169,9 +1169,9 @@ forge test --fork-url $MAINNET_RPC --match-contract V4Test
 
 ---
 
-## Uniswap V4 Hooks
+## 💡 Uniswap V4 Hooks
 
-### 💡 The Hook System
+### 💡 Concept: The Hook System
 
 **Why this matters:** Hooks are external smart contracts that the PoolManager calls at specific points during pool operations. They are V4's extension mechanism — the "app store" for AMMs.
 
@@ -1370,7 +1370,7 @@ contract VolatilityHook is BaseHook {
 
 ---
 
-## Beyond Uniswap and Advanced AMM Topics
+## 📚 Beyond Uniswap and Advanced AMM Topics
 
 <a id="amms-vs-clobs"></a>
 ### AMMs vs Order Books (CLOBs)
@@ -1895,7 +1895,7 @@ If your protocol uses LP tokens as collateral or manages liquidity:
 
 ---
 
-## Practice Challenges and Review
+## 🎯 Practice Challenges and Review
 
 Test your AMM understanding with these exercises:
 
@@ -1940,7 +1940,7 @@ Test your AMM understanding with these exercises:
 
 ---
 
-## Key Takeaways for Protocol Builders
+## 📋 Key Takeaways for Protocol Builders
 
 After 12 days, you should have internalized:
 
@@ -2000,7 +2000,7 @@ After 12 days, you should have internalized:
 
 ---
 
-## Resources
+## 📚 Resources
 
 **Essential reading:**
 - [Uniswap V2 Whitepaper](https://uniswap.org/whitepaper.pdf)

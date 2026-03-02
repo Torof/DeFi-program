@@ -28,7 +28,7 @@ In Part 2, you'll encounter: Aave V3 (transparent proxy + libraries), Compound V
 
 ---
 
-## Proxy Fundamentals
+## 💡 Proxy Fundamentals
 
 <a id="how-proxies-work"></a>
 ### 💡 Concept: How Proxies Work
@@ -433,7 +433,7 @@ The Diamond pattern allows a single proxy to delegate to **multiple** implementa
 
 ---
 
-## Storage Layout and Initializers
+## 💡 Storage Layout and Initializers
 
 <a id="storage-layout"></a>
 ### 💡 Concept: Storage Layout Compatibility

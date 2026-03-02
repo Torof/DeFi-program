@@ -44,10 +44,10 @@
 
 ---
 
-## Liquid Staking Fundamentals
+## 💡 Liquid Staking Fundamentals
 
 <a id="why-liquid-staking"></a>
-### 💡 Why Liquid Staking Exists
+### 💡 Concept: Why Liquid Staking Exists
 
 **The problem:** Ethereum staking requires 32 ETH and running a validator. Staked ETH is locked — you can't use it as DeFi collateral, you can't trade it, you can't LP with it. For an asset class worth billions, that's a massive capital efficiency problem.
 
@@ -73,7 +73,7 @@ No DeFi composability.               Use stETH in DeFi:
 ```
 
 <a id="rebasing-vs-non-rebasing"></a>
-### 💡 Two Models: Rebasing vs Non-Rebasing
+### 💡 Concept: Two Models: Rebasing vs Non-Rebasing
 
 LSTs represent staked ETH plus accumulated rewards. There are two fundamentally different approaches to reflecting those rewards.
 
@@ -204,7 +204,7 @@ console.log("rETH exchange rate:", rethRate); // ~1.12e18
 Deploy, call these view functions, and observe both rates are > 1.0 — reflecting years of accumulated staking rewards.
 
 <a id="withdrawal-queue"></a>
-### 💡 Withdrawal Queue (Post-Shapella)
+### 💡 Concept: Withdrawal Queue (Post-Shapella)
 
 Before Ethereum's Shapella upgrade (April 2023), staked ETH could not be withdrawn. LSTs traded at a discount to ETH because there was no redemption mechanism — the only way to exit was selling on a DEX.
 
@@ -248,10 +248,10 @@ Request flow:
 
 ---
 
-## Protocol Architecture
+## 📖 Protocol Architecture
 
 <a id="lido-architecture"></a>
-### 💡 Lido Architecture
+### 💡 Concept: Lido Architecture
 
 Lido is the largest liquid staking protocol (~70% market share of ETH LSTs). Understanding its architecture is essential because most DeFi LST integrations target wstETH.
 
@@ -346,7 +346,7 @@ Alice's balance increased by 1 stETH without any transaction. That's the rebase.
 > **🔗 Connection:** This is the exact pattern from P2M7's vault share math. The only difference is naming: ERC-4626 calls it `totalAssets / totalSupply`, Lido calls it `totalPooledEther / totalShares`. Same math, same O(1) rebase mechanism.
 
 <a id="wsteth-wrapper"></a>
-### 💡 wstETH: The Non-Rebasing Wrapper
+### 💡 Concept: wstETH: The Non-Rebasing Wrapper
 
 wstETH is a thin wrapper around stETH shares. When you "wrap" stETH, you're converting from the rebasing representation to the shares representation. When you "unwrap," you convert back.
 
@@ -394,7 +394,7 @@ contract WstETH is ERC20 {
 **The key insight:** 1 wstETH = 1 Lido share. The "wrapping" is conceptual — wstETH simply exposes shares as a standard ERC-20 instead of hiding them behind the rebasing `balanceOf()`. This is why wstETH is DeFi-compatible: its balance never changes, only the rate returned by `stEthPerToken()` grows.
 
 <a id="oracle-reporting"></a>
-### 💡 Oracle Reporting & the Rebase Mechanism
+### 💡 Concept: Oracle Reporting & the Rebase Mechanism
 
 The oracle is how Lido learns about validator performance on the beacon chain (consensus layer). This is a trust assumption worth understanding.
 
@@ -444,7 +444,7 @@ APR implied: 14.6% → exceeds 10% cap → REJECTED
 > **🔗 Connection:** This oracle sanity check pattern is analogous to the rate cap you saw in P2M9's vault share pricing — both limit how fast an exchange rate can grow to prevent manipulation. Lido's cap is built into the protocol itself; your P2M9 stablecoin cap was external.
 
 <a id="rocket-pool"></a>
-### 💡 Rocket Pool: Decentralized Alternative
+### 💡 Concept: Rocket Pool: Decentralized Alternative
 
 Rocket Pool takes a different approach to decentralization. Where Lido uses a curated set of professional operators, Rocket Pool is **permissionless** — anyone can run a validator.
 
@@ -544,10 +544,10 @@ The rate is updated by Rocket Pool's Oracle DAO (a set of trusted nodes) rather 
 
 ---
 
-## EigenLayer & Restaking
+## 💡 EigenLayer & Restaking
 
 <a id="what-is-restaking"></a>
-### 💡 What is Restaking?
+### 💡 Concept: What is Restaking?
 
 Staked ETH secures Ethereum's consensus layer. Restaking extends this security to additional protocols by allowing stakers to **opt in** to securing additional services with the same stake.
 
@@ -581,7 +581,7 @@ If you have an Ethereum mainnet RPC (e.g., Alchemy/Infura), you can inspect Eige
 This is a read-only peek at how much stETH is restaked in EigenLayer. No testnet deployment needed — just a mainnet RPC call.
 
 <a id="eigenlayer-architecture"></a>
-### 💡 EigenLayer Architecture
+### 💡 Concept: EigenLayer Architecture
 
 EigenLayer is the dominant restaking protocol. It has four core components:
 
@@ -648,7 +648,7 @@ AVS triggers slashing → portion of staker's 100 wstETH is seized
 **Key point for DeFi developers:** You don't need to understand EigenLayer's internals deeply to integrate with it. What matters is understanding that restaked assets have **additional slashing risk** beyond normal staking — and this risk affects how you should value LRTs (liquid restaking tokens) as collateral.
 
 <a id="lrts"></a>
-### 💡 Liquid Restaking Tokens (LRTs)
+### 💡 Concept: Liquid Restaking Tokens (LRTs)
 
 LRTs are to restaking what LSTs are to staking — liquid receipt tokens for restaked positions.
 
@@ -738,7 +738,7 @@ This is not theoretical — Aave, Morpho, and every lending protocol that lists 
 
 ---
 
-## LST Integration Patterns
+## 💡 LST Integration Patterns
 
 <a id="oracle-pricing"></a>
 ### 🔍 Deep Dive: LST Oracle Pricing Pipeline
@@ -923,7 +923,7 @@ function getStETHToETHRate() public view returns (uint256) {
 > **Note:** Chainlink provides a stETH/ETH feed on mainnet. For rETH, Chainlink provides an rETH/ETH feed. Both are used by production protocols (Aave, Morpho) for exactly this dual-oracle pattern.
 
 <a id="lst-collateral"></a>
-### 💡 LSTs as Collateral in Lending
+### 💡 Concept: LSTs as Collateral in Lending
 
 **Aave V3 wstETH integration — how production does it:**
 
@@ -958,7 +958,7 @@ In practice, liquidators sell on DEX for immediate ETH. This is why DEX liquidit
 > **🔗 Connection:** This mirrors exactly the liquidation economics discussion from P2M9 — bidder profitability depends on DEX liquidity depth, which determines whether liquidation actually works at the parameters you've set.
 
 <a id="lst-amms"></a>
-### 💡 LSTs in AMMs
+### 💡 Concept: LSTs in AMMs
 
 **The Curve stETH/ETH pool** is the most important pool for LST liquidity. It uses Curve's StableSwap invariant, which is optimized for assets that trade near 1:1.
 
@@ -982,7 +982,7 @@ StableSwap (Curve):
 **Yield-bearing LP positions:** LPing in the stETH/ETH pool earns trading fees AND half the position earns staking yield (the stETH side). This "yield-bearing LP" concept connects to P2M7's yield stacking patterns.
 
 <a id="lst-vaults"></a>
-### 💡 LSTs in Vaults
+### 💡 Concept: LSTs in Vaults
 
 wstETH is a natural fit for ERC-4626 vaults. Since wstETH already has an increasing exchange rate (staking yield), wrapping it in a vault adds another yield layer:
 

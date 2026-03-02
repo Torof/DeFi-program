@@ -23,7 +23,7 @@
 
 ---
 
-## ERC-4337 Architecture
+## 💡 ERC-4337 Architecture
 
 <a id="problem-aa-solves"></a>
 ### 💡 Concept: The Problem Account Abstraction Solves
@@ -395,7 +395,7 @@ Read these contracts in order:
 
 ---
 
-## EIP-7702 and DeFi Implications
+## 💡 EIP-7702 and DeFi Implications
 
 <a id="eip-7702-vs-erc-4337"></a>
 ### 💡 Concept: EIP-7702 — How It Differs from ERC-4337
@@ -796,7 +796,7 @@ function verifySignature(address signer, bytes32 hash, bytes memory sig) interna
 
 ---
 
-## Paymasters and Gas Abstraction
+## 💡 Paymasters and Gas Abstraction
 
 <a id="paymaster-patterns"></a>
 ### 💡 Concept: Paymaster Design Patterns
