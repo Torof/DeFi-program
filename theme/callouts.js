@@ -226,44 +226,11 @@
     });
   }
 
-  // --- Section Indentation ---
-  // Wraps content under each H3 in an indented group with a subtle left rail.
-  // Runs AFTER callout wrapping so callout divs are already in place.
-  function indentSections() {
-    var main = document.querySelector('.content main');
-    if (!main) return;
-
-    var h3s = main.querySelectorAll('h3');
-    h3s.forEach(function(h3) {
-      if (h3.dataset.sectionGrouped) return;
-      h3.dataset.sectionGrouped = 'true';
-
-      // Collect all siblings after this H3 until the next H1, H2, H3, or HR
-      var elements = [];
-      var next = h3.nextElementSibling;
-      while (next && !next.matches('h1, h2, h3, hr')) {
-        elements.push(next);
-        next = next.nextElementSibling;
-      }
-
-      if (elements.length === 0) return;
-
-      var wrapper = document.createElement('div');
-      wrapper.className = 'section-group';
-      // Insert wrapper right after the H3
-      h3.parentNode.insertBefore(wrapper, elements[0]);
-      elements.forEach(function(el) {
-        wrapper.appendChild(el);
-      });
-    });
-  }
-
   // --- Initialize ---
   function init() {
     colorSections();
     labelCodeBlocks();
     wrapCallouts();
-    indentSections();
   }
 
   if (document.readyState === 'loading') {

@@ -282,13 +282,6 @@
   border-left-color: #60a5fa;
 }
 
-/* --- Section indentation groups (injected by callouts.js) --- */
-/* Content under each H3 is indented — no border, just spacing */
-.section-group {
-  padding-left: 1.2em;
-  margin-top: 0.6em;
-}
-
 /* --- Horizontal rules as section dividers --- */
 .content main hr {
   border: none;
