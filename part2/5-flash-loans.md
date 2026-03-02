@@ -280,7 +280,7 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 
 ---
 
-## 📖 Composing Flash Loan Strategies
+## 💡 Composing Flash Loan Strategies
 
 💻 **Quick Try:**
 

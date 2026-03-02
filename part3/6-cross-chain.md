@@ -728,7 +728,7 @@ Run: `forge test --match-contract RateLimitedTokenTest -vvv`
 ---
 
 <a id="cross-chain-patterns"></a>
-## 📖 Cross-Chain DeFi Patterns
+## 💡 Cross-Chain DeFi Patterns
 
 ### 💡 Concept: Building on Multiple Chains
 

@@ -827,7 +827,7 @@ Tests verify:
 
 ---
 
-## 📖 Composable Yield Patterns and Security
+## 💡 Composable Yield Patterns and Security
 
 <a id="yield-strategies"></a>
 #### 📋 Yield Strategy Comparison

@@ -585,7 +585,7 @@ function reveal(uint256 amount, bytes32 salt) external {
 ---
 
 <a id="mev-aware-design"></a>
-## 📖 MEV-Aware Protocol Design
+## 💡 MEV-Aware Protocol Design
 
 ### 💡 Concept: Building Protocols That Resist Extraction
 

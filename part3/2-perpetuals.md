@@ -507,7 +507,7 @@ Build the core funding rate accumulator pattern:
 
 ---
 
-## 📖 GMX Architecture
+## 💡 GMX Architecture
 
 <a id="gmx-model"></a>
 ### 💡 Concept: The GMX Model: Liquidity Pool as Counterparty

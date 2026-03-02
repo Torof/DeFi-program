@@ -662,7 +662,7 @@ Run: `forge test --match-contract IntentSettlementTest -vvv`
 ---
 
 <a id="settlement-architecture"></a>
-## 📖 Settlement Contract Architecture
+## 💡 Settlement Contract Architecture
 
 ### 💡 Concept: The UniswapX Reactor Pattern
 

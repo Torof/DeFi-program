@@ -167,7 +167,7 @@ If any of these feel fuzzy, revisit the module before starting. This capstone as
 
 ---
 
-## 📖 Architecture Design
+## 💡 Architecture Design
 
 <a id="contract-structure"></a>
 ### 💡 Concept: Contract Structure: The 4 Core Contracts

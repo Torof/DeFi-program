@@ -33,7 +33,7 @@ Most DeFi activity has migrated to L2s — Arbitrum, Base, and Optimism collecti
 ---
 
 <a id="l2-architecture"></a>
-## 📖 L2 Architecture for DeFi Developers
+## 💡 L2 Architecture for DeFi Developers
 
 ### 💡 Concept: Rollup Types
 
@@ -534,7 +534,7 @@ Shared sequencing: multiple L2s share a sequencer
 ---
 
 <a id="l2-native"></a>
-## 📖 L2-Native Protocol Design
+## 💡 L2-Native Protocol Design
 
 ### 💡 Concept: What Cheap Gas Enables
 
@@ -630,7 +630,7 @@ The numbers are modest per user, but for large vaults the compounding frequency 
 ---
 
 <a id="multi-chain"></a>
-## 📖 Multi-Chain Deployment Patterns
+## 💡 Multi-Chain Deployment Patterns
 
 ### 💡 Concept: Same Protocol, Different Parameters
 

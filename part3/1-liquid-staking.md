@@ -282,7 +282,7 @@ Build a `WstETHOracle` contract that correctly prices wstETH in USD using a two-
 
 ---
 
-## 📖 Protocol Architecture
+## 💡 Protocol Architecture
 
 <a id="lido-architecture"></a>
 ### 💡 Concept: Lido Architecture

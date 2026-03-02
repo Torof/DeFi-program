@@ -511,7 +511,7 @@ YT yield = the vertical distance between entry and exit.
 
 ---
 
-## 📖 Pendle Architecture
+## 💡 Pendle Architecture
 
 <a id="pendle-system-overview"></a>
 ### 💡 Concept: System Overview
