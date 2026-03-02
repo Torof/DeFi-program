@@ -110,7 +110,10 @@
 
 /* "Concept:" keyword coloring in H3 headings */
 .concept-keyword {
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 1.15em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 .light .concept-keyword { color: #7c3aed; }
 .navy .concept-keyword  { color: #c4b5fd; }
