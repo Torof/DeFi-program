@@ -282,6 +282,30 @@
   border-left-color: #60a5fa;
 }
 
+/* --- Section indentation groups (injected by callouts.js) --- */
+/* Content under each H3 is wrapped in a .section-group with a left rail */
+.section-group {
+  border-left: 2px solid;
+  padding-left: 1.3em;
+  margin-left: 0.3em;
+  margin-top: 0.6em;
+}
+
+.light .section-group { border-left-color: rgba(59, 130, 246, 0.18); }
+.navy .section-group { border-left-color: rgba(96, 165, 250, 0.18); }
+.coal .section-group { border-left-color: rgba(96, 165, 250, 0.18); }
+.ayu .section-group { border-left-color: rgba(255, 180, 84, 0.18); }
+
+/* Elements inside section groups need full width minus the indent */
+.section-group > pre {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.section-group > table {
+  width: 100%;
+}
+
 /* --- Horizontal rules as section dividers --- */
 .content main hr {
   border: none;
