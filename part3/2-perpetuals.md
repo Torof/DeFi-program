@@ -43,7 +43,6 @@
 - [Build Exercise: Perpetual Exchange](#exercise2)
 
 **Wrap Up**
-- [Job Market Context](#job-market)
 - [Cross-Module Concept Links](#cross-module-links)
 - [Resources](#resources)
 
@@ -516,6 +515,13 @@ Build the core funding rate accumulator pattern:
 2. **"Explain the funding rate accumulator pattern and where else it appears in DeFi."**
    - Good answer: Global counter, per-position snapshot, O(1) settlement.
    - Great answer: Connects to Compound's borrowIndex, Aave's liquidityIndex, ERC-4626 share pricing, and Synthetix's debtRatio. Explains that it's the same mathematical technique (proportional claim on a growing/shrinking pool) applied in different contexts. Can sketch the Solidity implementation from memory.
+
+**Interview Red Flags:**
+- 🚩 Not being able to explain why the funding rate accumulator is O(1) — this is the core insight, not the formula
+- 🚩 Describing funding as a fixed periodic payment rather than a continuous rate accrued via accumulator
+- 🚩 Confusing mark price and index price, or not knowing which one drives the funding rate calculation
+
+**Pro tip:** When asked about funding rates, draw the connection to Compound's borrowIndex and Aave's liquidityIndex unprompted. Teams love seeing you recognize that the accumulator pattern is universal across DeFi, not specific to perps.
 
 ---
 
@@ -1003,6 +1009,13 @@ Hyperliquid is a purpose-built L1 for perpetuals with sub-second finality:
    - Good answer: Lists the basic differences (oracle vs order book, pool vs traders as counterparty).
    - Great answer: Discusses trade-offs in depth — capital efficiency (order book wins), bootstrapping ease (pool wins), LP risk profile (options-like payoff), frontrunning protection (two-step execution), and when each model is more appropriate.
 
+**Interview Red Flags:**
+- 🚩 Not understanding that LPs in GMX take real directional risk — they're not just earning passive fees like Uniswap LPs
+- 🚩 Thinking "zero slippage" means "zero cost" — forgetting about funding fees, borrow fees, and price impact fees
+- 🚩 Describing GMX's two-step execution without explaining the frontrunning problem it solves
+
+**Pro tip:** When comparing perp architectures, frame it as trade-offs rather than "X is better than Y." Teams want to see you reason about when a pool model (bootstrapping ease, simpler UX) beats an order book (capital efficiency, price discovery) and vice versa.
+
 ---
 
 ## 💡 Liquidation in Perpetuals
@@ -1287,7 +1300,7 @@ Build a simplified perpetual exchange combining all concepts:
 - Auto-deleveraging (ADL) as the last resort when the insurance fund is depleted
 - Full position lifecycle: open with margin, accrue funding, track PnL, close or get liquidated
 
-**Next:** Cross-cutting DeFi pattern connections and job market context for perpetuals knowledge.
+**Next:** Cross-cutting DeFi pattern connections for perpetuals knowledge.
 
 #### 💼 Job Market Context
 
@@ -1301,17 +1314,10 @@ Build a simplified perpetual exchange combining all concepts:
    - Good answer: Open interest caps, position size limits, insurance fund.
    - Great answer: Multi-layer defense — (1) prevention via dynamic fees and OI caps, (2) gradual liquidation (partial rather than full position close), (3) price impact fees on liquidation execution, (4) insurance fund sizing based on VaR modeling, (5) ADL as absolute last resort with clear ordering. Mentions that oracle-based systems have different cascade dynamics than order book systems.
 
----
-
-<a id="job-market"></a>
-## 💼 Job Market Context
-
-**Interview red flags:**
-- Not understanding that LPs in GMX take real risk (they're not just earning passive fees)
-- Confusing mark price and index price, or not knowing which is used for liquidation
-- Thinking "zero slippage" means "zero cost" (forgetting about funding, borrow fees, price impact fees)
-- Not being able to explain why the funding rate accumulator is O(1)
-- Describing ADL without understanding why it's controversial
+**Interview Red Flags:**
+- 🚩 Describing ADL without understanding why it's controversial — it breaks trust with profitable traders
+- 🚩 Not distinguishing between partial and full liquidation and when each is appropriate
+- 🚩 Designing a liquidation system without mentioning cascading risk mitigation (OI caps, dynamic fees)
 
 **Pro tip:** Perp protocol development is one of the hottest DeFi hiring areas. If you can explain the funding rate accumulator, implement a basic perp exchange, and discuss the trade-offs between pool-based and order book models with nuance, you'll stand out from most candidates. Understanding MEV implications (P3M5) of perp designs is an additional differentiator.
 

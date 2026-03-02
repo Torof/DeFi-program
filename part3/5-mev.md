@@ -13,8 +13,7 @@
 7. [MEV-Aware Protocol Design](#mev-aware-design)
 8. [Build Exercise: MEV-Aware Dynamic Fee Hook](#exercise2-mev-fee-hook)
 9. [Summary: MEV Defense & Protocol Design](#summary-mev-defense)
-10. [Job Market Context](#job-market-context)
-11. [Resources](#resources)
+10. [Resources](#resources)
 
 ---
 
@@ -232,6 +231,13 @@ Try: `cleanSwap(20000e18)` → 9.091 ETH. Then `sandwichedSwap(20000e18, 10000e1
 1. **"Explain how a sandwich attack works and how to prevent it."**
    - Good answer: "An attacker front-runs and back-runs a user's swap. The front-run pushes the price up, the user swaps at a worse rate, and the attacker sells for profit. Prevention: tight slippage limits or private mempools."
    - Great answer: "A sandwich exploits the public mempool and AMM nonlinear price impact. The attacker calculates the optimal front-run amount — enough to shift the price but within the user's slippage tolerance — then submits front-run, victim, back-run as an atomic bundle to a builder. Prevention exists at multiple levels: user-level tight slippage, private RPCs like Flashbots Protect, application-level intent systems like UniswapX where there's no on-chain tx to sandwich, and protocol-level V4 hooks that surcharge same-block opposite-direction swaps."
+
+**Interview Red Flags:**
+- 🚩 Thinking MEV only means sandwich attacks — it's a broad spectrum including arb, liquidation, backrunning, and JIT liquidity
+- 🚩 Not knowing that slippage tolerance is the primary defense variable — and that too-tight slippage causes reverts on normal volatility
+- 🚩 Describing sandwich prevention without mentioning the intent paradigm (UniswapX, CoW Protocol) — that's the direction the industry is moving
+
+**Pro tip:** When discussing sandwiches, show you understand the economics: attacker profit scales with user trade size and pool illiquidity, and is bounded by the user's slippage tolerance. Explaining *why* a sandwich is profitable (not just *how* it works) immediately signals deeper understanding.
 
 ---
 
@@ -469,6 +475,13 @@ This is the most debated topic in Ethereum governance:
    - Good answer: "PBS separates block construction from block proposal. Builders create blocks, proposers select the highest bid. This prevents validators from directly extracting MEV."
    - Great answer: "PBS is Ethereum's architectural response to MEV centralization. Post-Merge, specialized builders construct optimized blocks from user transactions plus searcher bundles, and proposers simply select the highest bid via MEV-Boost. Relays sit in between as blind escrows so proposers can't steal MEV. Competition at each layer drives most value up to the proposer. The current tension is builder centralization — top 3 builders produce the majority of blocks, creating censorship risk. The community is addressing this through inclusion lists and longer-term enshrined PBS (ePBS)."
 
+**Interview Red Flags:**
+- 🚩 Not knowing about PBS or the post-Merge supply chain — this is foundational Ethereum infrastructure knowledge
+- 🚩 Confusing MEV privacy (hiding txs) with MEV elimination — arb and liquidation MEV is permanent and socially useful
+- 🚩 Not mentioning builder centralization or censorship risk as the current open problem in PBS
+
+**Pro tip:** Mention the economic flow: searchers tip builders, builders bid to proposers, competition drives most value to validators. Showing you understand the incentive structure — not just the architecture diagram — signals that you think about mechanism design, not just code.
+
 ---
 
 <a id="protection"></a>
@@ -610,6 +623,13 @@ function reveal(uint256 amount, bytes32 salt) external {
    - Good answer: "Price differences between L1 and L2 create arbitrage. L2 sequencers control ordering, creating L2-specific MEV."
    - Great answer: "Prices on L2s lag mainnet by the sequencer's batch submission delay, creating predictable arb windows. The centralized L2 sequencer is the de facto block builder and can extract MEV directly. This drives shared sequencing proposals that coordinate ordering across L2s, reducing cross-domain MEV. As L2 volume grows, cross-domain MEV is becoming dominant — which is why protocols like UniswapX V2 are building cross-chain intent settlement."
 
+**Interview Red Flags:**
+- 🚩 Saying "just use a private mempool" without understanding the trust tradeoffs — you're trusting Flashbots/bloXroute not to exploit your tx
+- 🚩 Not knowing the difference between privacy (hiding txs) and redistribution (MEV-Share rebates) — they solve different problems
+- 🚩 Ignoring cross-domain MEV when discussing L2s — it's becoming the dominant extraction vector as volume moves off mainnet
+
+**Pro tip:** When discussing MEV protection, frame it as a spectrum: privacy (Protect) prevents harm, order flow auctions (MEV-Share) turn harm into revenue, and intent systems (UniswapX) eliminate the attack surface entirely. Showing you understand the progression signals architectural thinking about MEV defense.
+
 ---
 
 <a id="mev-aware-design"></a>
@@ -740,6 +760,13 @@ Try: call `getHash(1000, 0xdead0000000000000000000000000000000000000000000000000
    - Good answer: "Use batch auctions, private execution, and tight slippage controls to reduce the MEV surface."
    - Great answer: "Four principles: (1) Minimize information leakage — route through intents or private channels. (2) Reduce ordering dependence — batch operations so tx order doesn't affect outcomes. (3) Internalize MEV — use V4 hooks or MEV taxes to capture extraction value for LPs. (4) Time-weight operations — spread large actions via TWAP execution to reduce per-block extractable value. The key mindset is: assume adversarial ordering and design so that ordering doesn't affect outcomes."
 
+**Interview Red Flags:**
+- 🚩 Not connecting MEV to protocol design decisions — every swap, liquidation, and vault rebalance has an MEV surface
+- 🚩 Only knowing defensive patterns (slippage, privacy) without knowing internalization (dynamic fees, MEV taxes, protocol-owned backrunning)
+- 🚩 Thinking MEV can be eliminated rather than redirected — the value always goes somewhere; good design chooses where
+
+**Pro tip:** The strongest signal of MEV expertise is understanding that MEV can't be eliminated — only redirected. Protocol designers choose WHERE the value goes: to searchers (bad), to validators (neutral), or back to users/LPs (good). Showing you think about this tradeoff immediately separates you from candidates who only know the attack taxonomy.
+
 ---
 
 <a id="exercise2-mev-fee-hook"></a>
@@ -779,22 +806,6 @@ Run: `forge test --match-contract MEVFeeHookTest -vvv`
 - MEV-aware protocol design: minimize info leakage, reduce ordering dependence, internalize MEV
 - Dynamic fee hooks (V4 pattern) that detect sandwich signatures and surcharge suspected MEV
 - MEV taxes: priority-fee-proportional swap fees that redirect extraction to LPs
-
-**Next:** Job market context — interview questions and what DeFi teams expect around MEV knowledge.
-
----
-
-<a id="job-market-context"></a>
-## 💼 Job Market Context
-
-**Interview red flags:**
-- ❌ Thinking MEV only means sandwich attacks (it's a broad spectrum)
-- ❌ Not knowing about PBS or the post-Merge supply chain
-- ❌ Confusing MEV privacy (hiding txs) with MEV elimination (impossible — arb/liquidation MEV is permanent and useful)
-- ❌ Saying "just use a private mempool" without understanding the trust tradeoffs
-- ❌ Not connecting MEV to protocol design decisions
-
-**Pro tip:** The strongest signal of MEV expertise is understanding that MEV can't be eliminated — only redirected. Protocol designers choose WHERE the value goes: to searchers (bad), to validators (neutral), or back to users/LPs (good). Showing you think about this tradeoff immediately separates you from candidates who only know the attack taxonomy.
 
 ---
 

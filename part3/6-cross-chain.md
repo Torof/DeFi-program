@@ -13,8 +13,7 @@
 7. [Build Exercise: Rate-Limited Bridge Token](#exercise2-rate-limited-token)
 8. [Cross-Chain DeFi Patterns](#cross-chain-patterns)
 9. [Summary](#summary-cross-chain)
-10. [Job Market Context](#job-market-context)
-11. [Resources](#resources)
+10. [Resources](#resources)
 
 ---
 
@@ -166,6 +165,13 @@ Deploy with some ETH, call `lock{value: 1 ether}()`, check `minted` = 1 ETH. The
 1. **"Compare lock-and-mint vs liquidity network bridges."**
    - Good answer: "Lock-and-mint locks tokens on source and mints wrapped tokens on destination. Liquidity networks use LPs to provide native tokens. Lock-and-mint creates wrapped token risk; liquidity networks give native assets but need LP capital."
    - Great answer: "The fundamental difference is the trust model and asset quality. Lock-and-mint creates a derivative whose value depends entirely on the bridge's security — if compromised, all wrapped tokens become worthless, cascading through every protocol that accepts them as collateral. Liquidity networks like Across use real assets on each chain, fronted by LPs who get repaid from the source deposit. The tradeoff is capital efficiency: lock-and-mint just needs a vault, while liquidity networks need LP capital on every chain. The industry is moving toward liquidity networks and intent-based bridging because wrapped token risk is too high for DeFi composability."
+
+**Interview Red Flags:**
+- 🚩 Treating wrapped tokens as equivalent to native tokens ("wETH is just ETH") — wrapped tokens carry bridge counterparty risk
+- 🚩 Not knowing the difference between canonical rollup bridges and third-party bridges — the trust models are fundamentally different
+- 🚩 Not considering how bridge architecture affects DeFi composability — if a bridge fails, every protocol using its wrapped tokens is affected
+
+**Pro tip:** When discussing bridges, always frame them in terms of trust assumptions and failure modes. Saying "I'd evaluate the bridge's validator set, the wrapped token's dependencies in downstream protocols, and whether xERC20 rate limits are in place" signals production-level thinking about integration risk.
 
 ---
 
@@ -385,6 +391,13 @@ When evaluating a bridge for protocol integration:
    - Good answer: "A bug in the initialization set the zero root as valid, so any message could pass verification. The bridge was drained of $190M."
    - Great answer: "Nomad used optimistic verification — `confirmAt` tracked which Merkle roots were processable. During initialization, `confirmAt[0x00]` was set to 1. In Solidity, unset mapping keys return zero, so any fake message's root defaulted to `0x00`, and `confirmAt[0x00]` returned 1 — passing the 'is this root confirmed?' check. The exploit was so simple it was crowd-looted: anyone could copy the attacker's calldata. The lesson: Solidity's default values interact with security checks in non-obvious ways — bridge verification must be rock-solid."
 
+**Interview Red Flags:**
+- 🚩 Not knowing about the major bridge exploits (Ronin, Wormhole, Nomad) — these are the most expensive bugs in DeFi history
+- 🚩 Not considering bridge failure modes when evaluating DeFi integrations — "what happens to our TVL if this bridge is compromised?"
+- 🚩 Thinking a multisig is sufficient bridge security without asking about threshold, key diversity, and monitoring
+
+**Pro tip:** When discussing bridge security, reference the evaluation framework: trust model, economic security (is validator stake > bridge TVL?), rate limiting, and monitoring. Teams want engineers who evaluate bridges as integration dependencies, not just as black-box infrastructure.
+
 ---
 
 ## 📋 Summary: Bridge Fundamentals & Security
@@ -560,6 +573,13 @@ Layer 4: Manual Pause
    - Good answer: "LayerZero lets applications configure their own security. CCIP has a fixed, multi-layer security model."
    - Great answer: "The core tradeoff is flexibility vs opinionated security. LayerZero V2 lets each app choose its DVN configuration — powerful but puts security responsibility on the developer. CCIP hardcodes multi-layer verification: DON commits, an independent Risk Management Network re-verifies, plus per-token rate limits. You can't misconfigure it, but you also can't customize it. For high-value protocols, CCIP's defense-in-depth is compelling; for wide chain coverage or custom verification, LayerZero's flexibility wins. Large protocols often integrate both."
 
+**Interview Red Flags:**
+- 🚩 Thinking cross-chain messaging is simple ("just send a message") — the verification, replay protection, and failure handling are where the complexity lives
+- 🚩 Not knowing that LayerZero and CCIP have fundamentally different security philosophies — app-configured vs protocol-enforced
+- 🚩 Skipping receiver-side validation because "the messaging protocol handles it" — defense-in-depth means validating at every layer
+
+**Pro tip:** When discussing cross-chain architecture, mention that you'd implement the three mandatory receiver checks (source verification, replay protection, payload validation) regardless of which messaging protocol you use. This shows you don't blindly trust infrastructure and think about defense-in-depth at the application layer.
+
 ---
 
 <a id="exercise1-cross-chain-handler"></a>
@@ -720,6 +740,13 @@ The pattern is always the same: cap the blast radius of a single failure. The ma
    - Good answer: "Use xERC20 with rate-limited minting per bridge, so a single compromise can't create unlimited tokens."
    - Great answer: "Implement xERC20 (ERC-7281) with per-bridge rate limits using a token bucket algorithm. Each authorized bridge gets an independent minting cap that refills over time. If Bridge A is compromised, the attacker can only mint up to Bridge A's daily limit — not unlimited tokens — while Bridges B and C continue normally. Calibrate limits so no single bridge's cap exceeds what the protocol can absorb as bad debt. Add monitoring for total supply anomalies across chains. This turns a catastrophic risk into a bounded, manageable one."
 
+**Interview Red Flags:**
+- 🚩 Not understanding rate limiting as a security mechanism — it's defense-in-depth, not just a nice-to-have
+- 🚩 Designing a cross-chain token with a single bridge dependency — one compromise and all cross-chain tokens are worthless
+- 🚩 Not knowing ERC-7281 (xERC20) when discussing cross-chain token design — it's the emerging standard for sovereign bridged tokens
+
+**Pro tip:** Mention the token bucket algorithm by name and explain the calibration tradeoff: limits too high and a compromise is still catastrophic, limits too low and legitimate bridging is throttled. Showing you think about operational parameters — not just the code — signals real-world deployment experience.
+
 ---
 
 <a id="exercise2-rate-limited-token"></a>
@@ -872,22 +899,6 @@ This pattern is used by Uniswap (governance on mainnet, execution across chains)
 - Messaging protocols: LayerZero OApp/OFT and CCIP receiver patterns with code
 - Cross-chain token standards: xERC20 rate limiting with token bucket math
 - Cross-chain DeFi patterns: swaps, message handlers, governance
-
-**Next:** Job market context — interview questions and what DeFi teams expect around cross-chain knowledge.
-
----
-
-<a id="job-market-context"></a>
-## 💼 Job Market Context
-
-**Interview red flags:**
-- ❌ Not knowing about the major bridge exploits (Ronin, Wormhole, Nomad)
-- ❌ Treating wrapped tokens as equivalent to native tokens ("wETH is just ETH")
-- ❌ Not considering bridge failure modes when evaluating DeFi integrations
-- ❌ Thinking cross-chain messaging is simple ("just send a message")
-- ❌ Not understanding rate limiting as a security mechanism
-
-**Pro tip:** The strongest signal of cross-chain expertise is thinking about *failure modes*. Any engineer can build a bridge that works — the skill is designing for what happens when it breaks. Mentioning xERC20 rate limits, defense-in-depth verification, and monitoring immediately signals production-level thinking.
 
 ---
 

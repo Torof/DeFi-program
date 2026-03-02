@@ -12,8 +12,7 @@
 6. [Governance Security](#governance-security)
 7. [Governance Minimization](#governance-minimization)
 8. [Summary](#summary-governance)
-9. [Job Market Context](#job-market-context)
-10. [Resources](#resources)
+9. [Resources](#resources)
 
 ---
 
@@ -272,6 +271,13 @@ This test pattern is exactly what your Exercise 1 will use.
    - Good answer: "Someone proposes a change, token holders vote, if it passes it goes through a timelock, then anyone can execute it."
    - Great answer: "Five phases: (1) Propose — proposer submits targets, values, calldatas on-chain; a snapshot of all voting power is recorded. (2) Voting delay — 1-2 days for community review. (3) Active voting — holders cast for/against/abstain using power at the snapshot block, not current balance, preventing flash loan attacks. (4) Queue — if quorum met and majority for, queued in TimelockController with mandatory delay (24-48h) — the safety net giving users time to exit. (5) Execute — after timelock expires, anyone triggers execution. Total: 5-14 days."
 
+**Interview Red Flags:**
+- 🚩 Not knowing about snapshot-based voting and why it prevents flash loan attacks (votes recorded at proposal creation block, not at voting time)
+- 🚩 Not understanding why timelocks exist — it's about user exit rights, not just "adding delay"
+- 🚩 Confusing delegation with voting — holding tokens alone does NOT give voting power; you must delegate first
+
+**Pro tip:** In an interview, walk through the lifecycle with specific numbers (voting delay = 7200 blocks ~1 day, voting period = 50400 blocks ~1 week, timelock = 24-48h). Concrete parameters show you've actually configured governance, not just read about it.
+
 ---
 
 <a id="exercise-governor"></a>
@@ -519,6 +525,13 @@ Velodrome's fix:
    - Good answer: "Protocols compete for veCRV votes that direct CRV emissions to their pools, attracting liquidity."
    - Great answer: "Curve emits CRV to LPs, but allocation depends on weekly gauge votes by veCRV holders. More emissions = higher LP rewards = more liquidity. Convex aggregates CRV permanently as veCRV; vlCVX holders control Convex's votes, creating meta-governance. On Votium, protocols pay $1 in bribes to vlCVX holders, directing ~$1.50 of CRV emissions — profitable for both sides. The key insight: governance voting power has quantifiable economic value, and a market naturally forms around it."
 
+**Interview Red Flags:**
+- 🚩 Thinking governance is "just voting" — ve-tokenomics proves it's a complex economic system where voting power has direct monetary value
+- 🚩 Not knowing the decay formula (`amount * (lockEnd - now) / maxLock`) — this is the core mechanic that forces ongoing commitment
+- 🚩 Being unable to explain why Velodrome's ve(3,3) improves on Curve's model (voters earn fees only from pools they vote for)
+
+**Pro tip:** If asked about tokenomics design, explaining the Curve Wars flywheel (lock → vote → bribe → emissions → liquidity) shows you understand governance as economic infrastructure, not just a voting mechanism. This perspective is what separates senior from junior DeFi engineers.
+
 ---
 
 <a id="exercise-vote-escrow"></a>
@@ -710,6 +723,13 @@ Compound:
    - Good answer: "The attacker flash-borrowed tokens, voted on a malicious proposal, and executed it all in one transaction. Prevention: snapshot voting and timelocks."
    - Great answer: "Beanstalk had three fatal flaws: no snapshot voting (tokens acquired in the same block could vote), no voting delay (voting started immediately), and no timelock (proposals executed instantly). The attacker flash-borrowed $1B of tokens, created a proposal to drain the treasury, voted FOR, and executed it — all in one transaction ($182M loss). Standard OpenZeppelin Governor defaults prevent this entirely: snapshot voting means tokens must be held BEFORE proposal creation; voting delay prevents same-block voting; timelock delays execution 24-48h. The lesson: governance security is as critical as smart contract security."
 
+**Interview Red Flags:**
+- 🚩 Not knowing the Beanstalk attack — it's the most important governance case study in DeFi ($182M, entirely preventable)
+- 🚩 Not being able to name the three defenses (snapshot voting, voting delay, timelock) and why each is necessary
+- 🚩 Thinking emergency mechanisms (guardian pause) and governance (Governor + Timelock) are the same thing — the guardian can pause but CANNOT upgrade or move funds
+
+**Pro tip:** In interviews, showing awareness that governance is both a feature AND an attack surface immediately sets you apart. Most candidates think about governance from the "how do we vote" perspective. Senior candidates think from "how can this be exploited, and how do we minimize the attack surface."
+
 ---
 
 <a id="governance-minimization"></a>
@@ -805,6 +825,13 @@ SHOULD NOT be governable (hardcode):
    - Good answer: "Governance allows protocols to adapt but introduces attack surfaces. Immutability is more trustless but can't fix bugs."
    - Great answer: "The spectrum runs from full governance (multisig) through token-based governance (Governor + Timelock) to zero governance (Liquity — no admin keys, no upgradability). Full governance enables rapid response but every governable parameter is an attack surface. Zero governance eliminates these risks but can't adapt. The optimal approach is progressive decentralization: start with multisig, transition to token governance as the protocol matures, then systematically reduce what's governable. The key principle: only make governable what MUST change — core accounting math should be immutable; risk parameters should be governable."
 
+**Interview Red Flags:**
+- 🚩 Treating all governance as good or all governance as bad — it's a spectrum with real tradeoffs at every point
+- 🚩 Not being able to distinguish what SHOULD be governable (risk parameters, fees) from what should NOT (core accounting math, access control invariants)
+- 🚩 Not knowing about progressive decentralization — the standard maturation path from multisig to Governor to minimized governance
+
+**Pro tip:** When asked "how would you design governance for X protocol?", frame your answer around what should be governable vs immutable, then describe the maturation path. This shows you think about governance as a design discipline, not just "add a Governor contract."
+
 ---
 
 <a id="summary-governance"></a>
@@ -819,22 +846,6 @@ SHOULD NOT be governable (hardcode):
 - Velodrome/Aerodrome ve(3,3): the incentive-alignment fix to Curve's model
 - Governance security: Beanstalk attack deep dive, flash loan defenses, emergency mechanisms
 - Governance minimization: the spectrum from multisig to immutable, progressive decentralization
-
-**Next:** Job market context — interview questions and what DeFi teams expect around governance knowledge.
-
----
-
-<a id="job-market-context"></a>
-## 💼 Job Market Context
-
-**Interview red flags:**
-- Not knowing about snapshot-based voting and flash loan prevention
-- Thinking governance is "just voting" (it's a complex security + economic system)
-- Not understanding why timelocks exist (user exit rights, not just delay)
-- Treating all governance as good or all governance as bad (it's a spectrum)
-- Not knowing the Beanstalk attack (the most important governance case study)
-
-**Pro tip:** In interviews, showing awareness that governance is both a feature AND an attack surface immediately sets you apart. Most candidates think about governance from the "how do we vote" perspective. Senior candidates think about it from the "how can this be exploited, and how do we minimize the attack surface" perspective.
 
 ---
 

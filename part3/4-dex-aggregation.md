@@ -19,8 +19,7 @@
 10. [Solvers & the Filler Ecosystem](#solvers)
 11. [CoW Protocol: Batch Auctions](#cow-protocol)
 12. [Summary](#summary-dex-aggregation)
-13. [Job Market Context](#job-market-context)
-14. [Resources](#resources)
+13. [Resources](#resources)
 
 ---
 
@@ -326,6 +325,13 @@ Run: `forge test --match-contract SplitRouterTest -vvv`
    - Good answer: "Aggregators query multiple pools off-chain, run an optimization algorithm to find the best split and routing path, then encode the solution as calldata for an on-chain executor contract."
    - Great answer: "The routing problem is a constrained optimization — maximize output given pools with different liquidity profiles. For constant-product pools, the optimal split is approximately proportional to pool depth, because price impact is nonlinear — doubling the trade size more than doubles slippage. In practice, aggregators use heuristics because the general multi-hop, multi-split problem is NP-hard. The on-chain part is just a multi-call executor with a min-output check — all the intelligence is off-chain. On L2s, routing gets more aggressive because the gas overhead of extra hops is near-zero, so more splits become profitable."
 
+**Interview Red Flags:**
+- 🚩 Thinking aggregators only do single-pool routing (the whole point is multi-pool, multi-hop optimization)
+- 🚩 Not distinguishing on-chain vs off-chain components (the intelligence is off-chain, execution is on-chain)
+- 🚩 Ignoring gas costs in split analysis (extra hops have different economics on L1 vs L2)
+
+**Pro tip:** When discussing aggregator architecture, mention that the on-chain executor is deliberately simple (multi-call + min-output check) while the off-chain router is where all the complexity lives. This separation of concerns is a key design pattern across DeFi infrastructure.
+
 ---
 
 ## 📋 Summary: Traditional Aggregation
@@ -410,6 +416,13 @@ Solver: "I'll give you 1920 USDC — routing through V3 + Curve,
 1. **"What's the difference between intent-based and transaction-based execution?"**
    - Good answer: "In transaction-based, the user specifies exact routing. In intent-based, the user signs what they want and solvers compete to fill it."
    - Great answer: "The key insight is separation of concerns. Transaction-based systems couple the WHAT (swap ETH for USDC) with the HOW (via Uniswap V3, 0.3% pool). Intent-based systems decouple them — the user specifies only the WHAT, and a competitive market of solvers handles the HOW. This is strictly better because solvers have access to more liquidity sources than any individual user — CEX inventory, cross-chain bridges, private pools — and competition drives execution toward optimal. The tradeoff is trust assumptions: you need a settlement contract that cryptographically guarantees the user gets their minimum output, and you need a healthy solver ecosystem for competitive pricing."
+
+**Interview Red Flags:**
+- 🚩 Thinking intents are "gasless" (the solver pays gas, not the user, but gas still exists and affects solver economics)
+- 🚩 Not knowing about Permit2 and its role in the intent flow (how users approve tokens for intent-based protocols)
+- 🚩 Confusing intents with simple limit orders (intents are a broader paradigm, not just price limits)
+
+**Pro tip:** The intent paradigm is the defining trend in DeFi execution for 2024-2026. Framing intents as "separation of WHAT from HOW" with a competitive solver market shows you understand the architecture, not just the buzzword.
 
 ---
 
@@ -643,6 +656,13 @@ The formula is identical across all of these. What changes is: who's buying, wha
 1. **"Explain how UniswapX's Dutch auction works and why it's MEV-resistant."**
    - Good answer: "Users sign an order with a start and end output amount. The required output decays from start to end over time. Solvers fill when it becomes profitable — earlier fills give users better prices."
    - Great answer: "The Dutch auction creates continuous solver competition compressed into time. The output starts above market price — unprofitable for solvers — and decays toward the user's limit price. A solver fills when the auction price crosses below `marketPrice - gasCost`. This is MEV-resistant because the price discovery IS the auction — there's no pending swap transaction to sandwich. The exclusive filler window adds another layer: a designated solver gets priority in exchange for committing to better starting prices. And the callback pattern lets solvers source liquidity just-in-time during the fill — they can flash-swap from AMMs, meaning they don't need pre-funded inventory."
+
+**Interview Red Flags:**
+- 🚩 Not knowing what a Dutch auction is or confusing it with an English auction
+- 🚩 Conflating MEV protection with privacy (related but distinct — intents avoid the public mempool, but the core protection is the auction mechanism itself)
+- 🚩 Missing the callback pattern (IReactorCallback) that enables just-in-time liquidity sourcing
+
+**Pro tip:** The Dutch auction decay formula is the same pattern you saw in P2M6's liquidation auctions and Paradigm's GDAs. Connecting this cross-module pattern shows you see the underlying math, not just protocol-specific details.
 
 ---
 
@@ -898,6 +918,13 @@ contract MySolver is IReactorCallback {
    - Good answer: "Monitor order APIs for new orders, evaluate profitability, route through DEXes, submit fill transactions."
    - Great answer: "Three components: (1) An off-chain monitoring service that streams new orders from UniswapX/CoW APIs alongside real-time DEX prices. (2) A pricing engine that evaluates profitability at the current Dutch auction price — factoring in DEX quotes, gas costs, and expected competition. (3) An on-chain fill contract implementing `IReactorCallback` that sources liquidity just-in-time. Start with single-DEX routing using the callback pattern — you receive the user's input tokens, swap them on Uniswap, and the output goes directly to the user. Then add multi-DEX splits, then CEX hedging for large orders. The callback is key: you don't need inventory, you just need to source the output tokens between when you receive the input and when the Reactor checks the output."
 
+**Interview Red Flags:**
+- 🚩 Describing solver architecture without mentioning the callback pattern (IReactorCallback is the key to capital-efficient filling)
+- 🚩 Assuming solvers need pre-funded inventory (just-in-time sourcing via callbacks is the standard approach)
+- 🚩 Ignoring competition dynamics and gas cost estimation in profitability analysis
+
+**Pro tip:** Solver architecture is a hot interview topic at intent-focused protocols. Showing you can reason about the full stack — off-chain monitoring, pricing engine, on-chain callback contract — demonstrates systems-level thinking that goes beyond smart contract development.
+
 ---
 
 <a id="cow-protocol"></a>
@@ -1020,6 +1047,13 @@ Both are valid approaches with different tradeoffs. Understanding both gives you
    - Good answer: "All orders in a batch execute at the same clearing price in a single transaction, so there's nothing to sandwich."
    - Great answer: "Three layers of MEV protection: (1) Orders are signed off-chain and submitted to a private API, never the public mempool — invisible to searchers. (2) Batch execution means all trades happen at uniform clearing prices in one transaction — you can't insert a sandwich between individual trades. (3) Coincidence of Wants matching means some trades never touch AMMs at all — no pool interaction means zero MEV surface. The residual MEV from AMM interactions needed for unmatched volume is captured by solver competition — solvers internalize the MEV and return surplus to users in order to win the batch."
 
+**Interview Red Flags:**
+- 🚩 Conflating CoW's batch auction model with UniswapX's Dutch auction model (fundamentally different settlement approaches)
+- 🚩 Not understanding Coincidence of Wants as a distinct MEV protection layer (peer-to-peer matching that bypasses AMMs entirely)
+- 🚩 Thinking batch auctions eliminate MEV completely (residual MEV from unmatched AMM interactions still exists, but is redistributed via solver competition)
+
+**Pro tip:** Knowing both UniswapX (individual Dutch auctions) and CoW Protocol (batch auctions) and being able to compare their tradeoffs — latency vs batch efficiency, exclusive fillers vs open solver competition — shows you understand the design space, not just one protocol.
+
 ---
 
 <a id="summary-dex-aggregation"></a>
@@ -1037,20 +1071,6 @@ Both are valid approaches with different tradeoffs. Understanding both gives you
 - UniswapX vs CoW Protocol tradeoffs
 
 **Next:** Cross-module concept links and resources.
-
----
-
-<a id="job-market-context"></a>
-## 💼 Job Market Context
-
-**Interview red flags:**
-- ❌ Thinking aggregators only do single-pool routing
-- ❌ Not knowing what a Dutch auction is
-- ❌ Conflating MEV protection with privacy (related but distinct concepts)
-- ❌ Thinking intents are "gasless" (the solver pays gas, not the user — but gas still exists)
-- ❌ Not knowing about Permit2 and its role in the intent flow
-
-**Pro tip:** The intent space is moving fast. Knowing UniswapX's callback pattern and CoW's batch settlement model signals you're current. Mentioning Permit2 integration, exclusive filler windows, and cross-chain intents shows real depth.
 
 ---
 

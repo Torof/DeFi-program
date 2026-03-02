@@ -46,7 +46,6 @@
 
 **Wrap Up**
 - [Summary](#summary)
-- [Job Market Context](#job-market)
 - [Cross-Module Concept Links](#cross-module-links)
 - [Resources](#resources)
 
@@ -403,6 +402,13 @@ and the "excess" shares fund the yield payout.
 2. **"How does Pendle's YT track yield?"**
    - Good answer: "It uses the SY exchange rate to calculate accrued yield per holder."
    - Great answer: "Pendle uses the same accumulator pattern as Compound/Aave. The global `pyIndexStored` tracks the latest SY exchange rate. Each user has a `userIndex` snapshotted at purchase or last claim. Accrued yield is `ytBalance * (pyIndexStored - userIndex) / userIndex` — an O(1) calculation. Critically, YT overrides `_beforeTokenTransfer` to settle yield before any transfer. Without this, transferring YT would incorrectly shift accumulated yield to the recipient. This settlement-on-transfer pattern appears in every token that tracks per-holder rewards."
+
+**Interview Red Flags:**
+- 🚩 Confusing PT and YT roles (which one gives fixed rate vs variable yield exposure?)
+- 🚩 Not recognizing the accumulator pattern as the same O(1) mechanism used in Compound and Aave
+- 🚩 Thinking yield tokenization creates yield (it only separates existing yield into two components)
+
+**Pro tip:** When explaining PT/YT splitting, connect it to the accumulator pattern across protocols — Compound's `borrowIndex`, Aave's `liquidityIndex`, Pendle's `pyIndex`. Showing you see the same mathematical pattern in three different contexts signals deep DeFi fluency.
 
 ---
 
@@ -848,6 +854,13 @@ LPing in Pendle pools has unique properties compared to standard AMMs:
    - Good answer: "PT price converges to 1.0 as maturity approaches."
    - Great answer: "Using simple compounding, `ptPrice = year / (year + rate * timeToMaturity)`. As timeToMaturity approaches 0, ptPrice approaches 1.0 regardless of the implied rate. Even at a 100% implied rate, with 1 day to maturity, PT trades at 0.99726. This convergence is built into Pendle's AMM curve — the `timeToMaturity` in the denominator of the rate formula means the curve naturally flattens, reducing price sensitivity of swaps. This is why Pendle LPs experience decreasing IL over time, unlike standard AMMs where IL is path-dependent and potentially permanent."
 
+**Interview Red Flags:**
+- 🚩 Not knowing why a constant-product AMM fails for PT (the time-convergence problem)
+- 🚩 Thinking Pendle's AMM is just a Uniswap fork with different parameters
+- 🚩 Unable to explain how the scalar parameter relates to Curve's amplification factor A
+
+**Pro tip:** Pendle's AMM is one of the most sophisticated in DeFi — understanding rate-space trading and the logit curve (inspired by Notional Finance) shows you can reason about purpose-built AMMs, not just x*y=k variations.
+
 ---
 
 <a id="exercise-pt-rate-oracle"></a>
@@ -1020,6 +1033,13 @@ DeFi composability at its finest:
    - Good answer: "Time decay — YT loses value as maturity approaches. If actual yield is lower than implied, you lose money."
    - Great answer: "YT is leveraged long yield exposure with time decay. The break-even rate equals the implied rate at purchase — if average actual yield stays below that, YT is unprofitable. Key risks: (1) Time decay — shorter remaining period means less yield to capture, (2) Rate compression — if staking yields fall, YT can lose most of its value rapidly, (3) Smart contract risk on both Pendle and the underlying protocol, (4) Liquidity risk — YT markets are thinner than PT markets, so exiting a position can have high slippage. The leverage works both ways — a small cost buys yield exposure on a large notional, but the maximum loss is 100% of the YT purchase price."
 
+**Interview Red Flags:**
+- 🚩 Ignoring time decay when analyzing YT profitability (treating it like a spot position)
+- 🚩 Not knowing the break-even condition: average actual yield must exceed implied rate at purchase
+- 🚩 Overlooking PT-as-collateral composability with lending protocols like Morpho
+
+**Pro tip:** Yield tokenization is one of the most innovative DeFi primitives of 2023-2024. Understanding it deeply signals you follow cutting-edge DeFi. Bonus points for knowing how PT-as-collateral works in Morpho and for connecting the accumulator pattern across Compound, Aave, and Pendle.
+
 ---
 
 <a id="summary"></a>
@@ -1040,27 +1060,6 @@ DeFi composability at its finest:
 **Key insight:** The accumulator pattern appears for the third time in this curriculum. Whether it's vault share pricing (P2M7), funding rates (P3M2), or yield tracking (P3M3), the math is identical: global growing counter + per-user snapshot + delta = amount owed.
 
 **Next:** Cross-module concept links and resources.
-
----
-
-<a id="job-market"></a>
-## 💼 Job Market Context
-
-**Interview Red Flags:**
-- ❌ Confusing PT and YT roles (which one gives fixed rate?)
-- ❌ Not knowing why a standard AMM doesn't work for PT
-- ❌ Thinking yield tokenization creates yield (it only separates it)
-- ❌ Not understanding the accumulator pattern for YT yield tracking
-- ❌ Ignoring time decay when analyzing YT profitability
-
-**Pro tip:** Yield tokenization is one of the most innovative DeFi primitives of 2023-2024, and Pendle's TVL growth reflects this. Understanding it deeply signals you follow cutting-edge DeFi beyond the basics. Bonus points for knowing how PT-as-collateral works in Morpho, and for connecting the accumulator pattern across Compound, Aave, and Pendle.
-
-**Hot topics (2025-2026):**
-- Pendle expansion to new yield sources (LRT protocols, RWA yields)
-- PT as collateral proliferating across lending protocols
-- Institutional adoption of fixed-rate DeFi products
-- Competition from Spectra (formerly APWine) and potential new entrants
-- ERC-5115 adoption beyond Pendle
 
 ---
 

@@ -40,7 +40,6 @@
 
 **Wrap Up**
 - [DeFi Pattern Connections](#pattern-connections)
-- [Job Market Context](#job-market)
 - [Resources](#resources)
 
 ---
@@ -291,6 +290,13 @@ Build a `WstETHOracle` contract that correctly prices wstETH in USD using a two-
 2. **"Explain the difference between stETH and wstETH and when you'd use each."**
    - Good answer: "stETH rebases, wstETH doesn't."
    - Great answer: "Both represent the same underlying staked ETH. stETH uses rebasing — your balance grows daily as oracle reports update `totalPooledEther`. Internally, stETH tracks shares, and `balanceOf()` returns `shares × totalPooledEther / totalShares`. wstETH is a wrapper that exposes those shares directly as a standard ERC-20 — your balance is fixed, and the exchange rate `stEthPerToken` grows instead. You'd use wstETH for any DeFi integration — lending, vaults, AMMs — because rebasing breaks contracts that cache balances."
+
+**Interview Red Flags:**
+- 🚩 Saying "stETH is always worth 1 ETH" without qualifying that this is the protocol exchange rate, not the market rate
+- 🚩 Not knowing why DeFi protocols prefer wstETH over stETH (rebasing breaks balance caching)
+- 🚩 Treating the exchange rate as a simple constant rather than understanding it's derived from `totalPooledEther / totalShares`
+
+**Pro tip:** When discussing LSTs in interviews, lead with the two-model distinction (rebasing vs non-rebasing) and immediately connect it to DeFi composability. Saying "wstETH exists because rebasing breaks DeFi" shows you understand the real engineering constraint, not just the token names.
 
 ---
 
@@ -596,6 +602,13 @@ The rate is updated by Rocket Pool's Oracle DAO (a set of trusted nodes) rather 
    - Good answer: "Oracle committee reports beacon chain balances, triggering rebase."
    - Great answer: "A permissioned oracle committee (5/9 quorum) submits beacon chain balance reports to `AccountingOracle`. The report updates `totalPooledEther`, which changes every stETH holder's `balanceOf()` return value. Sanity checks cap the maximum APR and maximum balance drop to limit damage from a compromised oracle. The trust assumption is that the oracle committee honestly reports balances — if they inflate the report, stETH becomes temporarily overvalued. This is similar to how Chainlink oracles are a trust assumption for price feeds."
 
+**Interview Red Flags:**
+- 🚩 Not being able to explain the oracle reporting mechanism — it's a critical trust assumption, not a minor detail
+- 🚩 Describing the rebase as "automatic" without explaining that it's triggered by an oracle committee report
+- 🚩 Ignoring the sanity checks (APR cap, max balance drop) that limit oracle manipulation damage
+
+**Pro tip:** When teams ask about Lido's oracle, mention the sanity bounds unprompted. Showing you know that `AccountingOracle` caps max APR and max balance drop per report signals that you've read the actual code, not just the docs.
+
 ---
 
 ## 💡 EigenLayer & Restaking
@@ -797,6 +810,13 @@ This is not theoretical — Aave, Morpho, and every lending protocol that lists 
 1. **"What are the risks of accepting LRTs as collateral?"**
    - Good answer: "Smart contract risk, slashing risk, liquidity risk."
    - Great answer: "Risk stacking — an LRT like weETH carries five layers of risk: ETH market risk, validator slashing, LST protocol risk, EigenLayer smart contract and AVS slashing risk, and the LRT protocol's own risk. Each layer compounds. I'd set LTV significantly lower than for plain wstETH (maybe 65% vs 80%), require deeper liquidity on DEX for liquidation viability, set higher liquidation bonus to compensate bidders for the added complexity of selling an LRT, and impose tighter debt ceilings."
+
+**Interview Red Flags:**
+- 🚩 Treating LSTs and LRTs as having the same risk profile — LRTs stack additional slashing and smart contract layers
+- 🚩 Listing risks without quantifying the impact on protocol parameters (LTV, liquidation bonus, debt ceilings)
+- 🚩 Not mentioning correlated slashing — if an AVS slashes, it can affect all LRTs delegated to that operator simultaneously
+
+**Pro tip:** If asked about EigenLayer/restaking, focus on the risk analysis (risk stacking, correlated slashing, LTV implications) rather than trying to explain the full architecture. Teams care more about how you'd evaluate the risk of accepting restaked assets than about memorizing contract names.
 
 ---
 
@@ -1136,21 +1156,12 @@ Build a simplified lending pool that accepts wstETH as collateral, using the ora
    - Good answer: "stETH traded below 1 ETH. It was caused by selling pressure."
    - Great answer: "3AC and Celsius faced insolvency and had to liquidate stETH positions. Pre-Shapella, there was no withdrawal queue — the only exit was selling on DEX. Massive sell pressure pushed stETH/ETH to 0.93. This wasn't a protocol failure — Lido's backing was fine. It was a liquidity/market failure. The lesson: exchange rate and market price can diverge, so lending protocols need dual oracle pricing. Post-Shapella (April 2023), the withdrawal queue creates an arbitrage floor that prevents deep de-pegs."
 
----
-
-<a id="job-market"></a>
-## 💼 Job Market Context
-
 **Interview Red Flags:**
-- Saying "stETH is always worth 1 ETH" without qualifying that this is the protocol rate, not the market rate
-- Not knowing why DeFi protocols prefer wstETH over stETH
-- Treating LSTs and LRTs as having the same risk profile
-- Not being able to explain the oracle reporting mechanism (it's a trust assumption worth understanding)
-- Saying "just use the exchange rate" for collateral pricing without mentioning de-peg risk
+- 🚩 Saying "just use the exchange rate" for collateral pricing without mentioning de-peg risk and the need for a market price check
+- 🚩 Not knowing the difference between pre-Shapella and post-Shapella withdrawal mechanics
+- 🚩 Treating the June 2022 de-peg as a protocol bug rather than a market/liquidity event
 
 **Pro tip:** In interviews, when discussing LST integration, always mention the de-peg scenario unprompted. Saying "we'd use a dual oracle pattern because of the June 2022 de-peg risk" signals real-world awareness, not just textbook knowledge. Protocol teams remember June 2022 — it shaped how every subsequent LST integration was designed.
-
-**Pro tip:** If asked about EigenLayer/restaking, focus on the risk analysis (risk stacking, correlated slashing, LTV implications) rather than trying to explain the full architecture. Teams care more about how you'd evaluate the risk of accepting restaked assets than about memorizing contract names.
 
 ---
 
