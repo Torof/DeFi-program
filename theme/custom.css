@@ -115,10 +115,10 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.light .concept-keyword { color: #15803d; }
-.navy .concept-keyword  { color: #86efac; }
-.coal .concept-keyword  { color: #86efac; }
-.ayu .concept-keyword   { color: #86efac; }
+.light .concept-keyword { color: #c2410c; }
+.navy .concept-keyword  { color: #fb923c; }
+.coal .concept-keyword  { color: #fb923c; }
+.ayu .concept-keyword   { color: #fb923c; }
 
 /* H4 — Deep dives, patterns: body font (Inter), lighter weight, italic feel */
 .content main h4 {
