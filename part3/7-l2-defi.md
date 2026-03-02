@@ -292,6 +292,21 @@ Run: `forge test --match-contract L2GasEstimatorTest -vvv`
 
 ---
 
+## 📋 Summary: L2 Architecture & Gas
+
+**✓ Covered:**
+- L2 types: optimistic rollups (fraud proofs, 7-day finality) vs ZK rollups (validity proofs, hours)
+- The sequencer: centralized ordering, soft vs hard finality, forced inclusion via L1
+- Two-component gas model: L2 execution (cheap) + L1 data posting (dominant cost)
+- EIP-4844 blob transactions: 10-100x fee reduction for L2s
+- L1 data cost calculation: 16 gas per non-zero byte, 4 per zero byte
+- Optimization priority flip: minimize calldata on L2, not storage writes
+- Block property differences: `block.timestamp` and `block.number` vary across L2s
+
+**Next:** Sequencer uptime risks and oracle safety patterns — the most critical L2-specific vulnerability for lending protocols.
+
+---
+
 <a id="sequencer-uptime"></a>
 ## ⚠️ Sequencer Uptime & Oracle Safety
 
@@ -436,6 +451,20 @@ Build an oracle consumer that integrates Chainlink's L2 Sequencer Uptime Feed wi
 **🎯 Goal:** Build the oracle safety layer that every L2 lending protocol needs. Your implementation should handle: sequencer down, sequencer just restarted (within grace period), stale price, and normal operation.
 
 Run: `forge test --match-contract L2OracleTest -vvv`
+
+---
+
+## 📋 Summary: Sequencer Risks & Oracle Safety
+
+**✓ Covered:**
+- Sequencer liveness: downtime freezes oracle prices and blocks user transactions
+- Chainlink L2 Sequencer Uptime Feed: dedicated feed reporting sequencer status
+- Aave PriceOracleSentinel: the gold-standard grace period pattern
+- Grace period logic: block liquidations/borrows during downtime and after restart
+- Defense-in-depth: sequencer check + grace period + price staleness combined
+- Differential safety: repayments and collateral additions always allowed, even during downtime
+
+**Next:** Transaction ordering and MEV on L2 — how centralized sequencers create a fundamentally different MEV landscape.
 
 ---
 

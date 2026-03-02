@@ -418,6 +418,20 @@ Build the core PT/YT splitting mechanism from an ERC-4626 vault:
 
 ---
 
+## 📋 Summary: Yield Tokenization Fundamentals
+
+**Covered:**
+- The fixed-rate problem in DeFi and why variable yields create uncertainty
+- Zero-coupon bond analogy: buy at a discount, redeem at par at maturity
+- PT/YT split mechanism — separating principal and yield into tradable tokens
+- Implied rate math: how PT price and time-to-maturity determine the fixed rate
+- YT yield accumulator pattern: tracking accrued yield via exchange rate snapshots
+- Maturity mechanics: PT redemption, YT expiry, and pre-maturity unsplitting
+
+**Next:** ERC-5115 (Standardized Yield) — Pendle's generalization of ERC-4626 for wrapping arbitrary yield sources.
+
+---
+
 ## 💡 ERC-5115: Standardized Yield
 
 <a id="sy-vs-erc4626"></a>
@@ -833,6 +847,21 @@ Build a rate oracle that computes and tracks implied rates from PT prices:
 **🎯 Goal:** Master the implied rate math and connect rate-oracle tracking to the TWAP accumulator pattern from Part 2 Module 3 (Oracles).
 
 **Run:** `forge test --match-contract PTRateOracleTest -vvv`
+
+---
+
+## 📋 Summary: Pendle Architecture & AMM
+
+**Covered:**
+- ERC-5115 Standardized Yield (SY) — wrapping diverse yield sources into a common interface
+- SY vs ERC-4626: reward token handling, multi-asset support, and exchange rate mechanics
+- Pendle system overview: SY wrapping, YieldContractFactory, PT/YT minting
+- Why constant-product AMMs fail for yield tokens (PT converges to 1:1 at maturity)
+- Rate-space trading: Pendle's key insight of trading implied rates instead of prices
+- TWAR oracle: time-weighted average rate using the cumulative accumulator pattern
+- LP considerations: impermanent loss profile and the fee/rate trade-off
+
+**Next:** Yield tokenization strategies and composability — how to use PT/YT for fixed income, leveraged yield, and structured products.
 
 ---
 

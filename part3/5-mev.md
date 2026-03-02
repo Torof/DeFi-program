@@ -251,6 +251,20 @@ Run: `forge test --match-contract SandwichSimTest -vvv`
 
 ---
 
+## 📋 Summary: MEV Attacks
+
+**✓ Covered:**
+- MEV as the invisible tax on DeFi transactions — value extracted through transaction ordering
+- The MEV spectrum from benign (arbitrage, liquidation) to harmful (sandwich attacks)
+- Sandwich attack mechanics: front-run to push price, victim swap at worse rate, back-run to capture profit
+- Price impact math in constant-product AMMs and how attackers calculate optimal extraction
+- Slippage tolerance as the primary user defense — tight limits make sandwiches revert
+- AMM vulnerability to ordering-based extraction due to public mempool visibility
+
+**Next:** Arbitrage and liquidation MEV — the "good" side of the spectrum that keeps prices aligned and protocols solvent.
+
+---
+
 <a id="good-mev"></a>
 ## 💡 Arbitrage & Liquidation MEV
 
@@ -713,6 +727,22 @@ Implement a simplified V4-style hook that detects potential sandwich patterns an
 **🎯 Goal:** Build a fee mechanism where normal users pay 0.3% but sandwich bots effectively pay 1%+, making the attack unprofitable.
 
 Run: `forge test --match-contract MEVFeeHookTest -vvv`
+
+---
+
+## 📋 Summary: MEV Defense & Protocol Design
+
+**✓ Covered:**
+- Post-Merge MEV supply chain: searchers, builders, relays, and proposers (PBS)
+- MEV economics: competitive bidding drives most value up to validators
+- Flashbots ecosystem: Protect (private mempool), MEV-Share (order flow auctions with rebates)
+- Protection mechanisms: transaction privacy, commit-reveal, batch auctions, threshold encryption
+- Intent-based execution as the deepest MEV defense (Module 4 connection)
+- MEV-aware protocol design: minimize info leakage, reduce ordering dependence, internalize MEV
+- Dynamic fee hooks (V4 pattern) that detect sandwich signatures and surcharge suspected MEV
+- MEV taxes: priority-fee-proportional swap fees that redirect extraction to LPs
+
+**Next:** Job market context — interview questions and what DeFi teams expect around MEV knowledge.
 
 ---
 

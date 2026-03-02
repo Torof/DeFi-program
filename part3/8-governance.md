@@ -291,6 +291,21 @@ Run: `forge test --match-contract GovernorTest -vvv`
 
 ---
 
+## 📋 Summary: On-Chain Governance
+
+**✓ Covered:**
+- Why governance exists: parameter updates, fee management, upgrades, emergency response
+- Proposal lifecycle: propose → voting delay → active vote → queue in timelock → execute
+- ERC20Votes: delegation activates voting power, checkpointing records snapshots per block
+- TimelockController: enforces execution delay, gives users exit rights before changes apply
+- Snapshot-based voting: prevents flash loan attacks by recording power at proposal creation
+- Quorum and threshold design: balancing spam prevention with accessibility
+- Governor + Timelock role configuration: proposer, executor, canceller
+
+**Next:** ve-tokenomics and the Curve Wars — how vote-escrow transforms governance tokens into incentive-alignment tools.
+
+---
+
 <a id="ve-tokenomics"></a>
 ## 💡 ve-Tokenomics & the Curve Wars
 
@@ -510,6 +525,20 @@ Build a simplified ve-token with time-weighted voting power, linear decay, and g
 **🎯 Goal:** Build the core of a Curve-style vote-escrow system and understand why lock duration creates genuine skin-in-the-game for governance participants.
 
 Run: `forge test --match-contract VoteEscrowTest -vvv`
+
+---
+
+## 📋 Summary: ve-Tokenomics
+
+**✓ Covered:**
+- Vote-escrow model: lock tokens for 1-4 years to receive non-transferable voting power
+- Linear decay formula: `amount * (lockEnd - now) / maxLock` forces continuous re-locking
+- Three powers of veCRV: gauge voting (directing emissions), boosted LP rewards (2.5x), fee sharing
+- The Curve Wars: Convex aggregation, vlCVX meta-governance, bribery markets (Votium, Hidden Hand)
+- Velodrome/Aerodrome ve(3,3): voters earn fees only from pools they vote for, fixing Curve's incentive misalignment
+- L2 connection: cheap gas makes weekly voting/claiming practical for all participants, not just whales
+
+**Next:** Governance security — how governance itself becomes an attack surface, from the Beanstalk exploit to emergency mechanisms.
 
 ---
 

@@ -370,6 +370,20 @@ When evaluating a bridge for protocol integration:
 
 ---
 
+## 📋 Summary: Bridge Fundamentals & Security
+
+**✓ Covered:**
+- Four bridge architectures: lock-and-mint, burn-and-mint, liquidity networks, canonical rollup bridges
+- Trust assumption spectrum: multisig attestation, oracle networks, optimistic verification, ZK proofs, L1 consensus
+- On-chain mechanics: lock/mint on deposit, burn/unlock on withdrawal, the critical verification step
+- Major bridge exploits: Nomad ($190M, zero-root bug), Ronin ($625M, key compromise), Wormhole ($325M, verification bypass)
+- Root causes: initialization bugs, low multisig thresholds, cross-VM verification complexity
+- Security evaluation framework: trust model, economic security, rate limiting, audit history, wrapped token risk
+
+**Next:** Messaging protocols — LayerZero and CCIP patterns for sending arbitrary data (not just tokens) across chains.
+
+---
+
 <a id="messaging-protocols"></a>
 ## 💡 Messaging Protocols: LayerZero & CCIP
 
@@ -695,6 +709,20 @@ Implement a token with per-bridge rate-limited minting — the xERC20 pattern.
 **🎯 Goal:** Build a cross-chain token where no single bridge compromise can drain more than a bounded amount per day.
 
 Run: `forge test --match-contract RateLimitedTokenTest -vvv`
+
+---
+
+## 📋 Summary: Cross-Chain Integration
+
+**✓ Covered:**
+- LayerZero V2 OApp pattern: `_lzSend()` and `_lzReceive()` for cross-chain messaging
+- Chainlink CCIP defense-in-depth: DON verification, independent Risk Management Network, rate limiting
+- Source verification and replay protection as mandatory receive-side security checks
+- OFT (Omnichain Fungible Token) standard for canonical cross-chain tokens via LayerZero
+- xERC20 (ERC-7281): per-bridge rate-limited minting to bound blast radius of bridge compromise
+- Token bucket algorithm for rate limiting: capacity, refill rate, and time-based replenishment
+
+**Next:** Cross-chain DeFi patterns — how to compose swaps, governance, and state syncing across chains.
 
 ---
 

@@ -492,6 +492,21 @@ Build the core funding rate accumulator pattern:
 
 ---
 
+## 📋 Summary: Perpetual Futures Fundamentals
+
+**Covered:**
+- What perpetual futures are and why they dominate DeFi derivatives (no expiry, synthetic exposure)
+- Funding rate mechanism — the anchor that ties perp price to index price
+- Long/short mechanics: margin, leverage, and position sizing
+- Mark price vs index price and why the distinction matters
+- PnL calculation with worked examples (including fees and funding)
+- Liquidation price derivation for longs and shorts
+- The funding rate accumulator pattern — O(1) settlement via global index + per-position snapshots
+
+**Next:** How production protocols (GMX, Synthetix, dYdX) implement these fundamentals with very different architectural trade-offs.
+
+---
+
 ## 📖 GMX Architecture
 
 <a id="gmx-model"></a>
@@ -956,6 +971,20 @@ Hyperliquid is a purpose-built L1 for perpetuals with sub-second finality:
 
 ---
 
+## 📋 Summary: Protocol Architectures
+
+**Covered:**
+- GMX's GLP/GM model — LP pool as counterparty, oracle-priced trades, two-step keeper execution
+- GMX V2 fee structure: position fees, borrow fees, price impact fees, and funding fees
+- Synthetix debt pool model — SNX stakers absorb system-wide PnL via socialized debt shares
+- Synthetix Perps V2: skew-based funding with velocity dampening
+- dYdX and Hyperliquid: order-book models on app-specific chains
+- Architecture trade-offs: capital efficiency vs bootstrapping, slippage vs decentralization
+
+**Next:** Liquidation mechanics specific to perpetuals — how they differ from lending liquidations and the role of insurance funds.
+
+---
+
 ## 💡 Liquidation in Perpetuals
 
 <a id="perp-vs-lending-liquidation"></a>
@@ -1225,6 +1254,20 @@ Build a simplified perpetual exchange combining all concepts:
 **What you'll learn:** How all the pieces fit together — funding, margin, PnL, liquidation, and LP pool accounting in one contract. This is a simplified version of what you'll build at full scale in the Part 3 Capstone (Module 9).
 
 **Run:** `forge test --match-contract SimplePerpExchangeTest -vvv`
+
+---
+
+## 📋 Summary: Liquidation & Position Lifecycle
+
+**Covered:**
+- How perp liquidation differs from lending: position-level margin, time pressure, and directional risk
+- Maintenance margin threshold and the liquidation trigger condition
+- Keeper incentives: liquidation fees, gas reimbursement, and priority gas auctions
+- Insurance fund mechanics — absorbing bad debt when margin is insufficient
+- Auto-deleveraging (ADL) as the last resort when the insurance fund is depleted
+- Full position lifecycle: open with margin, accrue funding, track PnL, close or get liquidated
+
+**Next:** Cross-cutting DeFi pattern connections and job market context for perpetuals knowledge.
 
 ---
 

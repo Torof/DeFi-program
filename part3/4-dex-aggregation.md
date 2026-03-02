@@ -319,6 +319,20 @@ Run: `forge test --match-contract SplitRouterTest -vvv`
 
 ---
 
+## 📋 Summary: Traditional Aggregation
+
+**Covered:**
+- The routing problem: fragmented liquidity across multiple DEXs and pools
+- Split order math: why splitting large trades across pools reduces price impact
+- Optimal split calculation based on relative pool reserves
+- On-chain vs off-chain routing trade-offs (gas costs vs computation flexibility)
+- Executor patterns: how aggregators construct and execute multi-hop, multi-pool swaps
+- Gas-aware optimization: when the gas cost of splitting outweighs the benefit
+
+**Next:** The intent paradigm — a fundamental shift from users constructing transactions to users signing what they want and solvers competing to fill it.
+
+---
+
 <a id="intent-paradigm"></a>
 ## 💡 The Intent Paradigm
 
@@ -629,6 +643,20 @@ Build a simplified intent settlement system with EIP-712 orders and Dutch auctio
 **🎯 Goal:** Build the core of a UniswapX-style settlement contract. Sign orders off-chain in tests using `vm.sign`, fill them on-chain with Dutch auction price decay.
 
 Run: `forge test --match-contract IntentSettlementTest -vvv`
+
+---
+
+## 📋 Summary: Intent-Based Trading
+
+**Covered:**
+- The intent paradigm shift: users sign desired outcomes, solvers handle execution
+- EIP-712 typed data structures for off-chain order signing
+- Dutch auction price decay: starting generous and decaying to attract solvers at the right moment
+- Solver competition: how fillers race to provide the best execution
+- Replay protection, deadline enforcement, and nonce management
+- User experience improvements: no gas needed, MEV protection, cross-chain potential
+
+**Next:** Settlement contract architecture — how UniswapX's Reactor pattern enforces trust guarantees on-chain regardless of solver behavior.
 
 ---
 
