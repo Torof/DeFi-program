@@ -233,7 +233,7 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 **Don't get stuck on:** Aave's referral code system or Balancer's internal token accounting beyond the flash loan flow. Focus on the borrow → callback → repay cycle.
 
 <a id="day1-exercises"></a>
-### 🛠️ Exercises: Flash Loan Mechanics
+## 🎯 Build Exercise: Flash Loan Mechanics
 
 **Workspace:** [`workspace/src/part2/module5/exercise1-flash-loan-receiver/`](../workspace/src/part2/module5/exercise1-flash-loan-receiver/) — starter file: [`FlashLoanReceiver.sol`](../workspace/src/part2/module5/exercise1-flash-loan-receiver/FlashLoanReceiver.sol), tests: [`FlashLoanReceiver.t.sol`](../workspace/test/part2/module5/exercise1-flash-loan-receiver/FlashLoanReceiver.t.sol)
 
@@ -579,7 +579,7 @@ Result:
 **Why flash loans matter here:** Without them, you'd need 5+ loop iterations (each with gas costs and swap slippage). With a flash loan, it's a single atomic operation — cheaper, cleaner, and no partial exposure during intermediate steps.
 
 <a id="day2-exercises"></a>
-### 🛠️ Exercises: Flash Loan Strategies
+## 🎯 Build Exercise: Flash Loan Strategies
 
 **Workspace:** [`workspace/src/part2/module5/exercise2-flash-loan-arbitrage/`](../workspace/src/part2/module5/exercise2-flash-loan-arbitrage/) — starter file: [`FlashLoanArbitrage.sol`](../workspace/src/part2/module5/exercise2-flash-loan-arbitrage/FlashLoanArbitrage.sol), tests: [`FlashLoanArbitrage.t.sol`](../workspace/test/part2/module5/exercise2-flash-loan-arbitrage/FlashLoanArbitrage.t.sol) | Also: [`CollateralSwap.sol`](../workspace/src/part2/module5/exercise3-collateral-swap/CollateralSwap.sol), tests: [`CollateralSwap.t.sol`](../workspace/test/part2/module5/exercise3-collateral-swap/CollateralSwap.t.sol)
 
@@ -752,7 +752,7 @@ Key difference:
 ```
 
 <a id="day3-exercises"></a>
-### 🛠️ Exercises: Flash Loan Security
+## 🎯 Build Exercise: Flash Loan Security
 
 **Workspace:** [`workspace/src/part2/module5/exercise4-vault-donation/`](../workspace/src/part2/module5/exercise4-vault-donation/) — starter file: [`VaultDonationAttack.sol`](../workspace/src/part2/module5/exercise4-vault-donation/VaultDonationAttack.sol), tests: [`VaultDonationAttack.t.sol`](../workspace/test/part2/module5/exercise4-vault-donation/VaultDonationAttack.t.sol)
 

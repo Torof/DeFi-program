@@ -470,7 +470,7 @@ DeFi's composability means your protocol interacts with others in ways you can't
 - Use interface types (not concrete contracts) and validate return values
 - Implement circuit breakers that pause the protocol if unexpected conditions are detected
 
-### 🛠️ Exercise
+## 🎯 Build Exercise: Security Exploits and Defenses
 
 **Workspace:** [`workspace/src/part2/module8/exercise1-reentrancy/`](../workspace/src/part2/module8/exercise1-reentrancy/) — starter files: [`ReentrancyAttack.sol`](../workspace/src/part2/module8/exercise1-reentrancy/ReentrancyAttack.sol), [`DefendedLending.sol`](../workspace/src/part2/module8/exercise1-reentrancy/DefendedLending.sol), tests: [`ReadOnlyReentrancy.t.sol`](../workspace/test/part2/module8/exercise1-reentrancy/ReadOnlyReentrancy.t.sol)
 
@@ -887,7 +887,7 @@ The handler's `bound()` function handles invalid inputs, but the *sequence* of v
 - Not tracking ghost variables (can't verify cumulative properties)
 - Setting `depth` too low (complex bugs need 20+ step sequences)
 
-### 🛠️ Exercise
+## 🎯 Build Exercise: Invariant Testing
 
 **Workspace:** [`workspace/src/part2/module8/exercise3-invariant/`](../workspace/src/part2/module8/exercise3-invariant/) — starter files: [`BuggyVault.sol`](../workspace/src/part2/module8/exercise3-invariant/BuggyVault.sol), [`VaultHandler.sol`](../workspace/src/part2/module8/exercise3-invariant/VaultHandler.sol), tests: [`VaultInvariant.t.sol`](../workspace/test/part2/module8/exercise3-invariant/VaultInvariant.t.sol)
 
@@ -1007,7 +1007,7 @@ Bug bounty writeups show attacker thinking — the process of discovering a vuln
 3. What defense would have prevented it?
 
 <a id="self-audit"></a>
-### 🛠️ Exercise: Self-Audit
+## 🎯 Build Exercise: Self-Audit
 
 Take your SimpleLendingPool from Module 4 and apply a structured review:
 
@@ -1042,7 +1042,7 @@ Take your SimpleLendingPool from Module 4 and apply a structured review:
 ## 💡 Security Tooling & Audit Preparation
 
 <a id="static-analysis"></a>
-### 🛠️ Static Analysis Tools
+### Static Analysis Tools
 
 **[Slither](https://github.com/crytic/slither)** — Trail of Bits' static analyzer. Detects reentrancy, uninitialized variables, incorrect visibility, unchecked return values, and many more patterns. Run in CI/CD on every commit.
 
@@ -1178,7 +1178,7 @@ The security mindset isn't a checklist — it's a way of thinking about code:
 
 **Simplify.** The most secure protocol is the simplest one that achieves the goal. Every line of code is a potential vulnerability. MakerDAO's Vat is ~300 lines. Uniswap V2 core is ~400 lines. Compound V3's Comet is ~4,300 lines. Complexity is the enemy of security.
 
-### 🛠️ Exercise
+## 🎯 Build Exercise: Security Review
 
 **Exercise 1: Full security review.** Run Slither and Aderyn on your SimpleLendingPool from Module 4 and your SimpleCDP from Module 6. Triage every finding: real vulnerability, informational, or false positive. Fix any real vulnerabilities found.
 

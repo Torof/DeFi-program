@@ -279,7 +279,7 @@ Also compare with Solmate's implementation (`solmate/src/tokens/ERC4626.sol`) wh
 **Don't get stuck on:** The `_decimalsOffset()` virtual function mechanics. Just know: default is 0 (no virtual offset), override to 3 or 6 for inflation protection. The higher the offset, the more expensive the attack becomes, but the more precision you lose for tiny deposits.
 
 <a id="day1-exercise"></a>
-### 🛠️ Exercise
+## 🎯 Build Exercise: Simple Vault
 
 **Workspace:** [`workspace/src/part2/module7/exercise1-simple-vault/`](../workspace/src/part2/module7/exercise1-simple-vault/) — starter file: [`SimpleVault.sol`](../workspace/src/part2/module7/exercise1-simple-vault/SimpleVault.sol), tests: [`SimpleVault.t.sol`](../workspace/test/part2/module7/exercise1-simple-vault/SimpleVault.t.sol)
 
@@ -593,7 +593,7 @@ The inflation attack becomes especially dangerous when ERC-4626 tokens are used 
 
 Defense: lending protocols should use time-weighted or externally-sourced exchange rates for ERC-4626 collateral, not the vault's own `convertToAssets()` at a single point in time.
 
-### 🛠️ Exercise
+## 🎯 Build Exercise: Inflation Attack Defense
 
 **Workspace:** [`workspace/src/part2/module7/exercise2-inflation-attack/`](../workspace/src/part2/module7/exercise2-inflation-attack/) — starter files: [`NaiveVault.sol`](../workspace/src/part2/module7/exercise2-inflation-attack/NaiveVault.sol), [`DefendedVault.sol`](../workspace/src/part2/module7/exercise2-inflation-attack/DefendedVault.sol), tests: [`InflationAttack.t.sol`](../workspace/test/part2/module7/exercise2-inflation-attack/InflationAttack.t.sol)
 
@@ -793,7 +793,7 @@ Each layer uses ERC-4626, so they compose naturally.
 
 **Pro tip:** The curator/vault-as-a-service model is the fastest-growing DeFi architectural pattern in 2025. Being able to articulate the trade-offs between Yearn V3 (flexible strategies, higher risk surface) vs MetaMorpho (constrained to lending, easier to audit) vs Euler V2 (modular with custom vault logic) signals you understand the current state of DeFi infrastructure.
 
-### 🛠️ Exercise
+## 🎯 Build Exercise: Simple Allocator
 
 **Workspace:** [`workspace/src/part2/module7/exercise3-simple-allocator/`](../workspace/src/part2/module7/exercise3-simple-allocator/) — starter files: [`SimpleAllocator.sol`](../workspace/src/part2/module7/exercise3-simple-allocator/SimpleAllocator.sol), [`MockStrategy.sol`](../workspace/src/part2/module7/exercise3-simple-allocator/MockStrategy.sol), tests: [`SimpleAllocator.t.sol`](../workspace/test/part2/module7/exercise3-simple-allocator/SimpleAllocator.t.sol)
 
@@ -1009,7 +1009,7 @@ This composability is why ERC-4626 adoption has been so rapid — each new vault
 - Restaking vaults (EigenLayer, Symbiotic) — ERC-4626 wrappers around restaking positions
 - Real-world asset (RWA) vaults — tokenized treasury yields via ERC-4626
 
-### 🛠️ Exercise
+## 🎯 Build Exercise: Auto Compounder
 
 **Workspace:** [`workspace/src/part2/module7/exercise4-auto-compounder/`](../workspace/src/part2/module7/exercise4-auto-compounder/) — starter files: [`AutoCompounder.sol`](../workspace/src/part2/module7/exercise4-auto-compounder/AutoCompounder.sol), [`MockSwap.sol`](../workspace/src/part2/module7/exercise4-auto-compounder/MockSwap.sol), tests: [`AutoCompounder.t.sol`](../workspace/test/part2/module7/exercise4-auto-compounder/AutoCompounder.t.sol)
 

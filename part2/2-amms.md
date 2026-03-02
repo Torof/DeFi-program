@@ -326,7 +326,7 @@ Fees must exceed LVR, not just IL, for LPs to profit. When evaluating whether a 
 ---
 
 <a id="build-cpp"></a>
-### 🛠️ Build: Minimal Constant Product Pool
+## 🎯 Build Exercise: Minimal Constant Product Pool
 
 **Workspace:** [`workspace/src/part2/module2/exercise1-constant-product/`](../workspace/src/part2/module2/exercise1-constant-product/) — starter file: [`ConstantProductPool.sol`](../workspace/src/part2/module2/exercise1-constant-product/ConstantProductPool.sol), tests: [`ConstantProductPool.t.sol`](../workspace/test/part2/module2/exercise1-constant-product/ConstantProductPool.t.sol)
 
@@ -1286,7 +1286,7 @@ function afterSwap(...) external returns (...) {
 ---
 
 <a id="build-hook"></a>
-### 🛠️ Build: A Simple Hook
+## 🎯 Build Exercise: A Simple Hook
 
 **Exercise 1: Dynamic fee hook.** Build a hook that adjusts the swap fee based on recent volatility. Track the last N swap prices, compute a simple volatility metric, and return a higher fee when volatility is elevated. This teaches you the full hook development cycle:
 

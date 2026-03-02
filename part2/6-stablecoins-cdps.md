@@ -242,7 +242,7 @@ The dss codebase is one of DeFi's most important — and one of the hardest to r
 **Don't get stuck on:** The formal verification annotations in comments. The dss codebase was designed for formal verification (which is why the naming is so terse — it maps to mathematical specifications). You can ignore the verification proofs and focus on the logic.
 
 <a id="day1-exercises"></a>
-### 🛠️ Exercises: CDP Model and MakerDAO
+## 🎯 Build Exercise: CDP Model and MakerDAO
 
 **Workspace:** [`workspace/src/part2/module6/`](../workspace/src/part2/module6/) — starter files: [`SimpleVat.sol`](../workspace/src/part2/module6/exercise1-simple-vat/SimpleVat.sol), [`SimpleJug.sol`](../workspace/src/part2/module6/exercise2-simple-jug/SimpleJug.sol), tests: [`SimpleVat.t.sol`](../workspace/test/part2/module6/exercise1-simple-vat/SimpleVat.t.sol), [`SimpleJug.t.sol`](../workspace/test/part2/module6/exercise2-simple-jug/SimpleJug.t.sol) | Shared: [`VatMath.sol`](../workspace/src/part2/module6/shared/VatMath.sol), [`SimpleStablecoin.sol`](../workspace/src/part2/module6/shared/SimpleStablecoin.sol), [`SimpleGemJoin.sol`](../workspace/src/part2/module6/shared/SimpleGemJoin.sol), [`SimpleDaiJoin.sol`](../workspace/src/part2/module6/shared/SimpleDaiJoin.sol)
 
@@ -593,7 +593,7 @@ In `Clipper.kick()`, trace:
 **Don't get stuck on:** The `redo()` function initially — it's for restarting stale auctions. Understand `bark()` → `kick()` → `take()` first, then come back to `redo()` and the edge cases.
 
 <a id="day2-exercises"></a>
-### 🛠️ Exercises: Liquidations and PSM
+## 🎯 Build Exercise: Liquidations and PSM
 
 **Workspace:** [`workspace/src/part2/module6/exercise3-simple-dog/`](../workspace/src/part2/module6/exercise3-simple-dog/) — starter file: [`SimpleDog.sol`](../workspace/src/part2/module6/exercise3-simple-dog/SimpleDog.sol), tests: [`SimpleDog.t.sol`](../workspace/test/part2/module6/exercise3-simple-dog/SimpleDog.t.sol) | Also: [`SimplePSM.sol`](../workspace/src/part2/module6/exercise4-simple-psm/SimplePSM.sol), tests: [`SimplePSM.t.sol`](../workspace/test/part2/module6/exercise4-simple-psm/SimplePSM.t.sol)
 
@@ -644,7 +644,7 @@ In `Clipper.kick()`, trace:
 ## 🎯 Build a Simplified CDP Engine
 
 <a id="simple-cdp"></a>
-### 🛠️ SimpleCDP.sol
+### SimpleCDP.sol
 
 The exercises across this module build a minimal CDP system that captures the essential mechanisms: **SimpleVat** (accounting engine with `frob`/`fold`/`grab`), **SimpleJug** (stability fee compounding via `rpow` and `drip`), **SimpleDog** (liquidation trigger + Dutch auction), and **SimplePSM** (peg stability swaps with fee). Shared contracts (join adapters, stablecoin ERC-20, math library) are pre-built.
 
@@ -891,7 +891,7 @@ Speed of peg restoration:
 **The pattern:** Faster peg restoration requires either centralization (USDC, PSM's USDC dependency) or capital lock-up (Liquity's 110% CR). Slower mechanisms preserve decentralization but risk prolonged depegs during stress.
 
 <a id="day4-exercises"></a>
-### 🛠️ Exercises: Stablecoin Design Trade-offs
+## 🎯 Build Exercise: Stablecoin Design Trade-offs
 
 **Workspace:** [`workspace/test/part2/module6/exercise4b-peg-dynamics/`](../workspace/test/part2/module6/exercise4b-peg-dynamics/) — test-only exercise: [`PegDynamics.t.sol`](../workspace/test/part2/module6/exercise4b-peg-dynamics/PegDynamics.t.sol) (tests PSM peg restoration, reserve depletion, stability fee dynamics, and the fee/PSM feedback loop — requires SimplePSM and SimpleJug to be implemented)
 

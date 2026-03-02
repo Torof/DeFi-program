@@ -562,7 +562,7 @@ function calculateCompoundedInterest(uint256 rate, uint40 lastUpdateTimestamp, u
 ---
 
 <a id="build-lending-math"></a>
-### 🛠️ Exercise 1: Interest Rate Model
+## 🎯 Build Exercise: Interest Rate Model
 
 **Workspace:** [`workspace/src/part2/module4/exercise1-interest-rate/`](../workspace/src/part2/module4/exercise1-interest-rate/) — starter file: [`InterestRateModel.sol`](../workspace/src/part2/module4/exercise1-interest-rate/InterestRateModel.sol), tests: [`InterestRateModel.t.sol`](../workspace/test/part2/module4/exercise1-interest-rate/InterestRateModel.t.sol)
 
@@ -757,7 +757,7 @@ The `onBehalfOf` parameter enables [credit delegation](https://aave.com/docs/aav
 ---
 
 <a id="fork-interact"></a>
-### 🛠️ Exercise 2: Simplified Lending Pool
+## 🎯 Build Exercise: Simplified Lending Pool
 
 **Workspace:** [`workspace/src/part2/module4/exercise2-lending-pool/`](../workspace/src/part2/module4/exercise2-lending-pool/) — starter file: [`LendingPool.sol`](../workspace/src/part2/module4/exercise2-lending-pool/LendingPool.sol), tests: [`LendingPool.t.sol`](../workspace/test/part2/module4/exercise2-lending-pool/LendingPool.t.sol)
 
@@ -972,7 +972,7 @@ function setActive(uint256 config, bool active) internal pure returns (uint256) 
 
 ---
 
-### 🛠️ Exercise 3: Configuration Bitmap
+## 🎯 Build Exercise: Configuration Bitmap
 
 **Workspace:** [`workspace/src/part2/module4/exercise3-config-bitmap/`](../workspace/src/part2/module4/exercise3-config-bitmap/) — starter file: [`ConfigBitmap.sol`](../workspace/src/part2/module4/exercise3-config-bitmap/ConfigBitmap.sol), tests: [`ConfigBitmap.t.sol`](../workspace/test/part2/module4/exercise3-config-bitmap/ConfigBitmap.t.sol)
 
@@ -1159,7 +1159,7 @@ Comet is dramatically simpler than Aave — one contract, ~4,300 lines. This mak
 
 ---
 
-### 🛠️ Exercise
+## 🎯 Build Exercise: Compound V3 Code Analysis
 
 **Exercise 1:** Read the Compound V3 [`getUtilization()`](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol#L413), [`getBorrowRate()`](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol#L423), and [`getSupplyRate()`](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol#L428) functions. For each, trace the math and verify it matches the kinked curve formula from the Lending Model section.
 
@@ -1365,7 +1365,7 @@ After absorption, the protocol holds seized collateral. Anyone can buy this coll
 
 ---
 
-### 🛠️ Exercise 4: Flash Loan Liquidation Bot
+## 🎯 Build Exercise: Flash Loan Liquidation Bot
 
 **Workspace:** [`workspace/src/part2/module4/exercise4-flash-liquidator/`](../workspace/src/part2/module4/exercise4-flash-liquidator/) — starter file: [`FlashLiquidator.sol`](../workspace/src/part2/module4/exercise4-flash-liquidator/FlashLiquidator.sol), tests: [`FlashLiquidator.t.sol`](../workspace/test/part2/module4/exercise4-flash-liquidator/FlashLiquidator.t.sol)
 
@@ -1423,7 +1423,7 @@ The tests cover: profitable liquidation end-to-end, exact profit calculation (5%
 ## 🎯 Build a Simplified Lending Protocol
 
 <a id="simple-lending-pool"></a>
-### 🛠️ SimpleLendingPool.sol
+### SimpleLendingPool.sol
 
 Build a minimal but correct lending protocol that incorporates everything from this module:
 
@@ -1469,7 +1469,7 @@ mapping(address => mapping(address => UserPosition)) public positions;  // user 
 
 ---
 
-### 🛠️ Test Suite
+### Test Suite
 
 Write comprehensive Foundry tests:
 
@@ -1612,7 +1612,7 @@ Aave continues evolving within the V3 framework. These updates are important to 
 
 ---
 
-### 🛠️ Exercise
+## 🎯 Build Exercise: Liquidation Scenarios
 
 **Workspace:** [`workspace/test/part2/module4/exercise4b-liquidation-scenarios/`](../workspace/test/part2/module4/exercise4b-liquidation-scenarios/) — test-only exercise: [`LiquidationScenarios.t.sol`](../workspace/test/part2/module4/exercise4b-liquidation-scenarios/LiquidationScenarios.t.sol) (implements `BadDebtPool.handleBadDebt()` inline, then runs cascade and bad debt tests)
 
