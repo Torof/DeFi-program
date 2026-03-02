@@ -100,9 +100,9 @@
   }
 
   // --- H3 "Concept:" Label Styling ---
-  // Colors the word "Concept" and underlines the topic name that follows.
+  // Strips the 💡 emoji, colors "Concept:", keeps the topic name plain.
   // e.g. "💡 Concept: Checked Arithmetic (0.8.0)" →
-  //       💡 <span class="concept-keyword">Concept</span>: <span class="concept-topic">Checked Arithmetic</span> (0.8.0)
+  //       <span class="concept-keyword">Concept:</span> Checked Arithmetic (0.8.0)
   function styleConceptHeadings() {
     var main = document.querySelector('.content main');
     if (!main) return;
@@ -111,7 +111,6 @@
     h3s.forEach(function(h3) {
       if (h3.dataset.conceptStyled) return;
       var text = h3.textContent;
-      // Match: 💡 Concept: <topic> — with optional version suffix like (0.8.0)
       if (text.indexOf('Concept:') === -1) return;
 
       h3.dataset.conceptStyled = 'true';
@@ -123,7 +122,6 @@
         var conceptIdx = node.textContent.indexOf('Concept:');
         if (conceptIdx === -1) continue;
 
-        var before = node.textContent.substring(0, conceptIdx);
         var afterColon = node.textContent.substring(conceptIdx + 'Concept:'.length);
 
         // Extract topic name: everything after "Concept: " up to an opening paren or end
@@ -131,11 +129,9 @@
         var topicText = topicMatch ? topicMatch[1].trim() : afterColon.trim();
         var suffix = topicMatch && topicMatch[2] ? topicMatch[2] : '';
 
-        // Build replacement nodes
+        // Build replacement — emoji stripped, "Concept:" colored
         var parent = node.parentNode;
         var frag = document.createDocumentFragment();
-
-        if (before) frag.appendChild(document.createTextNode(before));
 
         var kwSpan = document.createElement('span');
         kwSpan.className = 'concept-keyword';
@@ -153,6 +149,7 @@
   }
 
   // --- H2 Section Color Coding ---
+  // Detects emoji in H2, applies the CSS class, then strips the emoji from display.
   function colorSections() {
     var main = document.querySelector('.content main');
     if (!main) return;
@@ -166,6 +163,18 @@
         if (text.indexOf(s.emoji) !== -1) {
           h2.classList.add(s.cls);
           h2.dataset.sectionColored = 'true';
+          // Strip the emoji from display (and trailing variation selector + space)
+          var walker = document.createTreeWalker(h2, NodeFilter.SHOW_TEXT, null, false);
+          var node;
+          while (node = walker.nextNode()) {
+            var idx = node.textContent.indexOf(s.emoji);
+            if (idx !== -1) {
+              var cleaned = node.textContent.substring(0, idx) +
+                node.textContent.substring(idx + s.emoji.length).replace(/^\uFE0F?\s?/, '');
+              node.textContent = cleaned;
+              break;
+            }
+          }
         }
       });
     });
