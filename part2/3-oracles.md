@@ -963,6 +963,8 @@ The tests demonstrate the full attack flow: attacker swaps 600K USDC into a pool
 - Built vulnerable protocol and fixed it with Chainlink
 - Stale price exploit simulation with `vm.mockCall`
 
+**Internalized patterns:** The oracle is your protocol's weakest link. Never derive prices from spot ratios in DEX pools. Always validate oracle data (positive answer, complete round, fresh timestamp). Chainlink is the default for production (supplement with TWAP for defense in depth). Design for oracle failure (graceful degradation path). L2 sequencer awareness is mandatory (check Sequencer Uptime Feed). Understand your oracle's trust model (Chainlink multisig vs Pyth pull-based). LST collateral needs chained oracles (internal exchange rate + market rate, use the more conservative). Oracle updates create extractable value (OEV solutions: API3, Pyth Express Relay, UMA Oval).
+
 **Complete:** You now understand oracles as both infrastructure (how to consume safely) and attack surface (how manipulation works and how to defend).
 
 #### 💼 Job Market Context — Oracle Security
@@ -1082,36 +1084,6 @@ try this.getChainlinkPrice(feed) returns (uint256 price) {
 
 ---
 
-## 📋 Key Takeaways for Protocol Builders
-
-**1. The oracle is your protocol's weakest link.** A perfectly written smart contract using bad price data is just as exploitable as a buggy contract. Oracle choice and integration deserve as much attention as your core logic.
-
-**2. Never derive prices from spot ratios in DEX pools.** This rule has no exceptions for protocols where incorrect prices lead to financial loss.
-
-```solidity
-// ❌ NEVER DO THIS
-uint256 price = reserve1 / reserve0;
-
-// ✅ DO THIS
-uint256 price = chainlinkFeed.latestRoundData().answer;
-```
-
-**3. Always validate oracle data.** At minimum: positive answer, complete round, fresh timestamp. Optionally: price within historical bounds, cross-reference with secondary source.
-
-**4. Chainlink is the default for production protocols.** It's not perfect (heartbeat lag, centralization concerns), but it's the most battle-tested option. Supplement with TWAP or other sources for defense in depth.
-
-**5. Design for oracle failure.** What happens if your oracle goes down entirely? Your protocol needs a graceful degradation path — pause operations, use a fallback source, or enter a safe mode.
-
-**6. L2 sequencer awareness.** If deploying on Arbitrum, Optimism, Base, or other L2s with a sequencer, always check the [Sequencer Uptime Feed](https://docs.chain.link/data-feeds/l2-sequencer-feeds) before trusting price data.
-
-**7. Understand your oracle's trust model.** Chainlink's multisig controls feed configuration. Pyth relies on your transaction including fresh price data. Each model has different failure modes and governance risks. Know what you're trusting.
-
-**8. LST collateral needs chained oracles.** For wstETH, rETH, and other liquid staking tokens, you need both the internal exchange rate and the market rate. Use the more conservative of the two to protect against de-peg events.
-
-**9. Oracle updates create extractable value.** Every time an oracle price crosses a liquidation threshold, MEV searchers profit from backrunning the update. As OEV solutions mature (API3, Pyth Express Relay, UMA Oval), capturing this value becomes a competitive advantage for your protocol.
-
----
-
 ## 📖 Production Study Order
 
 Study these codebases in order — each builds on the previous one's patterns:
@@ -1206,12 +1178,6 @@ Study these codebases in order — each builds on the previous one's patterns:
 - [Inverse Finance postmortem](https://rekt.news/inverse-finance-rekt/) — $15M Curve oracle manipulation
 - [Venus Protocol postmortem](https://rekt.news/venus-blizz-rekt/) — $11M stale oracle exploit
 - [Euler Finance postmortem](https://rekt.news/euler-rekt/) — $197M donation attack
-
----
-
-## 🎯 Practice Challenges
-
-- **[Damn Vulnerable DeFi #7 "Compromised"](https://www.damnvulnerabledefi.xyz/)** — An oracle whose private keys are leaked, enabling price manipulation. Tests your understanding of oracle trust models and the consequences of compromised price feeds.
 
 ---
 

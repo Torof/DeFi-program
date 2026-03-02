@@ -778,6 +778,8 @@ Key difference:
 - Fee comparison across all providers
 - Vulnerable protocol exercise: donation attack + ERC-4626 defense
 
+**Internalized patterns:** Flash loans eliminate capital as a barrier (design assuming every user has infinite temporary capital). The callback pattern is universal (Aave `executeOperation`, Balancer `receiveFlashLoan`, Uniswap `uniswapV2Call`). Flash accounting is the future (V4/Balancer V3 build around delta tracking and end-of-transaction settlement). Zero-fee flash loans change the economics (lower profitability threshold for attacks). Receiver security is critical (validate `msg.sender`, validate `initiator`, never store funds). Collateral swaps and leverage are the primary production use cases (not just arbitrage). The economics are razor-thin (MEV searchers capture 90%+ of arbitrage profit via builder tips).
+
 **Complete:** You now understand flash loans as both a tool (arbitrage, liquidation, leverage) and a threat model (any attacker has unlimited temporary capital).
 
 #### 💼 Job Market Context — Module-Level Interview Prep
@@ -888,24 +890,6 @@ Flash loans add complexity (callback architecture, approval management, extra ga
 
 ---
 
-## 📋 Key Takeaways
-
-1. **Flash loans eliminate capital as a barrier.** This is both powerful (anyone can liquidate or arbitrage) and dangerous (anyone can attack with unlimited capital). Design your protocols assuming every user has infinite temporary capital.
-
-2. **The callback pattern is universal.** Aave's `executeOperation`, Balancer's `receiveFlashLoan`, Uniswap's `uniswapV2Call` — they all follow the same structure: receive funds, do work, repay. The pattern is simple; the compositions are where complexity lives.
-
-3. **Flash accounting is the future.** Uniswap V4 and Balancer V3 don't bolt flash loans on as a feature — they build the entire protocol around delta tracking and end-of-transaction settlement. This is more gas-efficient and more composable. Learn this pattern deeply.
-
-4. **Zero-fee flash loans change the economics.** Balancer V2 (0%) and V4 flash accounting (0% for the flash component) mean flash loans have essentially no cost beyond gas. This lowers the profitability threshold for attacks and arbitrage.
-
-5. **Receiver security is critical.** Validate `msg.sender`, validate `initiator`, never store funds in flash loan contracts, validate decoded params. A careless receiver is an invitation for griefing or fund theft.
-
-6. **Collateral swaps and leverage are the primary production use cases.** Arbitrage gets the headlines, but collateral swaps (Aave "liquidity switch") and flash loan leverage (3x ETH in one tx) are what real users and protocols use daily. The collateral swap pattern — flash borrow → repay → withdraw → swap → deposit → re-borrow → repay flash — is the most complex composition and the most interview-relevant.
-
-7. **The economics are razor-thin.** Flash loan liquidation profits depend on liquidation bonus minus swap fees minus flash loan fees. At 5% bonus and 0.3% swap fee, the math works. But MEV searchers capture most arbitrage profit via builder tips (90%+), leaving individual operators with thin margins.
-
----
-
 ## 📖 Production Study Order
 
 Study these codebases in order — each builds on the previous one's patterns:
@@ -976,17 +960,6 @@ Study these codebases in order — each builds on the previous one's patterns:
 - [Cyfrin — Flash loan attack patterns](https://www.cyfrin.io/blog/price-oracle-manipulation-attacks-with-examples)
 - [RareSkills — Flash loan guide](https://rareskills.io/post/flash-loan)
 - [samczsun — Taking undercollateralized loans for fun and for profit](https://samczsun.com/taking-undercollateralized-loans-for-fun-and-for-profit/) (classic)
-
----
-
-## 🎯 Practice Challenges
-
-Flash loans are a key component in many CTF challenges. These are directly relevant:
-
-- **Damn Vulnerable DeFi #1 "Unstoppable"** — A flash loan vault that can be griefed by a donation attack. Tests your understanding of `balanceOf` vs internal accounting.
-- **Damn Vulnerable DeFi #3 "Truster"** — A flash loan provider that allows arbitrary external calls during the loan. Tests approval/callback security.
-- **Damn Vulnerable DeFi #4 "Side Entrance"** — A flash loan pool with a flaw: depositing flash-loaned funds counts as a "real" deposit. Tests pool accounting invariants.
-- **Damn Vulnerable DeFi #10 "Free Rider"** — Buying NFTs using a Uniswap flash swap where the payment check has a flaw. Tests flash swap mechanics.
 
 ---
 

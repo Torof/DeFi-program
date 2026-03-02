@@ -23,7 +23,6 @@
 - [Token Listing Patterns](#token-listing-patterns)
 - [Token Evaluation Checklist](#token-evaluation-checklist)
 - [Build Exercises: Token Interaction Patterns](#build-token-test-suite)
-- [Practice Challenges](#practice-challenges)
 
 ---
 
@@ -930,70 +929,9 @@ contract FeeOnTransferToken is ERC20 {
 - Token evaluation checklist — 13-point assessment for integrating any new token
 - Build exercise — putting it all together in a Foundry test suite
 
-**Next:** Practice challenges to test your understanding, then Module 2 (AMMs from First Principles).
+**Internalized patterns:** Always use SafeERC20 (no reason not to). Use balance-before-after for untrusted tokens (never trust `amount` parameters). Normalize decimals dynamically via `token.decimals()`. Guard against reentrancy on ALL token transfers (ERC-777 hooks, not just ETH sends). Design for weird tokens early (permissionless with full checks vs curated allowlist). Account for operational risks (pause, blacklist, upgrade). Use the 13-point evaluation checklist systematically. Recognize the reward-per-token accumulator pattern (`rewardPerToken`, `feeGrowthGlobal`, `liquidityIndex`) for proportional distribution without iteration.
 
----
-
-<a id="practice-challenges"></a>
-## 🎯 Practice Challenges
-
-After completing this module, try these challenges to test your understanding:
-
-**Stretch Goals (extend the workspace exercises):**
-
-1. **Extend DefensiveVault:** Add a `depositETH()` function that wraps incoming ETH to WETH before depositing. Requires handling `msg.value`, calling `WETH.deposit()`, and testing the dual-path flow.
-
-2. **Extend DecimalNormalizer:** Add support for tokens with >18 decimals (scale down instead of up). Guard against overflow and handle the precision loss in both directions.
-
-3. **Weird Token Test Suite:** Write a comprehensive Foundry test file that deploys mock tokens for 5+ weird behaviors (fee-on-transfer, no-return-value, revert-on-zero, rebasing, pausable). For each, demonstrate (a) how a naive vault breaks and (b) how a defensive vault handles it correctly.
-
-**Damn Vulnerable DeFi Challenges (related to this module's concepts):**
-
-1. **DVDF #4 — "Side Entrance":** A lending pool with flash loan functionality has a vulnerability related to how it tracks ETH balances. Exploits the balance accounting pattern covered in this module. [Challenge link](https://www.damnvulnerabledefi.xyz/)
-
-2. **DVDF #3 — "Truster":** A flash loan pool that allows arbitrary external calls. Explores how token approval mechanics can be exploited when a protocol makes calls on behalf of an attacker. [Challenge link](https://www.damnvulnerabledefi.xyz/)
-
-3. **DVDF #15 — "ABI Smuggling":** Explores token approval patterns and how calldata can be manipulated to bypass access controls on token operations. [Challenge link](https://www.damnvulnerabledefi.xyz/)
-
----
-
-## 📋 Key Takeaways for Protocol Development
-
-After completing this module, you should have internalized these patterns:
-
-**1. Always use SafeERC20** — there is no reason not to. The gas overhead is negligible compared to the risk of silent failures.
-
-```solidity
-// ❌ BAD: Breaks on USDT
-require(token.transfer(to, amount));
-
-// ✅ GOOD: Works on all tokens
-token.safeTransfer(to, amount);
-```
-
-**2. Balance-before-after for untrusted tokens** — if your protocol accepts arbitrary tokens, never trust `amount` parameters. Measure what you actually received.
-
-```solidity
-// ✅ GOOD: Handles fee-on-transfer tokens
-uint256 balanceBefore = token.balanceOf(address(this));
-token.safeTransferFrom(msg.sender, address(this), amount);
-uint256 received = token.balanceOf(address(this)) - balanceBefore;
-shares = convertToShares(received); // Use received, not amount
-```
-
-**3. Normalize decimals** — never compare or add raw token amounts without normalizing to a common base. Use `token.decimals()` dynamically.
-
-**4. Guard against reentrancy on ALL token transfers** — not just ETH sends. ERC-777 hooks create reentrancy through `transfer` and `transferFrom`.
-
-**5. Design for weird tokens** — decide early whether your protocol supports arbitrary tokens (more complex) or a curated allowlist (simpler, safer). Most serious protocols do both: a permissionless mode with full safety checks, and an optimized path for known-good tokens.
-
-**6. Account for operational risks** — tokens can be paused, blacklisted, upgraded. Your protocol needs contingency plans for when trusted tokens change behavior.
-
-**7. Use the evaluation checklist** — when integrating a new token, run through all 13 checks systematically. One missed check can be the exploit vector.
-
-**8. Recognize the reward-per-token accumulator pattern** — it appears as `rewardPerToken` (Synthetix), `feeGrowthGlobal` (Uniswap V3), and `liquidityIndex` (Aave V3). Whenever you need to distribute value to N users proportionally without iterating, this is the pattern.
-
-> **Examples:** [Aave V3 has an asset listing process](https://governance.aave.com/) (curated allowlist — governance proposals required per asset), [Uniswap V3 is permissionless](https://docs.uniswap.org/contracts/v3/reference/core/UniswapV3Factory) (anyone can create pools), [Yearn V3 vaults](https://docs.yearn.fi/developers/v3/overview) handle fee-on-transfer explicitly.
+**Next:** Module 2 (AMMs from First Principles).
 
 ---
 

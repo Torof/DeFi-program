@@ -1035,6 +1035,8 @@ Tests verify:
 - Six critical security considerations for vault builders
 - Sandwich attack on harvest and profit unlocking defense
 
+**Internalized patterns:** ERC-4626 is the TCP/IP of DeFi yield (universal vault interface). Share math is the same pattern everywhere (Aave aTokens, Compound cTokens, LP tokens, Yearn vaults, DSR). The inflation attack is real and ongoing (virtual shares or internal accounting are non-negotiable). Profit unlocking prevents sandwich attacks (linear unlock over hours/days). The allocator pattern is the future (Yearn V3, Morpho curators, Euler V2 vaults). Leveraged yield is profitable only when incentives exceed the borrow-supply spread. The curator model separates infrastructure from risk management (each layer using ERC-4626).
+
 **Key insight:** ERC-4626 composability is a double-edged sword. It enables powerful yield strategies (vault-of-vaults, vault tokens as collateral), but every layer of composition adds attack surface. The security checklist (manipulation-resistant `totalAssets`, withdrawal liquidity, loss handling, sandwich defense, token edge cases, compliance) is non-negotiable for production vaults.
 
 ---
@@ -1118,24 +1120,6 @@ function depositIntoVault(IERC4626 vault, uint256 assets) external {
 
 ---
 
-## 📋 Key Takeaways
-
-1. **ERC-4626 is the TCP/IP of DeFi yield.** It's the universal interface that lets any vault plug into any protocol. Understanding it deeply — the math, the rounding rules, the security model — is foundational for building anything yield-related.
-
-2. **Share math is the same pattern everywhere.** Aave aTokens, Compound cTokens, Uniswap LP tokens, Yearn vault tokens, MakerDAO DSR — they all use the same shares × rate = assets formula. Master it once, apply it everywhere.
-
-3. **The inflation attack is real and ongoing.** It exploited protocols as recently as 2025. Virtual shares (OpenZeppelin) or internal accounting are non-negotiable defenses. Never use raw `balanceOf` for critical pricing.
-
-4. **Profit unlocking prevents sandwich attacks.** Any vault that instantly reflects harvested yield in share price is vulnerable. Linear unlock over hours/days is the standard defense.
-
-5. **The allocator pattern is the future of DeFi.** Yearn V3, Morpho curators, Euler V2 vaults — the industry is converging on modular ERC-4626 vaults with pluggable strategies. Building and understanding this pattern prepares you for the current state of DeFi architecture.
-
-6. **Leveraged yield is profitable only when incentives exceed the borrow-supply spread.** Recursive borrowing amplifies both yield and cost. When incentives dry up or borrow rates spike, leveraged positions bleed money. Same-asset strategies (USDC/USDC) avoid liquidation risk but still face rate inversion.
-
-7. **The curator model separates infrastructure from risk management.** Protocol layer handles mechanics (lending, swaps), curator layer handles allocation (which markets, what caps, what risk parameters). This modular stack — each layer using ERC-4626 — is how production DeFi is being built in 2025-26.
-
----
-
 ## 🔗 Cross-Module Concept Links
 
 ### Backward References (concepts from earlier modules used here)
@@ -1216,14 +1200,6 @@ Study these implementations in order — each builds on concepts from the previo
 - [Morpho documentation](https://docs.morpho.org)
 - [Euler V2 documentation](https://docs.euler.finance)
 - [MetaMorpho source](https://github.com/morpho-org/metamorpho) — Production ERC-4626 curator vault
-
----
-
-## 🎯 Practice Challenges
-
-These challenges test vault interaction patterns and are best attempted after completing the module:
-
-- **Damn Vulnerable DeFi #15 — "ABI Smuggling":** A vault with an authorization mechanism that can be bypassed through careful ABI encoding. Tests your understanding of how vault deposit/withdraw flows interact with access control.
 
 ---
 

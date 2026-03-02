@@ -10,13 +10,13 @@
 4. [The Post-Merge MEV Supply Chain](#supply-chain)
 5. [MEV Protection Mechanisms](#protection)
 6. [MEV-Aware Protocol Design](#mev-aware-design)
-7. [Interview Prep](#interview-prep)
+7. [Job Market Context](#job-market-context)
 8. [Exercises](#exercises)
 9. [Resources](#resources)
 
 ---
 
-## 📚 Overview
+## 💡 Why MEV Matters
 
 Maximal Extractable Value (MEV) is the invisible tax on every DeFi transaction. If you swap on a DEX, someone might sandwich you. If you submit a liquidation, someone might front-run it. If you create a new pool, someone will arbitrage it within the same block.
 
@@ -665,8 +665,8 @@ Try: call `getHash(1000, 0xdead0000000000000000000000000000000000000000000000000
 
 ---
 
-<a id="interview-prep"></a>
-## 💼 Interview Prep
+<a id="job-market-context"></a>
+## 💼 Job Market Context
 
 ### 1. "Explain how a sandwich attack works and how to prevent it."
 

@@ -47,7 +47,7 @@
 - [Compound V3 Liquidation ("Absorb")](#compound-liquidation)
 - [Liquidation Bot Economics](#liquidation-economics)
 
-**Build a Simplified Lending Protocol**
+**Build Exercise: Simplified Lending Protocol**
 - [SimpleLendingPool.sol](#simple-lending-pool)
 
 **Synthesis and Advanced Patterns**
@@ -1420,7 +1420,7 @@ The tests cover: profitable liquidation end-to-end, exact profit calculation (5%
 
 ---
 
-## 🎯 Build a Simplified Lending Protocol
+## 🎯 Build Exercise: Simplified Lending Protocol
 
 <a id="simple-lending-pool"></a>
 ### SimpleLendingPool.sol
@@ -1636,6 +1636,8 @@ Aave continues evolving within the V3 framework. These updates are important to 
 
 **Key insight:** The Aave vs Compound architectural trade-off is a core interview topic. Being able to articulate *why* each design was chosen (not just *what* it does) separates senior DeFi engineers from juniors.
 
+**Internalized patterns:** Interest rates are mechanism design (kinked curves as calibrated incentive systems). Indexes are the universal scaling pattern (global indexes amortize per-user computation). Liquidation is the protocol's immune system. Oracle integration is load-bearing (health factor, liquidation trigger, collateral valuation). RAY precision and rounding direction are protocol-critical (27-decimal, round against the user). Modular lending is the emerging trend (Morpho Blue ~650 lines, Euler V2 vault graphs). The `type(uint256).max` pattern solves the dust repayment problem.
+
 **Next:** Module 5 — Flash Loans (atomic uncollateralized borrowing, composing multi-step arbitrage and liquidation flows).
 
 #### 💼 Job Market Context
@@ -1814,26 +1816,6 @@ Study these codebases in order — each builds on the previous one's patterns:
 
 ---
 
-## 📋 Key Takeaways
-
-**1. Interest rates are mechanism design.** The kinked curve isn't arbitrary — it's a carefully calibrated incentive system that uses price signals (rates) to maintain liquidity equilibrium. When you build a protocol that needs to balance supply and demand, this pattern is reusable.
-
-**2. Indexes are the universal scaling pattern.** Every lending protocol uses global indexes to amortize per-user interest computation. You'll see this pattern again in vaults (Module 7) and staking systems.
-
-**3. Liquidation is the protocol's immune system.** Without it, the first price crash would create cascading insolvency. The entire lending model depends on liquidation being reliable, fast, and properly incentivized.
-
-**4. Oracle integration is load-bearing.** Everything in lending — health factor, liquidation trigger, collateral valuation — depends on accurate, timely price data. The oracle patterns from Module 3 aren't theoretical here; they're the difference between a $20B protocol and a drained one.
-
-**5. Architectural trade-offs are real.** Aave's multi-asset pools offer flexibility and composability (yield-bearing aTokens). Compound's single-asset markets offer simplicity and risk isolation. Neither is strictly better — your choice depends on what you're building.
-
-**6. RAY precision and rounding direction are protocol-critical.** 27-decimal precision prevents compounding errors over time. Rounding against the user (down for deposits, up for debt) prevents drain attacks across millions of tiny operations.
-
-**7. Modular lending is the emerging trend.** Morpho Blue (~650 lines), Euler V2 vault graphs, and Aave's own V3.1+ updates all point toward smaller, composable, permissionless market creation — away from monolithic pools governed by token votes.
-
-**8. The `type(uint256).max` pattern solves the dust problem.** Because interest accrues between tx submission and execution, users can never calculate the exact repayment amount. The "max repay" pattern is a production necessity, not a convenience.
-
----
-
 ## 📚 Resources
 
 **Aave V3:**
@@ -1870,13 +1852,6 @@ Study these codebases in order — each builds on the previous one's patterns:
 - [Venus Protocol postmortem](https://rekt.news/venus-blizz-rekt/) — $11M stale oracle
 - [CRV liquidity crisis analysis](https://cointelegraph.com/news/curve-liquidation-risk-poses-systemic-threat-to-defi-even-as-founder-scurries-to-repay-loans) — bad debt accumulation
 - [MakerDAO Black Thursday report](https://web.archive.org/web/2024/https://blog.makerdao.com/the-market-collapse-of-march-12-2020-how-it-impacted-makerdao/) — liquidation cascades
-
----
-
-## 🎯 Practice Challenges
-
-- **[Damn Vulnerable DeFi #2 "Naive Receiver"](https://www.damnvulnerabledefi.xyz/)** — A flash loan receiver that can be drained by anyone initiating loans on its behalf. Tests your understanding of flash loan receiver security (directly relevant to Module 5).
-- **[Ethernaut #16 "Preservation"](https://ethernaut.openzeppelin.com/level/0x97E982a15FbB1C28F6B8ee971BEc15C78b3d263F)** — Delegatecall with storage collision. Relevant to understanding how proxy patterns (Part 1 Module 6) can go wrong in lending protocol upgrades.
 
 ---
 

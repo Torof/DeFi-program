@@ -492,14 +492,6 @@ DeFi's composability means your protocol interacts with others in ways you can't
 
 **Exercise 5: Access control exploit.** A vault has two bugs: `initialize()` can be re-called to overwrite the owner, and `emergencyWithdraw()` has no access control. Exploit both to drain user funds in a single transaction. Then build a defended version with initialization guards and proper owner checks.
 
-### 🎯 Practice Challenges
-
-- **Sandwich attack simulation** — (See also Module 2 MEV/sandwich section.) On a Uniswap V2 fork: set up a pool with known liquidity, execute a large swap without slippage protection, show how a sandwich captures value, then add slippage protection and show the sandwich becomes unprofitable
-- **Damn Vulnerable DeFi #1 "Unstoppable"** — Flash loan griefing via donation
-- **Damn Vulnerable DeFi #7 "Compromised"** — Oracle manipulation
-- **Damn Vulnerable DeFi #10 "Free Rider"** — Flash swap exploitation
-- **Ethernaut #21 "Shop"** — Read-only reentrancy concept
-
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know about attack patterns:**
@@ -906,12 +898,6 @@ Write a comprehensive invariant test suite for your SimpleLendingPool from Modul
 
 4. Run with `depth = 50, runs = 500`. If any invariant breaks, you have a bug — fix it and re-run.
 
-### 🎯 Practice Challenges
-
-- **Damn Vulnerable DeFi #4 "Side Entrance"** — The invariant "totalAssets == sum of deposits - withdrawals" is violated by a flash loan that counts as both
-- **Damn Vulnerable DeFi #3 "Truster"** — Approval via flash loan callback — write an invariant that catches the unexpected allowance
-- **Ethernaut #20 "Denial"** — Gas griefing that breaks withdrawal invariants
-
 ## 📋 Summary: Invariant Testing with Foundry
 
 **✓ Covered:**
@@ -1194,20 +1180,6 @@ The security mindset isn't a checklist — it's a way of thinking about code:
 - Invariants: every vault safe or liquidatable, total stablecoin ≤ total vault debt × rate, debt ceiling not exceeded
 - Run with high depth and runs
 
-### 🎯 Practice Challenges
-
-Complete any remaining Damn Vulnerable DeFi and Ethernaut challenges not yet attempted:
-
-**Damn Vulnerable DeFi (v4):**
-- #2 "Naive Receiver" — Flash loan receiver exploitation
-- #5 "The Rewarder" — Reward distribution timing attack
-- #15 "ABI Smuggling" — Calldata manipulation
-
-**Ethernaut:**
-- #10 "Re-entrancy" — Classic reentrancy (quick verification)
-- #16 "Preservation" — Delegatecall storage collision
-- #24 "Puzzle Wallet" — Proxy + delegatecall exploit
-
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know about security tooling and process:**
@@ -1238,6 +1210,8 @@ Complete any remaining Damn Vulnerable DeFi and Ethernaut challenges not yet att
 - The deployment security checklist — code-level, testing, and operational requirements
 - Audit preparation — what to provide auditors and what to do after
 - Security-first design philosophy — assume hostile inputs, design for failure, minimize trust, simplify
+
+**Internalized patterns:** DeFi-specific attacks go beyond basic Solidity security (read-only reentrancy, flash-loan-amplified manipulation, ERC-4626 exchange rate attacks). Invariant testing is the most powerful DeFi testing methodology (handlers, ghost variables, realistic actor management). Reading audit reports is high-ROI learning (1-2 per month). Security is a spectrum, not a binary (CEI + access control + oracle safety + tests + static analysis + audit + formal verification + bug bounty). Simplify (every abstraction, external call, and storage variable is a potential vulnerability). Read-only reentrancy is the most common "new" DeFi exploit pattern (verify external protocols aren't mid-execution before trusting their view functions).
 
 **Key insight:** Security isn't a phase — it's a design philosophy. The security checklist at the end of this day should be internalized as second nature, not treated as a pre-launch checkbox. The protocols that get exploited aren't the ones that skip audits — they're the ones that treat security as someone else's job.
 
@@ -1322,22 +1296,6 @@ An audit is a snapshot — it covers specific code at a specific time. Common tr
 - Adding new integrations post-audit (new external dependencies = new attack surface)
 - Not re-auditing after fixing audit findings (fixes can introduce new bugs)
 - Treating a clean audit as permanent (the protocol evolves, dependencies change, new attack patterns emerge)
-
----
-
-## 📋 Key Takeaways
-
-1. **DeFi-specific attacks go beyond basic Solidity security.** Read-only reentrancy, flash-loan-amplified price manipulation, and ERC-4626 exchange rate attacks are patterns that don't appear in generic smart contract security guides. You need to know them specifically.
-
-2. **Invariant testing is the most powerful DeFi testing methodology.** Unit tests and fuzz tests are necessary but not sufficient. Invariant tests with handlers, ghost variables, and realistic actor management find bugs that no other methodology catches. Invest the time to write comprehensive invariant suites for every protocol you build.
-
-3. **Reading audit reports is high-ROI learning.** Each report condenses weeks of expert review into findings you can learn from in hours. Make it a habit to read 1-2 reports per month, even after finishing this curriculum.
-
-4. **Security is a spectrum, not a binary.** No protocol is "secure" — it's a matter of how high you set the bar. The minimum: CEI, access control, oracle safety, comprehensive tests including invariants, static analysis, audit. The ideal: add formal verification, bug bounty, continuous monitoring, and incident response planning.
-
-5. **Simplify.** The best defense is a smaller attack surface. Every abstraction, every external call, every storage variable is a potential vulnerability. Build the simplest protocol that achieves the goal.
-
-6. **Read-only reentrancy is the most common "new" DeFi exploit pattern.** Your protocol doesn't need to be reentered — just *reading* another protocol's state during its mid-transaction inconsistency is enough. Always verify external protocols aren't mid-execution before trusting their view functions (check their reentrancy locks).
 
 ---
 

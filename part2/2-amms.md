@@ -26,7 +26,7 @@
 - [Read: Key V3 Contracts](#read-v3-contracts)
 - [V3 Exercises](#v3-exercises)
 
-**Build a Simplified CLAMM (Self-Directed Challenge)**
+**Build Exercise: Simplified Concentrated Liquidity Pool**
 
 **V4 — Singleton Architecture and Flash Accounting**
 - [Read: Key V4 Contracts](#read-v4-contracts)
@@ -49,8 +49,6 @@
 - [JIT (Just-In-Time) Liquidity](#jit-liquidity)
 - [AMM Aggregators & Routing](#amm-aggregators-routing)
 - [LP Management Strategies](#lp-management)
-
-**Practice Challenges and Review**
 
 ---
 
@@ -921,7 +919,7 @@ Write tests that verify all three cases and check that amounts change continuous
 
 ---
 
-## 🎯 Build a Simplified Concentrated Liquidity Pool (Self-Directed Challenge)
+## 🎯 Build Exercise: Simplified Concentrated Liquidity Pool
 
 ### What to Build
 
@@ -1891,80 +1889,7 @@ If your protocol uses LP tokens as collateral or manages liquidity:
 - AMM aggregators — 1inch, CoW Protocol, Paraswap, intent-based architectures (UniswapX)
 - LP management — strategy spectrum, pool profitability analysis, Arrakis/Gamma/Bunni/Maverick
 
-**Next:** Practice challenges to cement your understanding.
-
----
-
-## 🎯 Practice Challenges and Review
-
-Test your AMM understanding with these exercises:
-
-**AMM-specific challenges:**
-
-- **Build a two-pool arbitrage bot.** Deploy two constant product pools with the same token pair but different prices. Write a contract that detects the price discrepancy and executes an atomic arbitrage (buy on the cheap pool, sell on the expensive pool). Calculate the optimal trade size that maximizes profit. This teaches you how arbitrage keeps AMM prices aligned — and why it causes impermanent loss for LPs.
-
-- **Implement a sandwich attack detector.** Given a block's transaction list (simulate with sequential swaps in a test), identify which swaps were sandwiched. Compute the MEV extracted: compare each victim's actual output to what they would have received without the frontrun. This cements your understanding of price impact manipulation.
-
-- **V3 position profitability calculator.** Given a historical price path (simulated with `vm.warp` + sequential swaps), compute a V3 position's total PnL: fees earned minus impermanent loss minus gas costs for rebalancing. Compare narrow vs wide range strategies on the same price path.
-
-**Damn Vulnerable DeFi challenges:**
-
-- **[DVDF #4 "Side Entrance"](https://www.damnvulnerabledefi.xyz/)** — A flash loan pool with a subtle accounting flaw in its deposit/withdraw logic. Directly tests your understanding of how pool accounting should work.
-- **[DVDF #5 "The Rewarder"](https://www.damnvulnerabledefi.xyz/)** — Reward token distribution interacting with pool deposits. Explores timing attacks on reward mechanisms.
-- **[DVDF #9 "Puppet V2"](https://www.damnvulnerabledefi.xyz/)** — Manipulate a Uniswap V2 oracle to drain a lending pool. Directly tests AMM price manipulation → oracle exploitation.
-
-#### 💼 Module-Level Interview Prep
-
-**Interview Red Flags:**
-- 🚩 Not knowing the difference between V2 and V3 architecture
-- 🚩 Saying "impermanent loss isn't real" — it is real and must be accounted for
-- 🚩 Only knowing IL but not LVR — shows outdated understanding of LP economics
-- 🚩 Not understanding that CEX-DEX arbitrage is the primary cost to LPs, not retail flow
-- 🚩 Thinking V3 is always better than V2 (not true for high-volatility, low-volume pairs)
-- 🚩 Not knowing what sqrtPriceX96 is or why prices are stored as square roots
-- 🚩 Hardcoding a single DEX for protocol swaps instead of using aggregators
-- 🚩 Not knowing the difference between AMMs and order books, or when each is appropriate
-
-**Pro tip:** In interviews, demonstrate that you can read production AMM code, not just explain concepts. Be ready to trace through V3's swap loop or V4's unlock pattern. Teams building on Uniswap want engineers who can debug at the source code level. Mention specific functions you've studied — `computeSwapStep()`, `unlock()`, the k-invariant check.
-
-#### 📖 Recommended Study Order
-
-| Order | Codebase | Time | What You'll Learn |
-|-------|----------|------|-------------------|
-| 1 | [Uniswap V2 Core](https://github.com/Uniswap/v2-core) | 1-2 days | AMM fundamentals, flash swaps, TWAP |
-| 2 | [Uniswap V2 Periphery](https://github.com/Uniswap/v2-periphery) | 0.5 day | Router pattern, multi-hop, slippage protection |
-| 3 | [V3 Development Book](https://uniswapv3book.com/) | 2-3 days | Concentrated liquidity concepts + build |
-| 4 | [V3 Core (libraries)](https://github.com/Uniswap/v3-core/tree/main/contracts/libraries) | 1-2 days | Production math, tick bitmaps, fee accounting |
-| 5 | [V4 Core](https://github.com/Uniswap/v4-core) | 1-2 days | Singleton, flash accounting, hooks |
-| 6 | [Curve StableSwap](https://github.com/curvefi/curve-contract) | 0.5 day | Alternative invariant, amplification parameter |
-
----
-
-## 📋 Key Takeaways for Protocol Builders
-
-After 12 days, you should have internalized:
-
-**1. The constant product formula is everywhere.** Even V3's concentrated liquidity reduces to V2's formula within each tick range. If you understand `x · y = k`, you understand the core of every AMM.
-
-**2. Price impact is nonlinear.** The constant product curve means that larger trades get progressively worse prices. This is *by design* — it's the AMM's defense against being drained. Any protocol you build that touches AMMs must account for price impact and slippage.
-
-**3. LVR is the real cost of LPing, not just IL.** Impermanent loss is a snapshot at withdrawal. LVR (Loss-Versus-Rebalancing) measures the continuous cost of CEX-DEX arbitrageurs trading against stale AMM prices. It scales with σ² and never reverses. Fees must exceed LVR — not just IL — for LPs to profit.
-
-**4. CEX-DEX arbitrage is the dominant force in AMM markets.** The majority of volume on major V3 pools is toxic flow from informed traders exploiting stale prices. This is the mechanism behind LVR and the reason passive LPing at tight ranges often loses money despite high fee APRs.
-
-**5. V3 concentrated liquidity = more capital efficiency, more complexity.** Narrow ranges earn more fees but require active management and expose LPs to sharper IL. Wide ranges are passive but capital-inefficient. The design of your protocol should account for which type of LP you're targeting.
-
-**6. V4 hooks are the future of AMM innovation.** Instead of forking an AMM to add custom logic (which fragments liquidity), you build a hook and plug into V4's shared liquidity. This is the primary way DeFi protocols will extend AMM functionality going forward.
-
-**7. Flash accounting + transient storage is a design pattern, not just a V4 feature.** The idea of tracking deltas and settling at the end of a transaction can be applied to any protocol that handles multiple token movements. You'll see this pattern again in lending, bridges, and aggregators.
-
-**8. MEV is not optional knowledge.** Every protocol that executes AMM swaps must account for sandwich attacks, frontrunning, and JIT liquidity. Use private mempools, aggregators, and intent-based systems to protect your users.
-
-**9. Never hardcode a single liquidity source.** Use aggregators or configurable routing. Liquidity migrates between AMMs, and the best execution path changes block-to-block.
-
-**10. AMMs and order books are converging.** Pure AMMs and pure CLOBs each have strengths. The trend is toward intent-based systems (UniswapX, CoW Protocol) and hybrid architectures (V4 hooks enabling limit orders) that combine both. Understand the tradeoffs to make informed protocol design decisions.
-
-**11. LP management is now a professional activity.** V3/V4 concentrated liquidity requires active management. Understand the LP management ecosystem (Arrakis, Gamma, Bunni) and evaluate pool profitability using Volume/TVL ratio, LVR estimates, and toxic flow share before deploying capital.
+**Internalized patterns:** The constant product formula is everywhere (V3 reduces to it within each tick range). Price impact is nonlinear by design. LVR (not just IL) is the real cost of LPing — it scales with volatility squared and never reverses. CEX-DEX arbitrage is the dominant force in AMM markets (majority of V3 volume is toxic flow). V3 concentrated liquidity trades capital efficiency for complexity. V4 hooks are the future of AMM innovation (extend shared liquidity, don't fork). Flash accounting + transient storage is a reusable pattern (not just V4). MEV is not optional knowledge (sandwich, frontrunning, JIT). Never hardcode a single liquidity source (use aggregators). AMMs and order books are converging toward intent-based systems. LP management is now a professional activity (Arrakis, Gamma, Bunni, Volume/TVL, LVR, toxic flow share).
 
 ---
 

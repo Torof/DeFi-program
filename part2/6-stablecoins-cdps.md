@@ -26,7 +26,7 @@
 - [Read: Dog.sol and Clipper.sol](#read-dog-clipper)
 - [Exercises](#day2-exercises)
 
-**Build a Simplified CDP Engine**
+**Build Exercise: Simplified CDP Engine**
 - [SimpleCDP.sol](#simple-cdp)
 
 **Stablecoin Landscape and Design Trade-offs**
@@ -641,7 +641,7 @@ In `Clipper.kick()`, trace:
 
 ---
 
-## 🎯 Build a Simplified CDP Engine
+## 🎯 Build Exercise: Simplified CDP Engine
 
 <a id="simple-cdp"></a>
 ### SimpleCDP.sol
@@ -947,6 +947,8 @@ Map out the feedback loops. This is how decentralized monetary policy works.
 - The fundamental trilemma: decentralization vs capital efficiency vs stability
 - Terra collapse as the definitive failure case for uncollateralized algorithmic designs
 
+**Internalized patterns:** CDPs mint money (create new stablecoins, closer to central banking than commercial banking). The Vat is the source of truth (`frob()` and normalized debt `art x rate`). Liquidation design is existential (Black Thursday proved auction mechanics can fail; Dutch auction vs Stability Pool vs LLAMMA). Peg stability requires trade-offs (PSM = stability + centralization, redemptions = decentralization + less capital-efficiency). Algorithmic stablecoins without external collateral fail (Terra $40B collapse). `rpow()` and rate accumulators are the mathematical backbone (per-second compounding via exponentiation by squaring). Stablecoins are the ultimate integration test (oracles, lending, liquidation, governance, AMMs). The landscape is diversifying (GHO, crvUSD, Ethena USDe each recombine DeFi primitives differently).
+
 **Next:** Module 7 — ERC-4626 tokenized vaults, yield aggregation, inflation attacks
 
 ---
@@ -1015,28 +1017,6 @@ vat.frob(ilk, ..., 0, -int256(5000e18));  // Leaves 5,000 DAI ≥ dust
 ```
 
 The `dust` parameter prevents tiny vaults whose gas costs for liquidation would exceed the recovered value. When a vault has debt, it must be either 0 or ≥ `dust`. This catches developers who try to partially repay without checking.
-
----
-
-## 📋 Key Takeaways
-
-1. **CDPs mint money.** Unlike lending protocols that redistribute existing assets, CDP systems create new stablecoins backed by collateral. This is closer to how central banks work than how commercial banks work.
-
-2. **The Vat is the source of truth.** Every DAI that exists can be traced back to a `frob()` call that created debt in the Vat. Understanding the Vat means understanding the entire system. The normalized debt pattern (`art × rate`) is the same index-based accounting from Module 4.
-
-3. **Liquidation design is existential.** Black Thursday proved that auction mechanics can fail under stress. Three dominant approaches exist: Dutch auctions (MakerDAO Liquidation 2.0), Stability Pool absorption (Liquity), and continuous soft-liquidation via AMM (crvUSD LLAMMA). Each has different failure modes.
-
-4. **Peg stability requires trade-offs.** The PSM makes DAI's peg extremely stable but introduces centralization risk. Liquity's redemption mechanism maintains the peg purely through crypto-native arbitrage but is less capital-efficient. Every design choice has consequences.
-
-5. **Algorithmic stablecoins without external collateral fail.** Terra's $40B collapse is the definitive case study. FRAX abandoned its algorithmic component. Any design relying on its own token for backing should be treated with extreme skepticism.
-
-6. **The landscape is diversifying.** GHO extends lending into issuance. crvUSD reinvents liquidation with AMMs. Ethena hedges with perps. Each approach shows how DeFi primitives from other modules (AMMs, oracles, lending, perps) can be recombined into stablecoin designs.
-
-7. **Stablecoins are the ultimate integration test.** A stablecoin protocol touches every DeFi primitive: oracles (pricing), lending (collateral), liquidation (solvency), governance (monetary policy), AMMs (liquidity). This is why your Module 9 capstone IS a stablecoin — it integrates everything from Modules 1-8 into one protocol.
-
-8. **`rpow()` and rate accumulators are the mathematical backbone.** Per-second compounding via exponentiation by squaring (O(log n)) enables gas-efficient fee accumulation across the entire Vat. The same pattern appears in Aave (liquidity index), Compound (borrow index), and every protocol with time-based interest.
-
-9. **Redemptions and PSMs are dual peg mechanisms.** Liquity uses crypto-native redemptions (burn LUSD → get ETH from riskiest vault) creating a hard floor at ~$1. MakerDAO uses the PSM (swap DAI ↔ USDC 1:1) creating a hard peg but introducing USDC dependency. Each makes a different trilemma trade-off.
 
 ---
 

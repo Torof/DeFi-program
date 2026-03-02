@@ -1054,7 +1054,7 @@ If you charge a fee: the receiver must hold `amount + fee` at the end of the cal
 
 ---
 
-## 🎯 Testing & Hardening
+## 💡 Testing & Hardening
 
 <a id="critical-invariants"></a>
 #### 🔍 Deep Dive: The 5 Critical Invariants
@@ -1179,7 +1179,7 @@ contract SystemHandler is Test {
 ---
 
 <a id="build-order"></a>
-## 🎯 Suggested Build Order
+## 📖 Suggested Build Order
 
 This is guidance, not prescription. Adapt to your working style — but if you're not sure where to start, this sequence builds from simple to complex with testable milestones at each phase.
 

@@ -16,13 +16,13 @@
 7. [Settlement Contract Architecture](#settlement-architecture)
 8. [Solvers & the Filler Ecosystem](#solvers)
 9. [CoW Protocol: Batch Auctions](#cow-protocol)
-10. [Interview Prep](#interview-prep)
+10. [Job Market Context](#job-market-context)
 11. [Exercises](#exercises)
 12. [Resources](#resources)
 
 ---
 
-## 📚 Overview
+## 💡 Why Aggregation Matters
 
 In practice, no single DEX has the best price for every trade. DEX aggregators solve the routing problem — finding optimal execution across fragmented liquidity. More recently, intent-based trading is replacing explicit transaction construction: users sign *what* they want, and solvers compete to figure out *how* to fill it.
 
@@ -902,8 +902,8 @@ Both are valid approaches with different tradeoffs. Understanding both gives you
 
 ---
 
-<a id="interview-prep"></a>
-## 💼 Interview Prep
+<a id="job-market-context"></a>
+## 💼 Job Market Context
 
 ### 1. "How does a DEX aggregator find the optimal route?"
 

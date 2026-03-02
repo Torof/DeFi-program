@@ -10,13 +10,13 @@
 4. [Transaction Ordering & MEV on L2](#l2-mev)
 5. [L2-Native Protocol Design](#l2-native)
 6. [Multi-Chain Deployment Patterns](#multi-chain)
-7. [Interview Prep](#interview-prep)
+7. [Job Market Context](#job-market-context)
 8. [Exercises](#exercises)
 9. [Resources](#resources)
 
 ---
 
-## 📚 Overview
+## 💡 Why L2 DeFi Matters
 
 Most DeFi activity has migrated to L2s — Arbitrum, Base, and Optimism collectively host more DeFi transactions than Ethereum mainnet. But L2s aren't just "cheap Ethereum" — they have distinct sequencer behavior, gas models, finality properties, and design constraints that affect every protocol deployed on them.
 
@@ -624,8 +624,8 @@ This connects directly to Module 6's cross-chain message handler pattern and Mod
 
 ---
 
-<a id="interview-prep"></a>
-## 💼 Interview Prep
+<a id="job-market-context"></a>
+## 💼 Job Market Context
 
 ### 1. "How does the L2 gas model differ from L1, and how does that affect protocol design?"
 

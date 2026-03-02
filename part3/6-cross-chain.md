@@ -10,13 +10,13 @@
 4. [Messaging Protocols: LayerZero & CCIP](#messaging-protocols)
 5. [Cross-Chain Token Standards](#token-standards)
 6. [Cross-Chain DeFi Patterns](#cross-chain-patterns)
-7. [Interview Prep](#interview-prep)
+7. [Job Market Context](#job-market-context)
 8. [Exercises](#exercises)
 9. [Resources](#resources)
 
 ---
 
-## 📚 Overview
+## 💡 Why Cross-Chain Matters
 
 Cross-chain bridges are both essential infrastructure and the most attacked category in DeFi — over $2.5B lost to bridge exploits. This module covers bridge architectures, the on-chain mechanics, security models, messaging protocols, and how to build cross-chain-aware applications.
 
@@ -741,8 +741,8 @@ This pattern is used by Uniswap (governance on mainnet, execution across chains)
 
 ---
 
-<a id="interview-prep"></a>
-## 💼 Interview Prep
+<a id="job-market-context"></a>
+## 💼 Job Market Context
 
 ### 1. "Compare lock-and-mint vs liquidity network bridges."
 

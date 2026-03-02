@@ -9,13 +9,13 @@
 3. [ve-Tokenomics & the Curve Wars](#ve-tokenomics)
 4. [Governance Security](#governance-security)
 5. [Governance Minimization](#governance-minimization)
-6. [Interview Prep](#interview-prep)
+6. [Job Market Context](#job-market-context)
 7. [Exercises](#exercises)
 8. [Resources](#resources)
 
 ---
 
-## 📚 Overview
+## 💡 Why Governance Matters
 
 Every major DeFi protocol needs a mechanism for parameter updates, upgrades, and strategic decisions. Governance is how protocols evolve after deployment — and also one of the most exploited attack surfaces in DeFi.
 
@@ -686,8 +686,8 @@ SHOULD NOT be governable (hardcode):
 
 ---
 
-<a id="interview-prep"></a>
-## 💼 Interview Prep
+<a id="job-market-context"></a>
+## 💼 Job Market Context
 
 ### 1. "Walk through the lifecycle of an on-chain governance proposal."
 

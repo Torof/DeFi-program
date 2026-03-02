@@ -4,7 +4,7 @@
 >
 > **Builds on:** Part 1 (Foundry testing, proxy patterns, gas optimization) | Part 2 (oracles, lending/liquidation math, flash loans, vault accounting, security patterns) | Part 3 Modules 1-8
 
-## 📚 Overview
+## 💡 Capstone Overview
 
 **Capstone choice: Perpetual Exchange.** Design and build a simplified perpetual futures exchange from scratch. Portfolio-ready project integrating concepts across all three parts.
 
