@@ -1761,23 +1761,6 @@ Aave continues evolving within the V3 framework. These updates are important to 
 
 ---
 
-## 📖 Production Study Order
-
-Study these codebases in order — each builds on the previous one's patterns:
-
-| # | Repository | Why Study This | Key Files |
-|---|-----------|----------------|-----------|
-| 1 | [Compound V3 Comet](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol) | Simplest production lending codebase (~4,300 lines) — single-asset model, signed principal, immutable params | `contracts/Comet.sol`, `contracts/CometExt.sol` |
-| 2 | [Aave V3 Core](https://github.com/aave/aave-v3-core) | The dominant lending architecture — library pattern, aTokens, debt tokens, index accrual | `contracts/protocol/pool/Pool.sol`, `contracts/protocol/libraries/logic/SupplyLogic.sol`, `contracts/protocol/libraries/logic/BorrowLogic.sol` |
-| 3 | [Aave V3 LiquidationLogic](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/LiquidationLogic.sol) | Production liquidation: close factor, collateral seizure, minimum position rules | `contracts/protocol/libraries/logic/LiquidationLogic.sol` |
-| 4 | [Aave V3 Interest Rate Strategy](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/pool/DefaultReserveInterestRateStrategy.sol) | The kinked curve in production — parameter encoding, compound interest approximation in MathUtils | `contracts/protocol/pool/DefaultReserveInterestRateStrategy.sol`, `contracts/protocol/libraries/math/MathUtils.sol` |
-| 5 | [Morpho Blue](https://github.com/morpho-org/morpho-blue) | Minimal lending core (~650 lines) — permissionless isolated markets, no governance, no upgradeability | `src/Morpho.sol`, `src/libraries/` |
-| 6 | [Liquity V1](https://github.com/liquity/dev/blob/main/packages/contracts/contracts/) | CDP-style lending with zero governance — redemption mechanism, stability pool, recovery mode | `contracts/BorrowerOperations.sol`, `contracts/TroveManager.sol`, `contracts/StabilityPool.sol` |
-
-**Reading strategy:** Start with Compound V3 (smallest codebase, single file). Then Aave V3 — trace one flow end-to-end (supply → index update → aToken mint). Study liquidation separately. Read the interest rate strategy to see the kinked curve in production. Morpho Blue shows the minimalist alternative. Liquity shows CDP-style lending with no governance dependency.
-
----
-
 ## 🔗 Cross-Module Concept Links
 
 **The lending module is the curriculum's crossroads** — nearly every other module either feeds into it (oracles, tokens) or builds on it (flash loans, stablecoins, vaults).
@@ -1813,6 +1796,23 @@ Study these codebases in order — each builds on the previous one's patterns:
 | Module 9 (Integration) | Full-stack lending integration | Capstone combines lending + AMMs + oracles + flash loans in a production-grade protocol |
 | Part 3 Module 8 (Governance) | Governance attack surface | Credit delegation and risk parameter changes create governance attack vectors; lending param manipulation |
 | Part 3 Module 6 (Cross-chain) | Cross-chain lending | L2 ↔ L1 collateral, shared liquidity across chains — extending lending architecture cross-chain |
+
+---
+
+## 📖 Production Study Order
+
+Study these codebases in order — each builds on the previous one's patterns:
+
+| # | Repository | Why Study This | Key Files |
+|---|-----------|----------------|-----------|
+| 1 | [Compound V3 Comet](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol) | Simplest production lending codebase (~4,300 lines) — single-asset model, signed principal, immutable params | `contracts/Comet.sol`, `contracts/CometExt.sol` |
+| 2 | [Aave V3 Core](https://github.com/aave/aave-v3-core) | The dominant lending architecture — library pattern, aTokens, debt tokens, index accrual | `contracts/protocol/pool/Pool.sol`, `contracts/protocol/libraries/logic/SupplyLogic.sol`, `contracts/protocol/libraries/logic/BorrowLogic.sol` |
+| 3 | [Aave V3 LiquidationLogic](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/LiquidationLogic.sol) | Production liquidation: close factor, collateral seizure, minimum position rules | `contracts/protocol/libraries/logic/LiquidationLogic.sol` |
+| 4 | [Aave V3 Interest Rate Strategy](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/pool/DefaultReserveInterestRateStrategy.sol) | The kinked curve in production — parameter encoding, compound interest approximation in MathUtils | `contracts/protocol/pool/DefaultReserveInterestRateStrategy.sol`, `contracts/protocol/libraries/math/MathUtils.sol` |
+| 5 | [Morpho Blue](https://github.com/morpho-org/morpho-blue) | Minimal lending core (~650 lines) — permissionless isolated markets, no governance, no upgradeability | `src/Morpho.sol`, `src/libraries/` |
+| 6 | [Liquity V1](https://github.com/liquity/dev/blob/main/packages/contracts/contracts/) | CDP-style lending with zero governance — redemption mechanism, stability pool, recovery mode | `contracts/BorrowerOperations.sol`, `contracts/TroveManager.sol`, `contracts/StabilityPool.sol` |
+
+**Reading strategy:** Start with Compound V3 (smallest codebase, single file). Then Aave V3 — trace one flow end-to-end (supply → index update → aToken mint). Study liquidation separately. Read the interest rate strategy to see the kinked curve in production. Morpho Blue shows the minimalist alternative. Liquity shows CDP-style lending with no governance dependency.
 
 ---
 

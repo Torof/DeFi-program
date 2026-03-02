@@ -12,8 +12,9 @@
 6. [Cross-Chain Token Standards](#token-standards)
 7. [Build Exercise: Rate-Limited Bridge Token](#exercise2-rate-limited-token)
 8. [Cross-Chain DeFi Patterns](#cross-chain-patterns)
-9. [Job Market Context](#job-market-context)
-10. [Resources](#resources)
+9. [Summary](#summary-cross-chain)
+10. [Job Market Context](#job-market-context)
+11. [Resources](#resources)
 
 ---
 
@@ -823,6 +824,23 @@ This pattern is used by Uniswap (governance on mainnet, execution across chains)
 
 ---
 
+<a id="summary-cross-chain"></a>
+## 📋 Summary: Cross-Chain & Bridges
+
+**✓ Covered:**
+- Four bridge architectures and their trust tradeoffs (lock-and-mint, burn-and-mint, liquidity network, canonical)
+- On-chain bridge mechanics: lock/unlock, mint/burn patterns
+- Message verification approaches: multisig → oracle → optimistic → ZK → canonical
+- Deep dive into bridge exploits (Nomad root bug, Ronin key compromise, Wormhole verification bypass)
+- Security evaluation framework for bridge integrations
+- Messaging protocols: LayerZero OApp/OFT and CCIP receiver patterns with code
+- Cross-chain token standards: xERC20 rate limiting with token bucket math
+- Cross-chain DeFi patterns: swaps, message handlers, governance
+
+**Next:** Job market context — interview questions and what DeFi teams expect around cross-chain knowledge.
+
+---
+
 <a id="job-market-context"></a>
 ## 💼 Job Market Context
 
@@ -864,22 +882,6 @@ This pattern is used by Uniswap (governance on mainnet, execution across chains)
 - ❌ Not understanding rate limiting as a security mechanism
 
 **Pro tip:** The strongest signal of cross-chain expertise is thinking about *failure modes*. Any engineer can build a bridge that works — the skill is designing for what happens when it breaks. Mentioning xERC20 rate limits, defense-in-depth verification, and monitoring immediately signals production-level thinking.
-
----
-
-## 📋 Summary: Cross-Chain & Bridges
-
-**✓ Covered:**
-- Four bridge architectures and their trust tradeoffs (lock-and-mint, burn-and-mint, liquidity network, canonical)
-- On-chain bridge mechanics: lock/unlock, mint/burn patterns
-- Message verification approaches: multisig → oracle → optimistic → ZK → canonical
-- Deep dive into bridge exploits (Nomad root bug, Ronin key compromise, Wormhole verification bypass)
-- Security evaluation framework for bridge integrations
-- Messaging protocols: LayerZero OApp/OFT and CCIP receiver patterns with code
-- Cross-chain token standards: xERC20 rate limiting with token bucket math
-- Cross-chain DeFi patterns: swaps, message handlers, governance
-
-**Next:** [Module 7 — L2-Specific DeFi →](7-l2-defi.md) — building DeFi on rollups, L2-specific considerations, and how canonical bridges connect to L2 architecture.
 
 ---
 

@@ -890,23 +890,6 @@ Flash loans add complexity (callback architecture, approval management, extra ga
 
 ---
 
-## 📖 Production Study Order
-
-Study these codebases in order — each builds on the previous one's patterns:
-
-| # | Repository | Why Study This | Key Files |
-|---|-----------|----------------|-----------|
-| 1 | [Aave V3 FlashLoanLogic](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/FlashLoanLogic.sol) | The most widely used flash loan provider — premium calculation, callback verification, `modes[]` parameter | `contracts/protocol/libraries/logic/FlashLoanLogic.sol`, `contracts/flashloan/base/FlashLoanSimpleReceiverBase.sol` |
-| 2 | [Balancer V2 Vault](https://github.com/balancer/balancer-v2-monorepo/tree/master/pkg/vault) | Zero-fee flash loans from consolidated vault liquidity — simpler callback, balance-based verification | `pkg/vault/contracts/Vault.sol` (search `flashLoan`), `pkg/interfaces/contracts/vault/IFlashLoanRecipient.sol` |
-| 3 | [Uniswap V2 Pair](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol) | Flash swaps — optimistic transfers with constant product verification; repay in either token | `contracts/UniswapV2Pair.sol` (search `swap`, `uniswapV2Call`) |
-| 4 | [MakerDAO DssFlash](https://github.com/makerdao/dss-flash) | Flash mint pattern — unlimited DAI minted from thin air, burned at end of tx; zero-fee | `src/flash.sol` |
-| 5 | [Uniswap V4 PoolManager](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) | Flash accounting — no dedicated flash loan, borrowing is emergent from delta tracking + transient storage | `src/PoolManager.sol` (search `unlock`, `settle`), `src/libraries/TransientStateLibrary.sol` |
-| 6 | [ERC-3156 Reference](https://github.com/albertocuestacanada/ERC3156) | The flash loan standard interface — provider-agnostic borrower code | `contracts/interfaces/IERC3156FlashLender.sol`, `contracts/interfaces/IERC3156FlashBorrower.sol` |
-
-**Reading strategy:** Start with Aave's FlashLoanLogic — trace `executeFlashLoanSimple()` to understand the canonical borrow → callback → verify pattern. Then Balancer for the simpler balance-check approach. Uniswap V2 shows flash swaps (repay in a different token). MakerDAO's DssFlash shows flash minting — a fundamentally different model. V4's PoolManager shows the future: flash borrowing as emergent behavior from delta accounting.
-
----
-
 ## 🔗 Cross-Module Concept Links
 
 ### ← Backward References (Part 1 + Modules 1–4)
@@ -938,6 +921,23 @@ Study these codebases in order — each builds on the previous one's patterns:
 | Part 3 Module 5 (MEV) | Searcher strategies | Flash loan arbitrage profits captured by MEV searchers via Flashbots bundles; builder tips consume 90%+ of profit |
 | Part 3 Module 8 (Governance) | Governance attacks | Flash loan voting attacks and snapshot-based voting defense; quorum requirements |
 | Part 3 Module 9 (Capstone) | Perpetual Exchange | Capstone perp exchange integrates flash loan patterns for liquidation and MEV strategies learned throughout Part 3 |
+
+---
+
+## 📖 Production Study Order
+
+Study these codebases in order — each builds on the previous one's patterns:
+
+| # | Repository | Why Study This | Key Files |
+|---|-----------|----------------|-----------|
+| 1 | [Aave V3 FlashLoanLogic](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/FlashLoanLogic.sol) | The most widely used flash loan provider — premium calculation, callback verification, `modes[]` parameter | `contracts/protocol/libraries/logic/FlashLoanLogic.sol`, `contracts/flashloan/base/FlashLoanSimpleReceiverBase.sol` |
+| 2 | [Balancer V2 Vault](https://github.com/balancer/balancer-v2-monorepo/tree/master/pkg/vault) | Zero-fee flash loans from consolidated vault liquidity — simpler callback, balance-based verification | `pkg/vault/contracts/Vault.sol` (search `flashLoan`), `pkg/interfaces/contracts/vault/IFlashLoanRecipient.sol` |
+| 3 | [Uniswap V2 Pair](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol) | Flash swaps — optimistic transfers with constant product verification; repay in either token | `contracts/UniswapV2Pair.sol` (search `swap`, `uniswapV2Call`) |
+| 4 | [MakerDAO DssFlash](https://github.com/makerdao/dss-flash) | Flash mint pattern — unlimited DAI minted from thin air, burned at end of tx; zero-fee | `src/flash.sol` |
+| 5 | [Uniswap V4 PoolManager](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) | Flash accounting — no dedicated flash loan, borrowing is emergent from delta tracking + transient storage | `src/PoolManager.sol` (search `unlock`, `settle`), `src/libraries/TransientStateLibrary.sol` |
+| 6 | [ERC-3156 Reference](https://github.com/albertocuestacanada/ERC3156) | The flash loan standard interface — provider-agnostic borrower code | `contracts/interfaces/IERC3156FlashLender.sol`, `contracts/interfaces/IERC3156FlashBorrower.sol` |
+
+**Reading strategy:** Start with Aave's FlashLoanLogic — trace `executeFlashLoanSimple()` to understand the canonical borrow → callback → verify pattern. Then Balancer for the simpler balance-check approach. Uniswap V2 shows flash swaps (repay in a different token). MakerDAO's DssFlash shows flash minting — a fundamentally different model. V4's PoolManager shows the future: flash borrowing as emergent behavior from delta accounting.
 
 ---
 

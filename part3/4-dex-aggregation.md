@@ -18,8 +18,9 @@
 9. [Settlement Contract Architecture](#settlement-architecture)
 10. [Solvers & the Filler Ecosystem](#solvers)
 11. [CoW Protocol: Batch Auctions](#cow-protocol)
-12. [Job Market Context](#job-market-context)
-13. [Resources](#resources)
+12. [Summary](#summary-dex-aggregation)
+13. [Job Market Context](#job-market-context)
+14. [Resources](#resources)
 
 ---
 
@@ -981,6 +982,24 @@ Both are valid approaches with different tradeoffs. Understanding both gives you
 
 ---
 
+<a id="summary-dex-aggregation"></a>
+## 📋 Summary: DEX Aggregation & Intents
+
+**✓ Covered:**
+- The routing problem and split order optimization math
+- The multi-call executor pattern shared by all aggregators
+- The intent paradigm shift: from transactions to signed intents
+- EIP-712 order structures and signature verification
+- Dutch auction price decay: formula, mechanics, and why it works
+- Settlement contract architecture (UniswapX Reactor pattern)
+- What solvers do and how to think about building one
+- CoW Protocol's batch auction model and Coincidence of Wants
+- UniswapX vs CoW Protocol tradeoffs
+
+**Next:** Job market context — interview questions and what DeFi teams expect around aggregation and intent knowledge.
+
+---
+
 <a id="job-market-context"></a>
 ## 💼 Job Market Context
 
@@ -1022,23 +1041,6 @@ Both are valid approaches with different tradeoffs. Understanding both gives you
 - ❌ Not knowing about Permit2 and its role in the intent flow
 
 **Pro tip:** The intent space is moving fast. Knowing UniswapX's callback pattern and CoW's batch settlement model signals you're current. Mentioning Permit2 integration, exclusive filler windows, and cross-chain intents shows real depth.
-
----
-
-## 📋 Summary: DEX Aggregation & Intents
-
-**✓ Covered:**
-- The routing problem and split order optimization math
-- The multi-call executor pattern shared by all aggregators
-- The intent paradigm shift: from transactions to signed intents
-- EIP-712 order structures and signature verification
-- Dutch auction price decay: formula, mechanics, and why it works
-- Settlement contract architecture (UniswapX Reactor pattern)
-- What solvers do and how to think about building one
-- CoW Protocol's batch auction model and Coincidence of Wants
-- UniswapX vs CoW Protocol tradeoffs
-
-**Next:** [Module 5 — MEV Deep Dive →](5-mev.md) — where we explore the searcher side. Intents protect users from MEV; Module 5 explains what they're being protected from and how the MEV supply chain works.
 
 ---
 

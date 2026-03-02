@@ -11,8 +11,9 @@
 5. [Build Exercise: Vote-Escrow Token](#exercise-vote-escrow)
 6. [Governance Security](#governance-security)
 7. [Governance Minimization](#governance-minimization)
-8. [Job Market Context](#job-market-context)
-9. [Resources](#resources)
+8. [Summary](#summary-governance)
+9. [Job Market Context](#job-market-context)
+10. [Resources](#resources)
 
 ---
 
@@ -770,6 +771,23 @@ SHOULD NOT be governable (hardcode):
 
 ---
 
+<a id="summary-governance"></a>
+## 📋 Summary: Governance & DAOs
+
+**✓ Covered:**
+- On-chain governance: why it exists, the fundamental tension of decentralization vs agility
+- OpenZeppelin Governor: ERC20Votes, Governor, TimelockController — the full stack with code
+- Proposal lifecycle: propose → delay → vote → queue → execute
+- ve-tokenomics: veCRV model with decay math, gauge voting, boost, fee sharing
+- The Curve Wars: Convex meta-governance, bribery markets, the economics of voting power
+- Velodrome/Aerodrome ve(3,3): the incentive-alignment fix to Curve's model
+- Governance security: Beanstalk attack deep dive, flash loan defenses, emergency mechanisms
+- Governance minimization: the spectrum from multisig to immutable, progressive decentralization
+
+**Next:** Job market context — interview questions and what DeFi teams expect around governance knowledge.
+
+---
+
 <a id="job-market-context"></a>
 ## 💼 Job Market Context
 
@@ -811,22 +829,6 @@ SHOULD NOT be governable (hardcode):
 - ❌ Not knowing the Beanstalk attack (the most important governance case study)
 
 **Pro tip:** In interviews, showing awareness that governance is both a feature AND an attack surface immediately sets you apart. Most candidates think about governance from the "how do we vote" perspective. Senior candidates think about it from the "how can this be exploited, and how do we minimize the attack surface" perspective.
-
----
-
-## 📋 Summary: Governance & DAOs
-
-**✓ Covered:**
-- On-chain governance: why it exists, the fundamental tension of decentralization vs agility
-- OpenZeppelin Governor: ERC20Votes, Governor, TimelockController — the full stack with code
-- Proposal lifecycle: propose → delay → vote → queue → execute
-- ve-tokenomics: veCRV model with decay math, gauge voting, boost, fee sharing
-- The Curve Wars: Convex meta-governance, bribery markets, the economics of voting power
-- Velodrome/Aerodrome ve(3,3): the incentive-alignment fix to Curve's model
-- Governance security: Beanstalk attack deep dive, flash loan defenses, emergency mechanisms
-- Governance minimization: the spectrum from multisig to immutable, progressive decentralization
-
-**Next:** [Module 9 — Capstone: Perpetual Exchange →](9-capstone.md) — build a perpetual exchange that integrates concepts from across Part 3.
 
 ---
 

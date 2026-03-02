@@ -45,9 +45,9 @@
 - [The LST + Pendle Pipeline](#lst-pendle-pipeline)
 
 **Wrap Up**
-- [DeFi Pattern Connections](#pattern-connections)
-- [Job Market Context](#job-market)
 - [Summary](#summary)
+- [Job Market Context](#job-market)
+- [Cross-Module Concept Links](#cross-module-links)
 - [Resources](#resources)
 
 ---
@@ -990,39 +990,29 @@ DeFi composability at its finest:
 
 ---
 
-## 🔗 DeFi Pattern Connections
+<a id="summary"></a>
+## 📋 Summary: Yield Tokenization
 
-<a id="pattern-connections"></a>
-#### 🔗 Patterns Across the Curriculum
+**✓ Covered:**
+- The fixed-rate problem and zero-coupon bond analogy
+- PT/YT splitting mechanics and invariant (PT + YT = 1 underlying)
+- Implied rate math with worked examples (annualization, inverse formula)
+- YT yield accumulator — same O(1) pattern as Compound, Aave, Module 2 funding rate
+- ERC-5115 (Standardized Yield) vs ERC-4626
+- Pendle architecture: SY → Factory → PT/YT → AMM → Router
+- Why x*y=k fails for time-decaying assets
+- Rate-space trading and the Pendle AMM curve
+- Strategies: fixed income (PT), yield speculation (YT), LP, PT as collateral
+- LST + Pendle pipeline (Module 1 integration)
 
-**The accumulator pattern (3rd appearance):**
+**Key insight:** The accumulator pattern appears for the third time in this curriculum. Whether it's vault share pricing (P2M7), funding rates (P3M2), or yield tracking (P3M3), the math is identical: global growing counter + per-user snapshot + delta = amount owed.
 
-| Module | Accumulator | What it tracks | Update trigger |
-|--------|-------------|----------------|----------------|
-| P2M7 | ERC-4626 share price | Vault yield per share | Deposit/withdraw |
-| P3M2 | cumulativeFundingPerUnit | Funding payments per unit | Position open/close |
-| **P3M3** | **Exchange rate (pyIndex)** | **Yield per unit of SY** | **YT claim/transfer** |
-
-Each is the SAME mathematical pattern: a global counter that grows, per-user snapshots at entry, delta = amount owed. The only difference is what's being accumulated (vault yield, funding payments, staking yield).
-
-**Time-decaying assets (new pattern):**
-- PT value converges to 1.0 at maturity
-- Options value decays (theta) as expiry approaches
-- Bond price converges to par at maturity
-- Any AMM for time-decaying assets needs a time-aware curve
-
-**Fixed rate from variable rate (financial engineering pattern):**
-- PT/YT splitting in Pendle
-- Interest rate swaps in TradFi
-- Notional Finance (fixed-rate lending)
-- All achieve the same goal: converting floating exposure to fixed
+**Next:** Job market context — interview questions and what DeFi teams expect around yield tokenization knowledge.
 
 ---
 
-## 💼 Job Market Context
-
 <a id="job-market"></a>
-#### 💼 What DeFi Teams Expect
+## 💼 Job Market Context
 
 **1. "Explain how Pendle creates fixed-rate products in DeFi."**
 
@@ -1072,24 +1062,30 @@ Great answer: "Using simple compounding, `ptPrice = year / (year + rate * timeTo
 
 ---
 
-<a id="summary"></a>
-## 📋 Summary: Yield Tokenization
+<a id="cross-module-links"></a>
+## 🔗 Cross-Module Concept Links
 
-**✓ Covered:**
-- The fixed-rate problem and zero-coupon bond analogy
-- PT/YT splitting mechanics and invariant (PT + YT = 1 underlying)
-- Implied rate math with worked examples (annualization, inverse formula)
-- YT yield accumulator — same O(1) pattern as Compound, Aave, Module 2 funding rate
-- ERC-5115 (Standardized Yield) vs ERC-4626
-- Pendle architecture: SY → Factory → PT/YT → AMM → Router
-- Why x*y=k fails for time-decaying assets
-- Rate-space trading and the Pendle AMM curve
-- Strategies: fixed income (PT), yield speculation (YT), LP, PT as collateral
-- LST + Pendle pipeline (Module 1 integration)
+**The accumulator pattern (3rd appearance):**
 
-**Key insight:** The accumulator pattern appears for the third time in this curriculum. Whether it's vault share pricing (P2M7), funding rates (P3M2), or yield tracking (P3M3), the math is identical: global growing counter + per-user snapshot + delta = amount owed.
+| Module | Accumulator | What it tracks | Update trigger |
+|--------|-------------|----------------|----------------|
+| P2M7 | ERC-4626 share price | Vault yield per share | Deposit/withdraw |
+| P3M2 | cumulativeFundingPerUnit | Funding payments per unit | Position open/close |
+| **P3M3** | **Exchange rate (pyIndex)** | **Yield per unit of SY** | **YT claim/transfer** |
 
-**Next:** [Module 4 — DEX Aggregation & Intents](4-dex-aggregation.md) — how orders get routed across multiple venues for best execution.
+Each is the SAME mathematical pattern: a global counter that grows, per-user snapshots at entry, delta = amount owed. The only difference is what's being accumulated (vault yield, funding payments, staking yield).
+
+**Time-decaying assets (new pattern):**
+- PT value converges to 1.0 at maturity
+- Options value decays (theta) as expiry approaches
+- Bond price converges to par at maturity
+- Any AMM for time-decaying assets needs a time-aware curve
+
+**Fixed rate from variable rate (financial engineering pattern):**
+- PT/YT splitting in Pendle
+- Interest rate swaps in TradFi
+- Notional Finance (fixed-rate lending)
+- All achieve the same goal: converting floating exposure to fixed
 
 ---
 

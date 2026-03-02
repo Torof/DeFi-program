@@ -1299,7 +1299,7 @@ An audit is a snapshot — it covers specific code at a specific time. Common tr
 
 ---
 
-## 💼 Security Career Paths
+## 💼 Job Market Context
 
 Security knowledge opens multiple career paths beyond "protocol developer." Understanding where the demand is helps you position yourself.
 

@@ -12,8 +12,9 @@
 6. [Transaction Ordering & MEV on L2](#l2-mev)
 7. [L2-Native Protocol Design](#l2-native)
 8. [Multi-Chain Deployment Patterns](#multi-chain)
-9. [Job Market Context](#job-market-context)
-10. [Resources](#resources)
+9. [Summary](#summary-l2-defi)
+10. [Job Market Context](#job-market-context)
+11. [Resources](#resources)
 
 ---
 
@@ -705,6 +706,23 @@ This connects directly to Module 6's cross-chain message handler pattern and Mod
 
 ---
 
+<a id="summary-l2-defi"></a>
+## 📋 Summary: L2-Specific DeFi
+
+**✓ Covered:**
+- L2 architecture: optimistic vs ZK rollups and their DeFi implications
+- The sequencer: centralization, soft vs hard finality, forced inclusion
+- L2 gas model: two components, L1 data dominance, EIP-4844 impact
+- Sequencer uptime and oracle safety: the PriceOracleSentinel pattern with full Solidity
+- L2 MEV: Arbitrum FCFS/Timeboost vs OP Stack priority fees vs shared sequencing
+- L2-native protocol design: what cheap gas enables (auto-compounding, order books, keeper execution)
+- Multi-chain deployment: chain-specific parameters, CREATE2, cross-chain governance
+- Block property differences: timestamp, block number, L1 info access
+
+**Next:** Job market context — interview questions and what DeFi teams expect around L2 DeFi knowledge.
+
+---
+
 <a id="job-market-context"></a>
 ## 💼 Job Market Context
 
@@ -746,22 +764,6 @@ This connects directly to Module 6's cross-chain message handler pattern and Mod
 - ❌ Not knowing about EIP-4844's impact on L2 economics
 
 **Pro tip:** Most DeFi teams are building on L2 now. Demonstrating awareness of sequencer uptime checks, L2 gas optimization, and chain-specific MEV dynamics shows you've actually shipped on L2, not just read about it. Mentioning Aave's PriceOracleSentinel by name signals deep familiarity.
-
----
-
-## 📋 Summary: L2-Specific DeFi
-
-**✓ Covered:**
-- L2 architecture: optimistic vs ZK rollups and their DeFi implications
-- The sequencer: centralization, soft vs hard finality, forced inclusion
-- L2 gas model: two components, L1 data dominance, EIP-4844 impact
-- Sequencer uptime and oracle safety: the PriceOracleSentinel pattern with full Solidity
-- L2 MEV: Arbitrum FCFS/Timeboost vs OP Stack priority fees vs shared sequencing
-- L2-native protocol design: what cheap gas enables (auto-compounding, order books, keeper execution)
-- Multi-chain deployment: chain-specific parameters, CREATE2, cross-chain governance
-- Block property differences: timestamp, block number, L1 info access
-
-**Next:** [Module 8 — Governance & DAOs →](8-governance.md) — on-chain governance mechanisms, voting systems, and how governance interacts with multi-chain deployments.
 
 ---
 

@@ -12,8 +12,9 @@
 6. [MEV Protection Mechanisms](#protection)
 7. [MEV-Aware Protocol Design](#mev-aware-design)
 8. [Build Exercise: MEV-Aware Dynamic Fee Hook](#exercise2-mev-fee-hook)
-9. [Job Market Context](#job-market-context)
-10. [Resources](#resources)
+9. [Summary: MEV Defense & Protocol Design](#summary-mev-defense)
+10. [Job Market Context](#job-market-context)
+11. [Resources](#resources)
 
 ---
 
@@ -730,6 +731,7 @@ Run: `forge test --match-contract MEVFeeHookTest -vvv`
 
 ---
 
+<a id="summary-mev-defense"></a>
 ## 📋 Summary: MEV Defense & Protocol Design
 
 **✓ Covered:**
@@ -787,22 +789,6 @@ Run: `forge test --match-contract MEVFeeHookTest -vvv`
 - ❌ Not connecting MEV to protocol design decisions
 
 **Pro tip:** The strongest signal of MEV expertise is understanding that MEV can't be eliminated — only redirected. Protocol designers choose WHERE the value goes: to searchers (bad), to validators (neutral), or back to users/LPs (good). Showing you think about this tradeoff immediately separates you from candidates who only know the attack taxonomy.
-
----
-
-## 📋 Summary: MEV Deep Dive
-
-**✓ Covered:**
-- MEV taxonomy: the full spectrum from benign (arbitrage) to harmful (sandwich)
-- Sandwich attack anatomy: step-by-step math, profit calculation, slippage defense
-- Arbitrage and liquidation MEV: the "good" MEV with code patterns
-- Post-Merge MEV supply chain: searchers → builders → relays → proposers
-- MEV economics: how value flows through the supply chain via competitive bidding
-- Protection at every level: privacy, OFA, intents, cryptographic, protocol design
-- MEV-aware protocol design: V4 hooks, oracle execution, MEV taxes, time-weighting
-- The centralization debate: builder concentration, inclusion lists, ePBS
-
-**Next:** [Module 6 — Cross-Chain & Bridges →](6-cross-chain.md) — how value and messages move between chains, and how cross-chain MEV creates new attack surfaces.
 
 ---
 

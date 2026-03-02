@@ -43,8 +43,8 @@
 - [Build Exercise: Perpetual Exchange](#exercise2)
 
 **Wrap Up**
-- [DeFi Pattern Connections](#pattern-connections)
 - [Job Market Context](#job-market)
+- [Cross-Module Concept Links](#cross-module-links)
 - [Resources](#resources)
 
 ---
@@ -1271,26 +1271,6 @@ Build a simplified perpetual exchange combining all concepts:
 
 ---
 
-<a id="pattern-connections"></a>
-## 🔗 DeFi Pattern Connections
-
-**Where perpetual concepts appear across DeFi:**
-
-| Concept | Where else it appears | Connection |
-|---------|----------------------|------------|
-| Funding rate accumulator | Aave interest index, ERC-4626 share price, Compound borrowIndex | Same O(1) accumulator pattern — global counter + per-user snapshot |
-| Pool-as-counterparty (GMX) | Uniswap LP risk, covered call vaults | LPs take the other side of trader activity |
-| Debt pool (Synthetix) | MakerDAO system surplus/deficit, Ethena backing | Socialized risk across all participants |
-| Two-step execution | Chainlink VRF (request → fulfill), Gelato relay | Off-chain execution to prevent frontrunning |
-| Insurance fund | Liquity stability pool, Aave safety module | Protocol-level reserve for bad debt absorption |
-| ADL | Partial liquidation in lending, socialized losses in bridges | Forced position reduction to maintain solvency |
-| Open interest caps | Borrow caps in lending (Aave), supply caps | Limiting protocol exposure to any single asset |
-| Keeper-based liquidation | Aave/Compound liquidation bots, Gelato automation | Off-chain monitoring, on-chain execution |
-
-**The meta-pattern:** Perpetual protocols are essentially leveraged lending protocols with different terminology. Margin = collateral, position = borrow, funding = interest, liquidation = liquidation. The math is the same — what changes is the speed (leverage amplifies everything) and the counterparty structure (pool vs debt pool vs order book).
-
----
-
 <a id="job-market"></a>
 ## 💼 Job Market Context
 
@@ -1324,6 +1304,26 @@ Build a simplified perpetual exchange combining all concepts:
 - Describing ADL without understanding why it's controversial
 
 **Pro tip:** Perp protocol development is one of the hottest DeFi hiring areas. If you can explain the funding rate accumulator, implement a basic perp exchange, and discuss the trade-offs between pool-based and order book models with nuance, you'll stand out from most candidates. Understanding MEV implications (P3M5) of perp designs is an additional differentiator.
+
+---
+
+<a id="cross-module-links"></a>
+## 🔗 Cross-Module Concept Links
+
+**Where perpetual concepts appear across DeFi:**
+
+| Concept | Where else it appears | Connection |
+|---------|----------------------|------------|
+| Funding rate accumulator | Aave interest index, ERC-4626 share price, Compound borrowIndex | Same O(1) accumulator pattern — global counter + per-user snapshot |
+| Pool-as-counterparty (GMX) | Uniswap LP risk, covered call vaults | LPs take the other side of trader activity |
+| Debt pool (Synthetix) | MakerDAO system surplus/deficit, Ethena backing | Socialized risk across all participants |
+| Two-step execution | Chainlink VRF (request → fulfill), Gelato relay | Off-chain execution to prevent frontrunning |
+| Insurance fund | Liquity stability pool, Aave safety module | Protocol-level reserve for bad debt absorption |
+| ADL | Partial liquidation in lending, socialized losses in bridges | Forced position reduction to maintain solvency |
+| Open interest caps | Borrow caps in lending (Aave), supply caps | Limiting protocol exposure to any single asset |
+| Keeper-based liquidation | Aave/Compound liquidation bots, Gelato automation | Off-chain monitoring, on-chain execution |
+
+**The meta-pattern:** Perpetual protocols are essentially leveraged lending protocols with different terminology. Margin = collateral, position = borrow, funding = interest, liquidation = liquidation. The math is the same — what changes is the speed (leverage amplifies everything) and the counterparty structure (pool vs debt pool vs order book).
 
 ---
 
