@@ -582,7 +582,7 @@ All rates use RAY precision (27 decimals), matching Aave V3's internal math. The
 
 ---
 
-### 📋 Summary: The Lending Model
+#### 📋 Summary: The Lending Model
 
 **Covered:**
 - How DeFi lending works: overcollateralization → interest accrual → liquidation loop
@@ -697,7 +697,7 @@ Debt tokens being non-transferable is a deliberate security choice — you can't
 ---
 
 <a id="read-supply-flow"></a>
-### 📖 Read: Supply Flow
+#### 📖 Read: Supply Flow
 
 **Source:** [aave-v3-core/contracts/protocol/libraries/logic/SupplyLogic.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/SupplyLogic.sol)
 
@@ -714,7 +714,7 @@ Trace the supply path through Aave V3:
 ---
 
 <a id="read-borrow-flow"></a>
-### 📖 Read: Borrow Flow
+#### 📖 Read: Borrow Flow
 
 **Source:** [BorrowLogic.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/BorrowLogic.sol)
 
@@ -779,7 +779,7 @@ The exercise tests cover: happy path supply/withdraw/borrow/repay, interest accr
 
 ---
 
-### 📋 Summary: Aave V3 Supply and Borrow
+#### 📋 Summary: Aave V3 Supply and Borrow
 
 **Covered:**
 - Aave V3 architecture: Pool proxy → logic libraries (Supply, Borrow, Liquidation, FlashLoan, Bridge, EMode)
@@ -857,7 +857,7 @@ These are simple but critical risk controls that didn't exist in V2.
 ---
 
 <a id="config-bitmap"></a>
-### 📖 Read: Configuration Bitmap
+#### 📖 Read: Configuration Bitmap
 
 [Aave V3 packs all risk parameters](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/configuration/ReserveConfiguration.sol) for a reserve into a single `uint256` bitmap in `ReserveConfigurationMap`. This is extreme gas optimization:
 
@@ -988,7 +988,7 @@ The tests include field independence checks (setting LTV must not corrupt the th
 
 ---
 
-### 📋 Summary: Aave V3 Risk Modes
+#### 📋 Summary: Aave V3 Risk Modes
 
 **Covered:**
 - E-Mode: higher LTV/LT for correlated asset pairs (stablecoins, ETH derivatives)
@@ -1128,7 +1128,7 @@ Unlike Aave (where supply rate is derived from borrow rate), [Compound V3 define
 ---
 
 <a id="read-comet"></a>
-### 📖 Read: Comet.sol Core Functions
+#### 📖 Read: Comet.sol Core Functions
 
 **Source:** [compound-finance/comet/contracts/Comet.sol](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol)
 
@@ -1167,7 +1167,7 @@ Comet is dramatically simpler than Aave — one contract, ~4,300 lines. This mak
 
 ---
 
-### 📋 Summary: Compound V3 (Comet)
+#### 📋 Summary: Compound V3 (Comet)
 
 **Covered:**
 - Compound V3's single-asset model: one borrowable asset per market, simpler risk isolation
@@ -1256,7 +1256,7 @@ Run with `forge test --match-test testReadHealthFactor --fork-url $ETH_RPC_URL -
 ---
 
 <a id="aave-liquidation"></a>
-### 📖 Aave V3 Liquidation
+#### 📖 Aave V3 Liquidation
 
 **Source:** [LiquidationLogic.sol → executeLiquidationCall()](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/LiquidationLogic.sol#L48)
 
@@ -1323,7 +1323,7 @@ Key details:
 ---
 
 <a id="compound-liquidation"></a>
-### 📖 Compound V3 Liquidation ("Absorb")
+#### 📖 Compound V3 Liquidation ("Absorb")
 
 **Why this matters:** Compound V3 takes a different approach: **the protocol itself absorbs underwater positions**, rather than individual liquidators repaying debt.
 
@@ -1382,7 +1382,7 @@ The tests cover: profitable liquidation end-to-end, exact profit calculation (5%
 
 ---
 
-### 📋 Summary: Liquidation Mechanics
+#### 📋 Summary: Liquidation Mechanics
 
 **Covered:**
 - Why liquidation exists: the immune system that prevents bad debt from price volatility
@@ -1488,7 +1488,7 @@ Write comprehensive Foundry tests:
 
 ---
 
-### 📋 Summary: SimpleLendingPool
+#### 📋 Summary: SimpleLendingPool
 
 **Covered:**
 - Building SimpleLendingPool.sol: state design (Reserve struct, UserPosition struct, index-based accounting)
@@ -1505,7 +1505,7 @@ Write comprehensive Foundry tests:
 ## 📖 Synthesis and Advanced Patterns
 
 <a id="arch-comparison"></a>
-### 📋 Architectural Comparison: Aave V3 vs Compound V3
+#### 📋 Architectural Comparison: Aave V3 vs Compound V3
 
 | Dimension | Aave V3 | Compound V3 |
 |-----------|---------|-------------|
@@ -1535,7 +1535,7 @@ Write comprehensive Foundry tests:
 ---
 
 <a id="liquidation-cascade"></a>
-### ⚠️ The Liquidation Cascade Problem
+#### ⚠️ The Liquidation Cascade Problem
 
 **Why this matters:** When crypto prices drop sharply, many positions become liquidatable simultaneously. Liquidators selling seized collateral on DEXes pushes prices down further, triggering more liquidations. This positive feedback loop is a **liquidation cascade**.
 
@@ -1624,7 +1624,7 @@ Aave continues evolving within the V3 framework. These updates are important to 
 
 ---
 
-### 📋 Summary: Synthesis and Advanced Patterns
+#### 📋 Summary: Synthesis and Advanced Patterns
 
 **Covered:**
 - Architectural comparison: Aave V3 (multi-asset, composable, complex) vs Compound V3 (single-asset, isolated, simple)

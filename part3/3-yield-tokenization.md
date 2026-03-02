@@ -83,7 +83,7 @@ Coupon stripping         ←→       Tokenization (splitting)
 ```
 
 <a id="zero-coupon-bond"></a>
-### 🔗 The Zero-Coupon Bond Analogy
+#### 🔗 The Zero-Coupon Bond Analogy
 
 A zero-coupon bond pays no interest during its life. You buy it at a discount ($970 for a $1000 face value) and receive $1000 at maturity. The difference IS your return, locked at purchase.
 
@@ -164,7 +164,7 @@ Sum always = 1.000   Sum always = 1.000    Sum = 1.000
 > 💡 **Time decay:** YT loses value as maturity approaches because there's less time remaining to earn yield. This is exactly like options time decay (theta). The yield that hasn't been earned yet decreases as the earning window shrinks.
 
 <a id="implied-rate-math"></a>
-### 🔍 Deep Dive: Implied Rate Math
+#### 🔍 Deep Dive: Implied Rate Math
 
 The implied rate is the annualized fixed return you lock in by buying PT at a discount. Understanding this math is fundamental to yield tokenization.
 
@@ -296,7 +296,7 @@ the same concept from bond markets, now in DeFi.
 > 💡 **Continuous compounding note:** Pendle internally uses a continuous compounding model: `ptPrice = e^(-rate × timeToMaturity)`. This requires `ln()` and `exp()` functions in Solidity (Pendle has custom implementations). For exercise purposes, simple compounding is accurate enough for short maturities (< 1 year) and avoids complex math libraries.
 
 <a id="yt-yield-accumulator"></a>
-### 🔍 Deep Dive: YT Yield Accumulator — The Pattern Returns
+#### 🔍 Deep Dive: YT Yield Accumulator — The Pattern Returns
 
 If you completed Module 2's FundingRateEngine exercise, this will feel familiar. The YT yield tracking uses the **exact same accumulator pattern** — a global counter that grows over time, with per-user snapshots at entry.
 
@@ -433,7 +433,7 @@ Example: SY-wstETH accepts:
 - `exchangeRate()` is the single function that drives the entire yield tokenization math
 
 <a id="exchange-rate-mechanics"></a>
-### 🔍 Exchange Rate Mechanics
+#### 🔍 Exchange Rate Mechanics
 
 The SY exchange rate is the foundation of all yield calculations:
 
@@ -508,7 +508,7 @@ Raw Asset:            Yield-bearing token
 5. At maturity: PT redeemable for SY → unwrap to yield-bearing token
 
 <a id="yield-contract-factory"></a>
-### 🏗️ YieldContractFactory: Minting PT + YT
+#### 🏗️ YieldContractFactory: Minting PT + YT
 
 The factory creates PT/YT pairs for each (SY, maturity) combination:
 
@@ -527,7 +527,7 @@ function createYieldContract(address SY, uint256 expiry)
 **Maturity encoding:** Pendle uses quarterly maturities (March, June, September, December) for major markets. Each maturity creates a separate market with its own implied rate. As one market approaches maturity, liquidity migrates to the next ("rolling" — same as futures markets in TradFi).
 
 <a id="pendle-yield-token"></a>
-### 🏗️ PendleYieldToken: Yield Tracking
+#### 🏗️ PendleYieldToken: Yield Tracking
 
 The YT contract maintains the yield accumulator that we discussed above:
 
@@ -568,7 +568,7 @@ contract PendleYieldToken {
 > 💡 **Why settle on transfer?** If Alice transfers YT to Bob without settling, the yield Alice earned would incorrectly flow to Bob (his entry index would be lower than it should be). By settling before every transfer, each user's accumulated yield is correctly attributed. This is the same reason Compound settles interest before any borrow/repay operation.
 
 <a id="pendle-principal-token"></a>
-### 🏗️ PendlePrincipalToken: Maturity Redemption
+#### 🏗️ PendlePrincipalToken: Maturity Redemption
 
 PT is simpler — it's essentially a zero-coupon bond token:
 
@@ -594,7 +594,7 @@ contract PendlePrincipalToken {
 **Post-maturity behavior:** PT can be redeemed at any time after maturity. There's no penalty for late redemption. However, the PT holder foregoes any yield earned between maturity and redemption — that yield effectively belongs to the protocol or is distributed to other participants.
 
 <a id="code-reading-strategy"></a>
-### 📖 Code Reading Strategy for Pendle
+#### 📖 Code Reading Strategy for Pendle
 
 **Repository:** [pendle-core-v2-public](https://github.com/pendle-finance/pendle-core-v2-public)
 
@@ -698,7 +698,7 @@ logic for convergence — it falls out of the math.
 ```
 
 <a id="amm-curve-deep-dive"></a>
-### 🔍 Deep Dive: The AMM Curve
+#### 🔍 Deep Dive: The AMM Curve
 
 Pendle's AMM uses a modified logit curve with time-dependent parameters. The pool contains **PT and SY** (not PT and underlying directly).
 
@@ -763,7 +763,7 @@ Best for             Independent tokens      Pegged assets          Time-decayin
 ```
 
 <a id="lp-considerations"></a>
-### 🏗️ LP Considerations
+#### 🏗️ LP Considerations
 
 LPing in Pendle pools has unique properties compared to standard AMMs:
 
@@ -886,7 +886,7 @@ Total APY can be attractive: 5-15% on stable pools, higher on volatile ones
 3. Repeat → leveraged fixed-rate exposure
 
 <a id="lst-pendle-pipeline"></a>
-### 🔗 The LST + Pendle Pipeline
+#### 🔗 The LST + Pendle Pipeline
 
 Combining Module 1 (LSTs) with yield tokenization creates a full-stack yield management system:
 
@@ -915,7 +915,7 @@ DeFi composability at its finest:
 ## 🔗 DeFi Pattern Connections
 
 <a id="pattern-connections"></a>
-### 🔗 Patterns Across the Curriculum
+#### 🔗 Patterns Across the Curriculum
 
 **The accumulator pattern (3rd appearance):**
 
@@ -944,7 +944,7 @@ Each is the SAME mathematical pattern: a global counter that grows, per-user sna
 ## 💼 Job Market Context
 
 <a id="job-market"></a>
-### 💼 What DeFi Teams Expect
+#### 💼 What DeFi Teams Expect
 
 **1. "Explain how Pendle creates fixed-rate products in DeFi."**
 

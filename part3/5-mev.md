@@ -86,7 +86,7 @@ Block N:
          ↑ Attacker controls ordering via higher gas / builder tip
 ```
 
-### 🔍 Deep Dive: Sandwich Profit Calculation
+#### 🔍 Deep Dive: Sandwich Profit Calculation
 
 **Pool:** 100 ETH / 200,000 USDC (spot price: $2,000/ETH)
 **User:** Buying ETH with 20,000 USDC (expects ~10 ETH)
@@ -213,7 +213,7 @@ contract SandwichDemo {
 
 Try: `cleanSwap(20000e18)` → 9.091 ETH. Then `sandwichedSwap(20000e18, 10000e18)` → 8.282 ETH + $1,940 profit. Now try a tiny trade: `sandwichedSwap(100e18, 10000e18)` — profit drops to nearly zero. Sandwiches only work on trades large enough to create exploitable price impact.
 
-### 🔗 DeFi Pattern Connection
+#### 🔗 DeFi Pattern Connection
 
 **Where sandwich risk matters in DeFi:**
 
@@ -402,7 +402,7 @@ This is the most debated topic in Ethereum governance:
 
 **Inclusion lists** (actively being designed): Proposers specify transactions that MUST be included in the next block, regardless of builder preferences. This prevents censorship while preserving the efficiency of builder markets.
 
-### 📖 How to Study: Flashbots Architecture
+#### 📖 How to Study: Flashbots Architecture
 
 1. Start with [MEV-Boost docs](https://docs.flashbots.net/flashbots-mev-boost/introduction) — how validators connect to the relay network
 2. Read the [Builder API spec](https://ethereum.github.io/builder-specs/) — how builders submit blocks
@@ -527,7 +527,7 @@ function reveal(uint256 amount, bytes32 salt) external {
 - Prevents ALL forms of frontrunning (can't frontrun what you can't read)
 - Trade-off: requires a decryption committee (trust assumption), added latency
 
-### 🔗 DeFi Pattern Connection
+#### 🔗 DeFi Pattern Connection
 
 **MEV protection across the curriculum:**
 
@@ -793,7 +793,7 @@ Run: `forge test --match-contract MEVFeeHookTest -vvv`
 - [Frontier Research: Order Flow Auctions](https://frontier.tech/the-orderflow-auction-design-space) — design space analysis
 - [MEV-Explore Dashboard](https://explore.flashbots.net/) — historical MEV extraction data
 
-### 📖 How to Study: MEV Ecosystem
+#### 📖 How to Study: MEV Ecosystem
 
 1. Start with [Ethereum.org MEV page](https://ethereum.org/en/developers/docs/mev/) — the 10,000-foot overview
 2. Read [Flashbots Protect docs](https://docs.flashbots.net/flashbots-protect/overview) — understand user-facing protection

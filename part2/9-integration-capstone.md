@@ -131,7 +131,7 @@ ETH and ERC-4626 vault shares. No USDC, no RWAs, no tokens that a centralized en
 Trade-off: harder to maintain peg without fiat-backed collateral. This is why flash mint matters — it provides the arbitrage mechanism that keeps the peg without relying on a PSM backed by centralized stablecoins.
 
 <a id="prerequisite-map"></a>
-### 🔗 Cross-Module Prerequisite Map
+#### 🔗 Cross-Module Prerequisite Map
 
 Before you start, verify you're comfortable with these concepts from earlier modules. Each one directly maps to a component you'll build.
 
@@ -153,7 +153,7 @@ Before you start, verify you're comfortable with these concepts from earlier mod
 
 If any of these feel fuzzy, revisit the module before starting. This capstone assumes you've internalized them.
 
-### 📋 Summary: Overview & Design Philosophy
+#### 📋 Summary: Overview & Design Philosophy
 
 **✓ Covered:**
 - Why a stablecoin is the ultimate Part 2 integration — touches every primitive from M1-M8
@@ -325,7 +325,7 @@ For gas optimization on the hot path (health factor checks happen on every mint/
 
 Packing BPS values as `uint16` (max 65,535 — more than enough for basis points) saves SLOADs on the hot path. This is the same optimization pattern Aave V3 uses in its reserve configuration bitmap (M4).
 
-### 📋 Summary: Architecture Design
+#### 📋 Summary: Architecture Design
 
 **✓ Covered:**
 - 4-contract structure with clear responsibilities and data flow
@@ -374,7 +374,7 @@ function seizeCollateral(address user, bytes32 collateralType, uint256 collatera
 > **🔗 Connection:** Compare this interface to M6's SimpleVat. `depositCollateral` + `mintStablecoin` together are `frob()` with positive `dink` and `dart`. `seizeCollateral` is `grab()`. Same patterns, cleaner API.
 
 <a id="health-factor"></a>
-### 🔍 Deep Dive: Health Factor with Multi-Decimal Normalization
+#### 🔍 Deep Dive: Health Factor with Multi-Decimal Normalization
 
 Health factor is the core solvency check. You implemented it in M4 (LendingPool) and saw it in M6 (Vat's safety check: `ink × spot ≥ art × rate`). The new challenge here: your protocol has **two collateral types with different pricing paths and different decimals**, and the health factor must handle both correctly.
 
@@ -563,7 +563,7 @@ The complete lifecycle with what changes in storage at each step:
        └──→ Collateral transferred to bidder
 ```
 
-### 📋 Summary: Core CDP Engine
+#### 📋 Summary: Core CDP Engine
 
 **✓ Covered:**
 - Engine contract interface — 10 external functions with clear responsibilities
@@ -580,7 +580,7 @@ The complete lifecycle with what changes in storage at each step:
 ## 💡 Vault Share Collateral Pricing
 
 <a id="pricing-challenge"></a>
-### 🔍 Deep Dive: The Pricing Challenge
+#### 🔍 Deep Dive: The Pricing Challenge
 
 ETH is straightforward to price: one Chainlink lookup, done. ERC-4626 vault shares are fundamentally different — their value changes continuously as the vault earns yield.
 
@@ -652,7 +652,7 @@ function getCollateralValueUSD(
 ```
 
 <a id="manipulation-risk"></a>
-### ⚠️ Manipulation Risk and Protection Strategies
+#### ⚠️ Manipulation Risk and Protection Strategies
 
 **The attack:** An attacker donates tokens directly to the ERC-4626 vault, inflating `totalAssets()` without minting shares. This inflates `convertToAssets()` for all existing shares — including those used as collateral in your protocol.
 
@@ -714,7 +714,7 @@ Don't accept vault shares directly. Require users to redeem their vault shares f
 
 **Recommendation for the capstone:** Strategy 1 (rate cap). It's the simplest to implement correctly, demonstrates awareness of the manipulation vector, and is the kind of defense an interviewer would want to discuss. Document the other strategies as considered alternatives in your Architecture Decision Record.
 
-### 📋 Summary: Vault Share Collateral Pricing
+#### 📋 Summary: Vault Share Collateral Pricing
 
 **✓ Covered:**
 - Two-step pricing pipeline — shares → underlying → USD
@@ -759,7 +759,7 @@ You built a Dutch auction liquidator in M6's SimpleDog exercise — `bark()` to 
 ```
 
 <a id="decay-function"></a>
-### 🔍 Deep Dive: Choosing a Decay Function
+#### 🔍 Deep Dive: Choosing a Decay Function
 
 The decay function determines how the auction price decreases over time. This directly affects MEV resistance and liquidation efficiency.
 
@@ -859,7 +859,7 @@ Bad debt: 3,000 stablecoin exists in circulation with no backing.
 Your protocol must track this: `totalBadDebt += uncoveredTab`. This bad debt represents stablecoin in circulation that isn't backed by collateral — a protocol-level liability. In MakerDAO, this is the `sin` (system debt) in the Vat. Stability fee revenue (`surplus`) can offset it over time: `surplus > sin → system is solvent despite past bad debt`.
 
 <a id="liquidation-walkthrough"></a>
-### 🔍 Deep Dive: Full Liquidation Flow Walkthrough
+#### 🔍 Deep Dive: Full Liquidation Flow Walkthrough
 
 End-to-end with concrete numbers, including the rate accumulator update that's easy to forget.
 
@@ -929,7 +929,7 @@ This is why Aave governance evaluates on-chain liquidity depth before listing ne
 
 > **🔗 Connection:** The slippage and AMM economics from M2 directly determine whether your liquidation system actually works in practice. A liquidation mechanism is only as reliable as the DEX liquidity behind it.
 
-### 📋 Summary: Dutch Auction Liquidation
+#### 📋 Summary: Dutch Auction Liquidation
 
 **✓ Covered:**
 - Liquidation system architecture — separate Liquidator contract calling Engine
@@ -948,7 +948,7 @@ This is why Aave governance evaluates on-chain liquidity depth before listing ne
 ## 💡 Flash Mint
 
 <a id="flash-mint-vs-loan"></a>
-### 🔍 Deep Dive: Flash Mint vs Flash Loan
+#### 🔍 Deep Dive: Flash Mint vs Flash Loan
 
 Flash loans (M5) borrow existing tokens from a liquidity pool. Flash mint creates tokens from thin air. This is a fundamental difference:
 
@@ -1003,7 +1003,7 @@ Key differences from a standard flash loan implementation:
 > 📖 **Study:** [MakerDAO's DssFlash](https://github.com/makerdao/dss-flash/blob/master/src/flash.sol) and [GHO's GhoFlashMinter](https://github.com/aave/gho-core/blob/main/src/contracts/facilitators/flashMinter/GhoFlashMinter.sol) — two production implementations of flash mint.
 
 <a id="flash-mint-security"></a>
-### ⚠️ Security Considerations
+#### ⚠️ Security Considerations
 
 **1. Callback reentrancy**
 
@@ -1039,7 +1039,7 @@ If you charge a fee: the receiver must hold `amount + fee` at the end of the cal
 3. **Liquidation funding** — flash mint stablecoin → buy collateral from Dutch auction → sell collateral on DEX → burn flash mint + keep profit. This is the flash liquidation pattern from M4/M5, but using flash *mint* instead of flash *loan*.
 4. **Composability** — any protocol can integrate your stablecoin knowing that flash mint provides infinite temporary liquidity for atomic operations.
 
-### 📋 Summary: Flash Mint
+#### 📋 Summary: Flash Mint
 
 **✓ Covered:**
 - Flash mint vs flash loan — minting from thin air vs borrowing from a pool
@@ -1057,7 +1057,7 @@ If you charge a fee: the receiver must hold `amount + fee` at the end of the cal
 ## 🎯 Testing & Hardening
 
 <a id="critical-invariants"></a>
-### 🔍 Deep Dive: The 5 Critical Invariants
+#### 🔍 Deep Dive: The 5 Critical Invariants
 
 Invariant testing (M8) is where you prove your protocol works under arbitrary sequences of operations. These 5 invariants are your protocol's correctness properties.
 
@@ -1150,7 +1150,7 @@ contract SystemHandler is Test {
 - Compare gas to production protocols (MakerDAO's `frob` is ~150-200K gas) — your numbers will differ but should be in the same order of magnitude
 
 <a id="edge-cases"></a>
-### ⚠️ Edge Cases to Explore
+#### ⚠️ Edge Cases to Explore
 
 **Cascading liquidation:** Set up 3 vaults with tight health factors. Drop the price. Liquidate the first — does the Dutch auction's collateral sale affect the oracle price? (It shouldn't — Chainlink is off-chain. But if you added an on-chain oracle component, it could.)
 
@@ -1162,7 +1162,7 @@ contract SystemHandler is Test {
 
 **Dust amounts:** What happens with 1 wei of collateral or 1 wei of debt? Rounding in the health factor calculation could allow dust vaults that are technically unhealthy but too small to profitably liquidate.
 
-### 📋 Summary: Testing & Hardening
+#### 📋 Summary: Testing & Hardening
 
 **✓ Covered:**
 - 5 critical invariants — solvency, backing, accounting, health, conservation
@@ -1463,7 +1463,7 @@ Study these in order — each builds understanding for the next.
 > **Note:** MakerDAO's `dss` repo is the "classic" Multi-Collateral DAI codebase. MakerDAO has since rebranded to Sky Protocol and launched Spark (lending arm), but the `dss` codebase remains the canonical reference for CDP mechanics. Focus on `dss` for this capstone.
 
 <a id="study-makerdao"></a>
-### 📖 How to Study MakerDAO's dss
+#### 📖 How to Study MakerDAO's dss
 
 MakerDAO's codebase uses terse, domain-specific naming that can be disorienting. This decoder table maps their names to your protocol's cleaner equivalents:
 

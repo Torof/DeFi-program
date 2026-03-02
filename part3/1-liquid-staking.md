@@ -123,7 +123,7 @@ Your balance didn't change. The exchange rate did.
 **The pattern:** In practice, stETH exists for user-facing simplicity (people understand "my balance grows"), while wstETH exists for DeFi composability. This is why Aave, Compound, Maker, and every lending protocol lists wstETH, not stETH.
 
 <a id="exchange-rate"></a>
-### 🔍 Deep Dive: The Exchange Rate
+#### 🔍 Deep Dive: The Exchange Rate
 
 The exchange rate is how non-rebasing LSTs reflect accumulated rewards. Understanding the math is critical for pricing, oracles, and integration.
 
@@ -233,7 +233,7 @@ Request flow:
 - During extreme demand (mass exits), the queue lengthens and the peg can weaken — arbitrageurs must lock capital longer, reducing their incentive.
 - Post-Shapella, stETH has traded very close to 1:1 with ETH. The June 2022 de-peg (0.93 ETH) happened pre-Shapella when no withdrawal mechanism existed.
 
-### 📋 Summary: Liquid Staking Fundamentals
+#### 📋 Summary: Liquid Staking Fundamentals
 
 **Covered:**
 - Why liquid staking exists — capital efficiency for staked ETH
@@ -292,7 +292,7 @@ User                   Lido Protocol                         Beacon Chain
 | `NodeOperatorsRegistry.sol` | Curated operator set | Operator management (permissioned — centralization point) |
 
 <a id="shares-accounting"></a>
-### 🔍 Deep Dive: Shares-Based Accounting in Lido
+#### 🔍 Deep Dive: Shares-Based Accounting in Lido
 
 Lido's stETH looks like a simple rebasing token from the outside, but internally it uses **shares-based accounting** — the same pattern as Aave's aTokens and ERC-4626 vaults.
 
@@ -501,7 +501,7 @@ The rate is updated by Rocket Pool's Oracle DAO (a set of trusted nodes) rather 
 **Why this matters for integration:** When you build a protocol that accepts LST collateral, you'll likely support both wstETH and rETH. The oracle pricing pattern is the same (exchange rate × underlying price), but the liquidity profiles differ. wstETH can be liquidated against deep Curve/Uniswap pools; rETH has thinner secondary market liquidity, so you'd set a lower LTV for rETH collateral.
 
 <a id="code-reading"></a>
-### 📖 Code Reading Strategy
+#### 📖 Code Reading Strategy
 
 **Lido — reading order:**
 
@@ -525,7 +525,7 @@ The rate is updated by Rocket Pool's Oracle DAO (a set of trusted nodes) rather 
 
 > **Repos:** [Lido](https://github.com/lidofinance/lido-dao) | [Rocket Pool](https://github.com/rocket-pool/rocketpool)
 
-### 📋 Summary: Protocol Architecture
+#### 📋 Summary: Protocol Architecture
 
 **Covered:**
 - Lido architecture — 6 key contracts with roles and data flow
@@ -678,7 +678,7 @@ ETH → EtherFi → weETH (LRT)
 **Integration caution:** LRTs are newer and less battle-tested than LSTs. Their exchange rate mechanisms vary more across protocols, their oracle infrastructure is less mature, and their liquidity on DEXes is thinner. For DeFi integration (lending, collateral), LRTs warrant lower LTVs and more conservative oracle designs than wstETH or rETH.
 
 <a id="risk-landscape"></a>
-### ⚠️ The Risk Landscape
+#### ⚠️ The Risk Landscape
 
 **Risk stacking visualization:**
 
@@ -723,7 +723,7 @@ This is not theoretical — Aave, Morpho, and every lending protocol that lists 
 
 **The systemic risk:** If many AVSes use the same operator set, and that operator set gets slashed on one AVS, the collateral damage cascades — all LRTs backed by those operators lose value simultaneously. This correlated slashing risk is the restaking-specific systemic concern.
 
-### 📋 Summary: EigenLayer & Restaking
+#### 📋 Summary: EigenLayer & Restaking
 
 **Covered:**
 - Restaking concept — recycling economic security, additional yield for additional risk
@@ -741,7 +741,7 @@ This is not theoretical — Aave, Morpho, and every lending protocol that lists 
 ## 💡 LST Integration Patterns
 
 <a id="oracle-pricing"></a>
-### 🔍 Deep Dive: LST Oracle Pricing Pipeline
+#### 🔍 Deep Dive: LST Oracle Pricing Pipeline
 
 Pricing LSTs requires a **two-step pipeline** — convert to underlying ETH via exchange rate, then price ETH in USD via Chainlink. This is the same pattern you saw in P2M9's vault share pricing.
 
@@ -841,7 +841,7 @@ function getLSTValueUSD(
 ```
 
 <a id="depeg-dual-oracle"></a>
-### ⚠️ De-Peg Scenarios and the Dual Oracle Pattern
+#### ⚠️ De-Peg Scenarios and the Dual Oracle Pattern
 
 **The problem:** The exchange rate from Lido/Rocket Pool always reflects the protocol's view of the backing — stETH is always worth ~1 ETH according to the protocol. But the **market price** can diverge. If stETH trades at 0.95 ETH on Curve, a lending protocol using only the exchange rate would overvalue wstETH collateral by ~5%.
 
@@ -1002,7 +1002,7 @@ borrows ETH, and loops the leverage:
 > **🔗 Connection:** This directly links to P3M3 (Yield Tokenization) — Pendle's most popular markets are wstETH and eETH, where users split LST staking yield into principal and yield tokens. Understanding LSTs as yield-bearing assets is the prerequisite for understanding yield tokenization.
 
 <a id="pattern-connections"></a>
-### 🔗 DeFi Pattern Connections
+#### 🔗 DeFi Pattern Connections
 
 | Source | Concept | How It Connects |
 |---|---|---|
@@ -1017,7 +1017,7 @@ borrows ETH, and loops the leverage:
 | **P3M3** | Yield tokenization | Pendle splits LST yield into PT/YT — LSTs are the primary input |
 | **P3M9** | Capstone (perp exchange) | LSTs as margin collateral — pricing and liquidation mechanics carry over |
 
-### 📋 Summary: LST Integration Patterns
+#### 📋 Summary: LST Integration Patterns
 
 **Covered:**
 - Oracle pricing pipeline — two-step (exchange rate → Chainlink), with full numeric walkthroughs

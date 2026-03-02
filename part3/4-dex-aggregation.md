@@ -177,7 +177,7 @@ contract SplitDemo {
 
 Try `singlePool(100e18)` vs `splitPools(100e18)` — the split wins by ~5,680 USDC. Now try `1e18` (tiny trade) — almost no difference. Splitting only matters when trade size is large relative to pool depth.
 
-### 🔗 DeFi Pattern Connection
+#### 🔗 DeFi Pattern Connection
 
 **Where split routing appears:**
 - **DEX aggregators** (1inch, Paraswap, 0x) — their entire value proposition
@@ -280,7 +280,7 @@ function unoswap(
 
 **Why?** Calldata costs 16 gas per non-zero byte, 4 gas per zero byte. Packing a pool address (20 bytes) + direction flag (1 bit) + fee tier (2 bytes) into a single `uint256` saves significant calldata gas. On L2s (where calldata is the dominant cost), this matters even more.
 
-### 📖 How to Study: 1inch AggregationRouterV6
+#### 📖 How to Study: 1inch AggregationRouterV6
 
 1. Start with `unoswap()` — single-pool swap, simplest path
 2. Read `swap()` — the general multi-hop/multi-split executor
@@ -569,7 +569,7 @@ Deploy, call `currentOutput()` immediately (1950). Wait 30+ seconds, call again 
 
 **The tradeoff:** Decay parameters matter. Too fast a decay → solver gets a cheap fill. Too slow → user waits too long. Production protocols tune these per-pair and per-market-condition.
 
-### 🔗 DeFi Pattern Connection
+#### 🔗 DeFi Pattern Connection
 
 **Dutch auctions appear everywhere in DeFi:**
 - **UniswapX** — solver competition for order fills (this module)
@@ -671,7 +671,7 @@ IReactorCallback(msg.sender).reactorCallback(resolvedOrders, callbackData);
 
 This is powerful — the solver can flash-swap from Uniswap, arbitrage across pools, or bridge from another chain *inside the callback*. They don't need to pre-fund the fill.
 
-### 📖 How to Study: UniswapX
+#### 📖 How to Study: UniswapX
 
 1. Start with `ExclusiveDutchOrderReactor.sol` — the main entry point
 2. Read `DutchDecayLib.sol` — the decay math (short, pure functions)
@@ -892,7 +892,7 @@ Both are valid approaches with different tradeoffs. Understanding both gives you
 
 > 🔍 **Code:** [CoW Protocol GPv2Settlement](https://github.com/cowprotocol/contracts) — start with `GPv2Settlement.sol`
 
-### 📖 How to Study: CoW Protocol
+#### 📖 How to Study: CoW Protocol
 
 1. Start with `GPv2Settlement.sol` — the `settle()` function is the entry point
 2. Read `GPv2Trade.sol` — how individual trades are encoded and decoded

@@ -71,7 +71,7 @@ If any of these feel unfamiliar, review Part 1 and the OpenZeppelin documentatio
 ## ⚠️ DeFi-Specific Attack Patterns
 
 <a id="read-only-reentrancy"></a>
-### ⚠️ Read-Only Reentrancy
+#### ⚠️ Read-Only Reentrancy
 
 The most subtle reentrancy variant. No state modification needed — just reading at the wrong time.
 
@@ -171,7 +171,7 @@ uint256 rate = pool.getRate();
 - Use time-delayed or externally-sourced rates instead of live pool calculations
 
 <a id="cross-contract-reentrancy"></a>
-### ⚠️ Cross-Contract Reentrancy in DeFi Compositions
+#### ⚠️ Cross-Contract Reentrancy in DeFi Compositions
 
 When your protocol interacts with multiple external protocols, reentrancy can occur across trust boundaries:
 
@@ -183,7 +183,7 @@ Your Protocol → Uniswap (swap) → token transfer → receiver fallback → Yo
 **Defense:** Apply `nonReentrant` globally (not per-function) when your protocol makes external calls that could trigger callbacks. For protocols that interact with many external contracts, a single transient storage lock covering all entry points is the cleanest approach.
 
 <a id="price-manipulation"></a>
-### 📋 Price Manipulation Taxonomy
+#### 📋 Price Manipulation Taxonomy
 
 This consolidates oracle attacks from Module 3 with flash loan amplification from Module 5:
 
@@ -296,7 +296,7 @@ Step 5: Repay flash loan: 1,500,000 USDC
 **Why Chainlink prevents this:** Chainlink prices come from off-chain aggregation of multiple exchanges. A swap on one Uniswap pool doesn't affect the Chainlink price. Even TWAP oracles resist this because the manipulation must be sustained across the averaging window (expensive for deep-liquidity pools).
 
 <a id="frontrunning-mev"></a>
-### ⚠️ Frontrunning and MEV
+#### ⚠️ Frontrunning and MEV
 
 **Sandwich attacks:** Attacker sees your pending swap in the mempool. They front-run (buy before you, pushing price up), your swap executes at the worse price, they back-run (sell after you, profiting from the difference).
 
@@ -307,7 +307,7 @@ Defense: slippage protection (`amountOutMin` in Uniswap swaps), private transact
 **Liquidation MEV:** When a position becomes liquidatable, MEV searchers race to execute the liquidation (and capture the bonus). For protocol builders: ensure your liquidation mechanism is MEV-aware and that the bonus isn't so large it incentivizes price manipulation to trigger liquidations.
 
 <a id="precision-loss"></a>
-### ⚠️ Precision Loss and Rounding Exploits
+#### ⚠️ Precision Loss and Rounding Exploits
 
 Integer division in Solidity always truncates (rounds toward zero). In DeFi, this creates two distinct classes of vulnerability:
 
@@ -386,7 +386,7 @@ For mulDiv with explicit rounding: use OpenZeppelin's `Math.mulDiv(a, b, c, Math
 - MakerDAO's Vat tracks debt as `art * rate` (both in RAY = 1e27) to preserve precision across stability fee accruals
 
 <a id="access-control-attacks"></a>
-### ⚠️ Access Control Vulnerabilities
+#### ⚠️ Access Control Vulnerabilities
 
 Access control is the [#1 vulnerability in the OWASP Smart Contract Top 10](https://owasp.org/www-project-smart-contract-top-10/) (2024 and 2025). It's devastatingly simple and the most common cause of total fund loss in DeFi.
 
@@ -458,7 +458,7 @@ In older Solidity versions (< 0.8.0), functions without explicit visibility defa
 - [ ] All roles assigned correctly in initializer, verified in tests
 
 <a id="composability-risk"></a>
-### ⚠️ Composability Risk
+#### ⚠️ Composability Risk
 
 DeFi's composability means your protocol interacts with others in ways you can't fully predict:
 - Your vault accepts aTokens as collateral → aTokens interact with Aave → Aave interacts with Chainlink → Chainlink relies on external data providers
@@ -522,7 +522,7 @@ DeFi's composability means your protocol interacts with others in ways you can't
 
 **Pro tip:** In security-focused interviews, employers care less about memorizing every exploit and more about your *systematic thinking*. Show that you have a mental taxonomy of attack classes and can map any new vulnerability into it. That's what separates a protocol engineer from a developer.
 
-### 📋 Summary: DeFi-Specific Attack Patterns
+#### 📋 Summary: DeFi-Specific Attack Patterns
 
 **✓ Covered:**
 - Read-only reentrancy — the subtle variant where `view` functions read inconsistent state during callbacks
@@ -804,7 +804,7 @@ function withdraw(uint256 shares) external returns (uint256 amount) {
 This is exactly the kind of ordering bug that unit tests miss — you'd have to think of the exact multi-user interleaving. Invariant tests find it automatically by exploring random call sequences.
 
 <a id="invariant-catalog"></a>
-### 📋 What Invariants to Test for Each DeFi Primitive
+#### 📋 What Invariants to Test for Each DeFi Primitive
 
 **For a vault/ERC-4626:**
 - Total assets ≥ sum of all shares × share price (no phantom assets)
@@ -912,7 +912,7 @@ Write a comprehensive invariant test suite for your SimpleLendingPool from Modul
 - **Damn Vulnerable DeFi #3 "Truster"** — Approval via flash loan callback — write an invariant that catches the unexpected allowance
 - **Ethernaut #20 "Denial"** — Gas griefing that breaks withdrawal invariants
 
-### 📋 Summary: Invariant Testing with Foundry
+#### 📋 Summary: Invariant Testing with Foundry
 
 **✓ Covered:**
 - Why invariant testing beats unit/fuzz testing for DeFi protocols
@@ -935,7 +935,7 @@ Write a comprehensive invariant test suite for your SimpleLendingPool from Modul
 Audit reports are the densest source of real-world vulnerability knowledge. A single report can contain 10-20 findings, each one a potential exploit pattern you might encounter in your own code. Learning to read them efficiently — understanding severity classifications, root cause analysis, and recommended fixes — is one of the highest-ROI activities for a protocol builder.
 
 <a id="how-read-audit"></a>
-### 📖 How to Read an Audit Report
+#### 📖 How to Read an Audit Report
 
 **Structure of a typical report:**
 - **Executive summary** — Protocol description, scope, methodology
@@ -963,7 +963,7 @@ Audit reports are the densest source of real-world vulnerability knowledge. A si
 **Don't get stuck on:** Reading every finding in a 50+ finding report. Focus on Critical/High first, skim Medium, read Informational titles only. A single Critical finding teaches more than ten Informational ones.
 
 <a id="report-aave"></a>
-### 📖 Report 1: Aave V3 Core (OpenZeppelin, SigmaPrime)
+#### 📖 Report 1: Aave V3 Core (OpenZeppelin, SigmaPrime)
 
 **Source code:** [aave-v3-core](https://github.com/aave/aave-v3-core)
 **Audits:** [OpenZeppelin](https://blog.openzeppelin.com/aave-v3-core-audit) | [SigmaPrime](https://github.com/aave/aave-v3-core/blob/master/audits/27-01-2022_SigmaPrime_AaveV3.pdf) — both publicly available.
@@ -980,7 +980,7 @@ Audit reports are the densest source of real-world vulnerability knowledge. A si
 3. If yes, how would you fix it?
 
 <a id="report-smaller"></a>
-### 📖 Report 2: A Smaller Protocol With Critical Findings
+#### 📖 Report 2: A Smaller Protocol With Critical Findings
 
 **Recommended options** (publicly available):
 - Any [Cyfrin audit with critical findings](https://www.cyfrin.io/blog) (search their blog for audit reports)
@@ -995,7 +995,7 @@ Pick one report for a protocol similar to what you've built (lending, AMM, or va
 3. Write a test that passes before the fix and fails after (regression test)
 
 <a id="report-immunefi"></a>
-### 📖 Report 3: Immunefi Bug Bounty Writeup
+#### 📖 Report 3: Immunefi Bug Bounty Writeup
 
 **Source:** [Immunefi Medium](https://medium.com/immunefi) (search for "bug bounty writeup") or [Immunefi Explore](https://immunefi.com/explore/)
 
@@ -1023,7 +1023,7 @@ Take your SimpleLendingPool from Module 4 and apply a structured review:
    - [ ] Slippage protection on all swaps
    - [ ] Return values of external calls are checked
 
-### 📋 Summary: Reading Audit Reports
+#### 📋 Summary: Reading Audit Reports
 
 **✓ Covered:**
 - Why audit reports are the densest source of vulnerability knowledge
@@ -1097,7 +1097,7 @@ slither Vulnerable.sol
 Slither should flag the reentrancy in `withdraw()` — the external call before the state update. See how it identifies the exact vulnerability pattern? Now fix the contract (move `balances[msg.sender] -= amount` before the call) and re-run Slither to confirm the finding disappears. That's the feedback loop: write code → analyze → fix → verify.
 
 <a id="formal-verification"></a>
-### 🔍 Formal Verification (Awareness)
+#### 🔍 Formal Verification (Awareness)
 
 **[Certora Prover](https://docs.certora.com)** — Used by Aave, Compound, and other major protocols. You write properties in CVL (Certora Verification Language), and the prover mathematically verifies they hold for all possible inputs and states — not just random samples like fuzzing, but *all* of them.
 
@@ -1149,7 +1149,7 @@ Before any deployment:
 - [ ] Bug bounty program (Immunefi or similar)
 
 <a id="audit-preparation"></a>
-### 📋 Audit Preparation
+#### 📋 Audit Preparation
 
 Auditors are a final validation, not a substitute for your own security work. Protocols that arrive at audit with comprehensive tests and clear documentation get significantly more value from the audit.
 
@@ -1230,7 +1230,7 @@ Complete any remaining Damn Vulnerable DeFi and Ethernaut challenges not yet att
 - MEV-aware protocol design as a first-class security concern
 - Cross-chain bridge security (still the largest single-exploit category by dollar value)
 
-### 📋 Summary: Security Tooling & Audit Preparation
+#### 📋 Summary: Security Tooling & Audit Preparation
 
 **✓ Covered:**
 - Static analysis tooling — Slither (Python-based, broad detectors) and Aderyn (Rust-based, fast, complementary)

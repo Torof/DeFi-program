@@ -351,7 +351,7 @@ function getWstETHPrice() public view returns (uint256) {
 ---
 
 <a id="read-aggregator-v3"></a>
-### 📖 Read: AggregatorV3Interface
+#### 📖 Read: AggregatorV3Interface
 
 **Source:** [@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol](https://github.com/smartcontractkit/chainlink/blob/contracts-v1.3.0/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol)
 
@@ -460,7 +460,7 @@ Build an `OracleConsumer.sol` that reads Chainlink price feeds with all producti
 
 ---
 
-### 📋 Summary: Oracle Fundamentals & Chainlink
+#### 📋 Summary: Oracle Fundamentals & Chainlink
 
 **✓ Covered:**
 - The oracle problem: blockchains can't access external data natively
@@ -605,7 +605,7 @@ amountOut = (amountIn * priceAverage) >> 112;
 ---
 
 <a id="twap-vs-chainlink"></a>
-### 📋 When to Use TWAP vs Chainlink
+#### 📋 When to Use TWAP vs Chainlink
 
 | Factor | Chainlink | TWAP |
 |--------|-----------|------|
@@ -697,7 +697,7 @@ State transitions triggered by:
 
 ---
 
-### 📋 Summary: TWAP Oracles & On-Chain Price Sources
+#### 📋 Summary: TWAP Oracles & On-Chain Price Sources
 
 **✓ Covered:**
 - TWAP mechanics: cumulative price accumulators, window-based average computation
@@ -714,7 +714,7 @@ State transitions triggered by:
 ## ⚠️ Oracle Manipulation Attacks
 
 <a id="attack-surface"></a>
-### ⚠️ The Attack Surface
+#### ⚠️ The Attack Surface
 
 **Why this matters:** Oracle manipulation is a category of attacks where the attacker corrupts the price data that a protocol relies on, then exploits the protocol's reaction to the false price. The protocol code executes correctly — it just operates on poisoned inputs.
 
@@ -723,7 +723,7 @@ State transitions triggered by:
 ---
 
 <a id="spot-manipulation"></a>
-### ⚠️ Attack Pattern 1: Spot Price Manipulation via Flash Loan
+#### ⚠️ Attack Pattern 1: Spot Price Manipulation via Flash Loan
 
 **This is the most common oracle attack.** The target: any protocol that reads spot price from a DEX pool.
 
@@ -765,7 +765,7 @@ function getCollateralValue(address token, uint256 amount) public view returns (
 ---
 
 <a id="twap-manipulation"></a>
-### ⚠️ Attack Pattern 2: TWAP Manipulation (Multi-Block)
+#### ⚠️ Attack Pattern 2: TWAP Manipulation (Multi-Block)
 
 TWAP oracles resist single-block attacks, but they're not immune. An attacker with sufficient capital (or who can bribe block producers) can sustain a manipulated price across the TWAP window.
 
@@ -819,7 +819,7 @@ Is it worth it?
 ---
 
 <a id="stale-oracle"></a>
-### ⚠️ Attack Pattern 3: Stale Oracle Exploitation
+#### ⚠️ Attack Pattern 3: Stale Oracle Exploitation
 
 If a Chainlink feed hasn't updated (due to network congestion, gas price spikes, or feed misconfiguration), the on-chain price may lag significantly behind the real market price. An attacker can exploit the stale price:
 
@@ -835,7 +835,7 @@ If a Chainlink feed hasn't updated (due to network congestion, gas price spikes,
 ---
 
 <a id="donation-manipulation"></a>
-### ⚠️ Attack Pattern 4: Donation/Direct Balance Manipulation
+#### ⚠️ Attack Pattern 4: Donation/Direct Balance Manipulation
 
 Some protocols calculate prices based on internal token balances (e.g., vault share prices based on `totalAssets() / totalShares()`). An attacker can send tokens directly to the contract (bypassing `deposit()`), inflating the perceived value per share. This is related to the "inflation attack" on [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) vaults (covered in Module 7).
 
@@ -953,7 +953,7 @@ The tests demonstrate the full attack flow: attacker swaps 600K USDC into a pool
 
 ---
 
-### 📋 Summary: Oracle Manipulation Attacks
+#### 📋 Summary: Oracle Manipulation Attacks
 
 **✓ Covered:**
 - Four attack patterns: spot price manipulation (flash loan), TWAP manipulation (multi-block), stale oracle exploitation, donation/balance manipulation
@@ -1009,7 +1009,7 @@ The tests demonstrate the full attack flow: attacker swaps 600K USDC into a pool
 ---
 
 <a id="common-mistakes"></a>
-### ⚠️ Common Mistakes
+#### ⚠️ Common Mistakes
 
 These are the oracle integration mistakes that appear repeatedly in audits, exploits, and code reviews:
 

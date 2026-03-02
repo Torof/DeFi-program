@@ -110,7 +110,7 @@ Understanding the relationship between mark and index price is fundamental to ho
 > In GMX's oracle-based model, mark price effectively equals index price (because trades execute at oracle price). The distinction matters more for order-book perps (dYdX, Hyperliquid) where mark can diverge significantly from index during volatile periods.
 
 <a id="funding-rate-mechanics"></a>
-### 🔍 Deep Dive: Funding Rate Mechanics
+#### 🔍 Deep Dive: Funding Rate Mechanics
 
 **The problem it solves:** Without expiry, nothing forces the perpetual's price to match spot. Traders could bid the perp to 10% above spot and leave it there. The funding rate creates an economic incentive that continuously pulls the mark price toward the index price.
 
@@ -173,7 +173,7 @@ Effect: Holding a long is expensive (paying 2% every 8h).
 - Funding rate spikes often precede liquidation cascades — watch for this pattern
 
 <a id="funding-accumulator"></a>
-### 🔍 Deep Dive: Funding Rate Accumulator Pattern
+#### 🔍 Deep Dive: Funding Rate Accumulator Pattern
 
 **The problem:** If funding is paid every 8 hours, a protocol must iterate over every open position to calculate and deduct payments. With thousands of positions, this is O(n) per funding period — too expensive on-chain.
 
@@ -316,7 +316,7 @@ If ETH drops to $2,730 (−9%):
 Most DeFi perpetual protocols (GMX, Synthetix Perps) use isolated margin. Cross margin is more common in CeFi and dYdX V4.
 
 <a id="pnl-calculation"></a>
-### 🔍 Deep Dive: PnL Calculation with Worked Examples
+#### 🔍 Deep Dive: PnL Calculation with Worked Examples
 
 **Core PnL formulas:**
 
@@ -384,7 +384,7 @@ Realized PnL = Trading PnL + Funding Received - Funding Paid - Open Fee - Close 
 **Why PnL is divided by entry price:** The formula `size × (exit - entry) / entry` gives the return in the **denomination currency** (USD). This is a percentage return scaled by position size. Some protocols instead track position size in the base asset (ETH) and compute PnL differently — be aware of which convention a protocol uses when reading their code.
 
 <a id="liquidation-price"></a>
-### 🔍 Deep Dive: Liquidation Price Derivation
+#### 🔍 Deep Dive: Liquidation Price Derivation
 
 **The question:** At what price will my position be liquidated?
 
@@ -579,7 +579,7 @@ struct Position {
 **Why so many fields?** Each "snapshot" field stores the value of a global accumulator at the time the position was opened or last modified. When the position is closed, the protocol computes the difference between the current accumulator and the stored snapshot to determine how much borrow fee, funding, etc., the position owes. This is the Funding Rate Accumulator pattern from above applied multiple times.
 
 <a id="keeper-execution"></a>
-### 🔍 Deep Dive: Two-Step Keeper Execution
+#### 🔍 Deep Dive: Two-Step Keeper Execution
 
 **The problem:** If a trader submits a market order with a price visible on-chain before execution, validators (or MEV bots) can frontrun it — they see the order, check the oracle price, and trade ahead if profitable. This is a critical problem for oracle-based perps.
 
@@ -629,7 +629,7 @@ Step 2: Keeper executes with signed oracle price
 > **Connection to P2M3 (Oracles):** GMX V2 uses a combination of Chainlink and custom off-chain signing for oracle prices. The signed price reports are submitted by keepers alongside the execution transaction. This is similar to Pyth's pull-based model — prices are fetched off-chain and submitted on-chain when needed.
 
 <a id="fee-structure"></a>
-### 🔍 Deep Dive: Fee Structure and Price Impact
+#### 🔍 Deep Dive: Fee Structure and Price Impact
 
 GMX V2 has multiple fee layers that serve different purposes:
 
@@ -686,7 +686,7 @@ Total Fees Collected
 ```
 
 <a id="gmx-code-reading"></a>
-### 📖 Code Reading Strategy: GMX V2
+#### 📖 Code Reading Strategy: GMX V2
 
 **Repository:** [gmx-io/gmx-synthetics](https://github.com/gmx-io/gmx-synthetics)
 
@@ -755,7 +755,7 @@ GMX V2's codebase is large (~100+ contracts). Here's a focused reading path:
 **The key insight:** Every SNX staker's debt is proportional to the **total system debt**, not just the synths they personally minted. If another trader profits big, YOUR debt increases even if you did nothing. This is a form of socialized risk.
 
 <a id="debt-pool-math"></a>
-### 🔍 Deep Dive: Debt Pool Math with Worked Example
+#### 🔍 Deep Dive: Debt Pool Math with Worked Example
 
 This is one of the more counterintuitive mechanisms in DeFi. Let's walk through a concrete example.
 
@@ -965,7 +965,7 @@ Perps: 10x leverage, ETH drops 10%
 ```
 
 <a id="liquidation-engine"></a>
-### 🔍 Deep Dive: Liquidation Engine Flow
+#### 🔍 Deep Dive: Liquidation Engine Flow
 
 **The lifecycle of a perp liquidation:**
 

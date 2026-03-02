@@ -130,7 +130,7 @@ Total L2 tx cost = L2 execution cost + L1 data posting cost
                    (cheap)             (the main expense)
 ```
 
-### 🔍 Deep Dive: L1 Data Cost Calculation
+#### 🔍 Deep Dive: L1 Data Cost Calculation
 
 **Pre-EIP-4844 (calldata posting):**
 
@@ -372,7 +372,7 @@ Returns:
 
 **Every lending protocol on L2 MUST implement this pattern.** Deploying an L1 lending protocol to L2 without sequencer uptime checks is a known vulnerability.
 
-### 🔗 DeFi Pattern Connection
+#### 🔗 DeFi Pattern Connection
 
 **Sequencer dependency appears across DeFi on L2:**
 
@@ -754,7 +754,7 @@ Run: `forge test --match-contract L2GasEstimatorTest -vvv`
 - [Arbitrum Timeboost](https://docs.arbitrum.io/how-arbitrum-works/timeboost) — auction-based express lane
 - [Chainlink: Using L2 Sequencer Feeds](https://docs.chain.link/data-feeds/l2-sequencer-feeds) — integration tutorial
 
-### 📖 How to Study: L2 DeFi
+#### 📖 How to Study: L2 DeFi
 
 1. Start with [Vitalik's L2 types post](https://vitalik.eth.limo/general/2023/10/31/l2types.html) — understand the landscape
 2. Read [Aave PriceOracleSentinel](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/configuration/PriceOracleSentinel.sol) — the most important L2-specific pattern

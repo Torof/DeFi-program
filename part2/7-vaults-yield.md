@@ -119,7 +119,7 @@ Run with: `forge script ReadVault --rpc-url https://eth.llamarpc.com`
 Notice the exchange rate is > 1.0 — that's accumulated yield. Each share is worth more than 1 USDC because the vault's strategies have earned profit since launch.
 
 <a id="vault-interface"></a>
-### 📖 The Interface
+#### 📖 The Interface
 
 ERC-4626 extends ERC-20 with these core functions:
 
@@ -252,7 +252,7 @@ Step 5: Alice withdraws everything
 **Rounding in practice:** The example above used numbers that divide evenly, but real values rarely do. If Carol deposited 1,099 USDC instead, she'd get `1099 × 3000 / 3300 = 999.09...` which rounds down to 999 shares — slightly fewer than the "fair" amount. This rounding loss is typically negligible (< 1 wei of the underlying), but it accumulates vault-favorably — the vault slowly builds a tiny surplus that protects against rounding-based exploits.
 
 <a id="read-oz-erc4626"></a>
-### 📖 Read: OpenZeppelin ERC4626.sol
+#### 📖 Read: OpenZeppelin ERC4626.sol
 
 **Source:** [`@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC4626.sol)
 
@@ -317,7 +317,7 @@ Tests verify:
 
 **Pro tip:** The ERC-4626 ecosystem is one of the fastest-growing in DeFi. Morpho, Euler V2, Yearn V3, Ethena (sUSDe), Lido (wstETH adapter), and hundreds of other protocols all use it. Being able to write, audit, and integrate ERC-4626 vaults is a high-demand skill.
 
-### 📋 Summary: ERC-4626 — The Tokenized Vault Standard
+#### 📋 Summary: ERC-4626 — The Tokenized Vault Standard
 
 **✓ Covered:**
 - The shares/assets abstraction and why it's the universal pattern for yield-bearing tokens
@@ -335,7 +335,7 @@ Tests verify:
 ## ⚠️ The Inflation Attack and Defenses
 
 <a id="inflation-attack"></a>
-### ⚠️ The Attack
+#### ⚠️ The Attack
 
 The inflation attack (also called the donation attack or first-depositor attack) exploits empty or nearly-empty vaults:
 
@@ -519,7 +519,7 @@ WITH VIRTUAL SHARES (OpenZeppelin, offset = 3)
 
 **Why virtual shares work:** The 1000 virtual shares in the denominator mean the attacker's donation is spread across 1001 shares (1 real + 1000 virtual), not just 1. The attacker can't monopolize the inflated rate.
 
-### ⚠️ Why It Still Matters
+#### ⚠️ Why It Still Matters
 
 This isn't theoretical. The Resupply protocol was exploited via this vector in 2025, and the Venus Protocol lost approximately 86 WETH to a similar attack on ZKsync in February 2025. Any protocol using ERC-4626 vaults as collateral in a lending market is at risk if the vault's exchange rate can be manipulated.
 
@@ -582,7 +582,7 @@ function _deposit(uint256 assets, address receiver) internal {
 This is the most robust defense but requires careful bookkeeping — you must update `_totalManagedAssets` correctly for every flow (deposits, withdrawals, yield harvest, losses).
 
 <a id="vaults-as-collateral"></a>
-### ⚠️ When Vaults Are Used as Collateral
+#### ⚠️ When Vaults Are Used as Collateral
 
 The inflation attack becomes especially dangerous when ERC-4626 tokens are used as collateral in lending protocols. If a lending protocol prices collateral using `vault.convertToAssets(shares)`, an attacker can:
 
@@ -604,7 +604,7 @@ Tests verify:
 - DefendedVault attack fails: same attack leaves attacker with ~6 USDC (massive loss)
 - DefendedVault works correctly for normal operations: deposit, yield accrual, redeem all function properly with negligible virtual share loss (1 raw unit)
 
-### 📋 Summary: The Inflation Attack and Defenses
+#### 📋 Summary: The Inflation Attack and Defenses
 
 **✓ Covered:**
 - The inflation (donation/first-depositor) attack — step-by-step mechanics
@@ -742,7 +742,7 @@ This separates infrastructure (the lending protocol) from risk management (the c
 Each layer uses ERC-4626, so they compose naturally.
 
 <a id="read-yearn-v3"></a>
-### 📖 Read: Yearn V3 Source
+#### 📖 Read: Yearn V3 Source
 
 **VaultV3.sol:** [`yearn/yearn-vaults-v3`](https://github.com/yearn/yearn-vaults-v3/blob/master/contracts/VaultV3.vy)
 - Focus on [`process_report()`](https://github.com/yearn/yearn-vaults-v3/blob/master/contracts/VaultV3.vy) — how profit/loss is calculated and fees charged
@@ -810,7 +810,7 @@ Tests verify:
 - Redeem 8,000 shares: withdrawal queue drains idle first, then Strategy A, then partial Strategy B
 - Debt tracks original allocation (not yield) -- profit = strategy.totalValue() - debt
 
-### 📋 Summary: Yield Aggregation — Yearn V3 Architecture
+#### 📋 Summary: Yield Aggregation — Yearn V3 Architecture
 
 **✓ Covered:**
 - The yield aggregation problem — why allocating across multiple sources matters
@@ -830,7 +830,7 @@ Tests verify:
 ## 📖 Composable Yield Patterns and Security
 
 <a id="yield-strategies"></a>
-### 📋 Yield Strategy Comparison
+#### 📋 Yield Strategy Comparison
 
 | Strategy | Typical APY | Risk Level | Complexity | Key Risk | Example |
 |---|---|---|---|---|---|
@@ -963,7 +963,7 @@ Provide liquidity to an AMM pool, then stake the LP tokens for additional reward
 
 This is the model behind Yearn's Curve strategies (Curve LP → stake in Convex → earn CRV+CVX), which have historically been among the highest and most consistent yield sources.
 
-### 🔗 Pattern 4: Vault Composability
+#### 🔗 Pattern 4: Vault Composability
 
 Because ERC-4626 vaults are ERC-20 tokens, they can be used as:
 - **Collateral in lending protocols:** Deposit sUSDe (Ethena's staked USDe vault token) as collateral on Aave, borrow against your yield-bearing position
@@ -973,7 +973,7 @@ Because ERC-4626 vaults are ERC-20 tokens, they can be used as:
 This composability is why ERC-4626 adoption has been so rapid — each new vault automatically works with every protocol that supports the standard.
 
 <a id="vault-security"></a>
-### ⚠️ Security Considerations for Vault Builders
+#### ⚠️ Security Considerations for Vault Builders
 
 **1. totalAssets() must be manipulation-resistant.** If `totalAssets()` reads external state that can be manipulated within a transaction (DEX spot prices, raw token balances), your vault is vulnerable. Use internal accounting or time-delayed oracles.
 
@@ -1025,7 +1025,7 @@ Tests verify:
 - Sandwich attack is unprofitable: attacker deposits before harvest, redeems after -- gets zero profit because profit is locked
 - Consecutive harvests: remaining locked profit from a previous harvest carries over and combines with newly harvested profit
 
-### 📋 Summary: Composable Yield Patterns and Security
+#### 📋 Summary: Composable Yield Patterns and Security
 
 **✓ Covered:**
 - Auto-compounding: claim rewards → swap → re-deposit, keeper economics

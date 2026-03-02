@@ -409,7 +409,7 @@ Write comprehensive Foundry tests covering:
 - Add events: `Swap`, `Mint`, `Burn` (match [Uniswap V2's event signatures](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol#L13-L15))
 - Implement a simple TWAP (time-weighted average price) oracle: store cumulative price and timestamp on each swap, expose a function to compute average price over a period
 
-### 📋 Summary: The Constant Product Formula
+#### 📋 Summary: The Constant Product Formula
 
 **✓ Covered:**
 - Constant product formula (`x · y = k`) and swap output calculation
@@ -435,7 +435,7 @@ Write comprehensive Foundry tests covering:
 ---
 
 <a id="read-v2-pair"></a>
-### 📖 Read: UniswapV2Pair.sol
+#### 📖 Read: UniswapV2Pair.sol
 
 **Source:** [github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol)
 
@@ -480,7 +480,7 @@ This is the most important function to understand deeply.
 ---
 
 <a id="read-v2-factory"></a>
-### 📖 Read: UniswapV2Factory.sol
+#### 📖 Read: UniswapV2Factory.sol
 
 **Source:** [github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Factory.sol](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Factory.sol)
 
@@ -494,7 +494,7 @@ Focus on:
 ---
 
 <a id="read-v2-router"></a>
-### 📖 Read: UniswapV2Router02.sol
+#### 📖 Read: UniswapV2Router02.sol
 
 **Source:** [github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol](https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol)
 
@@ -577,7 +577,7 @@ This is exactly what V3 does — but it adds complexity:
 
 V3 trades simplicity for capital efficiency. Keep this tradeoff in mind as you read the next part of this module.
 
-### 📋 Summary: Reading Uniswap V2
+#### 📋 Summary: Reading Uniswap V2
 
 **✓ Covered:**
 - Read V2 Pair, Factory, and Router contracts
@@ -813,7 +813,7 @@ Fees in V3 are tracked per unit of liquidity within active ranges using `feeGrow
 ---
 
 <a id="read-v3-contracts"></a>
-### 📖 Read: Key V3 Contracts
+#### 📖 Read: Key V3 Contracts
 
 **Core contracts (v3-core):**
 - [`UniswapV3Pool.sol`](https://github.com/Uniswap/v3-core/blob/main/contracts/UniswapV3Pool.sol) — the pool itself (swap, mint, burn, collect)
@@ -904,7 +904,7 @@ Write tests that verify all three cases and check that amounts change continuous
 
 **Don't get stuck on:** `FullMath.sol` (it's mulDiv for precision — you know this from Part 1), `Oracle.sol` (save for Module 3).
 
-### 📋 Summary: Concentrated Liquidity (V3)
+#### 📋 Summary: Concentrated Liquidity (V3)
 
 **✓ Covered:**
 - Ticks (`price = 1.0001^i`), tick spacing, and fee tiers
@@ -996,7 +996,7 @@ Write Foundry tests covering:
 
 > **Common pitfall:** Not testing tick crossings in both directions. A swap buying token0 (decreasing price) crosses ticks differently than a swap buying token1 (increasing price). Test both directions.
 
-### 📋 Summary: Simplified CLAMM Challenge
+#### 📋 Summary: Simplified CLAMM Challenge
 
 **🎯 Learning goals:**
 - Build a simplified CLAMM with `addLiquidity`, `swap` (with tick-crossing loop), `removeLiquidity`
@@ -1099,7 +1099,7 @@ Instead of withdrawing tokens from the PoolManager, users can receive [ERC-6909]
 ---
 
 <a id="read-v4-contracts"></a>
-### 📖 Read: Key V4 Contracts
+#### 📖 Read: Key V4 Contracts
 
 **Source:** [github.com/Uniswap/v4-core](https://github.com/Uniswap/v4-core)
 
@@ -1155,7 +1155,7 @@ forge test --fork-url $MAINNET_RPC --match-contract V4Test
 4. **Read `Pool.sol` (library)** — V3's math adapted for V4's singleton, familiar territory
 5. **Read `PositionManager.sol`** in v4-periphery — How the user-facing contract interacts with PoolManager
 
-### 📋 Summary: V4 Singleton & Flash Accounting
+#### 📋 Summary: V4 Singleton & Flash Accounting
 
 **✓ Covered:**
 - Singleton pattern — all pools in one PoolManager contract
@@ -1219,7 +1219,7 @@ Hooks can intercept at these points:
 ---
 
 <a id="read-hook-examples"></a>
-### 📖 Read: Hook Examples
+#### 📖 Read: Hook Examples
 
 **Source:** [github.com/Uniswap/v4-periphery/tree/main/src/hooks](https://github.com/Uniswap/v4-periphery/tree/example-contracts/contracts/hooks/examples) (official examples)
 **Source:** [github.com/fewwwww/awesome-uniswap-hooks](https://github.com/fewwwww/awesome-uniswap-hooks) (curated community list)
@@ -1233,7 +1233,7 @@ Study these hook patterns:
 ---
 
 <a id="hook-security"></a>
-### ⚠️ Hook Security Considerations
+#### ⚠️ Hook Security Considerations
 
 **Why this matters:** Hooks introduce new attack surfaces that don't exist in V2/V3.
 
@@ -1356,7 +1356,7 @@ contract VolatilityHook is BaseHook {
 
 **The pattern:** V4 hooks are the composability layer for AMM innovation. Instead of forking an AMM (fragmenting liquidity), you plug into shared liquidity with custom logic.
 
-### 📋 Summary: V4 Hooks
+#### 📋 Summary: V4 Hooks
 
 **✓ Covered:**
 - V4 hook system — 10 lifecycle functions, address-encoded permissions
@@ -1528,7 +1528,7 @@ These topics sit at the intersection of AMM mechanics, market microstructure, an
 ---
 
 <a id="mev-sandwich"></a>
-### ⚠️ MEV & Sandwich Attacks
+#### ⚠️ MEV & Sandwich Attacks
 
 **Why this matters:** Every AMM swap is a public transaction that sits in the mempool before execution. MEV (Maximal Extractable Value) searchers monitor the mempool and exploit the ordering of transactions for profit. If you're building any protocol that swaps through an AMM, MEV is your adversary.
 
@@ -1878,7 +1878,7 @@ If your protocol uses LP tokens as collateral or manages liquidity:
 
 > **Deep dive:** [Arrakis documentation](https://docs.arrakis.fi/), [Gamma strategies overview](https://docs.gamma.xyz/), [Maverick AMM docs](https://docs.mav.xyz/), [Bunni V2 design](https://docs.bunni.pro/)
 
-### 📋 Summary: Beyond Uniswap & Advanced AMM Topics
+#### 📋 Summary: Beyond Uniswap & Advanced AMM Topics
 
 **✓ Covered:**
 - AMMs vs Order Books — tradeoffs, when each wins, the convergence toward hybrid systems

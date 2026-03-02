@@ -68,7 +68,7 @@ The core lifecycle:
 The critical insight: DAI's value comes from the guarantee that every DAI in circulation is backed by more than $1 of collateral, and that the system can liquidate under-collateralized positions to maintain this backing.
 
 <a id="maker-architecture"></a>
-### 📖 MakerDAO Contract Architecture
+#### 📖 MakerDAO Contract Architecture
 
 MakerDAO's codebase (called "dss" — Dai Stablecoin System) uses a unique naming convention inherited from formal verification traditions. The core contracts:
 
@@ -213,7 +213,7 @@ IVat vat = IVat(0x35D1b3F3D7966A1DFe207aa4514C12a259A0492B);
 Observe that `rate` is > 1.0e27 — that difference from 1.0 represents all accumulated stability fees since ETH-A was created. Every vault's actual debt is `art × rate`.
 
 <a id="read-vat"></a>
-### 📖 Read: Vat.sol
+#### 📖 Read: Vat.sol
 
 **Source:** `dss/src/vat.sol` (github.com/sky-ecosystem/dss)
 
@@ -329,7 +329,7 @@ function rpow(uint256 x, uint256 n, uint256 base) internal pure returns (uint256
 
 ---
 
-### 📋 Summary: CDP Model and MakerDAO
+#### 📋 Summary: CDP Model and MakerDAO
 
 **✓ Covered:**
 - CDP model: mint stablecoins against collateral (not lending from a pool)
@@ -563,7 +563,7 @@ In September 2024, MakerDAO rebranded to Sky Protocol. Key changes:
 The underlying protocol mechanics (Vat, Dog, Clipper, etc.) remain the same. For this module, we'll use the original MakerDAO naming since that's what the codebase uses.
 
 <a id="read-dog-clipper"></a>
-### 📖 Read: Dog.sol and Clipper.sol
+#### 📖 Read: Dog.sol and Clipper.sol
 
 **Source:** `dss/src/dog.sol` and `dss/src/clip.sol`
 
@@ -627,7 +627,7 @@ In `Clipper.kick()`, trace:
 
 ---
 
-### 📋 Summary: Liquidations, PSM, and DSR
+#### 📋 Summary: Liquidations, PSM, and DSR
 
 **✓ Covered:**
 - Liquidation 2.0: Dutch auctions (Dog + Clipper), why they replaced English auctions
@@ -652,7 +652,7 @@ The exercises across this module build a minimal CDP system that captures the es
 
 ---
 
-### 📋 Summary: SimpleCDP
+#### 📋 Summary: SimpleCDP
 
 **✓ Covered:**
 - Building the core CDP contracts: SimpleVat, SimpleJug, SimpleDog, SimplePSM
@@ -738,7 +738,7 @@ Step 4: Arbitrageur P&L
 **The peg guarantee:** Redemptions create a hard floor at ~$1.00 (minus the fee). If LUSD trades at $0.97, anyone can profit by redeeming. This arbitrage force pushes the price back up. The ceiling is softer — at ~$1.10 (the minimum CR), it becomes attractive to open new Troves and sell LUSD.
 
 <a id="algo-failure"></a>
-### ⚠️ The Algorithmic Stablecoin Failure Pattern
+#### ⚠️ The Algorithmic Stablecoin Failure Pattern
 
 UST/LUNA (Terra, May 2022) is the canonical example. The mechanism:
 - UST was pegged to $1 via an arbitrage loop with LUNA
@@ -935,7 +935,7 @@ Map out the feedback loops. This is how decentralized monetary policy works.
 
 ---
 
-### 📋 Summary: Stablecoin Landscape
+#### 📋 Summary: Stablecoin Landscape
 
 **✓ Covered:**
 - Stablecoin taxonomy: fiat-backed, overcollateralized, algorithmic, delta-neutral
@@ -952,7 +952,7 @@ Map out the feedback loops. This is how decentralized monetary policy works.
 ---
 
 <a id="common-mistakes"></a>
-### ⚠️ Common Mistakes
+#### ⚠️ Common Mistakes
 
 **Mistake 1: Confusing normalized debt (`art`) with actual debt (`art × rate`)**
 

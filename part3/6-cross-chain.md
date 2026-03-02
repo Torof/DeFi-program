@@ -264,7 +264,7 @@ The industry is moving from (1) toward (4) and (5). Every new bridge architectur
 
 Bridges hold massive TVL as locked collateral, and cross-chain verification is fundamentally hard. A single bug in verification = unlimited minting of wrapped tokens. Over $2.5B lost to bridge exploits in 2022 alone.
 
-### 🔍 Deep Dive: The Nomad Bridge Exploit ($190M, August 2022)
+#### 🔍 Deep Dive: The Nomad Bridge Exploit ($190M, August 2022)
 
 This is the most instructive bridge exploit — a tiny initialization bug that made every message valid.
 
@@ -359,7 +359,7 @@ When evaluating a bridge for protocol integration:
    How much of my protocol's TVL depends on this bridge's tokens?
 ```
 
-### 🔗 DeFi Pattern Connection
+#### 🔗 DeFi Pattern Connection
 
 **Bridge security connects across the curriculum:**
 - **Part 2 Module 8 (DeFi Security):** Bridge exploits are the #1 loss category, bigger than all oracle and reentrancy exploits combined
@@ -505,7 +505,7 @@ Layer 4: Manual Pause
 - Widest chain support: EVM, Solana, Cosmos, Sui, Aptos
 - NTT (Native Token Transfers) — canonical token bridging
 
-### 📖 How to Study: Cross-Chain Development
+#### 📖 How to Study: Cross-Chain Development
 
 1. Start with [LayerZero OApp docs](https://docs.layerzero.network/v2/developers/evm/oapp/overview) — the simplest cross-chain app interface
 2. Build a cross-chain counter or ping-pong using the OApp template
@@ -581,7 +581,7 @@ contract CrossChainToken is ERC20 {
 }
 ```
 
-### 🔍 Deep Dive: Rate Limiting Math (Token Bucket)
+#### 🔍 Deep Dive: Rate Limiting Math (Token Bucket)
 
 The rate limiter uses the **token bucket algorithm** — the same pattern used in API rate limiting:
 
@@ -632,7 +632,7 @@ WITH xERC20 rate limiting:
 
 > 🔍 **Standard:** [ERC-7281: Sovereign Bridged Tokens](https://eips.ethereum.org/EIPS/eip-7281) — the full specification
 
-### 🔗 DeFi Pattern Connection
+#### 🔗 DeFi Pattern Connection
 
 **Rate limiting appears across DeFi:**
 - **xERC20** — per-bridge mint limits (this module)
@@ -873,7 +873,7 @@ Run: `forge test --match-contract RateLimitedTokenTest -vvv`
 - [Rekt.news: Bridge hacks](https://rekt.news/) — detailed exploit post-mortems
 - [Nomad Bridge Post-Mortem](https://medium.com/nomad-xyz-blog/nomad-bridge-hack-root-cause-analysis-875ad2e5aacd) — official root cause analysis
 
-### 📖 How to Study: Bridge Security
+#### 📖 How to Study: Bridge Security
 
 1. Start with [Vitalik's Reddit post](https://old.reddit.com/r/ethereum/comments/rwojtk/ama_we_are_the_efs_research_team_pt_7_07_january/hrngyk8/) — understand why cross-chain is fundamentally hard
 2. Read the [Nomad post-mortem](https://medium.com/nomad-xyz-blog/nomad-bridge-hack-root-cause-analysis-875ad2e5aacd) — the most instructive exploit

@@ -188,7 +188,7 @@ Not all providers implement ERC-3156 (Aave and Balancer have their own interface
 > **🔗 Connection:** The flash mint concept connects to Module 6 — a CDP stablecoin can offer infinite flash liquidity because the protocol controls issuance. Your Part 2 Module 9 capstone stablecoin includes a flash mint feature, and Part 3 Module 9 (Perpetual Exchange capstone) builds on these composability patterns.
 
 <a id="read-aave-flash"></a>
-### 📖 Read: Aave FlashLoanLogic.sol
+#### 📖 Read: Aave FlashLoanLogic.sol
 
 **Source:** `aave-v3-core/contracts/protocol/libraries/logic/FlashLoanLogic.sol`
 
@@ -207,7 +207,7 @@ Trace `executeFlashLoanSimple()`:
 Also read `executeFlashLoan()` (the multi-asset version). Note the `modes[]` parameter: mode 0 = repay, mode 1 = open variable debt, mode 2 = open stable debt. This enables a pattern where you flash-borrow an asset and convert it into a collateralized borrow in the same transaction — useful for collateral swaps and leverage.
 
 <a id="read-balancer-flash"></a>
-### 📖 Read: Balancer FlashLoans
+#### 📖 Read: Balancer FlashLoans
 
 **Source:** Balancer V2 Vault `flashLoan()` implementation.
 
@@ -267,7 +267,7 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 
 ---
 
-### 📋 Summary: Flash Loan Mechanics
+#### 📋 Summary: Flash Loan Mechanics
 
 **✓ Covered:**
 - The atomic guarantee: borrow → callback → repay or entire tx reverts
@@ -597,7 +597,7 @@ Result:
 
 ---
 
-### 📋 Summary: Flash Loan Strategies
+#### 📋 Summary: Flash Loan Strategies
 
 **✓ Covered:**
 - Four composition strategies: DEX arbitrage, flash loan liquidation, collateral swap, leverage/deleverage
@@ -613,7 +613,7 @@ Result:
 ## ⚠️ Security, Anti-Patterns, and the Bigger Picture
 
 <a id="flash-security"></a>
-### ⚠️ Flash Loan Security for Protocol Builders
+#### ⚠️ Flash Loan Security for Protocol Builders
 
 Flash loans don't create vulnerabilities — they *democratize access to capital* for exploiting existing vulnerabilities. But as a protocol builder, you need to design for a world where any attacker has access to unlimited capital within a single transaction.
 
@@ -656,7 +656,7 @@ Cost to attacker: gas only (~$8). Profit: $350,000.
 > **📖 Study tip — Tracing real exploits:** Use [Tenderly](https://dashboard.tenderly.co/tx/mainnet/) or [Phalcon by BlockSec](https://app.blocksec.com/explorer) to trace historical exploit transactions step-by-step. Paste the tx hash and you'll see every internal call, state change, and token transfer in order. For the bZx attack, trace [this tx](https://etherscan.io/tx/0xb5c8bd9430b6cc87a0e2fe110ece6bf527fa4f170a4bc8cd032f768fc5219838) — you'll see the flash borrow from dYdX, the Compound interactions, the Uniswap price manipulation, and the profitable unwind all in a single call tree. This is the fastest way to internalize how flash loan compositions work in production.
 
 <a id="receiver-security"></a>
-### ⚠️ Flash Loan Receiver Security
+#### ⚠️ Flash Loan Receiver Security
 
 When building flash loan receivers (your callback contracts), guard against:
 
@@ -695,7 +695,7 @@ The evolution:
 As a protocol builder, flash accounting is the pattern to understand deeply. It's more gas-efficient, more composable, and more flexible than dedicated flash loan functions. You'll see this pattern adopted by more protocols going forward.
 
 <a id="governance-attacks"></a>
-### ⚠️ Governance Attacks via Flash Loans
+#### ⚠️ Governance Attacks via Flash Loans
 
 Some governance tokens allow voting based on current token holdings at the time of the vote. An attacker can:
 1. Flash-borrow governance tokens
@@ -709,7 +709,7 @@ Some governance tokens allow voting based on current token holdings at the time 
 
 Most modern governance systems (OpenZeppelin Governor, Compound Governor Bravo) use snapshot voting, making this attack vector largely mitigated. But be aware of it when evaluating protocols with simpler governance.
 
-### 📋 Flash Loan Fee Comparison
+#### 📋 Flash Loan Fee Comparison
 
 | Provider | Fee | Multi-asset | Liquidity Source | Fee Waiver |
 |----------|-----|-------------|-----------------|------------|
@@ -768,7 +768,7 @@ Key difference:
 
 ---
 
-### 📋 Summary: Flash Loan Security
+#### 📋 Summary: Flash Loan Security
 
 **✓ Covered:**
 - Protocol builder security: never use spot prices, beware same-tx state manipulation, time-based defenses
@@ -803,7 +803,7 @@ Key difference:
 ---
 
 <a id="common-mistakes"></a>
-### ⚠️ Common Mistakes
+#### ⚠️ Common Mistakes
 
 **Mistake 1: Not validating `msg.sender` in the callback**
 

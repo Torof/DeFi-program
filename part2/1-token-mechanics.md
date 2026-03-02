@@ -145,7 +145,7 @@ assertEq(normUSDC, oneDAI);  // Both represent "1 token" at 18 decimals
 ---
 
 <a id="read-oz-erc20"></a>
-### 📖 Read: OpenZeppelin ERC20 and SafeERC20
+#### 📖 Read: OpenZeppelin ERC20 and SafeERC20
 
 **Source:** [@openzeppelin/contracts v5.x](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/token/ERC20)
 
@@ -176,7 +176,7 @@ Then read [SafeERC20](https://github.com/OpenZeppelin/openzeppelin-contracts/blo
 ---
 
 <a id="read-weird-erc20"></a>
-### 📖 Read: The Weird ERC-20 Catalog
+#### 📖 Read: The Weird ERC-20 Catalog
 
 **Source:** [github.com/d-xo/weird-erc20](https://github.com/d-xo/weird-erc20)
 
@@ -329,7 +329,7 @@ This 8-line function handles 90% of weird token edge cases. The remaining 10% (r
 
 ---
 
-### 📋 Summary: ERC-20 Core Patterns & Weird Tokens
+#### 📋 Summary: ERC-20 Core Patterns & Weird Tokens
 
 **✓ Covered:**
 - The approve/transferFrom two-step and how it shapes all DeFi interactions
@@ -346,7 +346,7 @@ This 8-line function handles 90% of weird token edge cases. The remaining 10% (r
 ## 💡 Advanced Token Behaviors & Protocol Design
 
 <a id="advanced-token-behaviors"></a>
-### ⚠️ Advanced Token Behaviors That Break Protocols
+#### ⚠️ Advanced Token Behaviors That Break Protocols
 
 Beyond the "weird ERC-20" edge cases above, several token categories introduce behaviors that fundamentally affect protocol architecture. You won't encounter these on every integration, but when you do, not knowing about them leads to exploits.
 
@@ -680,7 +680,7 @@ The snapshot still reads 1,000 tokens even though `balanceOf` shows 1,001,000. T
 ---
 
 <a id="read-weth"></a>
-### 📖 Read: WETH
+#### 📖 Read: WETH
 
 **Source:** The canonical [WETH9 contract](https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2#code) (deployed December 2017)
 
@@ -797,7 +797,7 @@ Feel the simplicity — WETH is just a deposit/withdraw box. Now imagine every p
 ---
 
 <a id="token-evaluation-checklist"></a>
-### 📋 Token Evaluation Checklist
+#### 📋 Token Evaluation Checklist
 
 **Use this when integrating a new token into your protocol.** This synthesizes everything in this module into a practical assessment tool.
 
@@ -916,7 +916,7 @@ contract FeeOnTransferToken is ERC20 {
 
 ---
 
-### 📋 Summary: Advanced Token Behaviors & Protocol Design
+#### 📋 Summary: Advanced Token Behaviors & Protocol Design
 
 **✓ Covered:**
 - ERC-777 hooks — reentrancy through token transfers, not just ETH sends (imBTC, Hundred Finance exploits)

@@ -251,7 +251,7 @@ function test_GovernanceLifecycle() public {
 
 This test pattern is exactly what your Exercise 1 will use.
 
-### 📖 How to Study: OpenZeppelin Governor
+#### 📖 How to Study: OpenZeppelin Governor
 
 1. Start with `ERC20Votes.sol` — understand delegation and `_checkpoints` mapping
 2. Read `Governor.propose()` — how a proposal is created and the snapshot is taken
@@ -284,7 +284,7 @@ Lock CRV tokens for 1-4 years → receive veCRV (non-transferable)
   1 week           0.0048 veCRV    (minimum)
 ```
 
-### 🔍 Deep Dive: veCRV Decay Math
+#### 🔍 Deep Dive: veCRV Decay Math
 
 The core formula — voting power decays linearly toward zero as the lock approaches expiry:
 
@@ -442,7 +442,7 @@ Velodrome's fix:
 
 **Result:** Velodrome is the dominant DEX on Optimism; Aerodrome is the dominant DEX on Base. The ve(3,3) model works especially well on L2s (Module 7 connection) because the cheap gas makes weekly voting/claiming practical for all users, not just whales.
 
-### 🔗 DeFi Pattern Connection
+#### 🔗 DeFi Pattern Connection
 
 **Governance tokenomics across the curriculum:**
 
@@ -818,7 +818,7 @@ Run: `forge test --match-contract VoteEscrowTest -vvv`
 - [Beanstalk Governance Attack Post-Mortem](https://rekt.news/beanstalk-rekt/) — detailed exploit analysis
 - [Curve Wars Explainer](https://every.to/almanack/curve-wars) — the economics of governance competition
 
-### 📖 How to Study: DeFi Governance
+#### 📖 How to Study: DeFi Governance
 
 1. Start with [OpenZeppelin Governor Guide](https://docs.openzeppelin.com/contracts/5.x/governance) — deploy a test governor in Foundry
 2. Read `ERC20Votes.sol` — understand checkpointing (this is what prevents flash loan attacks)
