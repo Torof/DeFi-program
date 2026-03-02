@@ -1231,9 +1231,9 @@ contract DifferentialTest is Test {
 
 ---
 
-### 🔗 Cross-Module Concept Links
+## 🔗 Cross-Module Concept Links
 
-#### Building on Earlier Modules
+**Backward references (← concepts from earlier modules):**
 
 | Module | Concept | How It Connects |
 |--------|---------|-----------------|
@@ -1247,7 +1247,7 @@ contract DifferentialTest is Test {
 | [← M4 Account Abstraction](4-account-abstraction.md) | ERC-4337 validation | `vm.prank(entryPoint)` for validateUserOp testing |
 | [← M4 Account Abstraction](4-account-abstraction.md) | EIP-1271 signatures | Fork tests against real deployed smart wallets |
 
-#### Connecting Forward
+**Forward references (→ concepts you'll use later):**
 
 | Module | Concept | How It Connects |
 |--------|---------|-----------------|
@@ -1256,7 +1256,7 @@ contract DifferentialTest is Test {
 | [→ M7 Deployment](7-deployment.md) | Foundry scripts | Deterministic deployment scripts, `CREATE2` address prediction tests |
 | [→ M7 Deployment](7-deployment.md) | Multi-chain verification | Cross-chain deployment consistency checks |
 
-#### Part 2 Connections
+**Part 2 connections:**
 
 | Part 2 Module | Foundry Technique | Application |
 |---------------|-------------------|-------------|
@@ -1271,7 +1271,7 @@ contract DifferentialTest is Test {
 
 ---
 
-### 📖 Production Study Order
+## 📖 Production Study Order
 
 Study these test suites in this order — each builds on skills from the previous:
 

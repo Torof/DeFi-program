@@ -1146,6 +1146,41 @@ Build a simplified lending pool that accepts wstETH as collateral, using the ora
 
 ---
 
+<a id="cross-module-links"></a>
+## 🔗 Cross-Module Concept Links
+
+**← Backward References (where these patterns were introduced):**
+- Exchange rate math → **P1M1** ShareMath (shares/assets pattern), **P2M7** ERC-4626 `convertToShares`/`convertToAssets` — LSTs use the same shares-proportional-to-underlying model
+- Oracle integration → **P2M3** Chainlink patterns, staleness checks, heartbeat monitoring — LST oracles add beacon chain finality as an extra trust assumption
+- Lending collateral → **P2M4** health factor calculation, liquidation mechanics — LST collateral requires dual oracle pricing (exchange rate + market price)
+- Rebasing tokens → **P2M1** weird token behaviors — stETH rebasing breaks `balanceOf` assumptions; wstETH wrapping solves this
+- Yield-bearing assets → **P2M7** vault shares as collateral, ERC-4626 accounting — LSTs are essentially yield-bearing receipt tokens with the same math
+
+**→ Forward References (where LST concepts appear next in Part 3):**
+- Restaking → **P3M6** (Governance & Risk) — risk stacking from restaked assets, correlated slashing conditions
+- LST as perp collateral → **P3M2** (Perpetuals) — yield-bearing margin, funding rate interaction with staking yield
+- LST yield tokenization → **P3M3** (Yield Tokenization) — Pendle PT-stETH, fixed-rate staking exposure via PT/YT split
+- LST price feeds → **P3M5** (MEV & Frontrunning) — oracle manipulation vectors, sandwich attacks on LST swaps
+
+---
+
+<a id="production-study-order"></a>
+## 📖 Production Study Order
+
+Study these codebases in order — each builds on the previous one's patterns:
+
+| # | Repository | Why Study This | Key Files |
+|---|-----------|----------------|-----------|
+| 1 | [Lido stETH/wstETH](https://github.com/lidofinance/lido-dao) | The canonical LST — shares accounting, rebase mechanics, wrap/unwrap pattern | `contracts/0.4.24/Lido.sol`, `contracts/0.6.12/WstETH.sol` |
+| 2 | [Lido AccountingOracle](https://github.com/lidofinance/lido-dao/blob/master/contracts/0.8.9/oracle/AccountingOracle.sol) | Beacon chain reporting, quorum, finalization delay — understand the trust model | `contracts/0.8.9/oracle/AccountingOracle.sol`, `contracts/0.8.9/oracle/HashConsensus.sol` |
+| 3 | [Aave V3 wstETH integration](https://github.com/aave/aave-v3-core) | E-Mode configuration, oracle adapter wrapping exchange rate + Chainlink feed | `contracts/misc/PriceOracleSentinel.sol`, Aave wstETH oracle adapter |
+| 4 | [EigenLayer StrategyManager](https://github.com/Layr-Labs/eigenlayer-contracts) | Restaking deposit flow, delegation, withdrawal queue — see how risk stacks | `src/contracts/core/StrategyManager.sol`, `src/contracts/core/DelegationManager.sol` |
+| 5 | [Rocket Pool rETH](https://github.com/rocket-pool/rocketpool) | Alternative exchange rate model — decentralized node operator set, minipool architecture | `contracts/contract/token/RocketTokenRETH.sol`, `contracts/contract/deposit/RocketDepositPool.sol` |
+
+**Reading strategy:** Start with Lido — it's the most widely integrated LST. Read `Lido.sol` for the shares/pooledEth accounting, then `WstETH.sol` for the non-rebasing wrapper (this is what DeFi protocols actually integrate). Study the oracle next to understand the trust assumptions. Then see how Aave wraps the exchange rate into a price feed. EigenLayer shows restaking as a layer on top. Rocket Pool shows the decentralized alternative.
+
+---
+
 <a id="resources"></a>
 ## 📚 Resources
 

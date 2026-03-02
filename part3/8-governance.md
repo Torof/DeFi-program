@@ -832,6 +832,29 @@ SHOULD NOT be governable (hardcode):
 
 ---
 
+## 🔗 Cross-Module Concept Links
+
+- Token voting → **P2 M1** ERC-20 extensions, ERC20Votes delegation
+- Flash loan governance attacks → **P2 M5** flash loans for vote manipulation
+- Timelock patterns → **P1 M6** proxy upgrades via governance, admin controls
+- ve-tokenomics → **P2 M2** Curve AMM, gauge voting for liquidity direction
+- Security patterns → **P2 M8** access control, multisig validation
+- Treasury management → **P2 M7** vault strategies for DAO treasury yield
+
+---
+
+## 📖 Production Study Order
+
+1. **OpenZeppelin Governor.sol** — proposal lifecycle, counting modules
+2. **OpenZeppelin TimelockController.sol** — delayed execution, role management
+3. **Compound GovernorBravo** — historical reference, delegation mechanics
+4. **Curve VotingEscrow.vy** — original ve implementation, decay math
+5. **Convex CvxLocker** — vlCVX vote locking, reward distribution
+6. **Velodrome VotingEscrow** — ve(3,3) implementation, rebasing
+7. **MakerDAO DSChief** — hat-based governance, historical significance
+
+---
+
 <a id="resources"></a>
 ## 📚 Resources
 

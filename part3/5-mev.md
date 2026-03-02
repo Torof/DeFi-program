@@ -792,6 +792,29 @@ Run: `forge test --match-contract MEVFeeHookTest -vvv`
 
 ---
 
+## 🔗 Cross-Module Concept Links
+
+- AMM price impact → **P2 M2** constant product formula, slippage calculations
+- Sandwich attacks on swaps → **P2 M2** swap mechanics, minimum output enforcement
+- Flash loan arbitrage → **P2 M5** flash loan patterns, atomic execution
+- Oracle manipulation → **P2 M3** TWAP vs spot price, multi-block attacks
+- Liquidation MEV → **P2 M4** liquidation mechanics, health factor thresholds
+- PBS and block building → **P3 M7** L2 sequencer ordering, centralized block production
+- Dynamic fees as MEV defense → **P2 M2** Uniswap V4 hooks, fee adjustment
+
+---
+
+## 📖 Production Study Order
+
+1. **Flashbots MEV-Boost relay** — builder API, block submission flow
+2. **Flashbots Protect RPC** — private transaction submission, frontrunning protection
+3. **MEV-Share contracts** — programmable MEV redistribution, order flow auctions
+4. **UniswapX** — MEV-aware execution via Dutch auctions, filler network
+5. **CoW Protocol** — batch auctions as MEV defense, solver competition
+6. **Notable MEV bot contracts on Etherscan** — study real searcher strategies and gas optimization
+
+---
+
 <a id="resources"></a>
 ## 📚 Resources
 

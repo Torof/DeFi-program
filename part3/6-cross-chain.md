@@ -885,6 +885,29 @@ This pattern is used by Uniswap (governance on mainnet, execution across chains)
 
 ---
 
+## 🔗 Cross-Module Concept Links
+
+- Token standards for bridging → **P2 M1** ERC-20 mechanics, weird tokens, approval patterns
+- Oracle verification on destination → **P2 M3** multi-source validation, staleness checks
+- Flash loans cross-chain → **P2 M5** flash loan patterns, atomic execution constraints
+- Rate limiting math → **P2 M4** interest rate models, similar accumulator patterns
+- Security patterns → **P2 M8** reentrancy guards, access control, input validation
+- L2 canonical bridges → **P3 M7** L2 architecture, message passing, finality
+- Governance for bridge upgrades → **P3 M8** multisig, timelock, emergency actions
+
+---
+
+## 📖 Production Study Order
+
+1. **LayerZero EndpointV2.sol** — message dispatching, ULN verification flow
+2. **LayerZero OApp.sol** — application pattern, `_lzReceive` handler
+3. **Chainlink CCIP Router.sol** — message sending, fee estimation
+4. **Chainlink CCIP OnRamp/OffRamp** — token transfer mechanics, rate limiting
+5. **Wormhole CoreBridge** — VAA verification, guardian set management
+6. **Across SpokePool** — optimistic relaying, LP-based bridging economics
+
+---
+
 <a id="resources"></a>
 ## 📚 Resources
 

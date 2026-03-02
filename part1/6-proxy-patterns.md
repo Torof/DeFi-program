@@ -739,7 +739,46 @@ function initialize(IPoolAddressesProvider provider) external initializer {
 
 **Don't get stuck on:** The proxy contract's assembly code. Once you understand the pattern (it delegates everything), focus entirely on the implementation.
 
-### 📖 Production Study Order
+## 🔗 Cross-Module Concept Links
+
+**Backward references (← concepts from earlier modules):**
+
+| Module | Concept | How It Connects |
+|--------|---------|-----------------|
+| [← M1 Modern Solidity](1-solidity-modern.md) | Custom errors | Work normally in upgradeable contracts — selector-based, no storage impact |
+| [← M1 Modern Solidity](1-solidity-modern.md) | UDVTs | Cross proxy boundaries safely — type wrapping has zero storage footprint |
+| [← M1 Modern Solidity](1-solidity-modern.md) | `immutable` variables | **Critical:** not in storage — removing immutables between versions causes slot shifts |
+| [← M2 EVM Changes](2-evm-changes.md) | Transient storage | `TSTORE`/`TLOAD` works through `DELEGATECALL` — proxy and implementation share transient context |
+| [← M3 Token Approvals](3-token-approvals.md) | EIP-2612 permits | `DOMAIN_SEPARATOR` uses `address(this)` = proxy address (correct), not implementation |
+| [← M3 Token Approvals](3-token-approvals.md) | Permit2 integration | Permit2 approvals target the proxy address — survives implementation upgrades |
+| [← M4 Account Abstraction](4-account-abstraction.md) | ERC-4337 wallets | SimpleAccount uses UUPS — wallet is a proxy, enabling logic upgrades without address change |
+| [← M5 Foundry](5-foundry.md) | `forge inspect` | Primary tool for verifying storage layout compatibility before upgrades |
+| [← M5 Foundry](5-foundry.md) | Fork testing | Verify upgrades against live proxy state with `vm.load` for EIP-1967 slots |
+
+**Forward references (→ concepts you'll use later):**
+
+| Module | Concept | How It Connects |
+|--------|---------|-----------------|
+| [→ M7 Deployment](7-deployment.md) | `CREATE2` deployment | Deterministic proxy addresses across chains |
+| [→ M7 Deployment](7-deployment.md) | Atomic deploy+init | Deployment scripts that deploy proxy and call `initialize()` in one transaction |
+| [→ M7 Deployment](7-deployment.md) | Multi-chain consistency | Same proxy addresses on every chain via `CREATE2` + same nonce |
+
+**Part 2 connections:**
+
+| Part 2 Module | Proxy Pattern | Application |
+|---------------|---------------|-------------|
+| [M1: Token Mechanics](../part2/1-token-mechanics.md) | Beacon proxy | Rebasing tokens (like stETH) use proxy patterns for upgradeable accounting |
+| [M2: AMMs](../part2/2-amms.md) | Immutable core | Uniswap V4 PoolManager is immutable — trust minimization for AMM math |
+| [M4: Lending](../part2/4-lending.md) | Transparent + individual proxies | Aave V3 uses Transparent for Pool, individual transparent-style proxies for aTokens (upgraded via `PoolConfigurator`) |
+| [M4: Lending](../part2/4-lending.md) | Custom immutable | Compound V3 (Comet) uses custom proxy with immutable implementation |
+| [M5: Flash Loans](../part2/5-flash-loans.md) | UUPS periphery | Flash loan routers behind UUPS for upgradeable routing logic |
+| [M6: Stablecoins](../part2/6-stablecoins-cdps.md) | Timelock + proxy | Governance controls proxy upgrades via timelock — upgrade authorization |
+| [M8: Security](../part2/8-defi-security.md) | Exploit patterns | Uninitialized proxies and storage collisions are top audit findings |
+| [M9: Integration](../part2/9-integration-capstone.md) | Full architecture | Capstone combines proxy deployment, initialization, and upgrade testing |
+
+---
+
+## 📖 Production Study Order
 
 Study these proxy implementations in this order — each builds on patterns from the previous:
 
@@ -754,45 +793,6 @@ Study these proxy implementations in this order — each builds on patterns from
 | 7 | [ERC-4337 SimpleAccount](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccount.sol) | UUPS for smart wallets — proxy as account abstraction pattern | SimpleAccount.sol, BaseAccount.sol |
 
 **Reading strategy:** Start with OZ to learn the canonical proxy patterns, then study Compound's intentionally different approach (immutable implementation). Move to Aave for the most complex production proxy architecture you'll encounter. Finish with ERC-4337 to see UUPS applied to a completely different domain — smart wallets instead of DeFi protocols.
-
----
-
-### 🔗 Cross-Module Concept Links
-
-#### Building on Earlier Modules
-
-| Module | Concept | How It Connects |
-|--------|---------|-----------------|
-| [← M1 Modern Solidity](1-solidity-modern.md) | Custom errors | Work normally in upgradeable contracts — selector-based, no storage impact |
-| [← M1 Modern Solidity](1-solidity-modern.md) | UDVTs | Cross proxy boundaries safely — type wrapping has zero storage footprint |
-| [← M1 Modern Solidity](1-solidity-modern.md) | `immutable` variables | **Critical:** not in storage — removing immutables between versions causes slot shifts |
-| [← M2 EVM Changes](2-evm-changes.md) | Transient storage | `TSTORE`/`TLOAD` works through `DELEGATECALL` — proxy and implementation share transient context |
-| [← M3 Token Approvals](3-token-approvals.md) | EIP-2612 permits | `DOMAIN_SEPARATOR` uses `address(this)` = proxy address (correct), not implementation |
-| [← M3 Token Approvals](3-token-approvals.md) | Permit2 integration | Permit2 approvals target the proxy address — survives implementation upgrades |
-| [← M4 Account Abstraction](4-account-abstraction.md) | ERC-4337 wallets | SimpleAccount uses UUPS — wallet is a proxy, enabling logic upgrades without address change |
-| [← M5 Foundry](5-foundry.md) | `forge inspect` | Primary tool for verifying storage layout compatibility before upgrades |
-| [← M5 Foundry](5-foundry.md) | Fork testing | Verify upgrades against live proxy state with `vm.load` for EIP-1967 slots |
-
-#### Connecting Forward
-
-| Module | Concept | How It Connects |
-|--------|---------|-----------------|
-| [→ M7 Deployment](7-deployment.md) | `CREATE2` deployment | Deterministic proxy addresses across chains |
-| [→ M7 Deployment](7-deployment.md) | Atomic deploy+init | Deployment scripts that deploy proxy and call `initialize()` in one transaction |
-| [→ M7 Deployment](7-deployment.md) | Multi-chain consistency | Same proxy addresses on every chain via `CREATE2` + same nonce |
-
-#### Part 2 Connections
-
-| Part 2 Module | Proxy Pattern | Application |
-|---------------|---------------|-------------|
-| [M1: Token Mechanics](../part2/1-token-mechanics.md) | Beacon proxy | Rebasing tokens (like stETH) use proxy patterns for upgradeable accounting |
-| [M2: AMMs](../part2/2-amms.md) | Immutable core | Uniswap V4 PoolManager is immutable — trust minimization for AMM math |
-| [M4: Lending](../part2/4-lending.md) | Transparent + individual proxies | Aave V3 uses Transparent for Pool, individual transparent-style proxies for aTokens (upgraded via `PoolConfigurator`) |
-| [M4: Lending](../part2/4-lending.md) | Custom immutable | Compound V3 (Comet) uses custom proxy with immutable implementation |
-| [M5: Flash Loans](../part2/5-flash-loans.md) | UUPS periphery | Flash loan routers behind UUPS for upgradeable routing logic |
-| [M6: Stablecoins](../part2/6-stablecoins-cdps.md) | Timelock + proxy | Governance controls proxy upgrades via timelock — upgrade authorization |
-| [M8: Security](../part2/8-defi-security.md) | Exploit patterns | Uninitialized proxies and storage collisions are top audit findings |
-| [M9: Integration](../part2/9-integration-capstone.md) | Full architecture | Capstone combines proxy deployment, initialization, and upgrade testing |
 
 ---
 
