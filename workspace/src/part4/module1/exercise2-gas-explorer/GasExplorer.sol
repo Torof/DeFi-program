@@ -15,13 +15,13 @@ pragma solidity ^0.8.28;
 //   - Memory vs storage cost comparison
 //   - Writing simple assembly to observe opcode costs
 //
-// Run: forge test --match-contract GasExplorerTest -vvv
+// Run: FOUNDRY_PROFILE=part4 forge test --match-contract GasExplorerTest -vvv
 // ============================================================================
 
 contract GasExplorer {
     // Storage slots used for gas measurement
     // Solidity assigns sequential slots: storedValue = slot 0, storedValueB = slot 1
-    uint256 public storedValue;   // slot 0 — used by SLOAD measurements
+    uint256 public storedValue;   // slot 0 — used by SLOAD measurements (don't call the getter before measureSloadCold!)
     uint256 public storedValueB;  // slot 1 — used by SSTORE measurement (avoids slot 0 interference)
 
     // -------------------------------------------------------------------------
@@ -35,8 +35,8 @@ contract GasExplorer {
     //   1. Record gas before: let gasBefore := gas()
     //   2. Perform sload on the storedValue slot (slot 0)
     //   3. Record gas after: let gasAfter := gas()
-    //   4. Return gasBefore - gasAfter (this includes the gas() opcode overhead,
-    //      but the test accounts for that)
+    //   4. Return gasBefore - gasAfter (this includes a few gas of overhead
+    //      from the gas() opcode itself — the tests use generous ranges)
     //
     // Opcodes: gas, sload
     // See: Module 1 > EIP-2929 Warm/Cold Access (#warm-cold)
@@ -54,7 +54,9 @@ contract GasExplorer {
     // then measure the second sload.
     //
     // Steps:
-    //   1. Perform a throwaway sload(0) to warm the slot
+    //   1. Warm up slot 0: let warmup := sload(0)
+    //      (Assign to a variable — do NOT use pop(sload(0)) because the
+    //       compiler eliminates it as dead code, removing the warm-up!)
     //   2. Record gas before
     //   3. Perform the measured sload(0)
     //   4. Record gas after
@@ -75,7 +77,8 @@ contract GasExplorer {
     // This is just a normal Solidity addition — it reverts on overflow.
     // The tests will compare its gas cost with addAssembly().
     //
-    // No assembly needed here — just return a + b in Solidity.
+    // No assembly needed here — this is plain Solidity so we can compare
+    // its gas cost against the assembly version in TODO 4.
     // -------------------------------------------------------------------------
     function addChecked(uint256 a, uint256 b) external pure returns (uint256) {
         revert("Not implemented");
@@ -109,7 +112,7 @@ contract GasExplorer {
     // Opcodes: gas, mstore
     // See: Module 1 > Gas Model (#gas-model) — memory costs
     // -------------------------------------------------------------------------
-    function measureMemoryWrite(uint256 val) external pure returns (uint256 gasUsed) {
+    function measureMemoryWrite(uint256 val) external view returns (uint256 gasUsed) {
         assembly {
             revert(0, 0) // TODO: replace with implementation
         }

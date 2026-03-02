@@ -8,7 +8,7 @@ pragma solidity ^0.8.28;
 // no Solidity if-statements — everything inside assembly { } blocks.
 //
 // This builds muscle memory for core Yul syntax: let, add, mul, gt, lt, eq,
-// iszero, caller(), callvalue(), timestamp(), chainid(), calldataload(), shr().
+// iszero, caller(), callvalue(), timestamp(), chainid(), calldataload().
 //
 // Concepts exercised:
 //   - Yul variable declaration (let) and assignment (:=)
@@ -16,9 +16,9 @@ pragma solidity ^0.8.28;
 //   - Comparison opcodes (gt, lt, eq, iszero)
 //   - Conditional logic (if, switch/case)
 //   - Context opcodes (caller, callvalue, timestamp, chainid)
-//   - Calldata reading (calldataload, shr)
+//   - Calldata reading (calldataload)
 //
-// Run: forge test --match-contract YulBasicsTest -vvv
+// Run: FOUNDRY_PROFILE=part4 forge test --match-contract YulBasicsTest -vvv
 // ============================================================================
 
 contract YulBasics {
@@ -90,12 +90,14 @@ contract YulBasics {
     // -------------------------------------------------------------------------
     // TODO 5: Extract the function selector from arbitrary calldata
     //
-    // The selector is the first 4 bytes of calldata. Since calldataload reads
-    // 32 bytes, you need to shift right to isolate the top 4 bytes.
+    // The selector is the first 4 bytes of the data. Use calldataload to read
+    // 32 bytes starting at the data's offset.
     //
-    // Hint: 4 bytes = 32 bits, so shift right by 256 - 32 = 224 bits
+    // Key insight: `bytes4` is a fixed-size type that occupies the HIGH (left)
+    // 4 bytes of a 256-bit word. `calldataload` also returns data left-aligned.
+    // So the selector is already in the right position — no shifting needed.
     //
-    // Opcodes: calldataload, shr
+    // Opcodes: calldataload
     // See: Module 1 > Execution Context (#execution-context) — calldata layout
     // -------------------------------------------------------------------------
     function extractSelector(bytes calldata data) external pure returns (bytes4 selector) {
@@ -105,7 +107,8 @@ contract YulBasics {
             //   data.length — number of bytes
             //
             // Use calldataload(data.offset) to read 32 bytes starting at the
-            // data's position, then shift right to isolate the first 4 bytes.
+            // data's position. The first 4 bytes are already left-aligned,
+            // matching the bytes4 layout — just assign directly.
 
             revert(0, 0) // TODO: replace with implementation
         }

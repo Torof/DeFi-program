@@ -926,9 +926,9 @@ Implement basic functions using **only inline assembly**. No Solidity arithmetic
 4. `getContext()` — return `(msg.sender, msg.value, block.timestamp, block.chainid)` by reading context opcodes
 5. `extractSelector(bytes calldata data)` — extract the first 4 bytes of arbitrary calldata
 
-**🎯 Goal:** Build muscle memory for basic Yul syntax — `let`, `add`, `mul`, `gt`, `lt`, `eq`, `iszero`, `caller()`, `callvalue()`, `timestamp()`, `chainid()`, `calldataload()`, `shr()`.
+**🎯 Goal:** Build muscle memory for basic Yul syntax — `let`, `add`, `mul`, `gt`, `lt`, `eq`, `iszero`, `caller()`, `callvalue()`, `timestamp()`, `chainid()`, `calldataload()`.
 
-Run: `forge test --match-contract YulBasicsTest -vvv`
+Run: `FOUNDRY_PROFILE=part4 forge test --match-contract YulBasicsTest -vvv`
 
 ---
 
@@ -946,7 +946,7 @@ Measure and compare gas costs at the opcode level. Some functions you'll impleme
 
 **🎯 Goal:** Internalize the gas cost hierarchy through direct measurement. After this exercise, you'll intuitively know *why* certain patterns are expensive.
 
-Run: `forge test --match-contract GasExplorerTest -vvv`
+Run: `FOUNDRY_PROFILE=part4 forge test --match-contract GasExplorerTest -vvv`
 
 ---
 

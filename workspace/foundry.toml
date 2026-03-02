@@ -8,6 +8,12 @@ optimizer = false
 optimizer_runs = 200
 via_ir = true
 
+# Part 4 exercises measure gas at the opcode level. The IR codegen (via_ir=true)
+# eliminates unused SLOADs during compilation, breaking gas measurement functions.
+# Run Part 4 tests with: FOUNDRY_PROFILE=part4 forge test --match-path "test/part4/**"
+[profile.part4]
+via_ir = false
+
 [profile.default.fuzz]
 runs = 256
 max_test_rejects = 65536
