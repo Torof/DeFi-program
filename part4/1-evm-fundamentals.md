@@ -349,6 +349,22 @@ Without DUP, you'd have to push `a` twice from calldata (more expensive). DUP co
 2. **Solady assembly libraries** — Hand-written assembly avoids Solidity's stack management overhead, using DUP/SWAP explicitly for optimal layout
 3. **Proxy forwarding** — The `delegatecall` forwarding in proxies is written in assembly because the stack-based copy of calldata/returndata is more efficient than Solidity's ABI encoding
 
+#### ⚠️ Common Mistakes
+
+- **Wrong operand order** — `SUB(a, b)` computes `b - a` in Yul (stack order: b is pushed first, a second, SUB pops a then b). This catches everyone at least once
+- **Assuming stack depth is unlimited** — The EVM stack is capped at 1024 items. Deep call chains (especially recursive patterns) can hit this limit
+- **Confusing stack positions** — `dup1` copies the top, `dup2` copies the second item. Off-by-one errors in manual stack manipulation are the #1 assembly debugging time sink
+
+#### 💼 Job Market Context
+
+**"Explain how the EVM executes a simple addition"**
+- Good: "It pushes two values onto the stack, then ADD pops both and pushes the result"
+- Great: "The EVM is a stack machine — no registers. ADD pops the top two stack items, computes their sum mod 2^256, and pushes the result. The program counter advances by 1 byte. If the stack has fewer than 2 items, it's a stack underflow and the transaction reverts"
+
+🚩 **Red flag:** Not knowing the stack is 256-bit wide, or confusing the EVM with register-based architectures
+
+**Pro tip:** Being able to trace opcodes by hand (even a short sequence) signals deep understanding. Practice with [evm.codes playground](https://www.evm.codes/playground)
+
 ---
 
 <a id="opcode-categories"></a>
@@ -926,7 +942,7 @@ assembly {
 ---
 
 <a id="63-64-rule"></a>
-#### The 63/64 Rule
+#### ⚠️ The 63/64 Rule
 
 **What it is:** When making an external call (CALL, STATICCALL, DELEGATECALL), the EVM only forwards **63/64** of the remaining gas to the called contract. The calling contract retains 1/64 as a reserve.
 
@@ -1000,6 +1016,13 @@ This is why every gas optimization in an AMM matters — a 2,000-gas saving is ~
 - 🚩 Not mentioning warm/cold access when discussing gas costs
 
 **Pro tip:** When asked about gas optimization in interviews, always frame it as a cost-benefit analysis: gas saved vs. audit complexity introduced. Teams value engineers who know *when* to use assembly, not just *how*.
+
+#### ⚠️ Common Mistakes
+
+- **Hardcoding gas costs** — Gas costs change with EIPs (EIP-2929 doubled cold access costs). Never use magic numbers like `gas: 2300` for transfers — use `call{value: amount}("")` and let the compiler handle it
+- **Forgetting cold/warm distinction** — The first access to a storage slot or external address costs 2100/2600 gas, subsequent accesses cost 100. Not accounting for this in gas estimates leads to unexpected reverts
+- **Ignoring the 63/64 rule in nested calls** — Only 63/64 of remaining gas is forwarded to a sub-call. Deep call chains (>10 levels) can silently run out of gas even with plenty of gas at the top level
+- **Assuming gas refunds reduce execution cost** — Post-EIP-3529, refunds are capped at 1/5 of total gas used. The old pattern of using SELFDESTRUCT for gas tokens no longer works
 
 ---
 
@@ -1305,6 +1328,22 @@ This is exactly the pattern used in Solady's [Ownable.sol](https://github.com/Ve
 
 **The pattern:** Assembly in production DeFi concentrates in two places: (1) math-heavy hot paths called millions of times, and (2) low-level plumbing (proxies, calldata forwarding) where Solidity can't express the pattern at all.
 
+#### ⚠️ Common Mistakes
+
+- **No type safety in Yul** — Everything is `uint256`. Writing `let x := 0xff` then using `x` as an address won't warn you. Cast bugs are invisible until they cause wrong behavior
+- **Forgetting Yul evaluates right-to-left** — In `mstore(0x00, caller())`, `caller()` executes first, then `mstore`. This matters when operations have side effects
+- **Not cleaning upper bits** — When reading from memory or calldata, values may have dirty upper bits. Always mask with `and(value, 0xff)` or `and(value, 0xffffffffffffffffffffffffffffffffffffffff)` for addresses
+
+#### 💼 Job Market Context
+
+**"When would you use inline assembly in production code?"**
+- Good: "When the compiler generates inefficient code for a known-safe operation — like bitwise packing, or reading a specific storage slot"
+- Great: "Only when the gas savings justify the audit burden. Solady uses assembly extensively because it's a library called millions of times — the cumulative savings matter. But for application-level code, the compiler usually gets within 5-10% of hand-written assembly, and the readability cost isn't worth it"
+
+🚩 **Red flag:** Wanting to write everything in assembly "for performance" — signals inexperience with the real trade-offs
+
+**Pro tip:** Showing you can *read* assembly (trace through Solady, understand proxy forwarding) is more valuable in interviews than writing it from scratch
+
 ---
 
 <a id="bytecode"></a>
@@ -1419,6 +1458,21 @@ When you want to understand how a contract or opcode works:
 1. **CREATE2 deterministic addresses** — Factory contracts (Uniswap V2/V3 pair factories, clones) use `CREATE2` with the creation code hash to compute deterministic addresses. Understanding bytecode is essential for these patterns
 2. **Minimal proxies (EIP-1167)** — The clone pattern deploys a tiny runtime bytecode (~45 bytes) that just does `DELEGATECALL`. The creation code is handcrafted to be as small as possible
 3. **Bytecode verification** — Etherscan verification, and governance proposals that check "is this the right implementation," compare deployed bytecode against expected bytecode
+
+#### ⚠️ Common Mistakes
+
+- **Confusing creation code with runtime code** — `type(C).creationCode` includes the constructor; `type(C).runtimeCode` is what gets deployed. Using the wrong one in CREATE/CREATE2 is a common source of deployment failures
+- **Forgetting immutables are in bytecode** — Immutable variables are baked into the runtime bytecode at deploy time. They don't occupy storage slots, which means `sload` won't find them. This trips up devs writing assembly that tries to read "constants"
+
+#### 💼 Job Market Context
+
+**"What happens when you deploy a contract?"**
+- Good: "The creation code runs, which returns the runtime bytecode that gets stored on-chain"
+- Great: "A transaction with `to: null` triggers contract creation. The EVM runs the initcode (creation bytecode), which executes the constructor logic, then uses RETURN to hand back the runtime bytecode. That runtime code is stored in the state trie at the new address. This is why constructor arguments aren't in the deployed bytecode — they're consumed during creation"
+
+🚩 **Red flag:** Not distinguishing creation code from runtime code, or thinking the constructor is part of the deployed contract
+
+**Pro tip:** `forge inspect Contract bytecode` vs `deployedBytecode` — knowing this distinction cold impresses interviewers
 
 ---
 

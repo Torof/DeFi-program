@@ -44,7 +44,7 @@
 
 ---
 
-# Memory
+## Memory
 
 In Module 1 you learned the EVM's stack machine — how opcodes push, pop, and transform 256-bit words. But the stack is tiny (1024 slots, no random access). Real programs need **memory**: a byte-addressable, linear scratch pad that exists for the duration of a single transaction.
 
@@ -53,7 +53,7 @@ This section teaches how memory actually works at the opcode level — the layou
 ---
 
 <a id="memory-layout"></a>
-## 💡 Memory Layout: The Reserved Regions
+### 💡 Concept: Memory Layout — The Reserved Regions
 
 **Why this matters:** Every time you write `bytes memory`, `abi.encode`, `new`, or even just call a function that returns data, Solidity is managing memory behind the scenes. Understanding the layout lets you write assembly that cooperates with Solidity — or intentionally bypasses it for gas savings.
 
@@ -113,7 +113,7 @@ You'll see `fmp = 128` (0x80) and `zero = 0`. The scratch space is unpredictable
 ---
 
 <a id="memory-operations"></a>
-### 🔍 Deep Dive: Visualizing Memory Operations
+#### 🔍 Deep Dive: Visualizing Memory Operations
 
 The three memory opcodes you'll use most:
 
@@ -174,10 +174,26 @@ assembly {
 
 > **Memory expansion cost (recap from Module 1):** The *total accumulated* memory cost for a call frame is `3 * words + words² / 512`, where `words` is the highest memory offset used divided by 32 (rounded up). When you access a new, higher offset, the EVM charges the *difference* between the new total and the previous total. So the first expansion is cheap (just the linear term), but pushing into kilobytes becomes quadratic. **Why quadratic?** Without it, an attacker could allocate gigabytes of node memory for linear gas cost — a DoS vector against validators. The quadratic penalty makes large allocations prohibitively expensive: 1 MB of memory costs ~2.1 million gas (more than a single block's gas limit), ensuring no transaction can force excessive memory allocation on nodes. This is why production assembly is careful about how much memory it touches.
 
+#### ⚠️ Common Mistakes
+
+- **Writing to the reserved region (0x00-0x3f)** — Scratch space is free to use for hashing, but if you store data there expecting it to persist, the next `keccak256` or ABI encoding will overwrite it silently
+- **Forgetting memory is zeroed on entry** — Unlike storage, memory starts as all zeros on every external call. But within a call, memory you wrote earlier persists — don't assume a region is clean just because you haven't written to it *recently*
+- **Off-by-one in `mload`/`mstore` offsets** — `mload(0x20)` reads bytes 32-63, not bytes 33-64. Memory is byte-addressed but `mload` always reads 32 bytes starting at the given offset
+
+#### 💼 Job Market Context
+
+**"Describe the EVM memory layout"**
+- Good: "Memory is a byte array. The first 64 bytes are scratch space, the free memory pointer is at 0x40, and the zero slot is at 0x60"
+- Great: "Memory is a linear byte array that expands as you write to it, with quadratic cost growth. Bytes 0x00-0x3f are scratch space (safe for temporary hashing operations), 0x40-0x5f stores the free memory pointer that Solidity uses for allocation, and 0x60 is the zero slot used as the initial value for dynamic memory arrays. Any assembly that corrupts 0x40 will break all subsequent Solidity memory operations"
+
+🚩 **Red flag:** Not knowing about the free memory pointer, or thinking memory persists across transactions
+
+**Pro tip:** Drawing the memory layout on a whiteboard during an interview — with hex offsets — instantly signals you've worked at the assembly level
+
 ---
 
 <a id="free-memory-pointer"></a>
-## 💡 The Free Memory Pointer
+### 💡 Concept: The Free Memory Pointer
 
 **Why this matters:** The free memory pointer (FMP) is the single most important convention in Solidity's memory model. Every `abi.encode`, every `new`, every `bytes memory` allocation reads and bumps this pointer. If your assembly corrupts it, subsequent Solidity code will overwrite your data or crash.
 
@@ -239,7 +255,7 @@ Deploy, call `watchFmp()`, see `before_ = 128` (0x80), `after_ = 192` (0xC0).
 ---
 
 <a id="manual-allocation"></a>
-### 🎓 Intermediate Example: Manual `bytes` Allocation
+#### 🎓 Intermediate Example: Manual `bytes` Allocation
 
 Before looking at production code, let's build a `bytes memory` value by hand in assembly. This is the same thing Solidity does behind the scenes when you write `bytes memory result = new bytes(32)`.
 
@@ -287,10 +303,16 @@ FMP →    │ 0xC0: ...                        │  next free byte
 
 **The pattern:** Any time you see `mload(0x40)` followed by several `mstore` calls and then `mstore(0x40, ...)`, you're looking at manual memory allocation.
 
+#### ⚠️ Common Mistakes
+
+- **Not advancing the free memory pointer after allocation** — If you `mload` at `mload(0x40)` to get the free pointer, write data there, but forget to update `mstore(0x40, newPointer)`, the next Solidity operation will overwrite your data
+- **Corrupting the free memory pointer in assembly blocks** — Solidity trusts that `0x40` always points to valid free memory. If your assembly writes garbage to `0x40`, all subsequent Solidity memory operations (string concatenation, ABI encoding, event emission) will corrupt
+- **Using `memory-safe` annotation incorrectly** — Marking an assembly block as `memory-safe` when it writes outside scratch space or beyond the free memory pointer disables the compiler's memory safety checks and can cause silent memory corruption in optimized builds
+
 ---
 
 <a id="memory-safe"></a>
-### 💡 Memory-Safe Assembly
+### 💡 Concept: Memory-Safe Assembly
 
 > **Introduced in [Solidity 0.8.13](https://blog.soliditylang.org/2022/03/16/solidity-0.8.13-release-announcement/)**
 
@@ -339,14 +361,14 @@ function safeExample() external pure returns (bytes32) {
 
 ---
 
-# Calldata
+## Calldata
 
 Calldata is the **read-only input** to a contract call. Every external function call carries calldata: 4 bytes of function selector followed by ABI-encoded arguments. In Module 1 you learned to extract the selector with `calldataload(0)`. Now let's understand the full layout.
 
 ---
 
 <a id="calldata-layout"></a>
-## 💡 Calldata Layout: Static & Dynamic Types
+### 💡 Concept: Calldata Layout — Static & Dynamic Types
 
 **Why this matters:** Understanding calldata layout is how you read Permit2 signatures, decode flash loan callbacks, and write gas-efficient parameter parsing. It's also how you understand why `bytes calldata` is cheaper than `bytes memory`.
 
@@ -413,7 +435,7 @@ Deploy, call `echoCalldata()`, and you'll see the raw calldata bytes including t
 ---
 
 <a id="head-tail"></a>
-### 🔍 Deep Dive: Dynamic Type Encoding (Head/Tail)
+#### 🔍 Deep Dive: Dynamic Type Encoding (Head/Tail)
 
 Static types are simple — value at a fixed offset. **Dynamic types** (bytes, string, arrays) use a two-part encoding: a **head** section with offset pointers, and a **tail** section with actual data.
 
@@ -458,7 +480,7 @@ When a function takes `bytes calldata data`, Solidity provides convenient Yul ac
 
 These handle the offset indirection for you. But when parsing raw calldata manually (e.g., in a fallback function), you need to follow the pointers yourself.
 
-### 🎓 Intermediate Example: Decoding Dynamic Calldata in Yul
+#### 🎓 Intermediate Example: Decoding Dynamic Calldata in Yul
 
 Before the exercise asks you to do this, let's trace the pattern step by step with a minimal example:
 
@@ -482,7 +504,7 @@ function readDynamicLength(uint256, bytes calldata) external pure returns (uint2
 
 Call `readDynamicLength(42, hex"DEADBEEF")` and you get `len = 4`. The offset pointer at position 0x24 contains `0x40` (64 — pointing past both parameter slots), so `dataStart = 0x04 + 0x40 = 0x44`, and `calldataload(0x44)` reads the length word.
 
-#### Nested Dynamic Types
+#### 📦 Nested Dynamic Types
 
 When dynamic types contain other dynamic types (e.g., `bytes[]`, `uint256[][]`, or structs with dynamic fields), the encoding becomes multi-level. Each level adds another layer of offset pointers.
 
@@ -514,10 +536,20 @@ items[1] data at 0x24 + 0x80 = 0xa4:
 
 > **In practice:** You'll rarely decode nested dynamic types by hand. Solidity handles the indirection automatically. But understanding the layout helps when debugging failed transactions — tools like `cast calldata-decode` show the structure, and knowing how offsets chain lets you verify the raw bytes.
 
+#### 💼 Job Market Context
+
+**"How is function call data structured?"**
+- Good: "First 4 bytes are the function selector, followed by ABI-encoded arguments"
+- Great: "The first 4 bytes are `keccak256(signature)[:4]` — the function selector. Static arguments follow in 32-byte padded slots. Dynamic types (bytes, string, arrays) use a head/tail pattern: the head contains an offset pointer to where the data actually lives in the tail region. This is why `msg.data.length` can be longer than you'd expect for functions with dynamic parameters"
+
+🚩 **Red flag:** Not knowing what a function selector is or how it's computed
+
+**Pro tip:** Being able to decode raw calldata by hand (even with etherscan's help) is a skill auditors and MEV researchers use daily
+
 ---
 
 <a id="abi-encoding"></a>
-## 💡 ABI Encoding at the Byte Level
+### 💡 Concept: ABI Encoding at the Byte Level
 
 **Why this matters:** When you call `abi.encode(...)` in Solidity, the compiler generates assembly that allocates memory, writes data in the ABI format, and bumps the free memory pointer. Understanding the byte layout lets you (a) build calldata in assembly for gas savings, (b) decode return data manually, and (c) read production code that does both.
 
@@ -586,7 +618,7 @@ The returned bytes will be 160 bytes (5 words). Trace them against the diagram a
 ---
 
 <a id="encode-vs-packed"></a>
-### 🔍 Deep Dive: abi.encode vs abi.encodePacked
+#### 🔍 Deep Dive: abi.encode vs abi.encodePacked
 
 Both encode data as bytes, but with fundamentally different rules:
 
@@ -645,12 +677,17 @@ Total: 2 bytes
 
 **Interview red flag:** Using `abi.encodePacked` for cross-contract call encoding or confusing it with `abi.encode`. Also: not knowing that addresses are left-padded (12 zero bytes) in ABI encoding.
 
+#### ⚠️ Common Mistakes
+
+- **Confusing `abi.encode` with `abi.encodePacked` for hashing** — `encodePacked` removes padding, which means `abi.encodePacked(uint8(1), uint248(2))` and `abi.encodePacked(uint256(1), uint256(2))` can produce different results. For `keccak256` in mappings, Solidity always uses `abi.encode` (with padding). Using `encodePacked` accidentally will compute wrong slots
+- **Forgetting that dynamic types use head/tail encoding** — A `bytes` argument in calldata isn't where you expect it. The head contains an offset pointer, and the actual data is in the tail region. Hardcoding offsets instead of reading the head pointer is a classic calldata parsing bug
+
 ---
 
-# Return Data & Errors
+## Return Data & Errors
 
 <a id="return-errors"></a>
-## 💡 Return Values & Error Encoding in Assembly
+### 💡 Concept: Return Values & Error Encoding in Assembly
 
 **Why this matters:** When you write `return x;` in Solidity, the compiler encodes `x` into memory using ABI encoding, then executes `RETURN(ptr, size)`. When you write `revert CustomError()`, it does the same with `REVERT`. Understanding this lets you encode return values and errors directly in assembly — saving the overhead of Solidity's encoder.
 
@@ -697,7 +734,7 @@ After any external call (`CALL`, `STATICCALL`, `DELEGATECALL`), the return data 
 ---
 
 <a id="offset-explained"></a>
-### 🔍 Deep Dive: The 0x1c Offset Explained
+#### 🔍 Deep Dive: The 0x1c Offset Explained
 
 In Module 1 you saw this pattern without explanation:
 
@@ -786,7 +823,7 @@ You'll see `Unauthorized()` in the error output. Now change `revert(0x1c, 0x04)`
 ---
 
 <a id="solady-errors"></a>
-### 🔗 DeFi Pattern Connection: Solady Error Encoding
+#### 🔗 DeFi Pattern Connection: Solady Error Encoding
 
 **Why Solady uses this pattern everywhere:**
 
@@ -818,14 +855,24 @@ The assembly pattern above does this:
 
 **Interview red flag:** Blindly copying the `revert(0x1c, 0x04)` pattern without being able to explain the byte layout. Interviewers test this because it separates "can read Solady" from "understands Solady."
 
+#### 💼 Job Market Context
+
+**"How do custom errors work at the EVM level?"**
+- Good: "They use a 4-byte selector just like functions, followed by ABI-encoded error data"
+- Great: "The EVM has no concept of 'errors' — a revert is just `REVERT(offset, size)` which returns arbitrary bytes. Solidity custom errors encode a 4-byte selector plus ABI-encoded parameters, identical to function calldata. This is why you can decode revert reasons with `abi.decode`. The classic `Error(string)` and `Panic(uint256)` are just two specific selectors — custom errors are more gas-efficient because they skip string encoding"
+
+🚩 **Red flag:** Thinking `require(condition, "message")` and custom errors are fundamentally different mechanisms
+
+**Pro tip:** Know the Solady pattern of encoding errors in assembly with `mstore(0x00, selector)` — it saves ~100 gas per revert by skipping ABI encoding overhead
+
 ---
 
-# Practical Patterns
+## Practical Patterns
 
 Now that you understand memory, calldata, and return data as separate regions, these patterns show how production code combines them.
 
 <a id="scratch-hashing"></a>
-## 💡 Scratch Space for Hashing
+### 💡 Concept: Scratch Space for Hashing
 
 **Why this matters:** Hashing is one of the most common operations in DeFi — computing mapping slots, verifying signatures, deriving addresses. The scratch space pattern makes it cheaper.
 
@@ -868,7 +915,7 @@ The assembly version skips steps 1-3 entirely.
 ---
 
 <a id="proxy-preview"></a>
-## 💡 Proxy Forwarding (Preview)
+### 💡 Concept: Proxy Forwarding (Preview)
 
 This is a preview of a pattern covered fully in Module 5 (External Calls). It combines everything from this module: `calldatacopy` to read input, memory to buffer data, and `returndatacopy` to forward output.
 
@@ -903,7 +950,7 @@ assembly {
 ---
 
 <a id="zero-copy"></a>
-## 💡 Zero-Copy Calldata
+### 💡 Concept: Zero-Copy Calldata
 
 **Why this matters:** In Solidity, `bytes calldata` parameters are read directly from calldata without copying to memory. This is why `bytes calldata` is cheaper than `bytes memory` — you avoid memory allocation and expansion costs entirely.
 
@@ -937,7 +984,7 @@ function readFirstWord(bytes calldata data) external pure returns (uint256) {
 ---
 
 <a id="how-to-study"></a>
-## 📖 How to Study Memory-Heavy Assembly
+### 📖 How to Study Memory-Heavy Assembly
 
 When you encounter assembly that manipulates memory extensively (common in Solady, Uniswap V4, and custom routers):
 
