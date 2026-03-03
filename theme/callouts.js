@@ -135,10 +135,13 @@
 
         var kwSpan = document.createElement('span');
         kwSpan.className = 'concept-keyword';
-        kwSpan.textContent = 'Concept';
+        kwSpan.textContent = 'Core';
         frag.appendChild(kwSpan);
 
-        frag.appendChild(document.createTextNode(' ' + topicText));
+        var topicSpan = document.createElement('span');
+        topicSpan.className = 'concept-topic';
+        topicSpan.textContent = ' - ' + topicText;
+        frag.appendChild(topicSpan);
 
         if (suffix) frag.appendChild(document.createTextNode(suffix));
 
@@ -198,7 +201,10 @@
           container.appendChild(kwSpan);
 
           if (rest) {
-            container.appendChild(document.createTextNode(' ' + rest));
+            var restSpan = document.createElement('span');
+            restSpan.className = 'section-rest';
+            restSpan.textContent = rest;
+            container.appendChild(restSpan);
           }
         }
       });

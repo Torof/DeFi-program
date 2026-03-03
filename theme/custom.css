@@ -34,12 +34,13 @@
   letter-spacing: -0.025em;
 }
 
-/* H2 — Major sections: uppercase, white, top bar only, larger */
+/* H2 — Major sections: uppercase, white, top bar only, larger, centered */
 .content main h2 {
   font-family: var(--font-heading);
   font-size: 1.9rem;
   font-weight: 700;
   text-transform: uppercase;
+  text-align: center;
   margin-top: 3.2em;
   padding-top: 0.5em;
   padding-bottom: 0.3em;
@@ -70,6 +71,56 @@
 .section-keyword {
   font-weight: 700;
   color: inherit;
+}
+
+/* Summary & Exercise H2s — subsection style (keyword left, title centered) */
+.content main h2.section-summary,
+.content main h2.section-exercise {
+  font-size: 1.55rem;
+  text-transform: none;
+  text-align: center;
+  border-bottom: 2px solid;
+  letter-spacing: -0.02em;
+  position: relative;
+}
+
+/* Keyword pinned to the left edge */
+.content main h2.section-summary .section-keyword,
+.content main h2.section-exercise .section-keyword {
+  position: absolute;
+  left: 0;
+}
+
+/* Title text centered naturally by parent text-align */
+.content main h2.section-summary .section-rest,
+.content main h2.section-exercise .section-rest {
+  font-weight: 600;
+}
+
+.content main h2.section-summary {
+  border-top-color: #6366f1;
+  border-bottom-color: #6366f1;
+}
+.content main h2.section-summary .section-keyword { color: #6366f1; }
+
+.content main h2.section-exercise {
+  border-top-color: #22c55e;
+  border-bottom-color: #22c55e;
+}
+.content main h2.section-exercise .section-keyword { color: #22c55e; }
+
+/* Override theme colors for subsection H2s */
+.light .content main h2.section-summary,
+.light .content main h2.section-exercise {
+  color: var(--fg);
+}
+.navy .content main h2.section-summary,
+.navy .content main h2.section-exercise,
+.coal .content main h2.section-summary,
+.coal .content main h2.section-exercise,
+.ayu .content main h2.section-summary,
+.ayu .content main h2.section-exercise {
+  color: var(--fg);
 }
 
 /* H3 — Concepts/sub-sections: medium weight, muted color, accent bar */
@@ -120,11 +171,18 @@
   font-size: 1.15em;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  margin-right: 0;
 }
 .light .concept-keyword { color: #1e40af; }
 .navy .concept-keyword  { color: #60a5fa; }
 .coal .concept-keyword  { color: #60a5fa; }
 .ayu .concept-keyword   { color: #60a5fa; }
+
+/* Topic text after "CORE" keyword — uppercase */
+.concept-topic {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
 
 /* H4 — Deep dives, patterns: body font (Inter), lighter weight, italic feel */
 .content main h4 {
