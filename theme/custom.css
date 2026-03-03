@@ -34,53 +34,43 @@
   letter-spacing: -0.025em;
 }
 
-/* H2 — Major sections: bold, colored top accent bar, clear break */
+/* H2 — Major sections: uppercase, white, top bar only, larger */
 .content main h2 {
   font-family: var(--font-heading);
-  font-size: 1.65rem;
+  font-size: 1.9rem;
   font-weight: 700;
+  text-transform: uppercase;
   margin-top: 3.2em;
   padding-top: 0.5em;
   padding-bottom: 0.3em;
-  border-bottom: 1px solid var(--table-border-color);
+  border-bottom: none;
   border-top: 3px solid;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.03em;
 }
 
-/* H2 top accent color per theme */
-.light .content main h2 { border-top-color: #3b82f6; }
-.navy .content main h2 { border-top-color: #60a5fa; }
-.coal .content main h2 { border-top-color: #60a5fa; }
-.ayu .content main h2 { border-top-color: #ffb454; }
+/* H2 colors per theme — white for dark themes, dark for light */
+.light .content main h2 {
+  border-top-color: #0f172a;
+  color: #0f172a;
+}
+.navy .content main h2 {
+  border-top-color: #ffffff;
+  color: #ffffff;
+}
+.coal .content main h2 {
+  border-top-color: #ffffff;
+  color: #ffffff;
+}
+.ayu .content main h2 {
+  border-top-color: #ffffff;
+  color: #ffffff;
+}
 
-/* H2 section-specific colors override the default top accent */
-.content main h2.section-concept { border-top-color: #3b82f6; }
-.content main h2.section-exercise { border-top-color: #22c55e; }
-.content main h2.section-summary { border-top-color: #6366f1; }
-.content main h2.section-resources { border-top-color: #14b8a6; }
-.content main h2.section-links { border-top-color: #f59e0b; }
-.content main h2.section-job { border-top-color: #ef4444; }
-.content main h2.section-warning { border-top-color: #f97316; }
-.content main h2.section-study { border-top-color: #14b8a6; }
-.content main h2.section-build { border-top-color: #10b981; }
-.content main h2.section-check { border-top-color: #22c55e; }
-.content main h2.section-complete { border-top-color: #8b5cf6; }
-
-/* H2 section keyword coloring — matches border-top color */
+/* H2 section keyword — inherits H2 color (no per-section coloring) */
 .section-keyword {
   font-weight: 700;
+  color: inherit;
 }
-.section-concept .section-keyword  { color: #3b82f6; }
-.section-exercise .section-keyword { color: #22c55e; }
-.section-summary .section-keyword  { color: #6366f1; }
-.section-resources .section-keyword { color: #14b8a6; }
-.section-links .section-keyword    { color: #f59e0b; }
-.section-job .section-keyword      { color: #ef4444; }
-.section-warning .section-keyword  { color: #f97316; }
-.section-study .section-keyword    { color: #14b8a6; }
-.section-build .section-keyword    { color: #10b981; }
-.section-check .section-keyword    { color: #22c55e; }
-.section-complete .section-keyword { color: #8b5cf6; }
 
 /* H3 — Concepts/sub-sections: medium weight, muted color, accent bar */
 .content main h3 {
@@ -454,72 +444,7 @@
 .navy .callout-exercise, .coal .callout-exercise, .ayu .callout-exercise { background: rgba(34, 197, 94, 0.08); }
 .callout-exercise .callout-label { color: #22c55e; }
 
-/* --- H2 Section Color Coding (applied by callouts.js) --- */
-/* Concept/Why sections — blue */
-.content main h2.section-concept {
-  border-bottom-color: #3b82f6;
-  border-bottom-width: 2px;
-}
-
-/* Exercise/Practice sections — green */
-.content main h2.section-exercise {
-  border-bottom-color: #22c55e;
-  border-bottom-width: 2px;
-}
-
-/* Summary/Takeaways sections — indigo */
-.content main h2.section-summary {
-  border-bottom-color: #6366f1;
-  border-bottom-width: 2px;
-}
-
-/* TOC/Resources sections — teal */
-.content main h2.section-resources {
-  border-bottom-color: #14b8a6;
-  border-bottom-width: 2px;
-}
-
-/* Cross-Module/Pattern links — amber */
-.content main h2.section-links {
-  border-bottom-color: #f59e0b;
-  border-bottom-width: 2px;
-}
-
-/* Job Market — red */
-.content main h2.section-job {
-  border-bottom-color: #ef4444;
-  border-bottom-width: 2px;
-}
-
-/* Common Mistakes/Warnings — orange */
-.content main h2.section-warning {
-  border-bottom-color: #f97316;
-  border-bottom-width: 2px;
-}
-
-/* Study Guide — teal */
-.content main h2.section-study {
-  border-bottom-color: #14b8a6;
-  border-bottom-width: 2px;
-}
-
-/* Build Order — emerald */
-.content main h2.section-build {
-  border-bottom-color: #10b981;
-  border-bottom-width: 2px;
-}
-
-/* Self-Assessment — green */
-.content main h2.section-check {
-  border-bottom-color: #22c55e;
-  border-bottom-width: 2px;
-}
-
-/* Part Complete — purple */
-.content main h2.section-complete {
-  border-bottom-color: #8b5cf6;
-  border-bottom-width: 2px;
-}
+/* H2 section classes kept for JS compatibility — no bottom borders */
 
 /* --- Code Block Language Labels --- */
 .code-lang-label {
@@ -624,7 +549,7 @@
   }
 
   .content main h2 {
-    font-size: 1.3rem;
+    font-size: 1.45rem;
   }
 
   .content main pre {
