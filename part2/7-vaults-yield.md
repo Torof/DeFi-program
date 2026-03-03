@@ -43,17 +43,13 @@
 
 ---
 
-## 💡 Why Vaults Matter
+## 💡 ERC-4626 — The Tokenized Vault Standard
 
 Every protocol in DeFi that holds user funds and distributes yield faces the same core problem: how do you track each user's share of a pool that changes in size as deposits, withdrawals, and yield accrual happen simultaneously?
 
 The answer is vault share accounting — the same shares/assets math that underpins Aave's aTokens, Compound's cTokens, Uniswap LP tokens, Yearn vault tokens, and MakerDAO's DSR Pot. [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) standardized this pattern into a universal interface, and it's now the foundation of the modular DeFi stack.
 
 Understanding ERC-4626 deeply — the math, the interface, the security pitfalls — gives you the building block for virtually any DeFi protocol. Yield aggregators like Yearn compose these vaults into multi-strategy systems, and the emerging "curator" model (Morpho, Euler V2) uses ERC-4626 vaults as the fundamental unit of risk management.
-
----
-
-## 💡 ERC-4626 — The Tokenized Vault Standard
 
 <a id="core-abstraction"></a>
 ### 💡 Concept: The Core Abstraction

@@ -39,7 +39,7 @@
 
 ---
 
-## 💡 Why Oracles Matter for Protocol Builders
+## 💡 Oracle Fundamentals and Chainlink Architecture
 
 **Why this matters:** DeFi protocols that only swap tokens can derive prices from their own reserves. But the moment you build anything that references the value of an asset — lending (what's the collateral worth?), derivatives (what's the settlement price?), stablecoins (is this position undercollateralized?) — you need external price data.
 
@@ -57,10 +57,6 @@
 If you're building a protocol that uses price data, oracle security is not optional — it's existential.
 
 This module teaches you to consume oracle data safely and understand the attack surface deeply enough to defend against it.
-
----
-
-## 💡 Oracle Fundamentals and Chainlink Architecture
 
 💻 **Quick Try:**
 

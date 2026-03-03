@@ -16,7 +16,8 @@
 
 ---
 
-## 💡 Why Governance Matters
+<a id="on-chain-governance"></a>
+## 💡 On-Chain Governance
 
 Every major DeFi protocol needs a mechanism for parameter updates, upgrades, and strategic decisions. Governance is how protocols evolve after deployment — and also one of the most exploited attack surfaces in DeFi.
 
@@ -27,11 +28,6 @@ Every major DeFi protocol needs a mechanism for parameter updates, upgrades, and
 - Governance design is a frequent interview topic — "how would you design governance for X protocol?"
 - Connection to Module 7: cross-chain governance (vote on L1, execute on L2) is the multi-chain standard
 - Connection to Part 2 Module 9: your capstone's immutable design was itself a governance choice
-
----
-
-<a id="on-chain-governance"></a>
-## 💡 On-Chain Governance
 
 ### 💡 Concept: Why Governance Exists
 

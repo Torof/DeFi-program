@@ -52,7 +52,7 @@
 
 ---
 
-## 💡 Why This Is the Longest Module
+## 💡 The Constant Product Formula
 
 **Why this matters:** AMMs are the foundation of decentralized finance. Lending protocols need them for liquidations. Aggregators route through them. Yield strategies compose on top of them. Intent systems like [UniswapX](https://uniswap.org/whitepaper-uniswapx.pdf) exist to improve on them. If you're going to build your own protocols, you need to understand AMMs deeply — not just the interface, but the math, the design trade-offs, and the evolution from V2's elegant simplicity through V3's concentrated liquidity to V4's programmable hooks.
 
@@ -61,10 +61,6 @@
 This module is 12 days because you're building one from scratch, then studying three generations of production AMM code, plus exploring alternative AMM designs and the advanced topics (MEV, aggregators, LP management) that every protocol builder needs.
 
 > **Deep dive:** [Uniswap V2 Whitepaper](https://uniswap.org/whitepaper.pdf), [V3 Whitepaper](https://uniswap.org/whitepaper-v3.pdf), [V4 Whitepaper](https://github.com/Uniswap/v4-core/blob/main/docs/whitepaper/whitepaper-v4.pdf)
-
----
-
-## 💡 The Constant Product Formula
 
 <a id="amm-math"></a>
 ### 💡 Concept: The Math

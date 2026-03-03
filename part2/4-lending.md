@@ -59,7 +59,7 @@
 
 ---
 
-## 💡 Why This Module Is the Longest After AMMs
+## 💡 The Lending Model from First Principles
 
 **Why this matters:** Lending is where everything you've learned converges. Token mechanics (Module 1) govern how assets move in and out. Oracle integration (Module 3) determines collateral valuation and liquidation triggers. And the interest rate math shares DNA with the constant product formula from AMMs (Module 2) — both are mechanism design problems where smart contracts use mathematical curves to balance supply and demand without human intervention.
 
@@ -74,10 +74,6 @@
 - [Venus Protocol](https://rekt.news/venus-blizz-rekt/) ($11M, May 2023) — stale oracle pricing
 
 If you're building DeFi products, you'll either build a lending protocol, integrate with one, or compete with one. Understanding the internals is non-negotiable.
-
----
-
-## 💡 The Lending Model from First Principles
 
 <a id="how-lending-works"></a>
 ### 💡 Concept: How DeFi Lending Works

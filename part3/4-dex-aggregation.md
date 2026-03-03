@@ -23,16 +23,12 @@
 
 ---
 
-## 💡 Why Aggregation Matters
+<a id="routing-problem"></a>
+## 💡 The Routing Problem
 
 In practice, no single DEX has the best price for every trade. DEX aggregators solve the routing problem — finding optimal execution across fragmented liquidity. More recently, intent-based trading is replacing explicit transaction construction: users sign *what* they want, and solvers compete to figure out *how* to fill it.
 
 This module covers both models — from traditional split-routing to the intent/solver paradigm that's reshaping DeFi execution. The emphasis is on intents: that's where the ecosystem is heading and where the job opportunities are.
-
----
-
-<a id="routing-problem"></a>
-## 💡 The Routing Problem
 
 ### 💡 Concept: Why Aggregation Exists
 

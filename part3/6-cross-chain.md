@@ -17,7 +17,8 @@
 
 ---
 
-## 💡 Why Cross-Chain Matters
+<a id="bridge-architectures"></a>
+## 💡 Bridge Architectures
 
 Cross-chain bridges are both essential infrastructure and the most attacked category in DeFi — over $2.5B lost to bridge exploits. This module covers bridge architectures, the on-chain mechanics, security models, messaging protocols, and how to build cross-chain-aware applications.
 
@@ -27,11 +28,6 @@ Cross-chain bridges are both essential infrastructure and the most attacked cate
 - Messaging protocols (LayerZero, CCIP) are the foundation of cross-chain application development
 - Bridge exploits are the #1 category of DeFi losses — understanding them is essential for security
 - Cross-chain intents (Module 4 connection) are reshaping how bridging works
-
----
-
-<a id="bridge-architectures"></a>
-## 💡 Bridge Architectures
 
 ### 💡 Concept: The Four Models
 

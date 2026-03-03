@@ -17,7 +17,8 @@
 
 ---
 
-## 💡 Why L2 DeFi Matters
+<a id="l2-architecture"></a>
+## 💡 L2 Architecture for DeFi Developers
 
 Most DeFi activity has migrated to L2s — Arbitrum, Base, and Optimism collectively host more DeFi transactions than Ethereum mainnet. But L2s aren't just "cheap Ethereum" — they have distinct sequencer behavior, gas models, finality properties, and design constraints that affect every protocol deployed on them.
 
@@ -28,11 +29,6 @@ Most DeFi activity has migrated to L2s — Arbitrum, Base, and Optimism collecti
 - Understanding L2 architecture separates senior from junior DeFi engineers
 - Connection to Module 5 (MEV): L2 sequencer ordering creates an entirely different MEV landscape
 - Connection to Module 6 (Bridges): canonical rollup bridges are L2's trust anchor to L1
-
----
-
-<a id="l2-architecture"></a>
-## 💡 L2 Architecture for DeFi Developers
 
 ### 💡 Concept: Rollup Types
 

@@ -44,15 +44,11 @@
 
 ---
 
-## 💡 Why This Module Matters
+## 📋 Quick Reference: Fundamentals You Already Know
 
 DeFi protocols lost over $3.1 billion in the first half of 2025 alone. Roughly 70% of major exploits in 2024 hit contracts that had been professionally audited. The OWASP Smart Contract Top 10 (2025 edition) ranks access control as the #1 vulnerability for the second year running, followed by reentrancy, logic errors, and oracle manipulation — all patterns you've encountered throughout Part 2.
 
 This module focuses on the DeFi-specific attack patterns and defense methodologies that go beyond general Solidity security. You already know CEI, reentrancy guards, and access control. Here we cover: read-only reentrancy in multi-protocol contexts, the full oracle/flash-loan manipulation taxonomy, invariant testing as the primary DeFi bug-finding tool, how to read audit reports, and security tooling for protocol builders.
-
----
-
-## 📋 Quick Reference: Fundamentals You Already Know
 
 These patterns should be second nature. This box is a refresher, not a learning section.
 

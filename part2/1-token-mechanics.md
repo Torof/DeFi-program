@@ -26,17 +26,13 @@
 
 ---
 
-## 💡 Why This Module Comes First
+## 💡 ERC-20 Core Patterns & Weird Tokens
 
 **Why this matters:** Every DeFi protocol moves tokens. AMMs swap them, lending pools custody them, vaults compound them. Before you build any of that, you need to deeply understand how token interactions actually work at the contract level — not just the [ERC-20 interface](https://eips.ethereum.org/EIPS/eip-20), but the real-world edge cases that have caused millions in losses.
 
 > **Real impact:** [Hundred Finance hack](https://rekt.news/hundred-rekt2/) ($7M, April 2023) — exploited lending pool that didn't account for [ERC-777](https://eips.ethereum.org/EIPS/eip-777) [reentrancy hooks](https://github.com/d-xo/weird-erc20#reentrant-calls). [SushiSwap MISO incident](https://www.coindesk.com/tech/2021/09/17/3m-in-ether-stolen-from-sushiswap-token-launchpad/) ($3M, September 2021) — malicious token with transfer() that silently failed but returned true, draining auction funds.
 
 > **Note:** Permit ([EIP-2612](https://eips.ethereum.org/EIPS/eip-2612)) and [Permit2](https://github.com/Uniswap/permit2) patterns are covered in Part 1 Module 3. This module focuses on the ERC-20 edge cases and safe integration patterns that will affect every protocol you build in Part 2.
-
----
-
-## 💡 ERC-20 Core Patterns & Weird Tokens
 
 <a id="approval-model"></a>
 ### 💡 Concept: The Approval Model

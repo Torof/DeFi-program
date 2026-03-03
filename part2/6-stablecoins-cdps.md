@@ -42,17 +42,13 @@
 
 ---
 
-## 💡 Why Stablecoins Are Different from Lending
+## 💡 The CDP Model and MakerDAO/Sky Architecture
 
 On the surface, a CDP (Collateralized Debt Position) looks like a lending protocol — deposit collateral, borrow an asset. But there's a fundamental difference: in a lending protocol, borrowers withdraw *existing* tokens from a pool that suppliers deposited. In a CDP system, the borrowed stablecoin is **minted into existence** when the user opens a position. There are no suppliers. The protocol *is* the issuer.
 
 This changes everything about the design: there's no utilization rate (because there's no supply pool), no supplier interest rate, and the stability of the stablecoin depends entirely on the protocol's ability to maintain the peg through mechanism design — collateral backing, liquidation efficiency, and monetary policy via the stability fee and savings rate.
 
 MakerDAO (now rebranded to Sky Protocol) pioneered CDPs and remains the largest decentralized stablecoin issuer, with over $7.8 billion in DAI + USDS liabilities. Understanding its architecture gives you the template for how on-chain monetary systems work.
-
----
-
-## 💡 The CDP Model and MakerDAO/Sky Architecture
 
 <a id="how-cdps-work"></a>
 ### 💡 Concept: How CDPs Work

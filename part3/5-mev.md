@@ -17,7 +17,8 @@
 
 ---
 
-## 💡 Why MEV Matters
+<a id="invisible-tax"></a>
+## 💡 The Invisible Tax
 
 Maximal Extractable Value (MEV) is the invisible tax on every DeFi transaction. If you swap on a DEX, someone might sandwich you. If you submit a liquidation, someone might front-run it. If you create a new pool, someone will arbitrage it within the same block.
 
@@ -28,11 +29,6 @@ Understanding MEV is essential for both sides: as a **protocol designer** (minim
 - MEV knowledge is a top interview differentiator — teams want engineers who think about ordering attacks
 - The solver/searcher space is one of the hottest hiring areas in DeFi right now
 - Module 4's intent paradigm was designed specifically to combat MEV — this module explains what it's combating
-
----
-
-<a id="invisible-tax"></a>
-## 💡 The Invisible Tax
 
 ### 💡 Concept: What is MEV?
 

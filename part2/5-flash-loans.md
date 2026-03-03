@@ -37,17 +37,13 @@
 
 ---
 
-## 💡 Why Flash Loans Are a Foundational Primitive
+## 💡 Flash Loan Mechanics
 
 Flash loans are DeFi's most counterintuitive innovation: uncollateralized loans of unlimited size that must be repaid within a single transaction. If repayment fails, the entire transaction reverts — as if nothing happened.
 
 This matters because it eliminates capital requirements for operations that are inherently profitable within a single atomic step. Before flash loans, liquidating an underwater Aave position required holding enough capital to repay the debt. After flash loans, anyone can liquidate any position. Before flash loans, arbitraging a price discrepancy between two DEXes required capital proportional to the opportunity. After flash loans, a developer with $0 and a smart contract can capture a $100,000 arbitrage.
 
 Flash loans are also the primary tool used in oracle manipulation attacks (Module 3) and are integral to the liquidation flows you studied in Module 4. This module teaches you to use them offensively (arbitrage, liquidation, collateral swaps) and defend against them.
-
----
-
-## 💡 Flash Loan Mechanics
 
 💻 **Quick Try:**
 
