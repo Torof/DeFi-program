@@ -1,6 +1,8 @@
 # Part 3 — Module 8: Governance & DAOs
 
-> **Prerequisites:** Part 2 — Modules 1 (Token Mechanics), 6 (Stablecoins & CDPs) | Part 3 — Modules 6 (Cross-Chain), 7 (L2-Specific DeFi)
+> **Difficulty:** Intermediate
+>
+> **Estimated reading time:** ~30 minutes | **Exercises:** ~2-3 hours
 
 ## 📚 Table of Contents
 

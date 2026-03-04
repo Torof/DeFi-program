@@ -1,6 +1,8 @@
 # Part 3 — Module 6: Cross-Chain & Bridges
 
-> **Prerequisites:** Part 2 — Modules 1 (Token Mechanics), 8 (DeFi Security) | Part 3 — Module 5 (MEV Deep Dive)
+> **Difficulty:** Intermediate
+>
+> **Estimated reading time:** ~30 minutes | **Exercises:** ~2-3 hours
 
 ## 📚 Table of Contents
 

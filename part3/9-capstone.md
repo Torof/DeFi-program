@@ -1,8 +1,8 @@
-# Part 3 — Module 9: Capstone — Perpetual Exchange (~5-7 days)
+# Part 3 — Module 9: Capstone — Perpetual Exchange
 
-> **Prerequisites:** All of Parts 1, 2, and 3 Modules 1-8
+> **Difficulty:** Advanced
 >
-> **Builds on:** Part 1 (Foundry testing, proxy patterns, gas optimization) | Part 2 (oracles, lending/liquidation math, flash loans, vault accounting, security patterns) | Part 3 Modules 1-8
+> **Estimated reading time:** TBD | **Exercises:** TBD
 
 ## 💡 Capstone Overview
 

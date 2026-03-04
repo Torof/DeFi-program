@@ -1,10 +1,8 @@
 # Part 2 — Module 7: Vaults & Yield
 
-**Duration:** ~4 days (3–4 hours/day)
-**Prerequisites:** Modules 1–6 (especially token mechanics, lending, and stablecoins)
-**Pattern:** Standard deep-dive → Read Yearn V3 → Build vault + strategy → Security analysis
-**Builds on:** Module 1 ([ERC-20](https://eips.ethereum.org/EIPS/eip-20) mechanics, SafeERC20), Module 4 (index-based accounting — the same shares × rate = assets pattern)
-**Used by:** Module 8 (inflation attack invariant testing), Module 9 (vault shares as collateral in integration capstone)
+> **Difficulty:** Intermediate
+>
+> **Estimated reading time:** ~35 minutes | **Exercises:** ~3-4 hours
 
 ---
 

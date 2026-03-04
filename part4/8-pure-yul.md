@@ -1,8 +1,8 @@
-# Part 4 — Module 8: Pure Yul Contracts (~4 days)
+# Part 4 — Module 8: Pure Yul Contracts
 
-> **Prerequisites:** Module 7 (Reading Production Assembly)
+> **Difficulty:** TBD
 >
-> **Builds on:** Everything in Part 4 — this is where it all comes together before the capstone
+> **Estimated reading time:** TBD | **Exercises:** TBD
 
 ---
 

@@ -1,10 +1,8 @@
 # Part 2 — Module 8: DeFi Security
 
-**Duration:** ~4 days (3–4 hours/day)
-**Prerequisites:** All previous Part 2 modules
-**Pattern:** DeFi-specific attack deep-dive → Exploit reproduction → Invariant testing → Audit report reading → Tooling
-**Builds on:** Module 3 (oracle manipulation), Module 4 (lending/liquidation), Module 5 (flash loan amplification), Module 7 (vault inflation)
-**Used by:** Module 9 (integration capstone stress testing)
+> **Difficulty:** Advanced
+>
+> **Estimated reading time:** ~45 minutes | **Exercises:** ~4-5 hours
 
 ---
 

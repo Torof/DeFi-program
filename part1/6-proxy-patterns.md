@@ -1,4 +1,8 @@
-# Module 6: Proxy Patterns & Upgradeability (~1.5-2 days)
+# Module 6: Proxy Patterns & Upgradeability
+
+> **Difficulty:** Advanced
+>
+> **Estimated reading time:** ~25 minutes | **Exercises:** ~6-8 hours
 
 ## 📚 Table of Contents
 

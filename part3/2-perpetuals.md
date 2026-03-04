@@ -1,9 +1,8 @@
-# Part 3 — Module 2: Perpetuals & Derivatives (~5 days)
+# Part 3 — Module 2: Perpetuals & Derivatives
 
-**Prerequisites:** Part 2 — Modules 2 (AMMs), 3 (Oracles), 4 (Lending & Borrowing)
-**Pattern:** Fundamentals → Protocol architecture → Alternative models → Liquidation → Hands-on
-**Builds on:** Chainlink oracle integration (P2M3), liquidation mechanics (P2M4), funding/stability pools (P2M6), keeper patterns (P2M4/M5)
-**Used by:** Module 5 (MEV — perp frontrunning and liquidation MEV), Module 9 (Capstone — perpetual exchange)
+> **Difficulty:** Advanced
+>
+> **Estimated reading time:** ~45 minutes | **Exercises:** ~3-4 hours
 
 ---
 

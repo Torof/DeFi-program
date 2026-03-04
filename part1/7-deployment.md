@@ -1,4 +1,8 @@
-# Module 7: Deployment & Operations (~0.5 day)
+# Module 7: Deployment & Operations
+
+> **Difficulty:** Beginner
+>
+> **Estimated reading time:** ~25 minutes
 
 ## 📚 Table of Contents
 

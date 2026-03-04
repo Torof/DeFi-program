@@ -1,8 +1,8 @@
-# Part 4 — Module 7: Reading Production Assembly (~3 days)
+# Part 4 — Module 7: Reading Production Assembly
 
-> **Prerequisites:** Module 6 (Gas Optimization Patterns)
+> **Difficulty:** TBD
 >
-> **Builds on:** Uniswap FullMath, OpenZeppelin internals, Solady from Parts 1-3
+> **Estimated reading time:** TBD | **Exercises:** TBD
 
 ---
 

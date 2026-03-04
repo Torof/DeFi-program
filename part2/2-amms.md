@@ -1,10 +1,8 @@
 # Part 2 — Module 2: AMMs from First Principles
 
-**Duration:** ~12 days (3–4 hours/day)
-**Prerequisites:** Module 1 complete (token mechanics, SafeERC20)
-**Pattern:** Math → Build minimal version → Read production code → Extend
-**Builds on:** Module 1 (SafeERC20, balance-before-after), Part 1 Module 5 (Foundry, fork testing)
-**Used by:** Module 3 (TWAP oracles), Module 4 (liquidation swaps), Module 5 (flash swaps/arbitrage), Module 9 (integration capstone)
+> **Difficulty:** Advanced
+>
+> **Estimated reading time:** ~65 minutes | **Exercises:** ~4-5 hours
 
 ---
 

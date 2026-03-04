@@ -1,4 +1,8 @@
-# Module 3: Modern Token Approval Patterns (~3 days)
+# Module 3: Modern Token Approval Patterns
+
+> **Difficulty:** Intermediate
+>
+> **Estimated reading time:** ~40 minutes | **Exercises:** ~5-6 hours
 
 ## 📚 Table of Contents
 

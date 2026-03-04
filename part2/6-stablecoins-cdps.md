@@ -1,10 +1,8 @@
 # Part 2 — Module 6: Stablecoins & CDPs
 
-**Duration:** ~4 days (3–4 hours/day)
-**Prerequisites:** Modules 1–5 (especially oracles and lending)
-**Pattern:** Concept → Read MakerDAO/Sky core contracts → Build simplified CDP → Compare stablecoin designs
-**Builds on:** Module 3 (oracle integration for collateral pricing), Module 4 (interest rate models, health factor math, liquidation mechanics)
-**Used by:** Module 8 (threat modeling and invariant testing your CDP), Module 9 (integration capstone), Part 3 Module 9 (capstone: perpetual exchange — uses stablecoin integration knowledge)
+> **Difficulty:** Advanced
+>
+> **Estimated reading time:** ~35 minutes | **Exercises:** ~2-3 hours
 
 ---
 

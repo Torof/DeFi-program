@@ -1,10 +1,8 @@
-# Part 4 — Module 3: Storage Deep Dive (~3 days)
+# Part 4 — Module 3: Storage Deep Dive
 
-> **Prerequisites:** Module 2 (Memory & Calldata)
+> **Difficulty:** Intermediate
 >
-> **Builds on:** Storage packing from Part 1; EIP-2929 warm/cold from Module 1; slot basics from Part 1 Module 6
-
-**Estimated reading time:** ~50 minutes | **Exercises:** ~3-4 hours
+> **Estimated reading time:** ~40 minutes | **Exercises:** ~4-5 hours
 
 ---
 

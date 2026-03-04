@@ -1,9 +1,8 @@
-# Part 3 — Module 3: Yield Tokenization (~3 days)
+# Part 3 — Module 3: Yield Tokenization
 
-**Prerequisites:** Part 2 — Modules 2 (AMMs), 7 (Vaults & Yield) + Part 3 Module 1 (Liquid Staking)
-**Pattern:** The problem → Core mechanism → Production architecture → AMM design → Strategies → Hands-on
-**Builds on:** ERC-4626 share math (P2M7), AMM curve theory (P2M2), accumulator pattern (P3M2), LST exchange rates (P3M1)
-**Used by:** Module 9 (Capstone — yield tokenization as collateral source for perpetual exchange)
+> **Difficulty:** Advanced
+>
+> **Estimated reading time:** ~35 minutes | **Exercises:** ~3-4 hours
 
 ---
 

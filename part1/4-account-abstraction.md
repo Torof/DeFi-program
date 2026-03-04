@@ -1,4 +1,8 @@
-# Module 4: Account Abstraction (~3 days)
+# Module 4: Account Abstraction
+
+> **Difficulty:** Intermediate
+>
+> **Estimated reading time:** ~40 minutes | **Exercises:** ~4-5 hours
 
 ## 📚 Table of Contents
 

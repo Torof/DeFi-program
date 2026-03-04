@@ -1,4 +1,8 @@
-# Module 5: Foundry Workflow & Testing (~2-3 days)
+# Module 5: Foundry Workflow & Testing
+
+> **Difficulty:** Beginner
+>
+> **Estimated reading time:** ~40 minutes | **Exercises:** ~4-5 hours
 
 ## 📚 Table of Contents
 

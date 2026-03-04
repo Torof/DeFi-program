@@ -1,8 +1,8 @@
-# Part 4 — Module 9: Capstone — DeFi Primitive in Yul (~5-7 days)
+# Part 4 — Module 9: Capstone — DeFi Primitive in Yul
 
-> **Prerequisites:** All of Part 4 Modules 1-8
+> **Difficulty:** TBD
 >
-> **Builds on:** Part 4 (Yul mastery) | Parts 1-3 (DeFi protocol knowledge)
+> **Estimated reading time:** TBD | **Exercises:** TBD
 
 ---
 

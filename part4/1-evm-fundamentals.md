@@ -1,12 +1,8 @@
-# Part 4 — Module 1: EVM Fundamentals (~3 days)
+# Part 4 — Module 1: EVM Fundamentals
 
-> **Prerequisites:** Parts 1-3 completed
+> **Difficulty:** Intermediate
 >
-> **Builds on:** Every `assembly { }` block you've encountered — mulDiv internals, proxy forwarding, transient storage guards, Solady optimizations
->
-> **Sets up:** Everything in Part 4 — this is the mental model for the machine
->
-> **Estimated reading time:** ~45 minutes | **Exercises:** ~2-3 hours
+> **Estimated reading time:** ~50 minutes | **Exercises:** ~3-4 hours
 
 ---
 

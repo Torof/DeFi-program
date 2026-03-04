@@ -1,8 +1,8 @@
-# Part 4 — Module 5: External Calls (~3 days)
+# Part 4 — Module 5: External Calls
 
-> **Prerequisites:** Module 4 (Control Flow & Functions)
+> **Difficulty:** TBD
 >
-> **Builds on:** delegatecall from Part 1 M6, flash loan callbacks from Part 2 M5
+> **Estimated reading time:** TBD | **Exercises:** TBD
 
 ---
 

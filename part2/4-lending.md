@@ -1,10 +1,8 @@
 # Part 2 — Module 4: Lending & Borrowing
 
-**Duration:** ~7 days (3–4 hours/day)
-**Prerequisites:** Modules 1–3 (tokens, AMMs, oracles)
-**Pattern:** Math → Read Aave V3 → Read Compound V3 → Build simplified protocol → Liquidation deep dive
-**Builds on:** Module 1 (SafeERC20), Module 3 (Chainlink consumer, staleness checks), Part 1 Module 5 (invariant testing, fork testing)
-**Used by:** Module 5 (flash loan liquidation), Module 6 (stablecoin CDPs share index math), Module 7 (vault share pricing uses same index pattern), Module 8 (invariant testing your lending pool), Module 9 (integration capstone), Part 3 Module 8 (governance attacks on lending params), Part 3 Module 6 (cross-chain lending)
+> **Difficulty:** Advanced
+>
+> **Estimated reading time:** ~60 minutes | **Exercises:** ~4-5 hours
 
 ---
 

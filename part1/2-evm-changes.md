@@ -1,4 +1,8 @@
-# Module 2: EVM-Level Changes (~3 days)
+# Module 2: EVM-Level Changes
+
+> **Difficulty:** Intermediate
+>
+> **Estimated reading time:** ~65 minutes | **Exercises:** ~4-5 hours
 
 ## 📚 Table of Contents
 

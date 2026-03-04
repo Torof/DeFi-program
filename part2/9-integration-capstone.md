@@ -1,10 +1,8 @@
 # Part 2 — Module 9: Capstone — Decentralized Multi-Collateral Stablecoin
 
-**Duration:** ~5-7 days (3–4 hours/day)
-**Prerequisites:** Modules 1–8 complete
-**Pattern:** Architecture design → Core engine → Collateral pricing → Liquidation → Flash mint → Testing → Portfolio
-**Builds on:** Module 4 (health factors, interest accrual, liquidation), Module 5 (flash loans, ERC-3156), Module 6 (CDP mechanics, rate accumulator, Dutch auctions), Module 7 (ERC-4626 vault shares, inflation attack), Module 8 (invariant testing, security)
-**Used by:** Part 3 Module 8: Governance (potential upgrade path), Part 3 Module 9: Capstone (Perpetual Exchange)
+> **Difficulty:** Advanced
+>
+> **Estimated reading time:** ~50 minutes | **Exercises:** ~15-20 hours (open-ended)
 
 ---
 

@@ -1,8 +1,8 @@
-# Part 4 — Module 6: Gas Optimization Patterns (~3 days)
+# Part 4 — Module 6: Gas Optimization Patterns
 
-> **Prerequisites:** Module 5 (External Calls)
+> **Difficulty:** TBD
 >
-> **Builds on:** Gas benchmarking from Part 1 M5, Solady references throughout
+> **Estimated reading time:** TBD | **Exercises:** TBD
 
 ---
 

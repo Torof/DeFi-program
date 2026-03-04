@@ -1,9 +1,8 @@
-# Part 3 — Module 1: Liquid Staking & Restaking (~4 days)
+# Part 3 — Module 1: Liquid Staking & Restaking
 
-**Prerequisites:** Part 2 — Modules 1 (Token Mechanics), 3 (Oracles), 7 (Vaults & Yield)
-**Pattern:** Fundamentals → Protocol architecture → Restaking → Integration patterns → Hands-on
-**Builds on:** ERC-4626 share math (P2M7), Chainlink oracle integration (P2M3), rebasing tokens (P2M1), decimal normalization (P2M4/M9)
-**Used by:** Module 3 (Yield Tokenization — Pendle splits LST yield into PT/YT), Module 9 (Capstone — LSTs as perpetual exchange collateral)
+> **Difficulty:** Intermediate
+>
+> **Estimated reading time:** ~40 minutes | **Exercises:** ~2-3 hours
 
 ---
 

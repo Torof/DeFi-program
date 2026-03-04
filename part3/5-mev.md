@@ -1,6 +1,8 @@
 # Part 3 — Module 5: MEV Deep Dive
 
-> **Prerequisites:** Part 2 — Modules 2 (AMMs), 5 (Flash Loans) | Part 3 — Module 4 (DEX Aggregation & Intents)
+> **Difficulty:** Advanced
+>
+> **Estimated reading time:** ~30 minutes | **Exercises:** ~2 hours
 
 ## 📚 Table of Contents
 

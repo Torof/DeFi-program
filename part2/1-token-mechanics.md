@@ -1,10 +1,8 @@
 # Part 2 — Module 1: Token Mechanics in Practice
 
-**Duration:** ~2 days (3–4 hours/day)
-**Prerequisites:** Part 1 complete (including Permit and Permit2 from Module 3), Foundry installed
-**Pattern:** Concept → Read production code → Build → Extend
-**Builds on:** Part 1 Module 3 (Permit/Permit2), Part 1 Module 5 (Foundry)
-**Used by:** Every subsequent module — SafeERC20, balance-before-after, and WETH patterns are foundational
+> **Difficulty:** Beginner
+>
+> **Estimated reading time:** ~30 minutes | **Exercises:** ~2 hours
 
 ---
 

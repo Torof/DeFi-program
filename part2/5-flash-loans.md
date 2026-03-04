@@ -1,10 +1,8 @@
 # Part 2 — Module 5: Flash Loans
 
-**Duration:** ~3 days (3–4 hours/day)
-**Prerequisites:** Modules 1–4 (especially AMMs and lending)
-**Pattern:** Concept → Read provider implementations → Build multi-step compositions → Security analysis
-**Builds on:** Module 2 (AMM swaps for arbitrage), Module 3 (oracle manipulation threat model), Module 4 (liquidation mechanics for flash loan liquidation)
-**Used by:** Module 6 (DAI flash mint, Liquidation 2.0 composability), Module 8 (flash-loan-amplified attack patterns), Module 9 (Decentralized Multi-Collateral Stablecoin capstone — flash mint feature), Part 3 Module 5 (MEV searcher strategies)
+> **Difficulty:** Intermediate
+>
+> **Estimated reading time:** ~30 minutes | **Exercises:** ~2-3 hours
 
 ---
 

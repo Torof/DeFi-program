@@ -1,6 +1,8 @@
 # Part 3 — Module 7: L2-Specific DeFi
 
-> **Prerequisites:** Part 2 — Modules 3 (Oracles), 4 (Lending) | Part 3 — Module 6 (Cross-Chain)
+> **Difficulty:** Intermediate
+>
+> **Estimated reading time:** ~25 minutes | **Exercises:** ~2-3 hours
 
 ## 📚 Table of Contents
 

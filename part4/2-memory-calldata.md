@@ -1,10 +1,8 @@
-# Part 4 — Module 2: Memory & Calldata (~3 days)
+# Part 4 — Module 2: Memory & Calldata
 
-> **Prerequisites:** Module 1 (EVM Fundamentals)
+> **Difficulty:** Intermediate
 >
-> **Builds on:** Free memory pointer, ABI encoding from Part 1; calldata basics from Module 1
-
-**Estimated reading time:** ~45 minutes
+> **Estimated reading time:** ~35 minutes | **Exercises:** ~3-4 hours
 
 ---
 

@@ -1,10 +1,8 @@
-# Part 4 — Module 4: Control Flow & Functions (~3 days)
+# Part 4 — Module 4: Control Flow & Functions
 
-> **Prerequisites:** Module 3 (Storage Deep Dive)
+> **Difficulty:** Intermediate
 >
-> **Builds on:** JUMP/JUMPI opcodes from [Module 1](1-evm-fundamentals.md#jump-jumpi); selector extraction from [Module 2](2-memory-calldata.md#calldata-layout); Yul syntax intro from [Module 1](1-evm-fundamentals.md#yul-intro)
-
-**Estimated reading time:** ~45 minutes | **Exercises:** ~3-4 hours
+> **Estimated reading time:** ~50 minutes | **Exercises:** ~3-4 hours
 
 ---
 

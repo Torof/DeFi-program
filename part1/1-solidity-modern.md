@@ -1,4 +1,8 @@
-# Module 1: Solidity 0.8.x — What Changed (~2 days)
+# Module 1: Solidity 0.8.x — What Changed
+
+> **Difficulty:** Beginner
+>
+> **Estimated reading time:** ~55 minutes | **Exercises:** ~3-4 hours
 
 ## 📚 Table of Contents
 

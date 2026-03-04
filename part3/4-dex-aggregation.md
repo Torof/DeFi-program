@@ -1,9 +1,8 @@
-# Part 3 — Module 4: DEX Aggregation & Intents (~4 days)
+# Part 3 — Module 4: DEX Aggregation & Intents
 
-**Prerequisites:** Part 2 — Modules 2 (AMMs), 5 (Flash Loans) | Part 1 — Module 3 (EIP-712)
-**Pattern:** The routing problem → Aggregator on-chain patterns → Intent paradigm → Settlement architecture → Solvers → Batch auctions → Hands-on
-**Builds on:** AMM curve theory (P2M2), flash loan patterns (P2M5), EIP-712 signing (P1M3)
-**Used by:** Module 5 (MEV — intents as MEV protection), Module 9 (Capstone — solver/routing integration)
+> **Difficulty:** Intermediate
+>
+> **Estimated reading time:** ~35 minutes | **Exercises:** ~2-3 hours
 
 ## 📚 Table of Contents
 

@@ -1,10 +1,8 @@
 # Part 2 — Module 3: Oracles
 
-**Duration:** ~3 days (3–4 hours/day)
-**Prerequisites:** Modules 1–2 complete (token mechanics, AMM math and architecture)
-**Pattern:** Concept → Read production integrations → Build safe consumer → Attack and defend
-**Builds on:** Module 2 (TWAP oracle from AMM price accumulators), Part 1 Module 5 (fork testing with real Chainlink feeds)
-**Used by:** Module 4 (lending collateral valuation, liquidation triggers), Module 5 (flash loan attack surface), Module 6 (CDP liquidation triggers, Oracle Security Module), Module 8 (oracle manipulation threat modeling), Module 9 (capstone: multi-collateral stablecoin), Part 3 Module 2 (Pyth for perpetuals), Part 3 Module 7 (L2 sequencer-aware oracles)
+> **Difficulty:** Intermediate
+>
+> **Estimated reading time:** ~35 minutes | **Exercises:** ~3-4 hours
 
 ---
 
