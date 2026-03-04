@@ -690,18 +690,6 @@ contract V2 { uint256 public fee = 100; }             // IN storage at slot 0 �
 
 ---
 
-## 📋 Summary: Proxy Patterns
-
-**✓ Covered:**
-- Proxy patterns — Transparent, UUPS, Beacon, Diamond
-- Storage layout — append-only upgrades, storage gaps, collision detection
-- Initializers — replacing constructors, preventing re-initialization
-- Security — uninitialized proxies, storage collisions, real exploits
-
-**Key takeaway:** Proxies enable upgradeability but introduce complexity. Storage layout compatibility is critical—test it with `forge inspect` before deploying upgrades.
-
----
-
 ### 📖 How to Study Production Proxy Architectures
 
 When you encounter a proxy-based protocol (which is most of DeFi), here's how to navigate the code:
@@ -742,6 +730,20 @@ function initialize(IPoolAddressesProvider provider) external initializer {
 ```
 
 **Don't get stuck on:** The proxy contract's assembly code. Once you understand the pattern (it delegates everything), focus entirely on the implementation.
+
+---
+
+## 📋 Summary: Proxy Patterns
+
+**✓ Covered:**
+- Proxy patterns — Transparent, UUPS, Beacon, Diamond
+- Storage layout — append-only upgrades, storage gaps, collision detection
+- Initializers — replacing constructors, preventing re-initialization
+- Security — uninitialized proxies, storage collisions, real exploits
+
+**Key takeaway:** Proxies enable upgradeability but introduce complexity. Storage layout compatibility is critical—test it with `forge inspect` before deploying upgrades.
+
+---
 
 ## 🔗 Cross-Module Concept Links
 

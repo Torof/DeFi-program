@@ -275,27 +275,6 @@ Most modern tokens implement EIP-2612:
 
 > **Connection to Module 1:** The EIP-712 typed data signing uses `abi.encode` for struct hashing — the same encoding you studied with `abi.encodeCall`. Custom errors (Module 1) are also critical here: permit failures need clear error messages for debugging.
 
-#### 💼 Job Market Context
-
-**Interview question you WILL be asked:**
-> "Explain how EIP-2612 permit works."
-
-**What to say (30-second answer):**
-"EIP-2612 adds a `permit` function to ERC-20 tokens that accepts an EIP-712 signed message instead of an on-chain `approve` transaction. The user signs a typed data message containing the spender, amount, nonce, and deadline off-chain — which is free — and anyone can submit that signature on-chain to set the allowance. This enables single-transaction flows where the protocol calls permit and transferFrom in the same tx."
-
-**Follow-up question:**
-> "What's the relationship between EIP-712 and EIP-2612?"
-
-**What to say:**
-"EIP-712 is the general standard for typed structured data signing — it defines domain separators and type hashes that prevent cross-chain and cross-contract replay. EIP-2612 is a specific application of EIP-712 for token approvals. The domain separator includes chainId and the token contract address, so a USDC permit on Ethereum can't be replayed on Arbitrum."
-
-**Interview Red Flags:**
-- 🚩 Confusing EIP-2612 with Permit2 — they're different systems
-- 🚩 Not knowing that many tokens don't support permit (USDT, mainnet WETH)
-- 🚩 Can't explain the role of the domain separator
-
-**Pro tip:** Knowing the DAI permit story shows depth — DAI had `permit()` before EIP-2612 existed and actually inspired the standard, but uses a slightly different signature format (`allowed` boolean instead of `value` uint256). This is a common gotcha in production code.
-
 #### ⚠️ The Classic Approve Race Condition
 
 Before EIP-2612, there was already a well-known vulnerability with `approve()`:
@@ -354,6 +333,27 @@ bytes32 digest = buildPermitDigest(owner, spender, value, 0, deadline);
 uint256 nonce = token.nonces(owner);
 bytes32 digest = buildPermitDigest(owner, spender, value, nonce, deadline);
 ```
+
+#### 💼 Job Market Context
+
+**Interview question you WILL be asked:**
+> "Explain how EIP-2612 permit works."
+
+**What to say (30-second answer):**
+"EIP-2612 adds a `permit` function to ERC-20 tokens that accepts an EIP-712 signed message instead of an on-chain `approve` transaction. The user signs a typed data message containing the spender, amount, nonce, and deadline off-chain — which is free — and anyone can submit that signature on-chain to set the allowance. This enables single-transaction flows where the protocol calls permit and transferFrom in the same tx."
+
+**Follow-up question:**
+> "What's the relationship between EIP-712 and EIP-2612?"
+
+**What to say:**
+"EIP-712 is the general standard for typed structured data signing — it defines domain separators and type hashes that prevent cross-chain and cross-contract replay. EIP-2612 is a specific application of EIP-712 for token approvals. The domain separator includes chainId and the token contract address, so a USDC permit on Ethereum can't be replayed on Arbitrum."
+
+**Interview Red Flags:**
+- 🚩 Confusing EIP-2612 with Permit2 — they're different systems
+- 🚩 Not knowing that many tokens don't support permit (USDT, mainnet WETH)
+- 🚩 Can't explain the role of the domain separator
+
+**Pro tip:** Knowing the DAI permit story shows depth — DAI had `permit()` before EIP-2612 existed and actually inspired the standard, but uses a slightly different signature format (`allowed` boolean instead of `value` uint256). This is a common gotcha in production code.
 
 ---
 
@@ -776,27 +776,6 @@ function permitWitnessTransferFrom(
 
 > 🔍 **Deep dive:** The witness pattern is central to intent-based systems. Read [UniswapX's ResolvedOrder](https://github.com/Uniswap/UniswapX/blob/main/src/base/ResolvedOrder.sol) to see how witness data encodes an entire swap order in the permit signature. [Cyfrin - Full Guide to Implementing Permit2](https://www.cyfrin.io/blog/how-to-implement-permit2) provides step-by-step integration patterns.
 
-#### 💼 Job Market Context: Permit2 Internals
-
-**Interview question:**
-> "SignatureTransfer vs AllowanceTransfer — when would you use each?"
-
-**What to say (30-second answer):**
-"SignatureTransfer for maximum security — each signature is consumed immediately with a unique nonce, no persistent state. Best for one-off operations like swaps or NFT purchases. AllowanceTransfer for convenience — set a time-bounded allowance once, then the protocol can pull tokens repeatedly until it expires. Best for protocols users interact with frequently, like a DEX router they use daily."
-
-**Follow-up question:**
-> "Why does Permit2 use bitmap nonces instead of sequential?"
-
-**What to say:**
-"Sequential nonces force serial execution — if you sign order A (nonce 0) and order B (nonce 1), order B can't settle before order A. Bitmap nonces use a bit-per-nonce model where any nonce can be consumed in any order. This is essential for intent-based systems like UniswapX, where users sign multiple orders that may be filled by different solvers at different times. Each nonce is a single bit in a 256-bit word, so one storage slot covers 256 unique nonces."
-
-**Interview Red Flags:**
-- 🚩 Can't explain when to choose SignatureTransfer over AllowanceTransfer
-- 🚩 Doesn't understand why bitmap nonces enable parallel execution
-- 🚩 Thinks AllowanceTransfer's uint160 amount is a limitation (it's a deliberate packing optimization)
-
-**Pro tip:** If you're interviewing at a protocol that integrates Permit2, know which mode they use. Uniswap V4 uses SignatureTransfer (one-time, stateless). If the protocol has recurring interactions (like a lending pool), they likely use AllowanceTransfer. Showing you checked their codebase before the interview is a strong signal.
-
 #### ⚠️ Common Mistakes
 
 ```solidity
@@ -836,6 +815,27 @@ function deposit(uint256 amount) external {
 // if (token.allowance(user, PERMIT2) == 0) → prompt approve tx
 // Then use Permit2 signatures for all subsequent interactions
 ```
+
+#### 💼 Job Market Context: Permit2 Internals
+
+**Interview question:**
+> "SignatureTransfer vs AllowanceTransfer — when would you use each?"
+
+**What to say (30-second answer):**
+"SignatureTransfer for maximum security — each signature is consumed immediately with a unique nonce, no persistent state. Best for one-off operations like swaps or NFT purchases. AllowanceTransfer for convenience — set a time-bounded allowance once, then the protocol can pull tokens repeatedly until it expires. Best for protocols users interact with frequently, like a DEX router they use daily."
+
+**Follow-up question:**
+> "Why does Permit2 use bitmap nonces instead of sequential?"
+
+**What to say:**
+"Sequential nonces force serial execution — if you sign order A (nonce 0) and order B (nonce 1), order B can't settle before order A. Bitmap nonces use a bit-per-nonce model where any nonce can be consumed in any order. This is essential for intent-based systems like UniswapX, where users sign multiple orders that may be filled by different solvers at different times. Each nonce is a single bit in a 256-bit word, so one storage slot covers 256 unique nonces."
+
+**Interview Red Flags:**
+- 🚩 Can't explain when to choose SignatureTransfer over AllowanceTransfer
+- 🚩 Doesn't understand why bitmap nonces enable parallel execution
+- 🚩 Thinks AllowanceTransfer's uint160 amount is a limitation (it's a deliberate packing optimization)
+
+**Pro tip:** If you're interviewing at a protocol that integrates Permit2, know which mode they use. Uniswap V4 uses SignatureTransfer (one-time, stateless). If the protocol has recurring interactions (like a lending pool), they likely use AllowanceTransfer. Showing you checked their codebase before the interview is a strong signal.
 
 ---
 

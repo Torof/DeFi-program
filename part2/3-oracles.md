@@ -1005,7 +1005,7 @@ The tests demonstrate the full attack flow: attacker swaps 600K USDC into a pool
 ---
 
 <a id="common-mistakes"></a>
-#### ⚠️ Common Mistakes
+## ⚠️ Common Mistakes
 
 These are the oracle integration mistakes that appear repeatedly in audits, exploits, and code reviews:
 

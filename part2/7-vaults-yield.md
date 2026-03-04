@@ -272,22 +272,6 @@ Also compare with Solmate's implementation (`solmate/src/tokens/ERC4626.sol`) wh
 
 **Don't get stuck on:** The `_decimalsOffset()` virtual function mechanics. Just know: default is 0 (no virtual offset), override to 3 or 6 for inflation protection. The higher the offset, the more expensive the attack becomes, but the more precision you lose for tiny deposits.
 
-<a id="day1-exercise"></a>
-## 🎯 Build Exercise: Simple Vault
-
-**Workspace:** [`workspace/src/part2/module7/exercise1-simple-vault/`](../workspace/src/part2/module7/exercise1-simple-vault/) — starter file: [`SimpleVault.sol`](../workspace/src/part2/module7/exercise1-simple-vault/SimpleVault.sol), tests: [`SimpleVault.t.sol`](../workspace/test/part2/module7/exercise1-simple-vault/SimpleVault.t.sol)
-
-Implement a minimal ERC-4626 vault from scratch (no OpenZeppelin ERC4626 or Solmate). You'll implement 4 functions: `_convertToShares`, `_convertToAssets`, `deposit`, and `withdraw`. The pre-built wrappers (`mint`, `redeem`, all `preview`/`convert`/`max` functions) route through your conversion functions, so once your TODOs work, everything works.
-
-Tests verify:
-- First deposit mints shares 1:1
-- After yield accrues (donation), new deposits get fewer shares at the correct rate
-- `mint` pulls the correct amount of assets (uses `Ceil` rounding)
-- `withdraw` burns the correct shares (uses `Ceil` rounding)
-- `redeem` returns assets including earned yield
-- Rounding always favors the vault (deposit rounds down, withdraw rounds up)
-- Full multi-user cycle matches the curriculum walkthrough (Alice, Bob, yield, Carol, withdrawal)
-
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know about ERC-4626:**
@@ -310,6 +294,22 @@ Tests verify:
 - ❌ Not knowing about the inflation attack and its defenses
 
 **Pro tip:** The ERC-4626 ecosystem is one of the fastest-growing in DeFi. Morpho, Euler V2, Yearn V3, Ethena (sUSDe), Lido (wstETH adapter), and hundreds of other protocols all use it. Being able to write, audit, and integrate ERC-4626 vaults is a high-demand skill.
+
+<a id="day1-exercise"></a>
+## 🎯 Build Exercise: Simple Vault
+
+**Workspace:** [`workspace/src/part2/module7/exercise1-simple-vault/`](../workspace/src/part2/module7/exercise1-simple-vault/) — starter file: [`SimpleVault.sol`](../workspace/src/part2/module7/exercise1-simple-vault/SimpleVault.sol), tests: [`SimpleVault.t.sol`](../workspace/test/part2/module7/exercise1-simple-vault/SimpleVault.t.sol)
+
+Implement a minimal ERC-4626 vault from scratch (no OpenZeppelin ERC4626 or Solmate). You'll implement 4 functions: `_convertToShares`, `_convertToAssets`, `deposit`, and `withdraw`. The pre-built wrappers (`mint`, `redeem`, all `preview`/`convert`/`max` functions) route through your conversion functions, so once your TODOs work, everything works.
+
+Tests verify:
+- First deposit mints shares 1:1
+- After yield accrues (donation), new deposits get fewer shares at the correct rate
+- `mint` pulls the correct amount of assets (uses `Ceil` rounding)
+- `withdraw` burns the correct shares (uses `Ceil` rounding)
+- `redeem` returns assets including earned yield
+- Rounding always favors the vault (deposit rounds down, withdraw rounds up)
+- Full multi-user cycle matches the curriculum walkthrough (Alice, Bob, yield, Carol, withdrawal)
 
 ## 📋 Summary: ERC-4626 — The Tokenized Vault Standard
 

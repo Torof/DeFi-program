@@ -265,19 +265,6 @@ Build a `WstETHOracle` contract that correctly prices wstETH in USD using a two-
 
 ---
 
-## 📋 Summary: Liquid Staking Fundamentals
-
-**Covered:**
-- Why liquid staking exists — capital efficiency for staked ETH
-- Two models — rebasing (stETH, balance changes) vs non-rebasing (wstETH/rETH, exchange rate changes)
-- Exchange rate math — `stEthPerToken` and `getExchangeRate()` with numeric walkthroughs
-- Why DeFi prefers non-rebasing — same ERC-4626 mental model, no integration surprises
-- Withdrawal queue — post-Shapella redemption mechanism and its peg stabilization role
-
-**Key insight:** Non-rebasing LSTs are conceptually identical to ERC-4626 vault shares. If you understand `convertToAssets(shares)`, you understand `getStETHByWstETH(wstETHAmount)`. The pricing pipeline, the manipulation concerns, and the oracle integration patterns all carry over from P2M7 and P2M9.
-
-**Next:** How Lido and Rocket Pool actually implement this — the contract architecture that makes liquid staking work.
-
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know:**
@@ -296,6 +283,19 @@ Build a `WstETHOracle` contract that correctly prices wstETH in USD using a two-
 - 🚩 Treating the exchange rate as a simple constant rather than understanding it's derived from `totalPooledEther / totalShares`
 
 **Pro tip:** When discussing LSTs in interviews, lead with the two-model distinction (rebasing vs non-rebasing) and immediately connect it to DeFi composability. Saying "wstETH exists because rebasing breaks DeFi" shows you understand the real engineering constraint, not just the token names.
+
+## 📋 Summary: Liquid Staking Fundamentals
+
+**Covered:**
+- Why liquid staking exists — capital efficiency for staked ETH
+- Two models — rebasing (stETH, balance changes) vs non-rebasing (wstETH/rETH, exchange rate changes)
+- Exchange rate math — `stEthPerToken` and `getExchangeRate()` with numeric walkthroughs
+- Why DeFi prefers non-rebasing — same ERC-4626 mental model, no integration surprises
+- Withdrawal queue — post-Shapella redemption mechanism and its peg stabilization role
+
+**Key insight:** Non-rebasing LSTs are conceptually identical to ERC-4626 vault shares. If you understand `convertToAssets(shares)`, you understand `getStETHByWstETH(wstETHAmount)`. The pricing pipeline, the manipulation concerns, and the oracle integration patterns all carry over from P2M7 and P2M9.
+
+**Next:** How Lido and Rocket Pool actually implement this — the contract architecture that makes liquid staking work.
 
 ---
 
@@ -576,6 +576,21 @@ The rate is updated by Rocket Pool's Oracle DAO (a set of trusted nodes) rather 
 
 > **Repos:** [Lido](https://github.com/lidofinance/lido-dao) | [Rocket Pool](https://github.com/rocket-pool/rocketpool)
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How does Lido's oracle work, and what are the trust assumptions?"**
+   - Good answer: "Oracle committee reports beacon chain balances, triggering rebase."
+   - Great answer: "A permissioned oracle committee (5/9 quorum) submits beacon chain balance reports to `AccountingOracle`. The report updates `totalPooledEther`, which changes every stETH holder's `balanceOf()` return value. Sanity checks cap the maximum APR and maximum balance drop to limit damage from a compromised oracle. The trust assumption is that the oracle committee honestly reports balances — if they inflate the report, stETH becomes temporarily overvalued. This is similar to how Chainlink oracles are a trust assumption for price feeds."
+
+**Interview Red Flags:**
+- 🚩 Not being able to explain the oracle reporting mechanism — it's a critical trust assumption, not a minor detail
+- 🚩 Describing the rebase as "automatic" without explaining that it's triggered by an oracle committee report
+- 🚩 Ignoring the sanity checks (APR cap, max balance drop) that limit oracle manipulation damage
+
+**Pro tip:** When teams ask about Lido's oracle, mention the sanity bounds unprompted. Showing you know that `AccountingOracle` caps max APR and max balance drop per report signals that you've read the actual code, not just the docs.
+
 ## 📋 Summary: Protocol Architecture
 
 **Covered:**
@@ -592,21 +607,6 @@ The rate is updated by Rocket Pool's Oracle DAO (a set of trusted nodes) rather 
 
 > **🧭 Checkpoint — Before Moving On:**
 > Can you explain the difference between stETH and wstETH in terms of how they represent staking rewards? Can you calculate a wstETH → stETH conversion given a `stEthPerToken` value? If you can, you understand the foundation that everything else in this module builds on.
-
-#### 💼 Job Market Context
-
-**What DeFi teams expect you to know:**
-
-1. **"How does Lido's oracle work, and what are the trust assumptions?"**
-   - Good answer: "Oracle committee reports beacon chain balances, triggering rebase."
-   - Great answer: "A permissioned oracle committee (5/9 quorum) submits beacon chain balance reports to `AccountingOracle`. The report updates `totalPooledEther`, which changes every stETH holder's `balanceOf()` return value. Sanity checks cap the maximum APR and maximum balance drop to limit damage from a compromised oracle. The trust assumption is that the oracle committee honestly reports balances — if they inflate the report, stETH becomes temporarily overvalued. This is similar to how Chainlink oracles are a trust assumption for price feeds."
-
-**Interview Red Flags:**
-- 🚩 Not being able to explain the oracle reporting mechanism — it's a critical trust assumption, not a minor detail
-- 🚩 Describing the rebase as "automatic" without explaining that it's triggered by an oracle committee report
-- 🚩 Ignoring the sanity checks (APR cap, max balance drop) that limit oracle manipulation damage
-
-**Pro tip:** When teams ask about Lido's oracle, mention the sanity bounds unprompted. Showing you know that `AccountingOracle` caps max APR and max balance drop per report signals that you've read the actual code, not just the docs.
 
 ---
 
@@ -789,19 +789,6 @@ This is not theoretical — Aave, Morpho, and every lending protocol that lists 
 
 **The systemic risk:** If many AVSes use the same operator set, and that operator set gets slashed on one AVS, the collateral damage cascades — all LRTs backed by those operators lose value simultaneously. This correlated slashing risk is the restaking-specific systemic concern.
 
-## 📋 Summary: EigenLayer & Restaking
-
-**Covered:**
-- Restaking concept — recycling economic security, additional yield for additional risk
-- EigenLayer's 4 core components — StrategyManager, EigenPodManager, DelegationManager, AVS
-- The delegation and slashing flow — how stakers, operators, and AVSes interact
-- LRTs — liquid receipt tokens for restaked positions (weETH, ezETH, rsETH, pufETH)
-- Risk stacking — each layer adds risk, directly affecting DeFi integration parameters
-
-**Key insight:** The risk stacking diagram is what DeFi integration comes down to. Every LTV ratio, oracle design choice, and liquidation parameter for LSTs and LRTs is ultimately a judgment about which risk layers you're willing to accept and at what discount. This is the analysis that protocol risk teams perform — and being able to articulate it is a strong interview signal.
-
-**Next:** Putting it all together — how to actually integrate LSTs into DeFi protocols.
-
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know:**
@@ -816,6 +803,19 @@ This is not theoretical — Aave, Morpho, and every lending protocol that lists 
 - 🚩 Not mentioning correlated slashing — if an AVS slashes, it can affect all LRTs delegated to that operator simultaneously
 
 **Pro tip:** If asked about EigenLayer/restaking, focus on the risk analysis (risk stacking, correlated slashing, LTV implications) rather than trying to explain the full architecture. Teams care more about how you'd evaluate the risk of accepting restaked assets than about memorizing contract names.
+
+## 📋 Summary: EigenLayer & Restaking
+
+**Covered:**
+- Restaking concept — recycling economic security, additional yield for additional risk
+- EigenLayer's 4 core components — StrategyManager, EigenPodManager, DelegationManager, AVS
+- The delegation and slashing flow — how stakers, operators, and AVSes interact
+- LRTs — liquid receipt tokens for restaked positions (weETH, ezETH, rsETH, pufETH)
+- Risk stacking — each layer adds risk, directly affecting DeFi integration parameters
+
+**Key insight:** The risk stacking diagram is what DeFi integration comes down to. Every LTV ratio, oracle design choice, and liquidation parameter for LSTs and LRTs is ultimately a judgment about which risk layers you're willing to accept and at what discount. This is the analysis that protocol risk teams perform — and being able to articulate it is a strong interview signal.
+
+**Next:** Putting it all together — how to actually integrate LSTs into DeFi protocols.
 
 ---
 
@@ -1135,18 +1135,6 @@ Build a simplified lending pool that accepts wstETH as collateral, using the ora
 
 ---
 
-## 📋 Summary: LST Integration Patterns
-
-**Covered:**
-- Oracle pricing pipeline — two-step (exchange rate → Chainlink), with full numeric walkthroughs
-- De-peg scenario — June 2022 stETH de-peg, numeric impact on lending positions
-- Dual oracle pattern — min(protocol rate, market rate) for safe collateral valuation
-- LSTs as collateral — Aave V3 parameters, E-Mode for correlated assets, liquidation considerations
-- LSTs in AMMs — why StableSwap for correlated assets, yield-bearing LP
-- LSTs in vaults — nested yield stacking, wstETH as quasi-ERC-4626
-
-**Key insight:** LST integration is really about two things: (1) correctly converting to underlying value via the exchange rate, and (2) defensively handling the edge case where market price diverges from exchange rate (de-peg). The dual oracle pattern handles both. Everything else — LTV ratios, E-Mode, liquidation parameters — follows from understanding these two points.
-
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know:**
@@ -1161,6 +1149,18 @@ Build a simplified lending pool that accepts wstETH as collateral, using the ora
 - 🚩 Treating the June 2022 de-peg as a protocol bug rather than a market/liquidity event
 
 **Pro tip:** In interviews, when discussing LST integration, always mention the de-peg scenario unprompted. Saying "we'd use a dual oracle pattern because of the June 2022 de-peg risk" signals real-world awareness, not just textbook knowledge. Protocol teams remember June 2022 — it shaped how every subsequent LST integration was designed.
+
+## 📋 Summary: LST Integration Patterns
+
+**Covered:**
+- Oracle pricing pipeline — two-step (exchange rate → Chainlink), with full numeric walkthroughs
+- De-peg scenario — June 2022 stETH de-peg, numeric impact on lending positions
+- Dual oracle pattern — min(protocol rate, market rate) for safe collateral valuation
+- LSTs as collateral — Aave V3 parameters, E-Mode for correlated assets, liquidation considerations
+- LSTs in AMMs — why StableSwap for correlated assets, yield-bearing LP
+- LSTs in vaults — nested yield stacking, wstETH as quasi-ERC-4626
+
+**Key insight:** LST integration is really about two things: (1) correctly converting to underlying value via the exchange rate, and (2) defensively handling the edge case where market price diverges from exchange rate (de-peg). The dual oracle pattern handles both. Everything else — LTV ratios, E-Mode, liquidation parameters — follows from understanding these two points.
 
 ---
 

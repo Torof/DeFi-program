@@ -655,19 +655,6 @@ This is the capstone exercise for Part 1:
 
 ---
 
-## 📋 Summary: Deployment and Operations
-
-**✓ Covered:**
-- Deployment pipeline — local → testnet → mainnet
-- Solidity scripts — testable, reusable, type-safe deployment
-- Contract verification — Etherscan, Sourcify
-- Safe multisig — eliminating single-key risk
-- Monitoring — Tenderly, Defender, event-based alerts
-
-**Key takeaway:** Deployment is where code meets reality. A perfect contract with a broken deployment is useless. Test your deployment scripts as rigorously as your contracts.
-
----
-
 ### 📖 How to Study Production Deployment Scripts
 
 When you look at a protocol's `script/` directory, here's how to navigate it:
@@ -703,6 +690,21 @@ require(vault.token() == expectedToken, "Token mismatch");
 Separate from initial deployment — these handle proxy upgrades with storage layout checks.
 
 **Don't get stuck on:** Helper utilities and test-specific deployment code. Focus on the production deployment path.
+
+---
+
+## 📋 Summary: Deployment and Operations
+
+**✓ Covered:**
+- Deployment pipeline — local → testnet → mainnet
+- Solidity scripts — testable, reusable, type-safe deployment
+- Contract verification — Etherscan, Sourcify
+- Safe multisig — eliminating single-key risk
+- Monitoring — Tenderly, Defender, event-based alerts
+
+**Key takeaway:** Deployment is where code meets reality. A perfect contract with a broken deployment is useless. Test your deployment scripts as rigorously as your contracts.
+
+---
 
 ## 🔗 Cross-Module Concept Links
 

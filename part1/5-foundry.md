@@ -667,29 +667,6 @@ Ghost variables are your **parallel accounting system** — if the contract's st
 
 **The pattern:** For every DeFi protocol, ask "what must ALWAYS be true?" — those are your invariants.
 
-#### 💼 Job Market Context
-
-**What DeFi teams expect you to know:**
-
-1. **"How do you approach testing a new DeFi protocol?"**
-   - Good answer: "Unit tests for individual functions, fuzz tests for properties, invariant tests for system-wide correctness"
-   - Great answer: "I start by identifying the protocol's invariants — solvency, conservation of value, monotonicity of share price. Then I build handlers that simulate realistic user behavior (deposits, withdrawals, swaps, liquidations), use ghost variables to track expected state, and run invariant tests with high depth. I also write targeted fuzz tests for mathematical edge cases like rounding and overflow boundaries"
-
-2. **"What's the difference between fuzz testing and invariant testing?"**
-   - Good answer: "Fuzz tests random inputs to one function, invariant tests random sequences of calls"
-   - Great answer: "Fuzz testing verifies properties of individual functions across all inputs — like 'swap output is always positive for positive input.' Invariant testing verifies system-wide properties across arbitrary call sequences — like 'the pool is always solvent regardless of what operations happened.' The key insight is that bugs often emerge from *sequences* of valid operations, not from any single call"
-
-3. **"Have you ever found a bug with fuzz/invariant testing?"**
-   - This is increasingly common in DeFi interviews. Having a real example (even from your own learning exercises) is powerful
-
-**Interview Red Flags:**
-- 🚩 Only writing unit tests with hardcoded values (no fuzzing)
-- 🚩 Not knowing the handler pattern for invariant testing
-- 🚩 Using `fail_on_revert = true` (shows lack of invariant testing experience)
-- 🚩 Can't articulate what invariants a vault or AMM should have
-
-**Pro tip:** The #1 skill that separates junior from senior DeFi developers is the ability to identify and test protocol invariants. If you can articulate "these 5 things must always be true about this protocol" and write tests proving it, you're already ahead of most candidates.
-
 #### ⚠️ Common Mistakes
 
 ```solidity
@@ -734,6 +711,29 @@ function invariant_solvency() public {
     );
 }
 ```
+
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How do you approach testing a new DeFi protocol?"**
+   - Good answer: "Unit tests for individual functions, fuzz tests for properties, invariant tests for system-wide correctness"
+   - Great answer: "I start by identifying the protocol's invariants — solvency, conservation of value, monotonicity of share price. Then I build handlers that simulate realistic user behavior (deposits, withdrawals, swaps, liquidations), use ghost variables to track expected state, and run invariant tests with high depth. I also write targeted fuzz tests for mathematical edge cases like rounding and overflow boundaries"
+
+2. **"What's the difference between fuzz testing and invariant testing?"**
+   - Good answer: "Fuzz tests random inputs to one function, invariant tests random sequences of calls"
+   - Great answer: "Fuzz testing verifies properties of individual functions across all inputs — like 'swap output is always positive for positive input.' Invariant testing verifies system-wide properties across arbitrary call sequences — like 'the pool is always solvent regardless of what operations happened.' The key insight is that bugs often emerge from *sequences* of valid operations, not from any single call"
+
+3. **"Have you ever found a bug with fuzz/invariant testing?"**
+   - This is increasingly common in DeFi interviews. Having a real example (even from your own learning exercises) is powerful
+
+**Interview Red Flags:**
+- 🚩 Only writing unit tests with hardcoded values (no fuzzing)
+- 🚩 Not knowing the handler pattern for invariant testing
+- 🚩 Using `fail_on_revert = true` (shows lack of invariant testing experience)
+- 🚩 Can't articulate what invariants a vault or AMM should have
+
+**Pro tip:** The #1 skill that separates junior from senior DeFi developers is the ability to identify and test protocol invariants. If you can articulate "these 5 things must always be true about this protocol" and write tests proving it, you're already ahead of most candidates.
 
 ---
 
@@ -786,19 +786,6 @@ function invariant_solvency() public {
 
 ---
 
-## 📋 Summary: Fuzz and Invariant Testing
-
-**✓ Covered:**
-- Fuzz testing — property-based testing for all inputs
-- `bound()` helper — constraining inputs without rejecting them
-- Invariant testing — system-wide properties across call sequences
-- Handler pattern — constraining fuzzer to valid operations
-- Ghost variables — tracking cumulative state for invariants
-
-**Next:** Fork testing and gas optimization
-
----
-
 <a id="code-reading-strategies"></a>
 ### 📖 How to Study Production Test Suites
 
@@ -838,6 +825,19 @@ Search for tests with names like `test_RevertWhen_*`, `test_EdgeCase_*`, `testFu
 2. [OpenZeppelin tests](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/test) — Comprehensive, well-documented
 3. [Uniswap V4 tests](https://github.com/Uniswap/v4-core/tree/main/test) — Production DeFi complexity
 4. [Morpho Blue invariant tests](https://github.com/morpho-org/morpho-blue/tree/main/test/forge) — Gold standard for invariant testing
+
+---
+
+## 📋 Summary: Fuzz and Invariant Testing
+
+**✓ Covered:**
+- Fuzz testing — property-based testing for all inputs
+- `bound()` helper — constraining inputs without rejecting them
+- Invariant testing — system-wide properties across call sequences
+- Handler pattern — constraining fuzzer to valid operations
+- Ghost variables — tracking cumulative state for invariants
+
+**Next:** Fork testing and gas optimization
 
 ---
 

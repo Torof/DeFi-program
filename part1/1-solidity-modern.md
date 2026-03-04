@@ -235,25 +235,6 @@ You don't need to prove WHY the extraction math works. The key insight: two view
 
 **The pattern:** If you're doing `(a * b) / c` with large numbers in DeFi, you need `mulDiv`. Every major protocol has its own version or uses a library.
 
-#### 💼 Job Market Context
-
-**What DeFi teams expect you to know:**
-1. "When would you use `unchecked` in a vault contract?"
-   - Good answer: Loop counters, intermediate calculations where inputs are validated, formulas with mathematical guarantees
-
-2. "Why can't we just divide first: `(a / c) * b` instead of `(a * b) / c`?"
-   - Good answer: Lose precision. If `a < c`, you get 0, then 0 * b = 0 (wrong!)
-
-3. "How do you handle multiplication overflow in share price calculations?"
-   - Good answer: Use a `mulDiv` library ([OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol), [Solady](https://github.com/Vectorized/solady/blob/main/src/utils/FixedPointMathLib.sol), or custom) for precise 512-bit intermediate math
-
-**Interview Red Flags:**
-- 🚩 Importing SafeMath in new Solidity 0.8+ code
-- 🚩 Not knowing when to use `unchecked`
-- 🚩 Can't explain why `unchecked` is safe in a specific case
-
-**Pro tip:** In interviews, mention that you understand the tradeoff: checked arithmetic costs gas (~20-30 gas per operation) but prevents exploits. Show you think about both security AND efficiency.
-
 #### ⚠️ Common Mistakes
 
 ```solidity
@@ -296,6 +277,25 @@ function processDeposit(uint256 amount) external {
     unchecked { ++depositCount; }  // Safe: would need 2^256 deposits to overflow
 }
 ```
+
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+1. "When would you use `unchecked` in a vault contract?"
+   - Good answer: Loop counters, intermediate calculations where inputs are validated, formulas with mathematical guarantees
+
+2. "Why can't we just divide first: `(a / c) * b` instead of `(a * b) / c`?"
+   - Good answer: Lose precision. If `a < c`, you get 0, then 0 * b = 0 (wrong!)
+
+3. "How do you handle multiplication overflow in share price calculations?"
+   - Good answer: Use a `mulDiv` library ([OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol), [Solady](https://github.com/Vectorized/solady/blob/main/src/utils/FixedPointMathLib.sol), or custom) for precise 512-bit intermediate math
+
+**Interview Red Flags:**
+- 🚩 Importing SafeMath in new Solidity 0.8+ code
+- 🚩 Not knowing when to use `unchecked`
+- 🚩 Can't explain why `unchecked` is safe in a specific case
+
+**Pro tip:** In interviews, mention that you understand the tradeoff: checked arithmetic costs gas (~20-30 gas per operation) but prevents exploits. Show you think about both security AND efficiency.
 
 ---
 
@@ -1103,25 +1103,6 @@ Try swapping `(recipient, amount)` to `(amount, recipient)` in the `encodeCall` 
 
 **Why this matters:** In cross-chain/cross-protocol calls, debugging is expensive (can't just revert and retry). Type safety catches bugs before deployment.
 
-#### 💼 Job Market Context
-
-**What DeFi teams expect you to know:**
-
-1. **"How would you build a multicall router?"**
-   - Good answer: Batch multiple calls, use `abi.encodeCall` for type safety
-   - Great answer: Plus mention gas optimization (batch vs individual), error handling, and security (reentrancy)
-
-2. **"What's the difference between abi.encodeCall and abi.encodeWithSelector?"**
-   - `abi.encodeCall`: Type-checked at compile time
-   - `abi.encodeWithSelector`: No type checking, easy to make mistakes
-   - Show you know when to use each (prefer encodeCall in new code)
-
-**Interview Red Flags:**
-- 🚩 Still using `abi.encodeWithSelector` or `abi.encodeWithSignature` in new code
-- 🚩 Not aware of the type safety benefits
-
-**Pro tip:** In multicall/batch architectures, `abi.encodeCall` shines because a single typo in a selector can drain funds. Show interviewers you default to the type-safe option and only drop to `encodeWithSelector` when dealing with dynamic interfaces (e.g., proxy patterns where the target ABI isn't known at compile time).
-
 #### ⚠️ Common Mistakes
 
 ```solidity
@@ -1152,6 +1133,25 @@ bytes memory data = abi.encodeCall(IERC20.transfer, recipient, amount);
 // ✅ CORRECT: Arguments in parentheses as a tuple
 bytes memory data = abi.encodeCall(IERC20.transfer, (recipient, amount));
 ```
+
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How would you build a multicall router?"**
+   - Good answer: Batch multiple calls, use `abi.encodeCall` for type safety
+   - Great answer: Plus mention gas optimization (batch vs individual), error handling, and security (reentrancy)
+
+2. **"What's the difference between abi.encodeCall and abi.encodeWithSelector?"**
+   - `abi.encodeCall`: Type-checked at compile time
+   - `abi.encodeWithSelector`: No type checking, easy to make mistakes
+   - Show you know when to use each (prefer encodeCall in new code)
+
+**Interview Red Flags:**
+- 🚩 Still using `abi.encodeWithSelector` or `abi.encodeWithSignature` in new code
+- 🚩 Not aware of the type safety benefits
+
+**Pro tip:** In multicall/batch architectures, `abi.encodeCall` shines because a single typo in a selector can drain funds. Show interviewers you default to the type-safe option and only drop to `encodeWithSelector` when dealing with dynamic interfaces (e.g., proxy patterns where the target ABI isn't known at compile time).
 
 ---
 

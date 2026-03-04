@@ -948,7 +948,7 @@ Map out the feedback loops. This is how decentralized monetary policy works.
 ---
 
 <a id="common-mistakes"></a>
-#### ⚠️ Common Mistakes
+## ⚠️ Common Mistakes
 
 **Mistake 1: Confusing normalized debt (`art`) with actual debt (`art × rate`)**
 

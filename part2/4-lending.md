@@ -576,21 +576,6 @@ All rates use RAY precision (27 decimals), matching Aave V3's internal math. The
 
 ---
 
-## 📋 Summary: The Lending Model
-
-**Covered:**
-- How DeFi lending works: overcollateralization → interest accrual → liquidation loop
-- Key parameters: LTV, Liquidation Threshold, Health Factor, Liquidation Bonus, Reserve Factor, Close Factor
-- Interest rate models: the two-slope kinked curve and why slope2 is steep (self-correcting mechanism)
-- Supply rate derivation from borrow rate, utilization, and reserve factor (with numeric example)
-- Index-based interest accrual: global index pattern that scales to millions of users
-- RAY arithmetic: why 27 decimals, rayMul/rayDiv mechanics, rounding direction conventions
-- Compound interest approximation: 3-term Taylor expansion, accuracy vs gas trade-off, Aave's MathUtils implementation
-
-**Key insight:** The kinked curve is *mechanism design* — it uses price signals (rates) to automatically rebalance supply and demand without human intervention.
-
-**Next:** Aave V3 architecture — how these concepts are implemented in production code.
-
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know about lending fundamentals:**
@@ -613,6 +598,21 @@ All rates use RAY precision (27 decimals), matching Aave V3's internal math. The
 - Confusing LTV (max borrow ratio) with Liquidation Threshold (liquidation trigger ratio)
 
 **Pro tip:** The single most impressive thing you can do in a lending protocol interview is articulate the *trade-offs* between Aave and Compound architectures. This signals senior-level thinking.
+
+## 📋 Summary: The Lending Model
+
+**Covered:**
+- How DeFi lending works: overcollateralization → interest accrual → liquidation loop
+- Key parameters: LTV, Liquidation Threshold, Health Factor, Liquidation Bonus, Reserve Factor, Close Factor
+- Interest rate models: the two-slope kinked curve and why slope2 is steep (self-correcting mechanism)
+- Supply rate derivation from borrow rate, utilization, and reserve factor (with numeric example)
+- Index-based interest accrual: global index pattern that scales to millions of users
+- RAY arithmetic: why 27 decimals, rayMul/rayDiv mechanics, rounding direction conventions
+- Compound interest approximation: 3-term Taylor expansion, accuracy vs gas trade-off, Aave's MathUtils implementation
+
+**Key insight:** The kinked curve is *mechanism design* — it uses price signals (rates) to automatically rebalance supply and demand without human intervention.
+
+**Next:** Aave V3 architecture — how these concepts are implemented in production code.
 
 ---
 
@@ -1376,18 +1376,6 @@ The tests cover: profitable liquidation end-to-end, exact profit calculation (5%
 
 ---
 
-## 📋 Summary: Liquidation Mechanics
-
-**Covered:**
-- Why liquidation exists: the immune system that prevents bad debt from price volatility
-- The 5-step liquidation flow: detection → call → debt repayment → collateral seizure → HF restoration
-- Aave V3 liquidation: direct liquidator model, close factor (50% normal, 100% when HF < 0.95), minimum position rules
-- Compound V3 liquidation: two-step `absorb()` + `buyCollateral()` Dutch auction (separates urgency from market dynamics)
-- Liquidation bot economics: revenue (bonus) vs costs (gas, capital, latency, competition)
-- Flash loan liquidations: zero-capital liquidation using atomic borrow → liquidate → swap → repay
-
-**Key insight:** Compound V3's absorb/auction split is architecturally elegant — it prevents sandwich attacks on liquidations and decouples "remove the risk" from "find the best price for collateral."
-
 #### 💼 Job Market Context — Liquidation Mechanics
 
 **What DeFi teams expect you to know about liquidation:**
@@ -1409,6 +1397,18 @@ The tests cover: profitable liquidation end-to-end, exact profit calculation (5%
 - Not understanding why close factor exists (prevent cascade selling)
 
 **Pro tip:** If asked about liquidation in an interview, mention the **Euler V1 exploit** — the attacker used `donateToReserves()` to manipulate health factors, bypassing the standard liquidation check. This shows you understand how liquidation edge cases create attack surfaces.
+
+## 📋 Summary: Liquidation Mechanics
+
+**Covered:**
+- Why liquidation exists: the immune system that prevents bad debt from price volatility
+- The 5-step liquidation flow: detection → call → debt repayment → collateral seizure → HF restoration
+- Aave V3 liquidation: direct liquidator model, close factor (50% normal, 100% when HF < 0.95), minimum position rules
+- Compound V3 liquidation: two-step `absorb()` + `buyCollateral()` Dutch auction (separates urgency from market dynamics)
+- Liquidation bot economics: revenue (bonus) vs costs (gas, capital, latency, competition)
+- Flash loan liquidations: zero-capital liquidation using atomic borrow → liquidate → swap → repay
+
+**Key insight:** Compound V3's absorb/auction split is architecturally elegant — it prevents sandwich attacks on liquidations and decouples "remove the risk" from "find the best price for collateral."
 
 **Next:** Build a simplified lending protocol (SimpleLendingPool) that integrates everything from the previous sections.
 
@@ -1618,22 +1618,6 @@ Aave continues evolving within the V3 framework. These updates are important to 
 
 ---
 
-## 📋 Summary: Synthesis and Advanced Patterns
-
-**Covered:**
-- Architectural comparison: Aave V3 (multi-asset, composable, complex) vs Compound V3 (single-asset, isolated, simple)
-- Bad debt mechanics: Aave's Safety Module (staked AAVE backstop) vs Compound's absorb/auction socialization
-- Liquidation cascades: the positive feedback loop and defenses (close factor, bonus calibration, oracle smoothing, caps)
-- Emerging protocols: Morpho Blue (~650-line minimal core, permissionless isolated markets), Euler V2 (modular vaults), variable liquidation incentives
-- Aave V3.1/V3.2/V3.3 updates: Liquid eMode, Umbrella, virtual accounting enforcement, deficit handling, stable rate deprecation
-- GHO stablecoin: Aave as both lending protocol and stablecoin issuer via facilitator pattern
-
-**Key insight:** The Aave vs Compound architectural trade-off is a core interview topic. Being able to articulate *why* each design was chosen (not just *what* it does) separates senior DeFi engineers from juniors.
-
-**Internalized patterns:** Interest rates are mechanism design (kinked curves as calibrated incentive systems). Indexes are the universal scaling pattern (global indexes amortize per-user computation). Liquidation is the protocol's immune system. Oracle integration is load-bearing (health factor, liquidation trigger, collateral valuation). RAY precision and rounding direction are protocol-critical (27-decimal, round against the user). Modular lending is the emerging trend (Morpho Blue ~650 lines, Euler V2 vault graphs). The `type(uint256).max` pattern solves the dust repayment problem.
-
-**Next:** Module 5 — Flash Loans (atomic uncollateralized borrowing, composing multi-step arbitrage and liquidation flows).
-
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know about lending architecture:**
@@ -1654,6 +1638,22 @@ Aave continues evolving within the V3 framework. These updates are important to 
 - Modular lending (Euler V2 vault graph, Morpho Blue's minimal core + modules)
 - Real-World Assets (RWA) as collateral in lending markets (Maker/Sky, Centrifuge)
 - Point-of-sale lending with on-chain credit scoring (undercollateralized lending frontier)
+
+## 📋 Summary: Synthesis and Advanced Patterns
+
+**Covered:**
+- Architectural comparison: Aave V3 (multi-asset, composable, complex) vs Compound V3 (single-asset, isolated, simple)
+- Bad debt mechanics: Aave's Safety Module (staked AAVE backstop) vs Compound's absorb/auction socialization
+- Liquidation cascades: the positive feedback loop and defenses (close factor, bonus calibration, oracle smoothing, caps)
+- Emerging protocols: Morpho Blue (~650-line minimal core, permissionless isolated markets), Euler V2 (modular vaults), variable liquidation incentives
+- Aave V3.1/V3.2/V3.3 updates: Liquid eMode, Umbrella, virtual accounting enforcement, deficit handling, stable rate deprecation
+- GHO stablecoin: Aave as both lending protocol and stablecoin issuer via facilitator pattern
+
+**Key insight:** The Aave vs Compound architectural trade-off is a core interview topic. Being able to articulate *why* each design was chosen (not just *what* it does) separates senior DeFi engineers from juniors.
+
+**Internalized patterns:** Interest rates are mechanism design (kinked curves as calibrated incentive systems). Indexes are the universal scaling pattern (global indexes amortize per-user computation). Liquidation is the protocol's immune system. Oracle integration is load-bearing (health factor, liquidation trigger, collateral valuation). RAY precision and rounding direction are protocol-critical (27-decimal, round against the user). Modular lending is the emerging trend (Morpho Blue ~650 lines, Euler V2 vault graphs). The `type(uint256).max` pattern solves the dust repayment problem.
+
+**Next:** Module 5 — Flash Loans (atomic uncollateralized borrowing, composing multi-step arbitrage and liquidation flows).
 
 ---
 

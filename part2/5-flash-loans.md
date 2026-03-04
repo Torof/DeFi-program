@@ -226,20 +226,6 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 
 **Don't get stuck on:** Aave's referral code system or Balancer's internal token accounting beyond the flash loan flow. Focus on the borrow → callback → repay cycle.
 
-<a id="day1-exercises"></a>
-## 🎯 Build Exercise: Flash Loan Mechanics
-
-**Workspace:** [`workspace/src/part2/module5/exercise1-flash-loan-receiver/`](../workspace/src/part2/module5/exercise1-flash-loan-receiver/) — starter file: [`FlashLoanReceiver.sol`](../workspace/src/part2/module5/exercise1-flash-loan-receiver/FlashLoanReceiver.sol), tests: [`FlashLoanReceiver.t.sol`](../workspace/test/part2/module5/exercise1-flash-loan-receiver/FlashLoanReceiver.t.sol)
-
-**Exercise 1 — FlashLoanReceiver:** Build a minimal Aave V3-style flash loan receiver that borrows tokens, validates the callback (both `msg.sender` and `initiator`), approves repayment, and tracks premiums paid. Also implement a `rescueTokens` function to sweep any accidentally stuck tokens — reinforcing the "never store funds" principle.
-
-- Implement `requestFlashLoan` (owner-only, initiates the flash loan)
-- Implement `executeOperation` (callback security checks + approve repayment)
-- Implement `rescueTokens` (owner-only safety net)
-- Tests verify: correct premium accounting, cumulative tracking across multiple loans, callback validation, access control, and zero contract balance after every operation
-
-**Stretch:** Build a Balancer flash loan receiver that borrows the same amount. Compare the callback pattern — Balancer checks balance increase (you transfer) vs Aave uses `transferFrom` (you approve). Verify the fee is 0.
-
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know:**
@@ -258,6 +244,20 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 - 🚩 Confusing Uniswap V2 flash swaps with Aave-style flash loans (different repayment mechanics)
 
 **Pro tip:** In interviews, emphasize that flash loans aren't just about arbitrage — they're a composability primitive. The collateral swap pattern (flash borrow → repay debt → withdraw → swap → redeposit → re-borrow → repay flash) is the most interview-relevant use case because it demonstrates deep understanding of lending mechanics.
+
+<a id="day1-exercises"></a>
+## 🎯 Build Exercise: Flash Loan Mechanics
+
+**Workspace:** [`workspace/src/part2/module5/exercise1-flash-loan-receiver/`](../workspace/src/part2/module5/exercise1-flash-loan-receiver/) — starter file: [`FlashLoanReceiver.sol`](../workspace/src/part2/module5/exercise1-flash-loan-receiver/FlashLoanReceiver.sol), tests: [`FlashLoanReceiver.t.sol`](../workspace/test/part2/module5/exercise1-flash-loan-receiver/FlashLoanReceiver.t.sol)
+
+**Exercise 1 — FlashLoanReceiver:** Build a minimal Aave V3-style flash loan receiver that borrows tokens, validates the callback (both `msg.sender` and `initiator`), approves repayment, and tracks premiums paid. Also implement a `rescueTokens` function to sweep any accidentally stuck tokens — reinforcing the "never store funds" principle.
+
+- Implement `requestFlashLoan` (owner-only, initiates the flash loan)
+- Implement `executeOperation` (callback security checks + approve repayment)
+- Implement `rescueTokens` (owner-only safety net)
+- Tests verify: correct premium accounting, cumulative tracking across multiple loans, callback validation, access control, and zero contract balance after every operation
+
+**Stretch:** Build a Balancer flash loan receiver that borrows the same amount. Compare the callback pattern — Balancer checks balance increase (you transfer) vs Aave uses `transferFrom` (you approve). Verify the fee is 0.
 
 ---
 
@@ -799,7 +799,7 @@ Key difference:
 ---
 
 <a id="common-mistakes"></a>
-#### ⚠️ Common Mistakes
+## ⚠️ Common Mistakes
 
 **Mistake 1: Not validating `msg.sender` in the callback**
 

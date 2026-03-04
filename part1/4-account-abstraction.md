@@ -67,6 +67,20 @@ Make smart contracts the primary account type, with programmable validation logi
 
 **The shift:** DeFi is moving from "user manages gas and approvals manually" to "protocol handles everything under the hood." Understanding this shift is essential for designing modern protocols.
 
+#### ⚠️ Common Mistakes
+
+```solidity
+// ❌ WRONG: Blocking smart accounts with EOA-only checks
+function deposit() external {
+    require(msg.sender == tx.origin, "No contracts");  // Breaks all smart wallets!
+}
+
+// ✅ CORRECT: Allow both EOAs and smart accounts
+function deposit() external {
+    // No msg.sender == tx.origin check — smart accounts welcome
+}
+```
+
 #### 💼 Job Market Context
 
 **Interview question you WILL be asked:**
@@ -87,20 +101,6 @@ Make smart contracts the primary account type, with programmable validation logi
 - 🚩 Can't name the ERC-4337 components (EntryPoint, Bundler, Paymaster)
 
 **Pro tip:** Mention real adoption numbers — 40M+ smart accounts, Coinbase Smart Wallet, Safe migration to 4337. Show you track the ecosystem, not just the spec.
-
-#### ⚠️ Common Mistakes
-
-```solidity
-// ❌ WRONG: Blocking smart accounts with EOA-only checks
-function deposit() external {
-    require(msg.sender == tx.origin, "No contracts");  // Breaks all smart wallets!
-}
-
-// ✅ CORRECT: Allow both EOAs and smart accounts
-function deposit() external {
-    // No msg.sender == tx.origin check — smart accounts welcome
-}
-```
 
 ---
 
@@ -711,27 +711,6 @@ library UniversalSigVerifier {
 
 **The pattern:** If your protocol accepts any kind of off-chain signature, add EIP-1271 support. Use OpenZeppelin's `SignatureChecker` library — it's a one-line change that makes your protocol compatible with all smart accounts.
 
-#### 💼 Job Market Context
-
-**Interview question you WILL be asked:**
-> "How do you verify signatures from smart contract wallets?"
-
-**What to say (30-second answer):**
-"Use EIP-1271. Check if the signer has code — if yes, call `isValidSignature(hash, signature)` on the signer contract and verify it returns the magic value `0x1626ba7e`. If no code, fall back to standard ECDSA recovery with `ecrecover`. Wrap the EIP-1271 call in try/catch to handle malicious implementations. OpenZeppelin's `SignatureChecker` library implements this pattern, and Permit2 uses it internally."
-
-**Follow-up question:**
-> "What's the security risk of EIP-1271?"
-
-**What to say:**
-"The main risk is that `isValidSignature` is an external call to an arbitrary contract. A malicious implementation could: consume all gas (griefing), return the magic value for any input (always-valid), or have side effects. That's why you always use try/catch with a gas limit, and never trust that a valid EIP-1271 response means the signer actually authorized the action — it only means the contract says it did."
-
-**Interview Red Flags:**
-- 🚩 Only using `ecrecover` without EIP-1271 fallback
-- 🚩 Not knowing the magic value `0x1626ba7e`
-- 🚩 Calling `isValidSignature` without try/catch
-
-**Pro tip:** Mention that EIP-1271 enables passkey-based wallets (WebAuthn signatures verified on-chain). Coinbase Smart Wallet uses this — passkey signs, wallet contract verifies via `isValidSignature`. This is the future of DeFi UX.
-
 #### ⚠️ Common Mistakes
 
 ```solidity
@@ -767,6 +746,27 @@ function verifySignature(address signer, bytes32 hash, bytes memory sig) interna
     abi.encodeCall(IERC1271.isValidSignature, (hash, sig))
 );
 ```
+
+#### 💼 Job Market Context
+
+**Interview question you WILL be asked:**
+> "How do you verify signatures from smart contract wallets?"
+
+**What to say (30-second answer):**
+"Use EIP-1271. Check if the signer has code — if yes, call `isValidSignature(hash, signature)` on the signer contract and verify it returns the magic value `0x1626ba7e`. If no code, fall back to standard ECDSA recovery with `ecrecover`. Wrap the EIP-1271 call in try/catch to handle malicious implementations. OpenZeppelin's `SignatureChecker` library implements this pattern, and Permit2 uses it internally."
+
+**Follow-up question:**
+> "What's the security risk of EIP-1271?"
+
+**What to say:**
+"The main risk is that `isValidSignature` is an external call to an arbitrary contract. A malicious implementation could: consume all gas (griefing), return the magic value for any input (always-valid), or have side effects. That's why you always use try/catch with a gas limit, and never trust that a valid EIP-1271 response means the signer actually authorized the action — it only means the contract says it did."
+
+**Interview Red Flags:**
+- 🚩 Only using `ecrecover` without EIP-1271 fallback
+- 🚩 Not knowing the magic value `0x1626ba7e`
+- 🚩 Calling `isValidSignature` without try/catch
+
+**Pro tip:** Mention that EIP-1271 enables passkey-based wallets (WebAuthn signatures verified on-chain). Coinbase Smart Wallet uses this — passkey signs, wallet contract verifies via `isValidSignature`. This is the future of DeFi UX.
 
 ---
 
@@ -931,27 +931,6 @@ Users pre-deposit ETH or tokens into the paymaster contract. Gas is deducted fro
 
 **The pattern:** Paymasters turn gas from a user cost into a protocol design lever. The question isn't "does your protocol support paymasters?" — it's "what's your gas sponsorship strategy?"
 
-#### 💼 Job Market Context
-
-**Interview question you WILL be asked:**
-> "How would you implement gasless DeFi interactions?"
-
-**What to say (30-second answer):**
-"Using ERC-4337 paymasters. Three patterns: a verifying paymaster where the protocol backend signs each UserOperation it wants to sponsor — good for controlled onboarding. An ERC-20 paymaster that accepts stablecoins for gas, using a Chainlink oracle for the exchange rate — good for users who hold tokens but not ETH. Or a deposit paymaster where users pre-fund a gas balance. The paymaster's `validatePaymasterUserOp` decides whether to sponsor, and `postOp` handles accounting after execution."
-
-**Follow-up question:**
-> "What are the security risks of paymasters?"
-
-**What to say:**
-"Griefing is the main risk — a malicious user could submit expensive UserOperations that the paymaster sponsors, draining its balance. Mitigations include: off-chain validation before signing (verifying paymaster), rate limiting per user, gas caps per UserOp, and requiring token pre-approval before sponsoring (ERC-20 paymaster). Also, oracle manipulation for ERC-20 paymasters — if the price feed is stale, the paymaster could underprice gas and lose money."
-
-**Interview Red Flags:**
-- 🚩 "Just use meta-transactions" — ERC-4337 paymasters are the modern standard
-- 🚩 Not understanding the validate → execute → postOp flow
-- 🚩 Can't explain paymaster griefing risks
-
-**Pro tip:** Knowing specific paymaster services (Pimlico, Alchemy Gas Manager, Biconomy) shows you've worked with the ecosystem practically, not just theoretically.
-
 #### ⚠️ Common Mistakes
 
 ```solidity
@@ -979,6 +958,27 @@ uint256 tokenAmount = gasUsed * gasPrice / tokenPrice;  // tokenPrice could be s
 (, int256 price, , uint256 updatedAt, ) = priceFeed.latestRoundData();
 require(block.timestamp - updatedAt < 1 hours, "Stale price feed");
 ```
+
+#### 💼 Job Market Context
+
+**Interview question you WILL be asked:**
+> "How would you implement gasless DeFi interactions?"
+
+**What to say (30-second answer):**
+"Using ERC-4337 paymasters. Three patterns: a verifying paymaster where the protocol backend signs each UserOperation it wants to sponsor — good for controlled onboarding. An ERC-20 paymaster that accepts stablecoins for gas, using a Chainlink oracle for the exchange rate — good for users who hold tokens but not ETH. Or a deposit paymaster where users pre-fund a gas balance. The paymaster's `validatePaymasterUserOp` decides whether to sponsor, and `postOp` handles accounting after execution."
+
+**Follow-up question:**
+> "What are the security risks of paymasters?"
+
+**What to say:**
+"Griefing is the main risk — a malicious user could submit expensive UserOperations that the paymaster sponsors, draining its balance. Mitigations include: off-chain validation before signing (verifying paymaster), rate limiting per user, gas caps per UserOp, and requiring token pre-approval before sponsoring (ERC-20 paymaster). Also, oracle manipulation for ERC-20 paymasters — if the price feed is stale, the paymaster could underprice gas and lose money."
+
+**Interview Red Flags:**
+- 🚩 "Just use meta-transactions" — ERC-4337 paymasters are the modern standard
+- 🚩 Not understanding the validate → execute → postOp flow
+- 🚩 Can't explain paymaster griefing risks
+
+**Pro tip:** Knowing specific paymaster services (Pimlico, Alchemy Gas Manager, Biconomy) shows you've worked with the ecosystem practically, not just theoretically.
 
 ---
 

@@ -249,21 +249,6 @@ Price change │ IL      │ In dollar terms ($2000 initial)
 
 > **Deep dive:** [Pintail's IL calculator](https://dailydefi.org/tools/impermanent-loss-calculator/), [Bancor IL research](https://blog.bancor.network/beginners-guide-to-getting-rekt-by-impermanent-loss-7c9510cb2f22)
 
-#### 💼 Job Market Context
-
-**What DeFi teams expect you to know:**
-
-1. **"What is impermanent loss and when does it matter?"**
-   - Good answer: "IL is the difference between LP value and holding value. It's caused by arbitrageurs rebalancing the pool after external price changes."
-   - Great answer: "LPs are implicitly short volatility — they sell the appreciating token and buy the depreciating one as the pool rebalances. IL = `2√r/(1+r) - 1` where r is the price ratio change. For a 2x move, that's ~5.7%. But IL is just a snapshot — the more accurate framework is LVR (Loss-Versus-Rebalancing), which measures the continuous cost of CEX-DEX arbitrageurs trading against stale AMM prices. LVR scales with σ² (volatility squared), which is why volatile pairs are so much more expensive to LP. For stablecoin pairs, both IL and LVR are near zero, making fee income almost pure profit. The key question is always: do fees exceed LVR? For most volatile pairs on V3, the answer is barely — especially with JIT liquidity extracting 5-10% of fee revenue."
-
-**Interview Red Flags:**
-- 🚩 Saying "impermanent loss isn't real" — it is real, and LVR makes it even more concrete
-- 🚩 Only knowing IL but not LVR — shows outdated understanding of LP economics
-- 🚩 Not understanding that LPs are selling volatility (short gamma)
-
-**Pro tip:** In interviews, mention LVR by name and cite the Milionis et al. paper — it shows you follow DeFi research, not just Twitter summaries.
-
 #### 🔍 Deep Dive: Beyond IL — The LVR Framework
 
 **Why this matters:** Impermanent loss is the classic way to measure LP costs, but it only captures the loss at the moment of withdrawal. The DeFi research community has moved to **LVR (Loss-Versus-Rebalancing)** as the more accurate framework — and it's increasingly expected knowledge in interviews at serious DeFi teams.
@@ -314,6 +299,21 @@ Fees must exceed LVR, not just IL, for LPs to profit. When evaluating whether a 
 1. **Lending liquidations (Module 4):** Liquidation bots swap collateral through AMMs — price impact from the constant product formula determines whether liquidation is profitable
 2. **Oracle design (Module 3):** TWAP oracles built on AMM prices inherit the constant product curve's properties — large trades cause large price movements that accumulate in TWAP
 3. **Stablecoin pegs (Module 6):** Curve's StableSwap modifies the constant product formula for near-1:1 assets — understanding `x·y=k` is prerequisite for understanding Curve's hybrid invariant
+
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What is impermanent loss and when does it matter?"**
+   - Good answer: "IL is the difference between LP value and holding value. It's caused by arbitrageurs rebalancing the pool after external price changes."
+   - Great answer: "LPs are implicitly short volatility — they sell the appreciating token and buy the depreciating one as the pool rebalances. IL = `2√r/(1+r) - 1` where r is the price ratio change. For a 2x move, that's ~5.7%. But IL is just a snapshot — the more accurate framework is LVR (Loss-Versus-Rebalancing), which measures the continuous cost of CEX-DEX arbitrageurs trading against stale AMM prices. LVR scales with σ² (volatility squared), which is why volatile pairs are so much more expensive to LP. For stablecoin pairs, both IL and LVR are near zero, making fee income almost pure profit. The key question is always: do fees exceed LVR? For most volatile pairs on V3, the answer is barely — especially with JIT liquidity extracting 5-10% of fee revenue."
+
+**Interview Red Flags:**
+- 🚩 Saying "impermanent loss isn't real" — it is real, and LVR makes it even more concrete
+- 🚩 Only knowing IL but not LVR — shows outdated understanding of LP economics
+- 🚩 Not understanding that LPs are selling volatility (short gamma)
+
+**Pro tip:** In interviews, mention LVR by name and cite the Milionis et al. paper — it shows you follow DeFi research, not just Twitter summaries.
 
 ---
 
@@ -1000,6 +1000,8 @@ Write Foundry tests covering:
 
 ---
 
+## 💡 Uniswap V4 — Singleton Architecture and Flash Accounting
+
 #### 🎓 Intermediate Example: From V3 to V4
 
 Before diving into V4, notice V3's key architectural limitation:
@@ -1039,10 +1041,6 @@ Gas cost: ~200k (20-30% cheaper, and scales better with more hops)
 ```
 
 V4 trades the simplicity of independent pool contracts for a singleton that tracks IOUs. The USDC delta from Pool A cancels with Pool B — it's just accounting. Combined with transient storage (TSTORE at 100 gas vs SSTORE at 2,100+), this makes complex multi-pool interactions dramatically cheaper.
-
----
-
-## 💡 Uniswap V4 — Singleton Architecture and Flash Accounting
 
 ### 💡 Concept: Architectural Revolution
 
@@ -1322,6 +1320,17 @@ contract VolatilityHook is BaseHook {
 
 > **Deep dive:** [Hook development guide](https://docs.uniswap.org/contracts/v4/guides/create-a-hook), [Hook security best practices](https://www.trustlook.com/blog/uniswap-v4-hooks-security/)
 
+#### 🔗 DeFi Pattern Connection
+
+**Where V4 hooks are being used in production:**
+
+1. **MEV protection:** [Sorella's Angstrom](https://www.sorella.xyz/) uses hooks to batch-settle swaps at uniform clearing prices, eliminating sandwich attacks
+2. **Lending integration:** Hooks that auto-deposit idle LP assets into lending protocols between swaps — earning additional yield on liquidity
+3. **Custom oracles:** [GeomeanOracle hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/GeomeanOracle.sol) provides TWAP with better properties than V2/V3's built-in oracle
+4. **LP management:** [Bunni](https://bunni.pro/) uses hooks for native concentrated liquidity management without external vaults
+
+**The pattern:** V4 hooks are the composability layer for AMM innovation. Instead of forking an AMM (fragmenting liquidity), you plug into shared liquidity with custom logic.
+
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know:**
@@ -1336,17 +1345,6 @@ contract VolatilityHook is BaseHook {
 - 🚩 Not mentioning access control (`msg.sender == poolManager`) as a critical security pattern
 
 **Pro tip:** Mention a specific production hook you've studied (Clanker, Bunni, or GeomeanOracle) — it shows you've gone beyond docs into actual codebases.
-
-#### 🔗 DeFi Pattern Connection
-
-**Where V4 hooks are being used in production:**
-
-1. **MEV protection:** [Sorella's Angstrom](https://www.sorella.xyz/) uses hooks to batch-settle swaps at uniform clearing prices, eliminating sandwich attacks
-2. **Lending integration:** Hooks that auto-deposit idle LP assets into lending protocols between swaps — earning additional yield on liquidity
-3. **Custom oracles:** [GeomeanOracle hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/GeomeanOracle.sol) provides TWAP with better properties than V2/V3's built-in oracle
-4. **LP management:** [Bunni](https://bunni.pro/) uses hooks for native concentrated liquidity management without external vaults
-
-**The pattern:** V4 hooks are the composability layer for AMM innovation. Instead of forking an AMM (fragmenting liquidity), you plug into shared liquidity with custom logic.
 
 ## 📋 Summary: V4 Hooks
 
