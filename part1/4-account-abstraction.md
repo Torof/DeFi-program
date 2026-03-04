@@ -32,7 +32,7 @@
 <a id="problem-aa-solves"></a>
 ### 💡 Concept: The Problem Account Abstraction Solves
 
-**Why this matters:** As of 2025, over 40 million smart accounts are deployed on EVM chains. Major wallets (Coinbase Smart Wallet, Safe, Argent, Ambire) have migrated to ERC-4337. If your DeFi protocol doesn't support account abstraction, you're cutting off a massive and growing user base.
+**Why this matters:** Over 40 million smart accounts are deployed on EVM chains. Major wallets (Coinbase Smart Wallet, Safe, Argent, Ambire) have migrated to ERC-4337. If your DeFi protocol doesn't support account abstraction, you're cutting off a massive and growing user base.
 
 **📊 The fundamental limitations of EOAs:**
 
@@ -93,7 +93,7 @@ function deposit() external {
 > "What's the difference between ERC-4337 and EIP-7702?"
 
 **What to say:**
-"ERC-4337 deploys new smart contract accounts — full flexibility but requires asset migration. EIP-7702, activated with Pectra in May 2025, lets existing EOAs delegate to smart contract code — same address, no migration. Delegation persists until explicitly revoked. They're complementary: an EOA can use EIP-7702 to delegate to an ERC-4337-compatible implementation, getting the full bundler/paymaster ecosystem without changing addresses."
+"ERC-4337 deploys new smart contract accounts — full flexibility but requires asset migration. EIP-7702, activated with the Pectra upgrade, lets existing EOAs delegate to smart contract code — same address, no migration. Delegation persists until explicitly revoked. They're complementary: an EOA can use EIP-7702 to delegate to an ERC-4337-compatible implementation, getting the full bundler/paymaster ecosystem without changing addresses."
 
 **Interview Red Flags:**
 - 🚩 "Account abstraction requires a hard fork" — ERC-4337 is entirely at the application layer
@@ -155,7 +155,7 @@ The user's smart contract wallet. Must implement `validateUserOp()` which the En
 - [Biconomy](https://github.com/bcnmy/scw-contracts) — optimized for gas
 - [SimpleAccount](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccount.sol) — reference implementation
 
-**📐 Modular Account Standards (2024-2025):**
+**📐 Modular Account Standards:**
 
 The ecosystem is converging on standardized module interfaces so plugins can work across different smart accounts:
 

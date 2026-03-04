@@ -170,7 +170,7 @@ address alice = makeAddr("alice");
 uint256 snapshot = vm.snapshot();
 // ... modify state ...
 vm.revertTo(snapshot);  // Back to snapshot state
-// (Note: In recent Foundry versions, renamed to `vm.snapshotState()` and `vm.revertToState()`)
+// (Note: Modern Foundry also supports `vm.snapshotState()` and `vm.revertToState()` — both APIs work)
 ```
 
 > ⚡ **Common pitfall:** `vm.prank` only affects the **next** call. If you need multiple calls, use `vm.startPrank`/`vm.stopPrank`. Forgetting this leads to "hey why is msg.sender wrong?" debugging sessions.

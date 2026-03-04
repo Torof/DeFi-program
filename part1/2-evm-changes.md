@@ -1480,7 +1480,7 @@ Build a "flash accounting" pattern using transient storage:
 
 **What it does:**
 
-EIP-7702 allows Externally Owned Accounts (EOAs) to temporarily delegate to smart contract code. A new transaction type (Type 4) includes an `authorization_list`—a list of `(chain_id, contract_address, nonce, signature)` tuples. When processed, the EOA's code is temporarily set to a delegation designator pointing to the specified contract. For the duration of the transaction, calls to the EOA execute the delegated contract's code.
+EIP-7702 allows Externally Owned Accounts (EOAs) to delegate to smart contract code. A new transaction type (Type 4) includes an `authorization_list`—a list of `(chain_id, contract_address, nonce, signature)` tuples. When processed, the EOA's code is set to a delegation designator pointing to the specified contract. The delegation persists across transactions until explicitly changed or revoked — calls to the EOA execute the delegated contract's code.
 
 **Key properties:**
 

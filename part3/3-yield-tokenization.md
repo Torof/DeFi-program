@@ -1075,7 +1075,7 @@ DeFi composability at its finest:
 
 Each is the SAME mathematical pattern: a global counter that grows, per-user snapshots at entry, delta = amount owed. The only difference is what's being accumulated (vault yield, funding payments, staking yield).
 
-**Time-decaying assets (new pattern):**
+**Time-decaying assets:**
 - PT value converges to 1.0 at maturity
 - Options value decays (theta) as expiry approaches
 - Bond price converges to par at maturity

@@ -50,7 +50,7 @@
 
 ## Control Flow in Yul
 
-Modules 1-3 gave you the building blocks: opcodes and gas costs, memory and calldata layout, storage slots and packing. Now you write programs. In [Module 1](1-evm-fundamentals.md#yul-intro) you saw `if`, `switch`, and `for` in passing as Yul syntax elements. This module goes deep on each one -- how they compile to bytecode, what they cost, and how to use them in production assembly.
+Modules 1-3 gave you the building blocks: opcodes and gas costs, memory and calldata layout, storage slots and packing. Now you write programs. In [Module 1](1-evm-fundamentals.md#first-yul) you saw `if`, `switch`, and `for` in passing as Yul syntax elements. This module goes deep on each one — how they compile to bytecode, what they cost, and how to use them in production assembly.
 
 By the end of this section, you'll understand why every `require()` in Solidity is an `if iszero(...) { revert }` under the hood, and you'll be able to write complete dispatch tables by hand.
 
@@ -59,7 +59,7 @@ By the end of this section, you'll understand why every `require()` in Solidity 
 <a id="yul-if"></a>
 ### 💡 Concept: Yul `if` — Conditional Execution
 
-**Why this matters:** The `if` statement is the most common control flow in assembly. Every access check, every balance validation, every sanity guard compiles to an `if` in Yul. Mastering its quirks -- especially the lack of `else` -- is essential for writing correct assembly.
+**Why this matters:** The `if` statement is the most common control flow in assembly. Every access check, every balance validation, every sanity guard compiles to an `if` in Yul. Mastering its quirks — especially the lack of `else` — is essential for writing correct assembly.
 
 Yul's `if` is simpler than Solidity's:
 
@@ -70,11 +70,11 @@ if condition {
 ```
 
 **Key rules:**
-- **Any nonzero value is true.** There is no boolean type. `1`, `42`, `0xffffffffffffffff` -- all true. Only `0` is false.
+- **Any nonzero value is true.** There is no boolean type. `1`, `42`, `0xffffffffffffffff` — all true. Only `0` is false.
 - **There is no `else`.** This is by design. You use `switch` for if/else patterns.
 - **Negation uses `iszero()`:** To express "if NOT condition," write `if iszero(condition) { }`.
 
-**Pattern: Guard clauses** -- the bread and butter of assembly:
+**Pattern: Guard clauses** — the bread and butter of assembly:
 
 ```yul
 assembly {
@@ -129,27 +129,27 @@ Deploy, call `onlyOwnerAction()` from the deployer (returns 42), then switch acc
 
 #### ⚠️ Common Mistakes
 
-- **Forgetting `iszero()` for negation.** `if eq(x, 0) { }` does NOT mean "if x equals 0, do nothing." It means "if eq returns 1 (true), execute the block." This does execute when x is 0. The confusion is thinking `if` with a condition that evaluates to "zero equals zero" skips -- it doesn't. For clarity, always use `if iszero(x) { }` when you mean "if x is zero."
+- **Forgetting `iszero()` for negation.** `if eq(x, 0) { }` does NOT mean "if x equals 0, do nothing." It means "if eq returns 1 (true), execute the block." This does execute when x is 0. The confusion is thinking `if` with a condition that evaluates to "zero equals zero" skips — it doesn't. For clarity, always use `if iszero(x) { }` when you mean "if x is zero."
 - **Using `if` when `switch` is clearer.** If you have more than two branches, chained `if` statements are harder to read than a `switch`. Prefer `switch` for value-matching dispatch.
 - **Not masking addresses.** `if eq(caller(), addr)` can fail if `addr` has dirty upper bits (bits 160-255 nonzero). Addresses are 20 bytes, but stack values are 32 bytes. Always ensure address values are clean, or mask with `and(addr, 0xffffffffffffffffffffffffffffffffffffffff)`.
-- **Using `if` for early return.** `if` cannot return a value -- it only gates a block. For early-return patterns in Yul, you need `leave` inside a Yul function (covered below).
+- **Using `if` for early return.** `if` cannot return a value — it only gates a block. For early-return patterns in Yul, you need `leave` inside a Yul function (covered below).
 
 #### 💼 Job Market Context
 
 **"Why doesn't Yul have `else`?"**
 - Good: "You use `switch` with two cases instead"
-- Great: "Yul is intentionally minimal -- it maps closely to EVM opcodes. There's no JUMPELSE opcode, only JUMPI (conditional jump). An if-else would compile to JUMPI + JUMP, same as a `switch` with `case 0` / `default`. Yul makes you choose the right construct explicitly rather than hiding the cost. In practice, most assembly code uses guard-clause-style `if iszero(...) { revert }` -- you rarely need `else` because the revert terminates execution"
+- Great: "Yul is intentionally minimal — it maps closely to EVM opcodes. There's no JUMPELSE opcode, only JUMPI (conditional jump). An if-else would compile to JUMPI + JUMP, same as a `switch` with `case 0` / `default`. Yul makes you choose the right construct explicitly rather than hiding the cost. In practice, most assembly code uses guard-clause-style `if iszero(...) { revert }` — you rarely need `else` because the revert terminates execution"
 
 🚩 **Red flag:** Not knowing `iszero` is the standard negation pattern
 
-**Pro tip:** Every `require()` in Solidity compiles to `if iszero(condition) { revert }` -- the pattern you'll write most often. Interviewers who see you instinctively write `if iszero(...)` instead of struggling with negation know you've written real assembly
+**Pro tip:** Every `require()` in Solidity compiles to `if iszero(condition) { revert }` — the pattern you'll write most often. Interviewers who see you instinctively write `if iszero(...)` instead of struggling with negation know you've written real assembly
 
 ---
 
 <a id="yul-switch"></a>
 ### 💡 Concept: `switch/case/default` — Multi-Branch Logic
 
-**Why this matters:** `switch` is how you write if/else logic in Yul, and it's the foundation of function selector dispatch -- the most important control flow pattern in smart contracts.
+**Why this matters:** `switch` is how you write if/else logic in Yul, and it's the foundation of function selector dispatch — the most important control flow pattern in smart contracts.
 
 ```yul
 switch expr
@@ -165,9 +165,9 @@ default {
 ```
 
 **Key rules:**
-- **No fall-through.** Unlike C, JavaScript, or Go's `switch`, Yul cases do NOT fall through to the next case. Each case is independent -- no `break` needed.
+- **No fall-through.** Unlike C, JavaScript, or Go's `switch`, Yul cases do NOT fall through to the next case. Each case is independent — no `break` needed.
 - **Must have at least one `case` OR a `default`.** You can't have an empty switch.
-- **Cases must be literal values.** You can't use variables or expressions as case values -- only integer literals or string literals.
+- **Cases must be literal values.** You can't use variables or expressions as case values — only integer literals or string literals.
 - **The "else" replacement:** Since Yul has no `else`, use a two-branch switch:
 
 ```yul
@@ -233,26 +233,26 @@ function classify(uint256 x) external pure returns (uint256) {
 }
 ```
 
-Deploy, call with different values. Verify the outputs match. At the bytecode level, both the if-chain and switch compile to the same JUMPI sequence -- but `switch` makes intent explicit.
+Deploy, call with different values. Verify the outputs match. At the bytecode level, both the if-chain and switch compile to the same JUMPI sequence — but `switch` makes intent explicit.
 
-**Gas comparison:** `switch` and chained `if` produce identical bytecode -- both are linear JUMPI chains. The choice is about readability, not performance.
+**Gas comparison:** `switch` and chained `if` produce identical bytecode — both are linear JUMPI chains. The choice is about readability, not performance.
 
 #### 💼 Job Market Context
 
 **"When do you use `switch` vs `if` in Yul?"**
 - Good: "`switch` for matching specific values, `if` for boolean conditions"
-- Great: "`switch` when dispatching on a known set of values -- selector dispatch, enum handling, error codes. `if` for boolean guards -- access control, balance checks, zero-address validation. At the bytecode level they compile to the same JUMPI chains, but `switch` makes the intent explicit -- especially important in audit-facing code. The Solidity compiler itself uses `switch` internally for selector dispatch in the Yul IR output"
+- Great: "`switch` when dispatching on a known set of values — selector dispatch, enum handling, error codes. `if` for boolean guards — access control, balance checks, zero-address validation. At the bytecode level they compile to the same JUMPI chains, but `switch` makes the intent explicit — especially important in audit-facing code. The Solidity compiler itself uses `switch` internally for selector dispatch in the Yul IR output"
 
 🚩 **Red flag:** Assuming `switch` has fall-through like C
 
-**Pro tip:** The Solidity compiler uses `switch` internally for selector dispatch -- you're writing what the compiler would generate. Knowing this shows you understand the compilation pipeline, not just the surface syntax
+**Pro tip:** The Solidity compiler uses `switch` internally for selector dispatch — you're writing what the compiler would generate. Knowing this shows you understand the compilation pipeline, not just the surface syntax
 
 ---
 
 <a id="yul-for"></a>
 ### 💡 Concept: `for` Loops — Gas-Efficient Iteration
 
-**Why this matters:** Loops are where assembly gas savings are most dramatic -- and where bugs are most dangerous. A single unbounded loop can make a contract DoS-vulnerable. Understanding the exact gas cost per iteration lets you make informed decisions about loop design.
+**Why this matters:** Loops are where assembly gas savings are most dramatic — and where bugs are most dangerous. A single unbounded loop can make a contract DoS-vulnerable. Understanding the exact gas cost per iteration lets you make informed decisions about loop design.
 
 Yul's `for` loop has explicit C-like syntax:
 
@@ -262,7 +262,7 @@ for { /* init */ } /* condition */ { /* post */ } {
 }
 ```
 
-A concrete example -- iterate 0 to 9:
+A concrete example — iterate 0 to 9:
 
 ```yul
 for { let i := 0 } lt(i, 10) { i := add(i, 1) } {
@@ -298,7 +298,7 @@ for { let i := 0 } lt(i, len) { i := add(i, 1) } {
 | Fixed bounds (`i < 10`) | Safe | Gas cost is constant, known at compile time |
 | Bounded by constant (`i < MAX_BATCH`) | Safe | Worst case is bounded, auditable |
 | Bounded by storage length | Dangerous | Attacker can grow the array to exhaust gas |
-| Unbounded iteration | Critical risk | Block gas limit is the only bound -- DoS vector |
+| Unbounded iteration | Critical risk | Block gas limit is the only bound — DoS vector |
 
 💻 **Quick Try:**
 
@@ -367,7 +367,7 @@ Per-iteration overhead:
 - If the body does an SSTORE (5,000 gas), the 31 gas overhead is negligible
 
 **Why `unchecked { ++i }` in Solidity matches Yul's `i := add(i, 1)`:**
-Both skip the overflow check. In checked Solidity, `i++` adds ~20 gas per iteration for the overflow comparison. Since loop indices almost never overflow (you'd need 2^256 iterations), `unchecked` is standard practice in gas-optimized Solidity. In Yul, you get this by default -- `add` does not check for overflow.
+Both skip the overflow check. In checked Solidity, `i++` adds ~20 gas per iteration for the overflow comparison. Since loop indices almost never overflow (you'd need 2^256 iterations), `unchecked` is standard practice in gas-optimized Solidity. In Yul, you get this by default — `add` does not check for overflow.
 
 #### 🔗 DeFi Pattern Connection
 
@@ -375,11 +375,11 @@ Both skip the overflow check. In checked Solidity, `i++` adds ~20 gas per iterat
 
 1. **Batch operations:** Airdrop contracts, multi-transfer, batch liquidation. These iterate over recipients and amounts. Uniswap V3's `collect()` and Aave V3's `executeBatchFlashLoan()` both use bounded loops.
 
-2. **Array iteration:** Token allowlist checks, validator set updates, reward distribution. The gas cost of iterating a 100-element array is ~3,100 gas overhead + body cost -- manageable for most operations.
+2. **Array iteration:** Token allowlist checks, validator set updates, reward distribution. The gas cost of iterating a 100-element array is ~3,100 gas overhead + body cost — manageable for most operations.
 
 3. **The "bounded loop" audit rule:** Auditors flag unbounded loops as **high severity**. If a user can grow the array (e.g., by calling `addToList()` repeatedly), they can make any function that iterates the list exceed the block gas limit. The standard fix: paginated iteration with `startIndex` and `batchSize` parameters.
 
-4. **Curve's StableSwap:** The `get_D()` function uses a Newton-Raphson loop to find the invariant. It's bounded by `MAX_ITERATIONS = 255` -- if it doesn't converge, it reverts. This is the textbook example of a safe math loop.
+4. **Curve's StableSwap:** The `get_D()` function uses a Newton-Raphson loop to find the invariant. It's bounded by `MAX_ITERATIONS = 255` — if it doesn't converge, it reverts. This is the textbook example of a safe math loop.
 
 #### ⚠️ Common Mistakes
 
@@ -392,18 +392,18 @@ Both skip the overflow check. In checked Solidity, `i++` adds ~20 gas per iterat
 
 **"How do you iterate arrays safely in assembly?"**
 - Good: "Use a `for` loop with `lt(i, length)`, pre-compute the length"
-- Great: "Cache the length in a local variable to avoid repeated SLOAD/MLOAD. Use `lt(i, len)` for the condition -- there's no `le` opcode, so `<=` requires `iszero(gt(i, len))` or `lt(i, add(len, 1))`, which can overflow at type max. For storage arrays, load the length once with `sload` and compute element slots with `add(baseSlot, i)`. Always ensure the loop is bounded -- unbounded loops are an audit finding because an attacker can grow the array to make the function exceed the block gas limit"
+- Great: "Cache the length in a local variable to avoid repeated SLOAD/MLOAD. Use `lt(i, len)` for the condition — there's no `le` opcode, so `<=` requires `iszero(gt(i, len))` or `lt(i, add(len, 1))`, which can overflow at type max. For storage arrays, load the length once with `sload` and compute element slots with `add(baseSlot, i)`. Always ensure the loop is bounded — unbounded loops are an audit finding because an attacker can grow the array to make the function exceed the block gas limit"
 
 🚩 **Red flag:** Writing unbounded loops over user-controlled arrays
 
-**Pro tip:** In interviews, always mention the DoS vector -- it shows security awareness alongside assembly skill. If you can also cite Curve's Newton-Raphson bounded loop or Aave's batch size limits, you demonstrate real protocol knowledge
+**Pro tip:** In interviews, always mention the DoS vector — it shows security awareness alongside assembly skill. If you can also cite Curve's Newton-Raphson bounded loop or Aave's batch size limits, you demonstrate real protocol knowledge
 
 ---
 
 <a id="yul-leave"></a>
 ### 💡 Concept: `leave` — Early Exit
 
-**Why this matters:** `leave` is Yul's equivalent of `return` in other languages -- it exits the current Yul function immediately. Without it, you'd need deeply nested `if` blocks for guard-then-compute patterns.
+**Why this matters:** `leave` is Yul's equivalent of `return` in other languages — it exits the current Yul function immediately. Without it, you'd need deeply nested `if` blocks for guard-then-compute patterns.
 
 ```yul
 function findIndex(arr, len, target) -> idx {
@@ -420,10 +420,10 @@ function findIndex(arr, len, target) -> idx {
 
 **Key rules:**
 - `leave` only works inside **Yul functions**, not in top-level `assembly { }` blocks. If you try to use `leave` outside a function, the compiler will error.
-- It exits the **innermost** function -- if you have nested Yul functions, `leave` exits the one it's in, not the outer one.
+- It exits the **innermost** function — if you have nested Yul functions, `leave` exits the one it's in, not the outer one.
 - For top-level assembly blocks, use `return(ptr, size)` or `revert(ptr, size)` to exit execution entirely.
 
-**How `leave` compiles:** It's a JUMP to the function's exit JUMPDEST -- the cleanup point where return values are on the stack and the return program counter is used. No special opcode, just a JUMP.
+**How `leave` compiles:** It's a JUMP to the function's exit JUMPDEST — the cleanup point where return values are on the stack and the return program counter is used. No special opcode, just a JUMP.
 
 **Pattern: Guard-and-compute in Yul functions:**
 
@@ -447,14 +447,14 @@ function safeDiv(a, b) -> result {
 }
 ```
 
-Both work, but `leave` scales better when you have multiple guard conditions -- each can `leave` independently without nesting.
+Both work, but `leave` scales better when you have multiple guard conditions — each can `leave` independently without nesting.
 
 ---
 
 <a id="yul-to-bytecode"></a>
 #### 🔍 Deep Dive: From Yul to JUMP/JUMPI — Bytecode Comparison
 
-In [Module 1](1-evm-fundamentals.md#jump-jumpi) you learned that JUMP costs 8 gas, JUMPI costs 10 gas, and JUMPDEST costs 1 gas. Now you can see exactly how your Yul code maps to these opcodes.
+In [Module 1](1-evm-fundamentals.md#opcode-categories) you learned that JUMP costs 8 gas, JUMPI costs 10 gas, and JUMPDEST costs 1 gas. Now you can see exactly how your Yul code maps to these opcodes.
 
 **`if` compiles to JUMPI (skip pattern):**
 
@@ -466,10 +466,10 @@ if condition {              [push condition value]
 }                           PUSH2 end_label
                             JUMPI             ; jump past body if condition was 0
                             [body opcodes]
-                            JUMPDEST          ; end_label -- execution continues here
+                            JUMPDEST          ; end_label — execution continues here
 ```
 
-The compiler inverts the condition with ISZERO so JUMPI *skips* the body when the original condition is false. This is the "skip pattern" -- the most common JUMPI usage.
+The compiler inverts the condition with ISZERO so JUMPI *skips* the body when the original condition is false. This is the "skip pattern" — the most common JUMPI usage.
 
 **`switch` (2 cases + default) compiles to chained JUMPI:**
 
@@ -555,9 +555,9 @@ forge inspect Switch ir-optimized
 cast disassemble $(forge inspect Switch bytecode)
 ```
 
-Look for the JUMPI instructions in the output. Count them -- you should see exactly 2 (one per case).
+Look for the JUMPI instructions in the output. Count them — you should see exactly 2 (one per case).
 
-**Connection back to Module 1:** In [Module 1](1-evm-fundamentals.md#jump-jumpi) you learned JUMP costs 8 gas, JUMPI costs 10, JUMPDEST costs 1. Now you can see exactly how many JUMPs your Yul code generates -- and why a `switch` with 10 cases creates 10 JUMPI instructions (linear scan), costing up to 130 gas just to find the matching case.
+**Connection back to Module 1:** In [Module 1](1-evm-fundamentals.md#opcode-categories) you learned JUMP costs 8 gas, JUMPI costs 10, JUMPDEST costs 1. Now you can see exactly how many JUMPs your Yul code generates — and why a `switch` with 10 cases creates 10 JUMPI instructions (linear scan), costing up to 130 gas just to find the matching case.
 
 ---
 
@@ -572,7 +572,7 @@ This section covers defining functions, understanding when the optimizer inlines
 <a id="yul-functions"></a>
 ### 💡 Concept: Defining and Calling Yul Functions
 
-**Why this matters:** In production assembly (Solady, Uniswap V4), you'll see dozens of Yul functions per contract. They're the primary unit of code organization in assembly -- the equivalent of internal functions in Solidity.
+**Why this matters:** In production assembly (Solady, Uniswap V4), you'll see dozens of Yul functions per contract. They're the primary unit of code organization in assembly — the equivalent of internal functions in Solidity.
 
 **Syntax:**
 
@@ -596,7 +596,7 @@ function requireNonZero(value) {
 
 **Key rules:**
 - Functions can only be **called within the same `assembly` block** where they're defined. They don't exist outside assembly.
-- Variables declared inside a function are **scoped to that function**. This is the key benefit for stack management -- each function gets a clean variable scope.
+- Variables declared inside a function are **scoped to that function**. This is the key benefit for stack management — each function gets a clean variable scope.
 - Functions can call other Yul functions defined in the same assembly block.
 - **Return values must be assigned.** If you declare `-> result` but don't assign it, `result` defaults to `0`.
 
@@ -624,7 +624,7 @@ function minMax(uint256 a, uint256 b) external pure returns (uint256, uint256) {
 }
 ```
 
-Deploy and test with `(100, 200)`. You should get `(100, 200)`. Test with `(300, 50)` -- should get `(50, 300)`.
+Deploy and test with `(100, 200)`. You should get `(100, 200)`. Test with `(300, 50)` — should get `(50, 300)`.
 
 ---
 
@@ -691,7 +691,7 @@ assembly {
 }
 ```
 
-Note how `getMappingSlot` reuses the [Module 3 mapping formula](3-storage.md#mapping-slots) as a callable function. This is the pattern in production assembly -- define your slot computation functions once at the top of the assembly block, then call them throughout.
+Note how `getMappingSlot` reuses the [Module 3 mapping formula](3-storage.md#mapping-slots) as a callable function. This is the pattern in production assembly — define your slot computation functions once at the top of the assembly block, then call them throughout.
 
 **Solady uses this exact pattern.** Open any Solady contract and you'll see a library of internal Yul functions at the top of the assembly block. The naming conventions are consistent: `_get`, `_set`, `_require`, etc.
 
@@ -728,9 +728,9 @@ function getMappingSlot(key, baseSlot) -> slot {
 - Small functions (1-2 opcodes): almost always inlined
 - Large functions called from one site: inlined (no size penalty)
 - Large functions called from multiple sites: JUMP target (saves bytecode)
-- The decision is automatic -- you **cannot force** inlining in Yul
+- The decision is automatic — you **cannot force** inlining in Yul
 
-**How to check:** Run `forge inspect Contract ir-optimized` and look for your function names. Inlined functions disappear entirely -- their body appears at each call site. JUMP-target functions appear as labeled blocks.
+**How to check:** Run `forge inspect Contract ir-optimized` and look for your function names. Inlined functions disappear entirely — their body appears at each call site. JUMP-target functions appear as labeled blocks.
 
 **Trade-off:**
 
@@ -746,9 +746,9 @@ function getMappingSlot(key, baseSlot) -> slot {
 <a id="stack-depth"></a>
 ### 💡 Concept: Stack Depth and Yul Functions
 
-**Why this matters:** "Stack too deep" is one of the most common errors in Solidity, and understanding *why* it happens -- it's a hardware constraint, not a language bug -- is essential for working in assembly. Yul functions are the primary tool for managing stack depth.
+**Why this matters:** "Stack too deep" is one of the most common errors in Solidity, and understanding *why* it happens — it's a hardware constraint, not a language bug — is essential for working in assembly. Yul functions are the primary tool for managing stack depth.
 
-The EVM's DUP and SWAP opcodes can only reach **16 items deep** on the stack. DUP1 copies the top item, DUP16 copies the 16th item from the top. There is no DUP17. If the compiler needs to access a variable that's buried deeper than 16 slots, it can't -- hence "stack too deep."
+The EVM's DUP and SWAP opcodes can only reach **16 items deep** on the stack. DUP1 copies the top item, DUP16 copies the 16th item from the top. There is no DUP17. If the compiler needs to access a variable that's buried deeper than 16 slots, it can't — hence "stack too deep."
 
 Each Yul function creates a **new scope**. Only the function's parameters, local variables, and return values occupy its stack frame. This means you can have 50 variables across your entire assembly block, but as long as no single function uses more than ~14 simultaneously, you'll never hit the limit.
 
@@ -817,30 +817,30 @@ let saved := mload(0x00)             // restore when needed
 
 **Solution 3: Restructure.** Sometimes the code can be rewritten to reduce the number of simultaneously live variables. Compute and consume values immediately rather than holding everything until the end.
 
-**What `via_ir` does:** The Solidity compiler's `via_ir` codegen pipeline automatically moves variables to memory when stack depth is exceeded. That's why enabling `via_ir` "fixes" stack-too-deep errors in Solidity. But it adds gas overhead for the memory spills. Hand-written assembly gives you control over *which* values live in memory vs stack -- important for gas-critical paths.
+**What `via_ir` does:** The Solidity compiler's `via_ir` codegen pipeline automatically moves variables to memory when stack depth is exceeded. That's why enabling `via_ir` "fixes" stack-too-deep errors in Solidity. But it adds gas overhead for the memory spills. Hand-written assembly gives you control over *which* values live in memory vs stack — important for gas-critical paths.
 
 #### ⚠️ Common Mistakes
 
 - **Too many local variables in one function.** If you declare 10 `let` variables plus have 4 parameters, that's 14 slots before any temporary values. You'll hit the limit. Split into helper functions.
 - **Passing too many parameters.** A function with 8+ parameters is a design smell. Group related values or compute them inside the function from fewer inputs.
-- **Forgetting that return values also consume stack slots.** `function f(a, b, c) -> x, y, z` uses 6 slots (3 params + 3 returns) before any locals. Add 3 locals and you're at 9 -- getting close.
+- **Forgetting that return values also consume stack slots.** `function f(a, b, c) -> x, y, z` uses 6 slots (3 params + 3 returns) before any locals. Add 3 locals and you're at 9 — getting close.
 - **Not accounting for expression temporaries.** `add(mul(a, b), mul(c, d))` needs stack space for the intermediate `mul` results. The compiler handles this, but deeply nested expressions push the limit.
 
 #### 💼 Job Market Context
 
 **"How do you handle 'stack too deep' in assembly?"**
 - Good: "Break the code into smaller Yul functions to reduce variables per scope"
-- Great: "The stack limit is 16 reachable slots (DUP16/SWAP16 max). Each Yul function gets a clean scope -- only its parameters, locals, and return values count. So the fix is decomposition: extract logic into Yul functions with focused parameter lists. For truly complex operations, spill intermediate values to memory (0x00-0x3f scratch space or allocated memory). The `via_ir` compiler does this automatically, but hand-written assembly gives you control over which values live in memory vs stack, which matters for gas-critical paths"
+- Great: "The stack limit is 16 reachable slots (DUP16/SWAP16 max). Each Yul function gets a clean scope — only its parameters, locals, and return values count. So the fix is decomposition: extract logic into Yul functions with focused parameter lists. For truly complex operations, spill intermediate values to memory (0x00-0x3f scratch space or allocated memory). The `via_ir` compiler does this automatically, but hand-written assembly gives you control over which values live in memory vs stack, which matters for gas-critical paths"
 
-🚩 **Red flag:** Not knowing why "stack too deep" happens (it's not a language bug, it's a hardware constraint -- the DUP/SWAP opcodes only reach 16 deep)
+🚩 **Red flag:** Not knowing why "stack too deep" happens (it's not a language bug, it's a hardware constraint — the DUP/SWAP opcodes only reach 16 deep)
 
-**Pro tip:** Counting stack depth by hand is a real skill for auditors. Practice by tracing through Solady's complex functions -- pick a function, list the variables, count the max simultaneous live count
+**Pro tip:** Counting stack depth by hand is a real skill for auditors. Practice by tracing through Solady's complex functions — pick a function, list the variables, count the max simultaneous live count
 
 ---
 
 ## Function Selector Dispatch
 
-The dispatch table is the entry point of every Solidity contract. When you call `transfer()`, the EVM doesn't know what "functions" are -- it sees raw bytes. The dispatcher examines the first 4 bytes of calldata and routes execution to the right code. Every Solidity contract has this logic auto-generated. Now you'll build one by hand.
+The dispatch table is the entry point of every Solidity contract. When you call `transfer()`, the EVM doesn't know what "functions" are — it sees raw bytes. The dispatcher examines the first 4 bytes of calldata and routes execution to the right code. Every Solidity contract has this logic auto-generated. Now you'll build one by hand.
 
 This is where Modules 2, 3, and 4 converge: you need calldata decoding ([Module 2](2-memory-calldata.md#calldata-layout)), storage operations ([Module 3](3-storage.md#sload-sstore-yul)), and control flow (this module) all working together.
 
@@ -853,11 +853,11 @@ This is where Modules 2, 3, and 4 converge: you need calldata decoding ([Module 
 
 Every external call to a contract follows this sequence:
 
-1. **Extract selector** -- read the first 4 bytes of calldata
-2. **Find matching function** -- compare the selector against known values
-3. **Decode arguments** -- read parameters from calldata positions 4+
-4. **Execute** -- run the function logic
-5. **Encode return** -- write the result to memory and RETURN
+1. **Extract selector** — read the first 4 bytes of calldata
+2. **Find matching function** — compare the selector against known values
+3. **Decode arguments** — read parameters from calldata positions 4+
+4. **Execute** — run the function logic
+5. **Encode return** — write the result to memory and RETURN
 
 Steps 1 and 2 are the **dispatch table**. In Solidity, the compiler generates this automatically. In assembly, you write it yourself.
 
@@ -874,7 +874,7 @@ let selector := shr(224, calldataload(0))
 <a id="if-chain"></a>
 ### 💡 Concept: if-Chain Dispatch
 
-**Why this matters:** This is the simplest dispatch pattern -- straightforward to write and easy to understand. It's what the Solidity compiler generates for small contracts.
+**Why this matters:** This is the simplest dispatch pattern — straightforward to write and easy to understand. It's what the Solidity compiler generates for small contracts.
 
 ```yul
 assembly {
@@ -906,7 +906,7 @@ assembly {
 ```
 
 **Gas characteristics:**
-- **Linear scan** -- the first function is cheapest to reach (1 comparison), the last is most expensive (N comparisons).
+- **Linear scan** — the first function is cheapest to reach (1 comparison), the last is most expensive (N comparisons).
 - Each comparison costs: EQ(3) + JUMPI(10) = **13 gas**.
 - For 3 functions: worst case = 39 gas. For 10 functions: worst case = 130 gas.
 - **Optimization:** Put the most frequently called function first. For an ERC-20, `transfer` and `balanceOf` are called far more often than `name` or `symbol`.
@@ -990,9 +990,9 @@ assembly {
 
 **Same gas as if-chain** at the bytecode level (both compile to linear JUMPI chains). But the advantages are:
 
-1. **Cleaner syntax** -- the dispatch table is visually obvious.
+1. **Cleaner syntax** — the dispatch table is visually obvious.
 2. **The `default` branch** naturally handles both unknown selectors and serves as the fallback function.
-3. **Easier to maintain** -- adding a new function is adding a new `case`, not threading another `if` into the chain.
+3. **Easier to maintain** — adding a new function is adding a new `case`, not threading another `if` into the chain.
 
 This is what you'll see in most hand-written assembly contracts and what you'll write in the exercises.
 
@@ -1001,7 +1001,7 @@ This is what you'll see in most hand-written assembly contracts and what you'll 
 <a id="solidity-dispatch"></a>
 #### 🔍 Deep Dive: How Solidity Actually Dispatches
 
-For small contracts with 4 or fewer external functions, Solidity generates a simple linear if-chain -- similar to what you just wrote. But for larger contracts, it switches to something smarter.
+For small contracts with 4 or fewer external functions, Solidity generates a simple linear if-chain — similar to what you just wrote. But for larger contracts, it switches to something smarter.
 
 **Binary search dispatch:**
 
@@ -1038,11 +1038,13 @@ eq 0x06fdde03  eq 0x095ea7b3  eq 0x23b872dd  eq 0x95d89b41  eq 0xa9059cbb  eq 0x
 - Binary search with 8 functions: worst case = 3 comparisons = **39 gas**
 - For 32 functions: linear = 416 gas, binary = 5 comparisons = **65 gas**
 
+> **Perspective:** These are selector-matching costs only, not including function body execution. For a function that does storage operations (2,100+ gas each), the difference between 104 and 39 gas is <5% overhead. Dispatch optimization matters most for contracts with many functions on MEV-critical paths or ultra-optimized deployments (Solady, Huff).
+
 **Why function ordering matters for gas:**
 
-The binary search uses numerically sorted selectors -- you can't control the tree structure directly in Solidity. But in assembly, you can:
+The binary search uses numerically sorted selectors — you can't control the tree structure directly in Solidity. But in assembly, you can:
 - Order your if-chain or switch by call frequency (hot functions first)
-- Use a jump table for O(1) dispatch (advanced -- covered in Module 6)
+- Use a jump table for O(1) dispatch (advanced — covered in Module 6)
 
 **How to inspect dispatch logic:**
 
@@ -1054,19 +1056,19 @@ forge inspect MyContract ir-optimized
 cast disassemble $(forge inspect MyContract bytecode)
 ```
 
-Look for clusters of `DUP1 PUSH4 EQ PUSH2 JUMPI` -- each cluster is one selector comparison.
+Look for clusters of `DUP1 PUSH4 EQ PUSH2 JUMPI` — each cluster is one selector comparison.
 
 **Advanced: Beyond binary search:**
 
 Some ultra-optimized frameworks use different strategies:
-- **Huff / Solady:** Can use jump tables for O(1) dispatch (one JUMPI regardless of function count). This requires computing the jump destination from the selector -- covered in [Module 6](6-optimization.md).
+- **Huff / Solady:** Can use jump tables for O(1) dispatch (one JUMPI regardless of function count). This requires computing the jump destination from the selector — covered in [Module 6](6-gas-optimization.md).
 - **Diamond Pattern (EIP-2535):** Puts selectors in different "facets" (contracts), so each facet has a small dispatch table. The main contract looks up which facet handles a selector, then DELEGATECALLs to it.
 
 #### 💼 Job Market Context
 
 **"How does the Solidity compiler handle function dispatch?"**
 - Good: "It checks the selector against each function and routes to the right one"
-- Great: "For 4 or fewer functions, it's a linear if-chain of JUMPI instructions -- each costing 13 gas (EQ + JUMPI). For more functions, it uses binary search: selectors are sorted numerically, and the dispatcher does log(n) comparisons. A contract with 32 functions needs ~5 comparisons (65 gas) to find any function. This is why some protocols put frequently-called functions in a separate facet (Diamond pattern) -- to keep the dispatch table small on hot paths. In hand-written assembly, you can go further: arrange selectors by call frequency or use jump tables for O(1) dispatch"
+- Great: "For 4 or fewer functions, it's a linear if-chain of JUMPI instructions — each costing 13 gas (EQ + JUMPI). For more functions, it uses binary search: selectors are sorted numerically, and the dispatcher does log(n) comparisons. A contract with 32 functions needs ~5 comparisons (65 gas) to find any function. This is why some protocols put frequently-called functions in a separate facet (Diamond pattern) — to keep the dispatch table small on hot paths. In hand-written assembly, you can go further: arrange selectors by call frequency or use jump tables for O(1) dispatch"
 
 🚩 **Red flag:** Thinking dispatch is free or constant-cost
 
@@ -1079,9 +1081,9 @@ Some ultra-optimized frameworks use different strategies:
 
 **Why this matters:** Every Solidity contract has implicit dispatch for two special cases: receiving ETH with no calldata (`receive`), and handling calls with unknown selectors (`fallback`). In assembly, you write these explicitly.
 
-**Receive:** Triggered when `calldatasize() == 0` -- a plain ETH transfer with no function call.
+**Receive:** Triggered when `calldatasize() == 0` — a plain ETH transfer with no function call.
 
-**Fallback:** The catch-all after selector matching fails -- the `default` branch of your `switch`, or the final `revert` after all `if` checks.
+**Fallback:** The catch-all after selector matching fails — the `default` branch of your `switch`, or the final `revert` after all `if` checks.
 
 **Complete dispatch skeleton:**
 
@@ -1090,7 +1092,7 @@ assembly {
     // ── Step 1: Check for receive (no calldata = plain ETH transfer) ──
     if iszero(calldatasize()) {
         // Receive logic: accept ETH, maybe emit event, then stop
-        // log0(0, 0) -- or log with Transfer topic
+        // log0(0, 0) — or log with Transfer topic
         stop()
     }
 
@@ -1127,9 +1129,9 @@ assembly {
 ```
 
 **Design decisions for the `default` branch:**
-- **No fallback:** `revert(0, 0)` -- the safest choice. Prevents accidental calls.
-- **Accept any call:** `stop()` -- dangerous, but used in some proxy patterns.
-- **Forward to another contract:** DELEGATECALL in the default branch -- this is the Diamond Pattern.
+- **No fallback:** `revert(0, 0)` — the safest choice. Prevents accidental calls.
+- **Accept any call:** `stop()` — dangerous, but used in some proxy patterns.
+- **Forward to another contract:** DELEGATECALL in the default branch — this is the Diamond Pattern.
 
 ---
 
@@ -1194,7 +1196,7 @@ contract YulContract {
             }
 
             case 0xd0e30db0 {
-                // deposit() -- payable
+                // deposit() — payable
                 let depositor := caller()
                 let amount := callvalue()
                 require(amount)  // must send ETH
@@ -1228,9 +1230,9 @@ This contract demonstrates the full pattern: receive handling, Yul helper functi
 
 **Where dispatch patterns appear in real protocols:**
 
-**1. EIP-1167 Minimal Proxy** -- the entire contract IS a dispatcher:
+**1. EIP-1167 Minimal Proxy** — the entire contract IS a dispatcher:
 
-The minimal proxy is ~45 bytes of raw bytecode. No Solidity, no Yul -- pure opcodes. It copies all calldata, DELEGATECALLs to a hardcoded implementation address, and returns or reverts the result.
+The minimal proxy is ~45 bytes of raw bytecode. No Solidity, no Yul — pure opcodes. It copies all calldata, DELEGATECALLs to a hardcoded implementation address, and returns or reverts the result.
 
 ```
 363d3d373d3d3d363d73<20-byte-impl-addr>5af43d82803e903d91602b57fd5bf3
@@ -1271,9 +1273,9 @@ fd          []                             REVERT(0, rds) — failure: revert wi
 f3          []                             RETURN(0, rds) — success: return the data
 ```
 
-This ~45-byte contract does what OpenZeppelin's `Proxy.sol` does in Solidity -- pure dispatch via DELEGATECALL, no selector routing needed. It's used everywhere: Uniswap V3 pool clones, Safe wallet proxies, minimal clone factories.
+This ~45-byte contract does what OpenZeppelin's `Proxy.sol` does in Solidity — pure dispatch via DELEGATECALL, no selector routing needed. It's used everywhere: Uniswap V3 pool clones, Safe wallet proxies, minimal clone factories.
 
-**2. Diamond Pattern (EIP-2535)** -- multi-facet dispatch:
+**2. Diamond Pattern (EIP-2535)** — multi-facet dispatch:
 
 Instead of one big contract, the Diamond splits functions across multiple "facets" (implementation contracts). The dispatch works differently:
 
@@ -1319,17 +1321,17 @@ assembly {
 }
 ```
 
-Explore the full patterns at [github.com/Vectorized/solady](https://github.com/Vectorized/solady) -- particularly `src/tokens/ERC20.sol`.
+Explore the full patterns at [github.com/Vectorized/solady](https://github.com/Vectorized/solady) — particularly `src/tokens/ERC20.sol`.
 
 #### 💼 Job Market Context
 
 **"Walk me through how a minimal proxy works at the bytecode level"**
 - Good: "It copies calldata, DELEGATECALLs to the implementation, and returns or reverts the result"
-- Great: "The EIP-1167 proxy is ~45 bytes of raw bytecode with no Solidity. It uses CALLDATASIZE to get input length, CALLDATACOPY to move all calldata to memory at offset 0, then DELEGATECALL to the hardcoded implementation address forwarding all gas. After the call, RETURNDATACOPY moves the response to memory. It checks the success flag with JUMPI -- REVERT if false (forwards the error), RETURN if true (forwards the response). Every byte is optimized: RETURNDATASIZE is used instead of PUSH1 0 because it produces zero on the stack for 2 gas and 1 byte, versus 3 gas and 2 bytes for PUSH1 0. The implementation address is embedded directly in the bytecode as a PUSH20 literal"
+- Great: "The EIP-1167 proxy is ~45 bytes of raw bytecode with no Solidity. It uses CALLDATASIZE to get input length, CALLDATACOPY to move all calldata to memory at offset 0, then DELEGATECALL to the hardcoded implementation address forwarding all gas. After the call, RETURNDATACOPY moves the response to memory. It checks the success flag with JUMPI — REVERT if false (forwards the error), RETURN if true (forwards the response). Every byte is optimized: RETURNDATASIZE is used instead of PUSH1 0 because it produces zero on the stack for 2 gas and 1 byte, versus 3 gas and 2 bytes for PUSH1 0. The implementation address is embedded directly in the bytecode as a PUSH20 literal"
 
 🚩 **Red flag:** Not knowing that minimal proxies exist or how they save deployment gas (deploying a 45-byte clone vs a full contract)
 
-**Pro tip:** Be able to decode the 45 bytes from memory -- it's a common interview exercise for L2/infrastructure roles. Practice by reading the EIP-1167 spec and hand-annotating the bytecode
+**Pro tip:** Be able to decode the 45 bytes from memory — it's a common interview exercise for L2/infrastructure roles. Practice by reading the EIP-1167 spec and hand-annotating the bytecode
 
 ---
 
@@ -1346,6 +1348,8 @@ This topic was covered in depth in [Module 2 — Return Values & Errors](2-memor
 mstore(0x00, shl(224, 0x82b42900))   // shift selector to high bytes
 revert(0x00, 0x04)                     // revert with 4-byte selector
 ```
+
+> **Two patterns, same result:** In [Module 2](2-memory-calldata.md#offset-explained) you saw `mstore(0x00, selector)` + `revert(0x1c, 0x04)` — the selector lands right-aligned at byte 28, so you read from offset 0x1c. Here we use `shl(224, selector)` + `revert(0x00, 0x04)` — shifting the selector to the high bytes so it starts at byte 0. Both produce identical 4-byte revert data. The `shl` pattern is more common in dispatch contexts because it's consistent with how you pack selectors into memory alongside parameters (at offset 0x04, 0x24, etc.).
 
 **Revert with parameters:**
 
@@ -1396,7 +1400,7 @@ assembly {
 #### ⚠️ Common Mistakes
 
 - **Forgetting to shift the selector left by 224 bits.** Storing raw `0x82b42900` at memory offset 0 puts it in the *low* bytes of the 32-byte word. `mstore` writes a full 32-byte word, so `mstore(0x00, 0x82b42900)` stores `0x0000...0082b42900`. You need `shl(224, 0x82b42900)` to put the selector in the *high* 4 bytes: `0x82b42900000000...00`. Alternatively, pre-compute the shifted value as a constant.
-- **Using `revert(0, 0)` everywhere.** This gives no error information -- debugging becomes impossible. Always encode a selector for debuggability. Etherscan, Tenderly, and other tools decode custom errors automatically.
+- **Using `revert(0, 0)` everywhere.** This gives no error information — debugging becomes impossible. Always encode a selector for debuggability. Etherscan, Tenderly, and other tools decode custom errors automatically.
 - **Not bubbling up revert data from sub-calls.** When your contract calls another contract and it reverts, you should forward the revert data so the caller sees the original error. This is covered in detail in [Module 5 — External Calls](5-external-calls.md).
 
 ---
@@ -1406,7 +1410,7 @@ assembly {
 <a id="how-to-study"></a>
 ### 📖 How to Study Dispatch-Heavy Contracts
 
-1. **Start with `cast disassemble` or `forge inspect`** to see the dispatch table. Count the JUMPI instructions in the opening section -- each one is a selector comparison.
+1. **Start with `cast disassemble` or `forge inspect`** to see the dispatch table. Count the JUMPI instructions in the opening section — each one is a selector comparison.
 
 2. **Count the selectors.** More than ~4? The compiler probably used binary search. Fewer? Linear if-chain. In hand-written assembly (Huff, Yul), it's always linear unless the author implemented something custom.
 
@@ -1415,10 +1419,10 @@ assembly {
 4. **Compare hand-written vs Solidity-generated dispatch.** Compile a simple ERC-20 in Solidity and inspect its bytecode. Then look at Solady's ERC-20 or a Huff ERC-20. Note the differences: hand-written code often has fewer safety checks and more optimized selector ordering.
 
 5. **Good contracts to study:**
-   - [Solady ERC20](https://github.com/Vectorized/solady/blob/main/src/tokens/ERC20.sol) -- full assembly ERC-20 with Yul dispatch
-   - [Huff ERC20](https://github.com/huff-language/huff-examples/tree/main/erc20) -- ERC-20 in raw opcodes
-   - [OpenZeppelin Proxy.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Proxy.sol) -- assembly dispatch for proxy forwarding
-   - [EIP-1167 reference](https://eips.ethereum.org/EIPS/eip-1167) -- the minimal proxy bytecode
+   - [Solady ERC20](https://github.com/Vectorized/solady/blob/main/src/tokens/ERC20.sol) — full assembly ERC-20 with Yul dispatch
+   - [Huff ERC20](https://github.com/huff-language/huff-examples/tree/main/erc20) — ERC-20 in raw opcodes
+   - [OpenZeppelin Proxy.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Proxy.sol) — assembly dispatch for proxy forwarding
+   - [EIP-1167 reference](https://eips.ethereum.org/EIPS/eip-1167) — the minimal proxy bytecode
 
 ---
 
@@ -1429,7 +1433,7 @@ assembly {
 - Implementation: [`workspace/src/part4/module4/exercise1-yul-dispatcher/YulDispatcher.sol`](../workspace/src/part4/module4/exercise1-yul-dispatcher/YulDispatcher.sol)
 - Tests: [`workspace/test/part4/module4/exercise1-yul-dispatcher/YulDispatcher.t.sol`](../workspace/test/part4/module4/exercise1-yul-dispatcher/YulDispatcher.t.sol)
 
-Build a mini ERC-20 entirely in Yul. The contract has a single `fallback()` function containing your dispatch logic. Storage layout, error selectors, and function selectors are provided as constants -- you write all the assembly.
+Build a mini ERC-20 entirely in Yul. The contract has a single `fallback()` function containing your dispatch logic. Storage layout, error selectors, and function selectors are provided as constants — you write all the assembly.
 
 **What's provided:**
 - Storage slot constants (`TOTAL_SUPPLY_SLOT`, `BALANCES_SLOT`, `OWNER_SLOT`)
@@ -1439,11 +1443,11 @@ Build a mini ERC-20 entirely in Yul. The contract has a single `fallback()` func
 
 **5 TODOs:**
 
-1. **Selector dispatch** -- Extract the selector from calldata and implement a `switch` statement routing to 5 function selectors. Revert with empty data on unknown selectors.
-2. **`totalSupply()`** -- Load total supply from storage slot 0, ABI-encode it, and return. The simplest function -- one `sload`, one `mstore`, one `return`.
-3. **`balanceOf(address)`** -- Decode the address argument from calldata, compute the mapping slot using the [Module 3 formula](3-storage.md#mapping-slots) (`keccak256(key . baseSlot)`), load the balance, and return.
-4. **`transfer(address,uint256)`** -- Decode both arguments, validate the sender has sufficient balance (revert with `InsufficientBalance` if not), validate the recipient is not zero address, update both balances in storage, and return `true` (ABI-encoded as `uint256(1)`).
-5. **`mint(address,uint256)`** -- Check that the caller is the owner (revert with `Unauthorized` if not), validate the recipient is not zero address, increment the recipient's balance and the total supply.
+1. **Selector dispatch** — Extract the selector from calldata and implement a `switch` statement routing to 5 function selectors. Revert with empty data on unknown selectors.
+2. **`totalSupply()`** — Load total supply from storage slot 0, ABI-encode it, and return. The simplest function — one `sload`, one `mstore`, one `return`.
+3. **`balanceOf(address)`** — Decode the address argument from calldata, compute the mapping slot using the [Module 3 formula](3-storage.md#mapping-slots) (`keccak256(key . baseSlot)`), load the balance, and return.
+4. **`transfer(address,uint256)`** — Decode both arguments, validate the sender has sufficient balance (revert with `InsufficientBalance` if not), validate the recipient is not zero address, update both balances in storage, and return `true` (ABI-encoded as `uint256(1)`).
+5. **`mint(address,uint256)`** — Check that the caller is the owner (revert with `Unauthorized` if not), validate the recipient is not zero address, increment the recipient's balance and the total supply.
 
 **🎯 Goal:** Combine calldata decoding ([Module 2](2-memory-calldata.md#calldata-layout)), storage operations ([Module 3](3-storage.md#sload-sstore-yul)), and selector dispatch (this module) into a working contract. All 5 function calls should work identically to a standard Solidity ERC-20.
 
@@ -1461,7 +1465,7 @@ FOUNDRY_PROFILE=part4 forge test --match-path "test/part4/module4/exercise1-yul-
 - Implementation: [`workspace/src/part4/module4/exercise2-loop-and-functions/LoopAndFunctions.sol`](../workspace/src/part4/module4/exercise2-loop-and-functions/LoopAndFunctions.sol)
 - Tests: [`workspace/test/part4/module4/exercise2-loop-and-functions/LoopAndFunctions.t.sol`](../workspace/test/part4/module4/exercise2-loop-and-functions/LoopAndFunctions.t.sol)
 
-Practice Yul functions and loop patterns. Each function has a Solidity signature with an `assembly { }` body -- you write the internals. This exercise focuses on control flow and iteration, not dispatch.
+Practice Yul functions and loop patterns. Each function has a Solidity signature with an `assembly { }` body — you write the internals. This exercise focuses on control flow and iteration, not dispatch.
 
 **What's provided:**
 - Function signatures with parameter names
@@ -1470,11 +1474,11 @@ Practice Yul functions and loop patterns. Each function has a Solidity signature
 
 **5 TODOs:**
 
-1. **`requireWithError(bool condition, bytes4 selector)`** -- If condition is false, revert with the given 4-byte error selector. This is your reusable guard function.
-2. **`min(uint256,uint256)` + `max(uint256,uint256)`** -- Implement both using Yul functions. The Solidity wrappers call the Yul functions internally. Use the `if lt(a, b)` pattern.
-3. **`sumArray(uint256[] calldata)`** -- Loop through a calldata array and return the sum. You'll need to decode the array offset, read the length, and iterate through elements using `calldataload` with computed offsets.
-4. **`findMax(uint256[] calldata)`** -- Loop through a calldata array and return the maximum element. Combine the loop pattern from TODO 3 with the `max` Yul function from TODO 2.
-5. **`batchTransfer(address[] calldata recipients, uint256[] calldata amounts)`** -- Loop through two parallel calldata arrays, performing storage writes for each pair. Validate that both arrays have the same length. This combines loops, storage (from Module 3), and error handling.
+1. **`requireWithError(bool condition, bytes4 selector)`** — If condition is false, revert with the given 4-byte error selector. This is your reusable guard function.
+2. **`min(uint256,uint256)` + `max(uint256,uint256)`** — Implement both using Yul functions. The Solidity wrappers call the Yul functions internally. Use the `if lt(a, b)` pattern.
+3. **`sumArray(uint256[] calldata)`** — Loop through a calldata array and return the sum. You'll need to decode the array offset, read the length, and iterate through elements using `calldataload` with computed offsets.
+4. **`findMax(uint256[] calldata)`** — Loop through a calldata array and return the maximum element. Combine the loop pattern from TODO 3 with the `max` Yul function from TODO 2.
+5. **`batchTransfer(address[] calldata recipients, uint256[] calldata amounts)`** — Loop through two parallel calldata arrays, performing storage writes for each pair. Validate that both arrays have the same length. This combines loops, storage (from Module 3), and error handling.
 
 **🎯 Goal:** Practice Yul function definition, gas-efficient loops, and calldata array decoding in a controlled environment. Each TODO builds on the previous one.
 
@@ -1489,17 +1493,17 @@ FOUNDRY_PROFILE=part4 forge test --match-path "test/part4/module4/exercise2-loop
 ## 📋 Summary: Control Flow & Functions
 
 **Control Flow:**
-- `if condition { }` -- guard clauses; any nonzero value is true; use `iszero()` for negation; no `else`
-- `switch val case X { } default { }` -- multi-branch; no fall-through; the "else" replacement: `switch cond case 0 { else } default { if }`
-- `for { init } cond { post } { body }` -- explicit C-like loop; no `++`, use `add(i, 1)`; cache lengths; use `lt` (no `le` opcode)
-- `leave` -- early exit from Yul functions (not top-level assembly); compiles to JUMP
-- All control flow compiles to JUMP/JUMPI/JUMPDEST sequences -- no special opcodes
+- `if condition { }` — guard clauses; any nonzero value is true; use `iszero()` for negation; no `else`
+- `switch val case X { } default { }` — multi-branch; no fall-through; the "else" replacement: `switch cond case 0 { else } default { if }`
+- `for { init } cond { post } { body }` — explicit C-like loop; no `++`, use `add(i, 1)`; cache lengths; use `lt` (no `le` opcode)
+- `leave` — early exit from Yul functions (not top-level assembly); compiles to JUMP
+- All control flow compiles to JUMP/JUMPI/JUMPDEST sequences — no special opcodes
 
 **Yul Functions:**
-- `function name(a, b) -> result { }` -- scoped variables, reduce stack pressure
+- `function name(a, b) -> result { }` — scoped variables, reduce stack pressure
 - Multiple returns: `function f(a) -> x, y { }`
 - Small functions are inlined by the optimizer; larger ones become JUMP targets (~20 gas call overhead)
-- Stack depth limit of 16 (DUP16/SWAP16 max) -- decompose into focused functions to stay under
+- Stack depth limit of 16 (DUP16/SWAP16 max) — decompose into focused functions to stay under
 
 **Function Dispatch:**
 - Extract selector: `shr(224, calldataload(0))`
@@ -1515,7 +1519,7 @@ FOUNDRY_PROFILE=part4 forge test --match-path "test/part4/module4/exercise2-loop
 - Stack depth limit: 16 reachable slots (DUP16/SWAP16 max)
 - Inlined function call: 0 gas overhead | JUMP-based call: ~20 gas overhead
 
-**Next:** [Module 5 — External Calls](5-external-calls.md) -- `call`, `staticcall`, `delegatecall` in assembly, returndata handling, and error propagation across contracts.
+**Next:** [Module 5 — External Calls](5-external-calls.md) — `call`, `staticcall`, `delegatecall` in assembly, returndata handling, and error propagation across contracts.
 
 ---
 
@@ -1523,24 +1527,24 @@ FOUNDRY_PROFILE=part4 forge test --match-path "test/part4/module4/exercise2-loop
 ## 📚 Resources
 
 ### Essential References
-- [Yul Specification](https://docs.soliditylang.org/en/latest/yul.html) -- Official Yul language reference (control flow, functions, scoping rules)
-- [evm.codes](https://www.evm.codes/) -- Interactive opcode reference with gas costs for JUMP, JUMPI, JUMPDEST
-- [EVM Playground](https://www.evm.codes/playground) -- Step through bytecode execution to see JUMP/JUMPI in action
+- [Yul Specification](https://docs.soliditylang.org/en/latest/yul.html) — Official Yul language reference (control flow, functions, scoping rules)
+- [evm.codes](https://www.evm.codes/) — Interactive opcode reference with gas costs for JUMP, JUMPI, JUMPDEST
+- [EVM Playground](https://www.evm.codes/playground) — Step through bytecode execution to see JUMP/JUMPI in action
 
 ### EIPs Referenced
-- [EIP-1167: Minimal Proxy Contract](https://eips.ethereum.org/EIPS/eip-1167) -- Clone factory standard (the 45-byte dispatcher)
-- [EIP-2535: Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) -- Multi-facet proxy with selector-to-facet dispatch
+- [EIP-1167: Minimal Proxy Contract](https://eips.ethereum.org/EIPS/eip-1167) — Clone factory standard (the 45-byte dispatcher)
+- [EIP-2535: Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) — Multi-facet proxy with selector-to-facet dispatch
 
 ### Production Code
-- [Solady](https://github.com/Vectorized/solady) -- Gas-optimized Solidity/assembly library; study `src/tokens/ERC20.sol` for dispatch patterns
-- [OpenZeppelin Proxy.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Proxy.sol) -- Proxy dispatch implemented in Solidity inline assembly
-- [Huff ERC-20](https://github.com/huff-language/huff-examples/tree/main/erc20) -- Full ERC-20 in raw opcodes (no Yul, no Solidity)
+- [Solady](https://github.com/Vectorized/solady) — Gas-optimized Solidity/assembly library; study `src/tokens/ERC20.sol` for dispatch patterns
+- [OpenZeppelin Proxy.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Proxy.sol) — Proxy dispatch implemented in Solidity inline assembly
+- [Huff ERC-20](https://github.com/huff-language/huff-examples/tree/main/erc20) — Full ERC-20 in raw opcodes (no Yul, no Solidity)
 
 ### Tools
-- `forge inspect Contract ir-optimized` -- View the Yul IR output to see how Solidity compiles dispatch logic
-- `cast disassemble` -- Decode deployed bytecode to human-readable opcodes
-- `cast sig "transfer(address,uint256)"` -- Compute the 4-byte function selector from a signature
-- `cast 4byte 0xa9059cbb` -- Reverse-lookup a selector to its function signature
+- `forge inspect Contract ir-optimized` — View the Yul IR output to see how Solidity compiles dispatch logic
+- `cast disassemble` — Decode deployed bytecode to human-readable opcodes
+- `cast sig "transfer(address,uint256)"` — Compute the 4-byte function selector from a signature
+- `cast 4byte 0xa9059cbb` — Reverse-lookup a selector to its function signature
 
 ---
 

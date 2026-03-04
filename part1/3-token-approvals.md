@@ -90,7 +90,7 @@ When protocols get hacked ([Euler Finance March 2023](https://www.certik.com/res
 
 **Interview Red Flags:**
 - 🚩 "Just use `approve(type(uint256).max)`" — shows no security awareness
-- 🚩 Not knowing about Permit2 in 2025-2026
+- 🚩 Not knowing about Permit2
 - 🚩 Can't explain the Euler Finance attack vector
 
 **Pro tip:** Check [Revoke.cash](https://revoke.cash/) for your own wallet before interviews. Being able to say "I had 47 active unlimited approvals and revoked them all last week" shows you practice what you preach — security-conscious teams love that.
@@ -982,7 +982,7 @@ If a signature isn't properly scoped (chain ID, contract address, nonce), it can
 - ✅ Nonces prevent same-contract replay
 - ✅ Deadlines limit time window
 
-> ⚡ **Common pitfall:** Forgetting to include `block.chainid` in your domain separator. Your signatures will be valid on all forks (Ethereum mainnet, Goerli, Sepolia with same contract address).
+> ⚡ **Common pitfall:** Forgetting to include `block.chainid` in your domain separator. Your signatures will be valid on all forks (Ethereum mainnet, Sepolia, Holesky with same contract address).
 
 **🚨 2. Permit front-running:**
 
@@ -1005,7 +1005,7 @@ An attacker tricks a user into signing a permit message that approves tokens to 
 **💰 Real attacks:**
 - February 2023: "Approve Blur marketplace" phishing stole $230k
 - March 2024: "Permit for airdrop claim" phishing campaign
-- **2024 total:** $314M lost to permit phishing attacks
+- **Scale:** $300M+ lost to permit phishing attacks (2024 alone)
 
 **Protection:**
 - ✅ Wallet UIs must clearly display what a user is signing
@@ -1128,7 +1128,7 @@ Users can call Permit2's `invalidateUnorderedNonces(uint256 wordPos, uint256 mas
 - 🚩 "Permit is safe because it uses cryptographic signatures" — ignores phishing
 - 🚩 Can't explain the difference between front-running a permit vs stealing funds
 
-**Pro tip:** Mention the $314M lost to permit phishing in 2024. It shows you track real-world security incidents, not just theoretical attack vectors. DeFi security teams value practical awareness over academic knowledge.
+**Pro tip:** Mention real-world permit phishing losses (hundreds of millions drained via malicious `permit` signatures). It shows you track production security incidents, not just theoretical attack vectors. DeFi security teams value practical awareness over academic knowledge.
 
 ---
 

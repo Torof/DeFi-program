@@ -47,7 +47,7 @@
 
 **Major oracle-related exploits:**
 - [Mango Markets](https://rekt.news/mango-markets-rekt/) ($114M, October 2022) — centralized oracle manipulation
-- [Polter Finance](https://rekt.news/polter-finance-rekt/) ($12M, July 2024) — Chainlink-Uniswap adapter exploit
+- [Polter Finance](https://rekt.news/polter-finance-rekt/) ($12M, November 2024) — spot price manipulation on illiquid SpookySwap pool
 - [Cream Finance](https://rekt.news/cream-rekt-2/) ($130M, October 2021) — oracle price manipulation via yUSD
 - [Harvest Finance](https://rekt.news/harvest-finance-rekt/) ($24M, October 2020) — TWAP manipulation via flash loans
 - [Inverse Finance](https://rekt.news/inverse-finance-rekt/) ($15M, June 2022) — oracle manipulation via Curve pool
@@ -1166,7 +1166,7 @@ Study these codebases in order — each builds on the previous one's patterns:
 
 **Exploits and postmortems:**
 - [Mango Markets postmortem](https://rekt.news/mango-markets-rekt/) — $114M oracle manipulation
-- [Polter Finance postmortem](https://rekt.news/polter-finance-rekt/) — $12M Chainlink-Uniswap adapter exploit
+- [Polter Finance postmortem](https://rekt.news/polter-finance-rekt/) — $12M spot price manipulation on illiquid pool
 - [Cream Finance postmortem](https://rekt.news/cream-rekt-2/) — $130M oracle manipulation
 - [Harvest Finance postmortem](https://rekt.news/harvest-finance-rekt/) — $24M flash loan TWAP manipulation
 - [Inverse Finance postmortem](https://rekt.news/inverse-finance-rekt/) — $15M Curve oracle manipulation

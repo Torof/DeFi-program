@@ -1376,7 +1376,7 @@ Study these codebases in order — each builds on the previous one's patterns:
 ### Further Reading
 - [Paradigm: Everlasting Options](https://www.paradigm.xyz/2021/05/everlasting-options) — academic foundation for perpetual instruments
 - [GMX V2 technical overview](https://gmx-io.notion.site/) — architecture deep dive
-- [Ethena Labs](https://ethena.fi/docs) — delta-neutral funding rate yield (P3M6 connection)
+- [Ethena Labs](https://ethena.fi/docs) — delta-neutral funding rate yield (P3M3 Yield Tokenization connection)
 - [Gauntlet Risk Reports](https://risk.gauntlet.xyz/) — quantitative risk analysis for perp protocols
 
 ---

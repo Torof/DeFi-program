@@ -339,7 +339,7 @@ This 8-line function handles 90% of weird token edge cases. The remaining 10% (r
 ## 💡 Advanced Token Behaviors & Protocol Design
 
 <a id="advanced-token-behaviors"></a>
-#### ⚠️ Advanced Token Behaviors That Break Protocols
+### ⚠️ Advanced Token Behaviors That Break Protocols
 
 Beyond the "weird ERC-20" edge cases above, several token categories introduce behaviors that fundamentally affect protocol architecture. You won't encounter these on every integration, but when you do, not knowing about them leads to exploits.
 

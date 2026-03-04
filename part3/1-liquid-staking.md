@@ -304,7 +304,7 @@ Build a `WstETHOracle` contract that correctly prices wstETH in USD using a two-
 <a id="lido-architecture"></a>
 ### 💡 Concept: Lido Architecture
 
-Lido is the largest liquid staking protocol (~70% market share of ETH LSTs). Understanding its architecture is essential because most DeFi LST integrations target wstETH.
+Lido is the largest liquid staking protocol (dominant market share of ETH LSTs, historically 60-70%+). Understanding its architecture is essential because most DeFi LST integrations target wstETH.
 
 ```
 User                   Lido Protocol                         Beacon Chain
@@ -540,7 +540,7 @@ The rate is updated by Rocket Pool's Oracle DAO (a set of trusted nodes) rather 
 
 | | Lido (stETH/wstETH) | Rocket Pool (rETH) |
 |---|---|---|
-| Market share | ~70% of LST market | ~5-8% |
+| Market share | Dominant (historically 60-70%+) | ~5-8% |
 | Operator model | Curated (permissioned) | Permissionless (8 ETH + RPL) |
 | Oracle | Oracle committee (5/9) | Oracle DAO (trusted node set) |
 | DeFi liquidity | Deep (Curve, Aave, Uniswap, etc.) | Thinner but growing |
@@ -1175,7 +1175,7 @@ Build a simplified lending pool that accepts wstETH as collateral, using the ora
 - Yield-bearing assets → **P2M7** vault shares as collateral, ERC-4626 accounting — LSTs are essentially yield-bearing receipt tokens with the same math
 
 **→ Forward References (where LST concepts appear next in Part 3):**
-- Restaking → **P3M6** (Governance & Risk) — risk stacking from restaked assets, correlated slashing conditions
+- Restaking → **P3M8** (Governance & DAOs) — risk stacking from restaked assets, correlated slashing conditions
 - LST as perp collateral → **P3M2** (Perpetuals) — yield-bearing margin, funding rate interaction with staking yield
 - LST yield tokenization → **P3M3** (Yield Tokenization) — Pendle PT-stETH, fixed-rate staking exposure via PT/YT split
 - LST price feeds → **P3M5** (MEV & Frontrunning) — oracle manipulation vectors, sandwich attacks on LST swaps

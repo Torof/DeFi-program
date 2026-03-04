@@ -1490,12 +1490,12 @@ Savings: 4 transfers eliminated!
 
 #### 💼 Job Market Context
 
-**This is hot right now** - Uniswap V4 just launched with this, every DeFi team is watching.
+**This is production-critical** — Uniswap V4 uses this pattern, and every major DEX team is adopting it.
 
 **What DeFi teams expect you to know:**
 
 1. **"Explain Uniswap V4's flash accounting."**
-   - This is THE interview question for DEX roles in 2025-2026
+   - This is THE interview question for DEX roles
    - Expected: Explain delta tracking, settlement, why transient storage
    - Bonus: Explain the gas savings quantitatively
 

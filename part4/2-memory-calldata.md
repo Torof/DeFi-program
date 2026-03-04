@@ -853,8 +853,6 @@ The assembly pattern above does this:
 
 **Interview red flag:** Blindly copying the `revert(0x1c, 0x04)` pattern without being able to explain the byte layout. Interviewers test this because it separates "can read Solady" from "understands Solady."
 
-#### 💼 Job Market Context
-
 **"How do custom errors work at the EVM level?"**
 - Good: "They use a 4-byte selector just like functions, followed by ABI-encoded error data"
 - Great: "The EVM has no concept of 'errors' — a revert is just `REVERT(offset, size)` which returns arbitrary bytes. Solidity custom errors encode a 4-byte selector plus ABI-encoded parameters, identical to function calldata. This is why you can decode revert reasons with `abi.decode`. The classic `Error(string)` and `Panic(uint256)` are just two specific selectors — custom errors are more gas-efficient because they skip string encoding"

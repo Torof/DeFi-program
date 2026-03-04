@@ -741,7 +741,7 @@ The pattern is always the same: cap the blast radius of a single failure. The ma
 **Interview Red Flags:**
 - 🚩 Not understanding rate limiting as a security mechanism — it's defense-in-depth, not just a nice-to-have
 - 🚩 Designing a cross-chain token with a single bridge dependency — one compromise and all cross-chain tokens are worthless
-- 🚩 Not knowing ERC-7281 (xERC20) when discussing cross-chain token design — it's the emerging standard for sovereign bridged tokens
+- 🚩 Not knowing ERC-7281 (xERC20) when discussing cross-chain token design — it's the standard for sovereign bridged tokens
 
 **Pro tip:** Mention the token bucket algorithm by name and explain the calibration tradeoff: limits too high and a compromise is still catastrophic, limits too low and legitimate bridging is throttled. Showing you think about operational parameters — not just the code — signals real-world deployment experience.
 

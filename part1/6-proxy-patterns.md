@@ -407,7 +407,7 @@ The Diamond pattern allows a single proxy to delegate to **multiple** implementa
 | **OpenSea (Seaport)** | Immutable | No proxy at all — designed to be replaced, not upgraded |
 | **Morpho Blue** | Immutable | Intentionally non-upgradeable for trust minimization |
 
-**The trend in 2025+:** Many new protocols are choosing **immutable cores** with upgradeable periphery. The core logic (AMM math, lending logic) is deployed once and never changed — trust minimization. Only the parts that need flexibility (fee parameters, routing, UI adapters) use proxies.
+**Industry direction:** Many protocols are choosing **immutable cores** with upgradeable periphery. The core logic (AMM math, lending logic) is deployed once and never changed — trust minimization. Only the parts that need flexibility (fee parameters, routing, UI adapters) use proxies.
 
 **Why this matters for DeFi:**
 

@@ -674,7 +674,7 @@ function balanceOf(address user) public view returns (uint256) {
 <a id="debt-tokens"></a>
 ### 💡 Concept: Debt Tokens: Tracking What's Owed
 
-When you borrow, the protocol mints **[variableDebtTokens](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/tokenization/VariableDebtToken.sol)** (or stable debt tokens, though stable rate borrowing is being deprecated) to your address. These are non-transferable ERC-20 tokens whose balance *increases* over time as interest accrues on your debt.
+When you borrow, the protocol mints **[variableDebtTokens](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/tokenization/VariableDebtToken.sol)** (or stable debt tokens, though stable rate borrowing was deprecated in Aave V3) to your address. These are non-transferable ERC-20 tokens whose balance *increases* over time as interest accrues on your debt.
 
 The mechanics mirror aTokens but use the borrow index instead of the supply index:
 
