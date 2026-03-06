@@ -30,7 +30,7 @@
 
 ---
 
-## Memory
+## 💡 Memory
 
 In Module 1 you learned the EVM's stack machine — how opcodes push, pop, and transform 256-bit words. But the stack is tiny (1024 slots, no random access). Real programs need **memory**: a byte-addressable, linear scratch pad that exists for the duration of a single transaction.
 
@@ -347,7 +347,7 @@ function safeExample() external pure returns (bytes32) {
 
 ---
 
-## Calldata
+## 💡 Calldata
 
 Calldata is the **read-only input** to a contract call. Every external function call carries calldata: 4 bytes of function selector followed by ABI-encoded arguments. In Module 1 you learned to extract the selector with `calldataload(0)`. Now let's understand the full layout.
 
@@ -670,7 +670,7 @@ Total: 2 bytes
 
 ---
 
-## Return Data & Errors
+## 💡 Return Data & Errors
 
 <a id="return-errors"></a>
 ### 💡 Concept: Return Values & Error Encoding in Assembly
@@ -851,7 +851,7 @@ The assembly pattern above does this:
 
 ---
 
-## Practical Patterns
+## 💡 Practical Patterns
 
 Now that you understand memory, calldata, and return data as separate regions, these patterns show how production code combines them.
 

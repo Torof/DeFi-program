@@ -34,7 +34,7 @@
 
 ---
 
-## Control Flow in Yul
+## 💡 Control Flow in Yul
 
 Modules 1-3 gave you the building blocks: opcodes and gas costs, memory and calldata layout, storage slots and packing. Now you write programs. In [Module 1](1-evm-fundamentals.md#first-yul) you saw `if`, `switch`, and `for` in passing as Yul syntax elements. This module goes deep on each one — how they compile to bytecode, what they cost, and how to use them in production assembly.
 
@@ -547,7 +547,7 @@ Look for the JUMPI instructions in the output. Count them — you should see exa
 
 ---
 
-## Yul Functions (Internal)
+## 💡 Yul Functions (Internal)
 
 Yul functions are how you organize assembly code. Without them, complex assembly becomes an unreadable wall of opcodes. They reduce stack pressure (each function scope has its own variable space), enable code reuse, and make assembly readable enough to audit.
 
@@ -824,7 +824,7 @@ let saved := mload(0x00)             // restore when needed
 
 ---
 
-## Function Selector Dispatch
+## 💡 Function Selector Dispatch
 
 The dispatch table is the entry point of every Solidity contract. When you call `transfer()`, the EVM doesn't know what "functions" are — it sees raw bytes. The dispatcher examines the first 4 bytes of calldata and routes execution to the right code. Every Solidity contract has this logic auto-generated. Now you'll build one by hand.
 
@@ -1321,7 +1321,7 @@ Explore the full patterns at [github.com/Vectorized/solady](https://github.com/V
 
 ---
 
-## Error Handling Patterns in Yul
+## 💡 Error Handling Patterns in Yul
 
 <a id="error-patterns"></a>
 
@@ -1391,7 +1391,7 @@ assembly {
 
 ---
 
-## How to Study
+## 💡 How to Study
 
 <a id="how-to-study"></a>
 ### 📖 How to Study Dispatch-Heavy Contracts

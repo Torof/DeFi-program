@@ -29,7 +29,7 @@
 
 ---
 
-## What the EVM Actually Is
+## 💡 What the EVM Actually Is
 
 Before diving into opcodes and gas costs, you need the mental model that ties everything together. The EVM isn't just "a thing that runs Solidity." It's a precisely defined state machine — and understanding that framing makes every other concept in Part 4 click.
 
@@ -175,7 +175,7 @@ Each block has a **gas limit** (~30 million gas as of 2025, adjustable by valida
 
 ---
 
-## The Machine
+## 💡 The Machine
 
 <a id="stack-machine"></a>
 ### 💡 Concept: The EVM is a Stack Machine
@@ -608,7 +608,7 @@ Now look up `SSTORE`. Compare the gas cost (20,000 for a fresh write!) to `ADD` 
 
 ---
 
-## Cost & Context
+## 💡 Cost & Context
 
 <a id="gas-model"></a>
 ### 💡 Concept: Gas Model — Why Things Cost What They Cost
@@ -1147,7 +1147,7 @@ Notice: the assembly version does exactly what `msg.sender`, `msg.value`, `block
 
 ---
 
-## Writing Assembly
+## 💡 Writing Assembly
 
 <a id="first-yul"></a>
 ### 💡 Concept: Your First Yul

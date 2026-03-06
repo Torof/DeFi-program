@@ -42,7 +42,7 @@
 
 ---
 
-## The Storage Model
+## 💡 The Storage Model
 
 In Module 2 you learned memory — a scratch pad that vanishes when the call ends. Now the permanent layer: **storage**. Every state variable you've ever written in Solidity lives here. Every token balance, every approval, every governance vote — it's all storage slots.
 
@@ -175,7 +175,7 @@ Ethereum plans to migrate from Merkle Patricia Tries to **Verkle Trees** ([EIP-6
 
 ---
 
-## SLOAD & SSTORE — The Full Picture
+## 💡 SLOAD & SSTORE — The Full Picture
 
 Module 1 showed you `sload(0)` to read the owner variable. Now we go deeper — the full cost model, the refund mechanics, and the write ordering patterns that production code uses.
 
@@ -340,7 +340,7 @@ function liquidate(address user) external {
 
 ---
 
-## Slot Computation — From Variables to Tries
+## 💡 Slot Computation — From Variables to Tries
 
 This is the section Module 1 teased: how does the EVM know WHERE to store a mapping entry or an array element? The answer is `keccak256` — and understanding the exact formulas unlocks the ability to read any contract's storage from the outside.
 
@@ -673,7 +673,7 @@ ERC-7201 uses the same principle (see [below](#erc-7201)) with an additional has
 
 ---
 
-## Storage Packing in Assembly
+## 💡 Storage Packing in Assembly
 
 You know Solidity auto-packs small variables ([sequential slots](#sequential-slots) above). Now you'll do it by hand in assembly — the same patterns used by Aave V3's bitmap configuration, Uniswap V3's Slot0, and every gas-optimized protocol.
 
@@ -862,7 +862,7 @@ assembly {
 
 ---
 
-## Transient Storage in Assembly
+## 💡 Transient Storage in Assembly
 
 You learned TLOAD/TSTORE conceptually in [Part 1](../part1/1-solidity-modern.md) and used the `transient` keyword. Now the assembly patterns — and why the flat 100 gas cost changes everything.
 
@@ -963,7 +963,7 @@ Transient storage use cases in production DeFi:
 
 ---
 
-## Production Storage Patterns
+## 💡 Production Storage Patterns
 
 Now that you understand slot computation and packing, here are the production patterns that combine these primitives for real-world use.
 
