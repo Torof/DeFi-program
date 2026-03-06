@@ -401,16 +401,14 @@ Write comprehensive Foundry tests covering:
 - Add events: `Swap`, `Mint`, `Burn` (match [Uniswap V2's event signatures](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol#L13-L15))
 - Implement a simple TWAP (time-weighted average price) oracle: store cumulative price and timestamp on each swap, expose a function to compute average price over a period
 
-## 📋 Summary: The Constant Product Formula
+## 📋 Key Takeaways: The Constant Product Formula
 
-**✓ Covered:**
-- Constant product formula (`x · y = k`) and swap output calculation
-- Price impact — nonlinear, accelerates with trade size
-- Fee mechanics — fees stay in pool, increasing `k`
-- Impermanent loss — formula, step-by-step walkthrough, dollar impact at various price changes
-- Built a minimal constant product pool from scratch
+After this section, you should be able to:
 
-**Next:** Read production V2 code and map it to your implementation.
+- Derive the swap output formula from `x · y = k` and calculate the exact output for a given input amount including fees
+- Explain why price impact is nonlinear (not proportional to trade size) and sketch the curve showing acceleration at larger trade sizes
+- Walk through an impermanent loss scenario step by step: initial deposit → price change → compare hold vs LP → calculate the IL percentage using the formula `2√r / (1+r) - 1`
+- Explain how fees grow `k` over time and why this partially offsets impermanent loss for LPs
 
 ---
 
@@ -569,18 +567,14 @@ This is exactly what V3 does — but it adds complexity:
 
 V3 trades simplicity for capital efficiency. Keep this tradeoff in mind as you read the next part of this module.
 
-## 📋 Summary: Reading Uniswap V2
+## 📋 Key Takeaways: Reading Uniswap V2
 
-**✓ Covered:**
-- Read V2 Pair, Factory, and Router contracts
-- Understood `mint()` / `burn()` / `swap()` — balance-reading pattern, optimistic transfers, k-invariant check
-- Flash swap mechanism via `IUniswapV2Callee` callback
-- TWAP oracle accumulators in `_update()`
-- Protocol fee logic in `_mintFee()`
-- CREATE2 deterministic addresses in Factory
-- Exercises: flash swap consumer, multi-hop routing, TWAP oracle consumer
+After this section, you should be able to:
 
-**Next:** Concentrated liquidity — how V3 achieves 2000x capital efficiency.
+- Trace a V2 `swap()` call end-to-end: optimistic transfer → balance read → k-invariant check, and explain why V2 reads balances instead of trusting transfer amounts
+- Explain the V2 flash swap mechanism: how `IUniswapV2Callee.uniswapV2Call` enables atomic arbitrage without upfront capital, and why the k-check at the end makes it safe
+- Describe how V2's TWAP oracle works: cumulative price accumulators in `_update()`, why they're manipulation-resistant over time, and how to compute a TWAP from two snapshots
+- Calculate a V2 pair address off-chain using CREATE2 (Factory address + token pair + init code hash) without querying the chain
 
 ---
 
@@ -896,20 +890,14 @@ Write tests that verify all three cases and check that amounts change continuous
 
 **Don't get stuck on:** `FullMath.sol` (it's mulDiv for precision — you know this from Part 1), `Oracle.sol` (save for Module 3).
 
-## 📋 Summary: Concentrated Liquidity (V3)
+## 📋 Key Takeaways: Concentrated Liquidity (V3)
 
-**✓ Covered:**
-- Ticks (`price = 1.0001^i`), tick spacing, and fee tiers
-- Positions as `(tickLower, tickUpper, liquidity)` — active only when price is in range
-- `sqrtPriceX96` — why store `√P × 2^96`, how to convert to human-readable price
-- V3 liquidity math (`Δtoken0`, `Δtoken1`) with worked numerical example
-- The swap loop — crossing tick boundaries, active liquidity changes
-- LP tokens → NFTs (each position is unique)
-- Fee accounting with `feeGrowthGlobal` and per-tick tracking
-- Read V3 Pool, Factory, and key libraries (TickMath, SqrtPriceMath, SwapMath)
-- Exercises: tick math, position value calculator, swap simulation
+After this section, you should be able to:
 
-**Next:** Build your own simplified CLAMM to internalize the swap loop.
+- Convert between ticks and prices (`price = 1.0001^i`) and explain why V3 stores `sqrtPriceX96` instead of the price itself (hint: the liquidity math formulas use `√P` directly)
+- Describe a V3 position as `(tickLower, tickUpper, liquidity)` and calculate how much of each token an LP must deposit given the current price
+- Walk through V3's swap loop: what happens when price crosses an initialized tick (active liquidity changes), and why the pool behaves like V2 between any two adjacent ticks
+- Explain V3's fee accounting: how `feeGrowthGlobal` accumulates, how per-tick `feeGrowthOutside` tracks fees above/below a tick, and how an LP's uncollected fees are computed from these values
 
 ---
 
@@ -988,15 +976,14 @@ Write Foundry tests covering:
 
 > **Common pitfall:** Not testing tick crossings in both directions. A swap buying token0 (decreasing price) crosses ticks differently than a swap buying token1 (increasing price). Test both directions.
 
-## 📋 Summary: Simplified CLAMM Challenge
+## 📋 Key Takeaways: Simplified CLAMM Challenge
 
-**🎯 Learning goals:**
-- Build a simplified CLAMM with `addLiquidity`, `swap` (with tick-crossing loop), `removeLiquidity`
-- Internalize V3's core insight: between any two initialized ticks, the pool behaves like V2 with liquidity `L`
-- Implement fee accrual per position (only while in range)
-- Test tick crossings, overlapping positions, out-of-range behavior, IL comparison
+After this section, you should be able to:
 
-**Next:** V4's singleton architecture — one contract to rule all pools.
+- Implement a simplified CLAMM with `addLiquidity`, `swap` (tick-crossing loop), and `removeLiquidity` that demonstrates V3's core mechanic
+- Explain V3's core insight in one sentence: between any two initialized ticks, the pool behaves exactly like a constant product pool with liquidity `L`
+- Implement per-position fee accrual that only accumulates while the position's range includes the current price
+- Write tests covering tick crossings, overlapping positions, and out-of-range deposits
 
 ---
 
@@ -1145,17 +1132,14 @@ forge test --fork-url $MAINNET_RPC --match-contract V4Test
 4. **Read `Pool.sol` (library)** — V3's math adapted for V4's singleton, familiar territory
 5. **Read `PositionManager.sol`** in v4-periphery — How the user-facing contract interacts with PoolManager
 
-## 📋 Summary: V4 Singleton & Flash Accounting
+## 📋 Key Takeaways: V4 Singleton & Flash Accounting
 
-**✓ Covered:**
-- Singleton pattern — all pools in one PoolManager contract
-- Flash accounting — delta tracking with transient storage, settle-at-end pattern
-- `unlock()` → callback → operations → `settle()`/`take()` flow
-- Native ETH support and ERC-6909 claim tokens
-- Read PoolManager, Pool.sol library, PoolKey, BalanceDelta
-- Exercises: unlock pattern tracing, multi-hop delta analysis, local V4 deployment
+After this section, you should be able to:
 
-**Next:** V4 hooks — the extension mechanism that makes AMMs programmable.
+- Explain V4's singleton architecture and why consolidating all pools into one `PoolManager` contract eliminates redundant ERC-20 transfers between pools during multi-hop swaps
+- Trace the flash accounting flow: `unlock()` → callback → swap/modify operations accumulate deltas in transient storage → `settle()`/`take()` zero out all deltas before the callback returns
+- Describe how ERC-6909 claim tokens work as an alternative to ERC-20 transfers for frequent traders (keep balances inside PoolManager, avoid repeated approve/transferFrom overhead)
+- Compare V3's multi-hop cost (N+1 token transfers for N hops) vs V4's cost (always 2 transfers regardless of hops) and explain why transient storage makes this possible
 
 ---
 
@@ -1346,17 +1330,14 @@ contract VolatilityHook is BaseHook {
 
 **Pro tip:** Mention a specific production hook you've studied (Clanker, Bunni, or GeomeanOracle) — it shows you've gone beyond docs into actual codebases.
 
-## 📋 Summary: V4 Hooks
+## 📋 Key Takeaways: V4 Hooks
 
-**✓ Covered:**
-- V4 hook system — 10 lifecycle functions, address-encoded permissions
-- Hook capabilities: dynamic fees, custom accounting, access control, oracle integration
-- Read production hooks: limit order, TWAMM, dynamic fee, full-range
-- Hook security: access control (`msg.sender == poolManager`), gas griefing, reentrancy, trust model, immutability
-- Built: dynamic fee hook and swap counter hook
-- Real exploits: Cork Protocol ($400k from missing access control)
+After this section, you should be able to:
 
-**Next:** Alternative AMM designs and advanced ecosystem topics.
+- List V4's 10 hook lifecycle functions and explain how the hook's address encodes which callbacks are active (specific address bits = enabled hooks)
+- Design a V4 hook for a given use case (dynamic fees, TWAMM, limit orders) by choosing the right lifecycle points and implementing the callback logic
+- Identify the critical security requirements for hooks: `msg.sender == poolManager` access control, gas limits to prevent griefing, reentrancy protection, and why hook immutability matters (pool can't change its hook)
+- Analyze the Cork Protocol exploit ($400k) and explain what access control check was missing
 
 ---
 
@@ -1868,20 +1849,15 @@ If your protocol uses LP tokens as collateral or manages liquidity:
 
 > **Deep dive:** [Arrakis documentation](https://docs.arrakis.fi/), [Gamma strategies overview](https://docs.gamma.xyz/), [Maverick AMM docs](https://docs.mav.xyz/), [Bunni V2 design](https://docs.bunni.pro/)
 
-## 📋 Summary: Beyond Uniswap & Advanced AMM Topics
+## 📋 Key Takeaways: Beyond Uniswap & Advanced AMM Topics
 
-**✓ Covered:**
-- AMMs vs Order Books — tradeoffs, when each wins, the convergence toward hybrid systems
-- Curve StableSwap — hybrid invariant, amplification parameter, stablecoin dominance
-- Balancer weighted pools — N-token pools, LBPs, Vault architecture (inspiration for V4)
-- Trader Joe Liquidity Book — bins vs ticks, a different approach to concentrated liquidity
-- ve(3,3) DEXes — Velodrome/Aerodrome, vote-escrowed tokenomics, bribe markets for liquidity
-- MEV & sandwich attacks — types, CEX-DEX arbitrage (primary LP cost), cost tables, protection mechanisms
-- JIT liquidity — economics, impact on passive LPs, V4 countermeasures
-- AMM aggregators — 1inch, CoW Protocol, Paraswap, intent-based architectures (UniswapX)
-- LP management — strategy spectrum, pool profitability analysis, Arrakis/Gamma/Bunni/Maverick
+After this section, you should be able to:
 
-**Internalized patterns:** The constant product formula is everywhere (V3 reduces to it within each tick range). Price impact is nonlinear by design. LVR (not just IL) is the real cost of LPing — it scales with volatility squared and never reverses. CEX-DEX arbitrage is the dominant force in AMM markets (majority of V3 volume is toxic flow). V3 concentrated liquidity trades capital efficiency for complexity. V4 hooks are the future of AMM innovation (extend shared liquidity, don't fork). Flash accounting + transient storage is a reusable pattern (not just V4). MEV is not optional knowledge (sandwich, frontrunning, JIT). Never hardcode a single liquidity source (use aggregators). AMMs and order books are converging toward intent-based systems. LP management is now a professional activity (Arrakis, Gamma, Bunni, Volume/TVL, LVR, toxic flow share).
+- Compare AMMs vs CLOBs across 5 dimensions (liquidity provision, infrastructure, price discovery, LP risk, MEV exposure) and explain why DeFi is converging toward intent-based hybrid systems (UniswapX, CoW Protocol)
+- Explain Curve's StableSwap invariant at a high level: how the amplification parameter `A` blends between constant-product and constant-sum behavior, and why this gives near-zero slippage for stablecoin swaps
+- Define LVR (Loss-Versus-Rebalancing) and explain why it's a more accurate measure of LP cost than impermanent loss: LVR scales with volatility squared, never reverses, and represents the profit that arbitrageurs extract from stale pool prices
+- Describe a sandwich attack end-to-end (frontrun → victim swap → backrun) and name 3 protection mechanisms (private mempools, MEV-aware slippage, batch auctions)
+- Evaluate an LP position's profitability using key metrics: volume/TVL ratio, fee APR vs LVR, toxic flow share, and explain why active LP management (Arrakis, Gamma, Bunni) outperforms passive positions in V3
 
 ---
 

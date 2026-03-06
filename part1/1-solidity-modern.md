@@ -8,11 +8,8 @@
 
 **Language-Level Changes**
 - [Checked Arithmetic (0.8.0)](#checked-arithmetic)
-  - [Deep Dive: mulDiv Math](#checked-arithmetic)
 - [Custom Errors (0.8.4+)](#custom-errors)
-  - [Deep Dive: try/catch Error Handling](#try-catch)
 - [User-Defined Value Types (0.8.8+)](#user-defined-value-types)
-  - [Deep Dive: BalanceDelta Bit-Packing](#balance-delta)
 - [abi.encodeCall (0.8.11+)](#abi-encodecall)
 - [Other Notable Changes](#other-notable-changes)
 - [Build Exercise: ShareMath](#day1-exercise)
@@ -54,6 +51,30 @@ unchecked {
     uint256 denominator = reserveIn * 1000 + amountInWithFee;
 }
 ```
+
+**Safe vs dangerous — the key distinction:**
+
+```solidity
+// ✅ SAFE: Uniswap V2 swap — inputs are bounded by protocol invariants
+// reserveIn comes from the pool's own storage (max ~10^30 for 18-decimal tokens)
+// amountIn is validated against the reserve before reaching this point
+// The product CANNOT overflow uint256 (~10^77)
+unchecked {
+    uint256 denominator = reserveIn * 1000 + amountInWithFee;
+}
+
+// ❌ DANGEROUS: User-facing deposit — inputs are arbitrary
+// depositAmount comes directly from the user — could be type(uint256).max
+// totalShares comes from storage — could also be very large
+// No mathematical guarantee that the product fits in 256 bits
+function deposit(uint256 depositAmount) external {
+    unchecked {
+        uint256 shares = depositAmount * totalShares / totalAssets;  // Can overflow!
+    }
+}
+```
+
+The difference: in the swap, the protocol controls and bounds both inputs. In the deposit, the user controls `depositAmount` — you cannot prove safety without validation. This is why vault math uses `mulDiv` (covered below) instead of raw multiplication.
 
 **When to use `unchecked`:**
 
@@ -1259,20 +1280,14 @@ Build a **vault share calculator** — the exact math that underpins every ERC-4
 
 **🎯 Goal:** Get hands-on with the syntax in a DeFi context. This exact shares/assets math shows up in every vault and lending protocol in Part 2 — you're building the intuition now.
 
----
+## 📋 Key Takeaways: Language-Level Changes
 
-## 📋 Summary: Language-Level Changes
-
-**✓ Covered:**
-- Checked arithmetic by default (0.8.0) — no more SafeMath needed
-- Custom errors (0.8.4+) — gas savings and better tooling
-- User-Defined Value Types (0.8.8+) — type safety for domain concepts
-- `abi.encodeCall` (0.8.11+) — type-safe low-level calls
-- Named mapping parameters (0.8.18+) — self-documenting code
-- OpenZeppelin v5 patterns — `_update()` hook
-- Free functions and global `using for` — Uniswap V4 style
-
-**Next:** Transient storage, bleeding edge features, and what's coming in 0.9.0
+After this section, you should be able to:
+- Explain why `unchecked` is safe in a Uniswap V2 swap (bounded inputs) but dangerous in a user-facing deposit (arbitrary inputs), and why vault math uses `mulDiv` instead
+- Trace a `mulDiv` call through the 512-bit intermediate and explain why phantom overflow doesn't cause data loss
+- Decode a multi-hop try/catch error propagation chain and explain how custom error selectors flow through aggregators
+- Read a UDVT definition like Uniswap V4's `Currency` and explain the type safety it provides over a raw `address`
+- Look at an `abi.encodeCall` invocation and explain what compile-time check it provides that `abi.encodeWithSelector` doesn't
 
 ---
 
@@ -1627,17 +1642,12 @@ You should already be avoiding all of these in new code, but you'll encounter th
 
 **🎯 Goal:** Understand both the high-level `transient` syntax and the underlying opcodes. The gas comparison gives you a concrete sense of why this matters.
 
----
+## 📋 Key Takeaways: Bleeding Edge
 
-## 📋 Summary: Bleeding Edge Features
-
-**✓ Covered:**
-- Transient storage (0.8.24+) — 50-200x cheaper than regular storage
-- `transient` keyword (0.8.28+) — high-level syntax for transient storage
-- Pectra/Prague EVM target (0.8.30+) — new default compiler target
-- Solidity 0.9.0 deprecations — what to avoid in new code
-
-**Key takeaway:** Transient storage is the biggest gas optimization since EIP-2929. Understanding it is essential for reading modern DeFi code (especially Uniswap V4) and building gas-efficient protocols.
+After this section, you should be able to:
+- Explain why transient storage is dramatically cheaper than regular storage and what makes it unsuitable for cross-transaction state
+- Describe Uniswap V4's flash accounting pattern: how delta tracking with transient storage replaces per-swap token transfers
+- Compare `tstore`/`tload` assembly syntax (0.8.24) with the `transient` keyword (0.8.28) and know when each is appropriate
 
 ---
 

@@ -731,17 +731,14 @@ function initialize(IPoolAddressesProvider provider) external initializer {
 
 **Don't get stuck on:** The proxy contract's assembly code. Once you understand the pattern (it delegates everything), focus entirely on the implementation.
 
----
+## 📋 Key Takeaways: Proxy Patterns
 
-## 📋 Summary: Proxy Patterns
-
-**✓ Covered:**
-- Proxy patterns — Transparent, UUPS, Beacon, Diamond
-- Storage layout — append-only upgrades, storage gaps, collision detection
-- Initializers — replacing constructors, preventing re-initialization
-- Security — uninitialized proxies, storage collisions, real exploits
-
-**Key takeaway:** Proxies enable upgradeability but introduce complexity. Storage layout compatibility is critical—test it with `forge inspect` before deploying upgrades.
+After this section, you should be able to:
+- Explain why storage layout must be append-only across proxy upgrades and what happens if you reorder or remove slots
+- Distinguish Transparent from UUPS proxy patterns and explain the trade-offs that determine which to use
+- Describe the uninitialized proxy attack vector (Wormhole, $10M+ at risk) and how atomic deploy+initialize prevents it
+- Use `forge inspect` to verify storage layout compatibility before deploying an upgrade
+- Explain when NOT to use a proxy — why protocols like Morpho Blue and Uniswap V4 choose immutable cores with upgradeable periphery
 
 ---
 

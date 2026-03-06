@@ -6,16 +6,20 @@
 
 ## 📚 Table of Contents
 
-1. [L2 Architecture for DeFi Developers](#l2-architecture)
-2. [The L2 Gas Model](#gas-model)
-3. [Build Exercise: L2 Gas Estimator](#exercise-gas-estimator)
-4. [Sequencer Uptime & Oracle Safety](#sequencer-uptime)
-5. [Build Exercise: L2-Aware Oracle Consumer](#exercise-oracle-consumer)
-6. [Transaction Ordering & MEV on L2](#l2-mev)
-7. [L2-Native Protocol Design](#l2-native)
-8. [Multi-Chain Deployment Patterns](#multi-chain)
-9. [Summary](#summary-l2-defi)
-10. [Resources](#resources)
+**L2 Fundamentals**
+- [L2 Architecture for DeFi Developers](#l2-architecture)
+- [The L2 Gas Model](#gas-model)
+- [Build Exercise: L2 Gas Estimator](#exercise-gas-estimator)
+
+**Sequencer & MEV**
+- [Sequencer Uptime & Oracle Safety](#sequencer-uptime)
+- [Build Exercise: L2-Aware Oracle Consumer](#exercise-oracle-consumer)
+- [Transaction Ordering & MEV on L2](#l2-mev)
+
+**L2 Protocol Design**
+- [L2-Native Protocol Design](#l2-native)
+- [Multi-Chain Deployment Patterns](#multi-chain)
+
 
 ---
 
@@ -320,18 +324,14 @@ Run: `forge test --match-contract L2GasEstimatorTest -vvv`
 
 ---
 
-## 📋 Summary: L2 Architecture & Gas
+## 📋 Key Takeaways: L2 Architecture & Gas
 
-**✓ Covered:**
-- L2 types: optimistic rollups (fraud proofs, 7-day finality) vs ZK rollups (validity proofs, hours)
-- The sequencer: centralized ordering, soft vs hard finality, forced inclusion via L1
-- Two-component gas model: L2 execution (cheap) + L1 data posting (dominant cost)
-- EIP-4844 blob transactions: 10-100x fee reduction for L2s
-- L1 data cost calculation: 16 gas per non-zero byte, 4 per zero byte
-- Optimization priority flip: minimize calldata on L2, not storage writes
-- Block property differences: `block.timestamp` and `block.number` vary across L2s
+After this section, you should be able to:
 
-**Next:** Sequencer uptime risks and oracle safety patterns — the most critical L2-specific vulnerability for lending protocols.
+- Compare optimistic rollups (fraud proofs, 7-day finality) vs ZK rollups (validity proofs, hours) and explain how each affects DeFi protocol design (finality assumptions, bridge withdrawal times)
+- Explain the two-component L2 gas model (L2 execution + L1 data posting) and why EIP-4844 blob transactions reduce L2 fees by 10-100x
+- Apply the L2 optimization priority flip: minimize calldata (not storage writes), and explain why L1 data posting dominates costs on rollups
+- Identify block property differences across L2s (`block.timestamp`, `block.number`) and explain why hardcoding assumptions from L1 breaks on L2
 
 ---
 
@@ -497,17 +497,13 @@ Run: `forge test --match-contract L2OracleTest -vvv`
 
 ---
 
-## 📋 Summary: Sequencer Risks & Oracle Safety
+## 📋 Key Takeaways: Sequencer Risks & Oracle Safety
 
-**✓ Covered:**
-- Sequencer liveness: downtime freezes oracle prices and blocks user transactions
-- Chainlink L2 Sequencer Uptime Feed: dedicated feed reporting sequencer status
-- Aave PriceOracleSentinel: the gold-standard grace period pattern
-- Grace period logic: block liquidations/borrows during downtime and after restart
-- Defense-in-depth: sequencer check + grace period + price staleness combined
-- Differential safety: repayments and collateral additions always allowed, even during downtime
+After this section, you should be able to:
 
-**Next:** Transaction ordering and MEV on L2 — how centralized sequencers create a fundamentally different MEV landscape.
+- Explain why sequencer downtime is critical for lending protocols: frozen oracle prices + blocked transactions = stale liquidations + unfair borrows when the sequencer restarts
+- Implement the PriceOracleSentinel pattern: check Sequencer Uptime Feed → enforce grace period after restart → combine with price staleness checks for defense-in-depth
+- Apply differential safety: always allow repayments and collateral additions (reduce risk) even during downtime, only block liquidations and new borrows (increase risk)
 
 ---
 
@@ -779,17 +775,13 @@ This connects directly to Module 6's cross-chain message handler pattern and Mod
 ---
 
 <a id="summary-l2-defi"></a>
-## 📋 Summary: L2-Specific DeFi
+## 📋 Key Takeaways: L2-Specific DeFi
 
-**✓ Covered:**
-- L2 architecture: optimistic vs ZK rollups and their DeFi implications
-- The sequencer: centralization, soft vs hard finality, forced inclusion
-- L2 gas model: two components, L1 data dominance, EIP-4844 impact
-- Sequencer uptime and oracle safety: the PriceOracleSentinel pattern with full Solidity
-- L2 MEV: Arbitrum FCFS/Timeboost vs OP Stack priority fees vs shared sequencing
-- L2-native protocol design: what cheap gas enables (auto-compounding, order books, keeper execution)
-- Multi-chain deployment: chain-specific parameters, CREATE2, cross-chain governance
-- Block property differences: timestamp, block number, L1 info access
+After this section, you should be able to:
+
+- Compare L2 MEV landscapes: Arbitrum FCFS/Timeboost (latency competition) vs OP Stack priority fees (fee-based ordering) vs shared sequencing (cross-chain atomicity)
+- Design L2-native protocols that leverage cheap gas: auto-compounding at higher frequency, on-chain order books, keeper-executed operations that would be uneconomical on L1
+- Plan a multi-chain deployment: chain-specific parameter configuration, CREATE2 for deterministic addresses across chains, and cross-chain governance message passing
 
 ---
 

@@ -691,18 +691,14 @@ Separate from initial deployment — these handle proxy upgrades with storage la
 
 **Don't get stuck on:** Helper utilities and test-specific deployment code. Focus on the production deployment path.
 
----
+## 📋 Key Takeaways: Deployment & Operations
 
-## 📋 Summary: Deployment and Operations
-
-**✓ Covered:**
-- Deployment pipeline — local → testnet → mainnet
-- Solidity scripts — testable, reusable, type-safe deployment
-- Contract verification — Etherscan, Sourcify
-- Safe multisig — eliminating single-key risk
-- Monitoring — Tenderly, Defender, event-based alerts
-
-**Key takeaway:** Deployment is where code meets reality. A perfect contract with a broken deployment is useless. Test your deployment scripts as rigorously as your contracts.
+After this section, you should be able to:
+- Explain why proxy `deploy + initialize` must be atomic (single transaction) and what attack front-running the initializer enables
+- Describe how CREATE2 enables deterministic contract addresses across multiple chains and why Permit2 uses this pattern
+- Trace a production deployment pipeline: dry-run → testnet → verify → ownership transfer → mainnet
+- Explain why deploying with a single-key EOA as owner is unacceptable for production and what replaces it
+- Describe a monitoring setup for a deployed protocol: what tools (Tenderly, Defender), what events to watch, and how monitoring limits exploit damage
 
 ---
 

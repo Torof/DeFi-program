@@ -6,19 +6,22 @@
 
 ## 📚 Table of Contents
 
-1. [The Routing Problem](#routing-problem)
-2. [Split Order Math](#split-order-math)
-3. [Aggregator On-Chain Patterns](#aggregator-patterns)
-4. [Build Exercise: Split Router](#exercise-split-router)
-5. [The Intent Paradigm](#intent-paradigm)
-6. [EIP-712 Order Structures](#eip712-orders)
-7. [Dutch Auction Price Decay](#dutch-auction)
-8. [Build Exercise: Intent Settlement](#exercise-intent-settlement)
-9. [Settlement Contract Architecture](#settlement-architecture)
-10. [Solvers & the Filler Ecosystem](#solvers)
-11. [CoW Protocol: Batch Auctions](#cow-protocol)
-12. [Summary](#summary-dex-aggregation)
-13. [Resources](#resources)
+**Aggregation**
+- [The Routing Problem](#routing-problem)
+- [Split Order Math](#split-order-math)
+- [Aggregator On-Chain Patterns](#aggregator-patterns)
+- [Build Exercise: Split Router](#exercise-split-router)
+
+**Intents & Solvers**
+- [The Intent Paradigm](#intent-paradigm)
+- [EIP-712 Order Structures](#eip712-orders)
+- [Dutch Auction Price Decay](#dutch-auction)
+- [Build Exercise: Intent Settlement](#exercise-intent-settlement)
+
+**Production Architecture**
+- [Settlement Contract Architecture](#settlement-architecture)
+- [Solvers & the Filler Ecosystem](#solvers)
+- [CoW Protocol: Batch Auctions](#cow-protocol)
 
 ---
 
@@ -329,17 +332,14 @@ Run: `forge test --match-contract SplitRouterTest -vvv`
 
 ---
 
-## 📋 Summary: Traditional Aggregation
+## 📋 Key Takeaways: Traditional Aggregation
 
-**Covered:**
-- The routing problem: fragmented liquidity across multiple DEXs and pools
-- Split order math: why splitting large trades across pools reduces price impact
-- Optimal split calculation based on relative pool reserves
-- On-chain vs off-chain routing trade-offs (gas costs vs computation flexibility)
-- Executor patterns: how aggregators construct and execute multi-hop, multi-pool swaps
-- Gas-aware optimization: when the gas cost of splitting outweighs the benefit
+After this section, you should be able to:
 
-**Next:** The intent paradigm — a fundamental shift from users constructing transactions to users signing what they want and solvers competing to fill it.
+- Explain the routing problem (fragmented liquidity) and calculate an optimal split across two pools based on relative reserves to minimize total price impact
+- Compare on-chain vs off-chain routing: gas costs of on-chain path encoding vs computation flexibility and freshness of off-chain quoting
+- Describe the multi-call executor pattern that all aggregators share: how they construct and execute multi-hop, multi-pool swap sequences in a single transaction
+- Determine when split routing is worth it: gas cost of the additional swap(s) must be less than the price impact savings
 
 ---
 
@@ -686,17 +686,14 @@ Run: `forge test --match-contract IntentSettlementTest -vvv`
 
 ---
 
-## 📋 Summary: Intent-Based Trading
+## 📋 Key Takeaways: Intent-Based Trading
 
-**Covered:**
-- The intent paradigm shift: users sign desired outcomes, solvers handle execution
-- EIP-712 typed data structures for off-chain order signing
-- Dutch auction price decay: starting generous and decaying to attract solvers at the right moment
-- Solver competition: how fillers race to provide the best execution
-- Replay protection, deadline enforcement, and nonce management
-- User experience improvements: no gas needed, MEV protection, cross-chain potential
+After this section, you should be able to:
 
-**Next:** Settlement contract architecture — how UniswapX's Reactor pattern enforces trust guarantees on-chain regardless of solver behavior.
+- Explain the intent paradigm shift: users sign EIP-712 typed data describing desired outcomes, solvers compete to provide the best execution, and settlement contracts enforce guarantees on-chain
+- Describe Dutch auction price decay for intents: starting at a generous price and decaying over time to attract solvers at the market-clearing moment
+- Implement replay protection for off-chain orders: deadline enforcement, nonce management, and signature verification
+- Articulate the UX improvements intents enable: no gas for users, inherent MEV protection (solver absorbs MEV risk), and cross-chain potential
 
 ---
 
@@ -1052,20 +1049,13 @@ Both are valid approaches with different tradeoffs. Understanding both gives you
 ---
 
 <a id="summary-dex-aggregation"></a>
-## 📋 Summary: DEX Aggregation & Intents
+## 📋 Key Takeaways: DEX Aggregation & Intents
 
-**✓ Covered:**
-- The routing problem and split order optimization math
-- The multi-call executor pattern shared by all aggregators
-- The intent paradigm shift: from transactions to signed intents
-- EIP-712 order structures and signature verification
-- Dutch auction price decay: formula, mechanics, and why it works
-- Settlement contract architecture (UniswapX Reactor pattern)
-- What solvers do and how to think about building one
-- CoW Protocol's batch auction model and Coincidence of Wants
-- UniswapX vs CoW Protocol tradeoffs
+After this section, you should be able to:
 
-**Next:** Cross-module concept links and resources.
+- Describe UniswapX's Reactor settlement pattern: how the on-chain contract enforces user guarantees regardless of solver behavior, and what solvers must do to fill orders
+- Compare UniswapX (Dutch auction, individual fills, speed-competitive) vs CoW Protocol (batch auctions, Coincidence of Wants, surplus maximization) and explain when each model produces better execution
+- Design a basic solver strategy: monitor pending intents, calculate profitability (output amount vs routing cost vs gas), and submit fill transactions before decay makes the order unprofitable
 
 ---
 

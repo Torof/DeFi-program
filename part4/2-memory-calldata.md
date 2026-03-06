@@ -10,35 +10,23 @@
 
 **Memory**
 - [Memory Layout: The Reserved Regions](#memory-layout)
-  - [Deep Dive: Visualizing Memory Operations](#memory-operations)
 - [The Free Memory Pointer](#free-memory-pointer)
-  - [Intermediate Example: Manual `bytes` Allocation](#manual-allocation)
-  - [Memory-Safe Assembly](#memory-safe)
 
 **Calldata**
 - [Calldata Layout: Static & Dynamic Types](#calldata-layout)
-  - [Deep Dive: Dynamic Type Encoding (Head/Tail)](#head-tail)
 - [ABI Encoding at the Byte Level](#abi-encoding)
-  - [Deep Dive: abi.encode vs abi.encodePacked](#encode-vs-packed)
 
 **Return Data & Errors**
 - [Return Values & Error Encoding in Assembly](#return-errors)
-  - [Deep Dive: The 0x1c Offset Explained](#offset-explained)
-  - [DeFi Pattern Connection: Solady Error Encoding](#solady-errors)
 
 **Practical Patterns**
 - [Scratch Space for Hashing](#scratch-hashing)
 - [Proxy Forwarding (Preview)](#proxy-preview)
 - [Zero-Copy Calldata](#zero-copy)
-- [How to Study Memory-Heavy Assembly](#how-to-study)
 
 **Exercises**
 - [Build Exercise: MemoryLab](#exercise1)
 - [Build Exercise: CalldataDecoder](#exercise2)
-
-**Wrap-Up**
-- [Summary](#summary)
-- [Resources](#resources)
 
 ---
 
@@ -1036,7 +1024,7 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract CalldataDecoderTest -vvv
 ---
 
 <a id="summary"></a>
-## 📋 Summary: Memory & Calldata
+## 📋 Key Takeaways: Memory & Calldata
 
 **✓ Memory:**
 - EVM memory is a byte-addressable linear array, initialized to zero

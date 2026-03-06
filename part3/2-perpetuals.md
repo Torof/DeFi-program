@@ -11,23 +11,15 @@
 **Perpetual Futures Fundamentals**
 - [What is a Perpetual?](#what-is-a-perpetual)
 - [Mark Price vs Index Price](#mark-vs-index)
-- [Deep Dive: Funding Rate Mechanics](#funding-rate-mechanics)
-- [Deep Dive: Funding Rate Accumulator Pattern](#funding-accumulator)
 - [Margin and Leverage](#margin-and-leverage)
-- [Deep Dive: PnL Calculation with Worked Examples](#pnl-calculation)
-- [Deep Dive: Liquidation Price Derivation](#liquidation-price)
 - [Build Exercise: Funding Rate Engine](#exercise1)
 
 **GMX Architecture**
 - [The GMX Model: Liquidity Pool as Counterparty](#gmx-model)
 - [GMX V2: GM Pools and Position Tracking](#gmx-v2)
-- [Deep Dive: Two-Step Keeper Execution](#keeper-execution)
-- [Deep Dive: Fee Structure and Price Impact](#fee-structure)
-- [Code Reading Strategy: GMX V2](#gmx-code-reading)
 
 **Synthetix & Alternative Models**
 - [Synthetix: The Debt Pool Model](#synthetix-debt-pool)
-- [Deep Dive: Debt Pool Math with Worked Example](#debt-pool-math)
 - [Synthetix Perps V2: Skew-Based Funding](#synthetix-perps-v2)
 - [dYdX: Order Book Model](#dydx)
 - [Hyperliquid](#hyperliquid)
@@ -35,15 +27,10 @@
 
 **Liquidation in Perpetuals**
 - [Why Perp Liquidation Differs from Lending](#perp-vs-lending-liquidation)
-- [Deep Dive: Liquidation Engine Flow](#liquidation-engine)
 - [Insurance Fund](#insurance-fund)
 - [Auto-Deleveraging (ADL)](#adl)
 - [Cascading Liquidation](#cascading-liquidation)
 - [Build Exercise: Perpetual Exchange](#exercise2)
-
-**Wrap Up**
-- [Cross-Module Concept Links](#cross-module-links)
-- [Resources](#resources)
 
 ---
 
@@ -509,18 +496,14 @@ Build the core funding rate accumulator pattern:
 
 **Pro tip:** When asked about funding rates, draw the connection to Compound's borrowIndex and Aave's liquidityIndex unprompted. Teams love seeing you recognize that the accumulator pattern is universal across DeFi, not specific to perps.
 
-## 📋 Summary: Perpetual Futures Fundamentals
+## 📋 Key Takeaways: Perpetual Futures Fundamentals
 
-**Covered:**
-- What perpetual futures are and why they dominate DeFi derivatives (no expiry, synthetic exposure)
-- Funding rate mechanism — the anchor that ties perp price to index price
-- Long/short mechanics: margin, leverage, and position sizing
-- Mark price vs index price and why the distinction matters
-- PnL calculation with worked examples (including fees and funding)
-- Liquidation price derivation for longs and shorts
-- The funding rate accumulator pattern — O(1) settlement via global index + per-position snapshots
+After this section, you should be able to:
 
-**Next:** How production protocols (GMX, Synthetix, dYdX) implement these fundamentals with very different architectural trade-offs.
+- Explain the funding rate mechanism: how periodic payments between longs and shorts anchor the perp price to the index price, and why this eliminates the need for expiry dates
+- Calculate PnL for a leveraged position including entry/exit fees and accumulated funding, and derive the liquidation price for both longs and shorts
+- Distinguish mark price from index price and explain why protocols use mark price (not index) for margin calculations and liquidation triggers
+- Recognize the funding rate accumulator as the same O(1) pattern from Aave's interest index and ERC-4626's share price: global counter + per-position snapshot
 
 ---
 
@@ -1003,17 +986,13 @@ Hyperliquid is a purpose-built L1 for perpetuals with sub-second finality:
 
 **Pro tip:** When comparing perp architectures, frame it as trade-offs rather than "X is better than Y." Teams want to see you reason about when a pool model (bootstrapping ease, simpler UX) beats an order book (capital efficiency, price discovery) and vice versa.
 
-## 📋 Summary: Protocol Architectures
+## 📋 Key Takeaways: Protocol Architectures
 
-**Covered:**
-- GMX's GLP/GM model — LP pool as counterparty, oracle-priced trades, two-step keeper execution
-- GMX V2 fee structure: position fees, borrow fees, price impact fees, and funding fees
-- Synthetix debt pool model — SNX stakers absorb system-wide PnL via socialized debt shares
-- Synthetix Perps V2: skew-based funding with velocity dampening
-- dYdX and Hyperliquid: order-book models on app-specific chains
-- Architecture trade-offs: capital efficiency vs bootstrapping, slippage vs decentralization
+After this section, you should be able to:
 
-**Next:** Liquidation mechanics specific to perpetuals — how they differ from lending liquidations and the role of insurance funds.
+- Explain GMX's pool-as-counterparty model: how GLP/GM LPs take the other side of every trade, oracle-priced execution eliminates slippage, and two-step keeper execution prevents frontrunning
+- Describe Synthetix's debt pool model: how SNX stakers absorb system-wide PnL through socialized debt shares, and how Perps V2's skew-based funding with velocity dampening works
+- Compare 3 perp architectures (GMX pool-based, Synthetix debt pool, dYdX/Hyperliquid order book) across capital efficiency, bootstrapping difficulty, slippage, and decentralization
 
 ---
 
@@ -1308,17 +1287,13 @@ Build a simplified perpetual exchange combining all concepts:
 
 **Pro tip:** Perp protocol development is one of the hottest DeFi hiring areas. If you can explain the funding rate accumulator, implement a basic perp exchange, and discuss the trade-offs between pool-based and order book models with nuance, you'll stand out from most candidates. Understanding MEV implications (P3M5) of perp designs is an additional differentiator.
 
-## 📋 Summary: Liquidation & Position Lifecycle
+## 📋 Key Takeaways: Liquidation & Position Lifecycle
 
-**Covered:**
-- How perp liquidation differs from lending: position-level margin, time pressure, and directional risk
-- Maintenance margin threshold and the liquidation trigger condition
-- Keeper incentives: liquidation fees, gas reimbursement, and priority gas auctions
-- Insurance fund mechanics — absorbing bad debt when margin is insufficient
-- Auto-deleveraging (ADL) as the last resort when the insurance fund is depleted
-- Full position lifecycle: open with margin, accrue funding, track PnL, close or get liquidated
+After this section, you should be able to:
 
-**Next:** Cross-cutting DeFi pattern connections for perpetuals knowledge.
+- Compare perp liquidation vs lending liquidation: position-level margin vs collateral ratio, time pressure from continuous PnL, and directional risk (liquidator inherits the position)
+- Trace the full position lifecycle: open with margin → accrue funding → track PnL → close voluntarily or get liquidated when margin falls below maintenance threshold
+- Explain the insurance fund and ADL cascade: when margin is insufficient, insurance fund absorbs bad debt; when the fund is depleted, auto-deleveraging forcibly reduces profitable positions to offset losses
 
 ---
 

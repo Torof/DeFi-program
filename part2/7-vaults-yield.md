@@ -35,7 +35,6 @@
 - [Yield Strategy Comparison](#yield-strategies)
 - [Pattern 1: Auto-Compounding](#auto-compounding)
 - [Pattern 2: Leveraged Yield](#leveraged-yield)
-- [Deep Dive: Leveraged Yield Numeric Walkthrough](#leveraged-yield-walkthrough)
 - [Pattern 3: LP + Staking](#lp-staking)
 - [Security Considerations for Vault Builders](#vault-security)
 
@@ -311,18 +310,14 @@ Tests verify:
 - Rounding always favors the vault (deposit rounds down, withdraw rounds up)
 - Full multi-user cycle matches the curriculum walkthrough (Alice, Bob, yield, Carol, withdrawal)
 
-## 📋 Summary: ERC-4626 — The Tokenized Vault Standard
+## 📋 Key Takeaways: ERC-4626 — The Tokenized Vault Standard
 
-**✓ Covered:**
-- The shares/assets abstraction and why it's the universal pattern for yield-bearing tokens
-- ERC-4626 interface — all 16 functions across deposit, mint, withdraw, redeem flows
-- Rounding rules: always in favor of the vault (against the user)
-- Share math with multi-deposit walkthrough (Alice → Bob → yield → Carol → withdrawal)
-- OpenZeppelin vs Solmate implementation trade-offs
+After this section, you should be able to:
 
-**Key insight:** ERC-4626 is the same math pattern you've seen in Aave aTokens, Compound cTokens, and Uniswap LP tokens — standardized into a universal interface. Master the share math once, apply it everywhere.
-
-**Next:** The inflation attack — why empty vaults are dangerous and three defense strategies.
+- Explain ERC-4626's shares/assets abstraction and map it to patterns you've already seen: Aave aTokens, Compound cTokens, Uniswap LP tokens — same math, universal interface
+- Walk through a multi-deposit scenario (Alice → Bob → yield arrives → Carol deposits → withdrawal) computing share counts and asset values at each step
+- State the rounding rule and why it exists: always round in favor of the vault (against the user) to prevent rounding exploits that drain the vault over many transactions
+- Compare OpenZeppelin vs Solmate ERC-4626 implementations and explain when you'd choose each
 
 ---
 
@@ -598,19 +593,14 @@ Tests verify:
 - DefendedVault attack fails: same attack leaves attacker with ~6 USDC (massive loss)
 - DefendedVault works correctly for normal operations: deposit, yield accrual, redeem all function properly with negligible virtual share loss (1 raw unit)
 
-## 📋 Summary: The Inflation Attack and Defenses
+## 📋 Key Takeaways: The Inflation Attack and Defenses
 
-**✓ Covered:**
-- The inflation (donation/first-depositor) attack — step-by-step mechanics
-- Real exploits: Resupply (2025), Venus Protocol on ZKsync (2025)
-- Defense 1: Virtual shares and assets (OpenZeppelin's `_decimalsOffset`)
-- Defense 2: Dead shares (Uniswap V2 approach — lock minimum liquidity)
-- Defense 3: Internal accounting (track `_totalManagedAssets` instead of `balanceOf`)
-- Collateral pricing risk when ERC-4626 tokens are used in lending markets
+After this section, you should be able to:
 
-**Key insight:** The inflation attack is the #1 ERC-4626 security concern. Virtual shares (OpenZeppelin) are the most common defense, but internal accounting is the most robust. Never use raw `balanceOf(address(this))` for critical pricing in any vault.
-
-**Next:** Yield aggregation architecture — how Yearn V3 composes ERC-4626 vaults into multi-strategy systems.
+- Trace the inflation attack step by step: attacker front-runs first depositor → donates assets → inflates share price → victim gets 0 shares → attacker redeems donated assets + victim's deposit
+- Implement all 3 defenses: virtual shares/assets (OpenZeppelin's `_decimalsOffset`), dead shares (Uniswap V2's minimum liquidity lock), and internal accounting (`_totalManagedAssets` instead of `balanceOf`)
+- Explain why internal accounting is the most robust defense and why virtual shares are the most commonly used (simpler, no initial deposit requirement)
+- Identify the collateral pricing risk when ERC-4626 vault tokens are used in lending markets (share price manipulation → incorrect collateral valuation)
 
 ---
 
@@ -804,20 +794,14 @@ Tests verify:
 - Redeem 8,000 shares: withdrawal queue drains idle first, then Strategy A, then partial Strategy B
 - Debt tracks original allocation (not yield) -- profit = strategy.totalValue() - debt
 
-## 📋 Summary: Yield Aggregation — Yearn V3 Architecture
+## 📋 Key Takeaways: Yield Aggregation — Yearn V3 Architecture
 
-**✓ Covered:**
-- The yield aggregation problem — why allocating across multiple sources matters
-- Yearn V3 Allocator Vault pattern — vault holds strategies, not yield sources directly
-- TokenizedStrategy delegation pattern — your strategy delegates ERC-4626 logic to a shared implementation
-- The three overrides: `_deployFunds()`, `_freeFunds()`, `_harvestAndReport()`
-- Debt allocation mechanics: `max_debt`, `update_debt()`, `process_report()`
-- Profit unlocking as anti-sandwich defense (`profitMaxUnlockTime`)
-- The Curator model (Morpho, Euler V2) — modular risk management layers
+After this section, you should be able to:
 
-**Key insight:** The allocator vault pattern separates yield generation (strategies) from risk management (the vault). ERC-4626 composability means each layer can plug into the next — this is how modern DeFi infrastructure is being built.
-
-**Next:** Composable yield patterns (auto-compounding, leveraged yield, LP staking) and critical security considerations for vault builders.
+- Describe Yearn V3's Allocator Vault pattern: vault holds strategies (not yield sources directly), and explain how TokenizedStrategy delegates ERC-4626 logic to a shared implementation
+- Implement the 3 strategy overrides (`_deployFunds()`, `_freeFunds()`, `_harvestAndReport()`) and explain the debt allocation mechanics (`max_debt`, `update_debt()`, `process_report()`)
+- Explain profit unlocking as an anti-sandwich defense: why linearly releasing profits over hours/days prevents attackers from depositing just before harvest and withdrawing just after
+- Compare Yearn's vault pattern with the Curator model (Morpho, Euler V2) and explain how modular risk management layers compose via ERC-4626
 
 ---
 
@@ -1019,19 +1003,14 @@ Tests verify:
 - Sandwich attack is unprofitable: attacker deposits before harvest, redeems after -- gets zero profit because profit is locked
 - Consecutive harvests: remaining locked profit from a previous harvest carries over and combines with newly harvested profit
 
-## 📋 Summary: Composable Yield Patterns and Security
+## 📋 Key Takeaways: Composable Yield Patterns and Security
 
-**✓ Covered:**
-- Auto-compounding: claim rewards → swap → re-deposit, keeper economics
-- Leveraged yield: recursive borrowing, health factor management, flash loan shortcuts
-- LP + staking: AMM liquidity + reward farming (Curve/Convex pattern)
-- Vault composability: ERC-4626 tokens as collateral, LP assets, or strategy inputs
-- Six critical security considerations for vault builders
-- Sandwich attack on harvest and profit unlocking defense
+After this section, you should be able to:
 
-**Internalized patterns:** ERC-4626 is the TCP/IP of DeFi yield (universal vault interface). Share math is the same pattern everywhere (Aave aTokens, Compound cTokens, LP tokens, Yearn vaults, DSR). The inflation attack is real and ongoing (virtual shares or internal accounting are non-negotiable). Profit unlocking prevents sandwich attacks (linear unlock over hours/days). The allocator pattern is the future (Yearn V3, Morpho curators, Euler V2 vaults). Leveraged yield is profitable only when incentives exceed the borrow-supply spread. The curator model separates infrastructure from risk management (each layer using ERC-4626).
-
-**Key insight:** ERC-4626 composability is a double-edged sword. It enables powerful yield strategies (vault-of-vaults, vault tokens as collateral), but every layer of composition adds attack surface. The security checklist (manipulation-resistant `totalAssets`, withdrawal liquidity, loss handling, sandwich defense, token edge cases, compliance) is non-negotiable for production vaults.
+- Design the 3 composable yield patterns: auto-compounding (claim → swap → re-deposit with keeper economics), leveraged yield (recursive borrowing with health factor management), LP staking (Curve/Convex reward farming)
+- Apply the 6 critical security considerations for vault builders: manipulation-resistant `totalAssets`, withdrawal liquidity guarantees, loss handling, sandwich defense, token edge cases, regulatory compliance
+- Explain why ERC-4626 composability is a double-edged sword: each layer of composition (vault-of-vaults, vault tokens as collateral) adds attack surface alongside functionality
+- Calculate when leveraged yield is profitable: incentive APY must exceed the borrow-supply spread after accounting for gas and liquidation risk
 
 ---
 

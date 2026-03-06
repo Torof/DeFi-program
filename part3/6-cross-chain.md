@@ -6,16 +6,17 @@
 
 ## 📚 Table of Contents
 
-1. [Bridge Architectures](#bridge-architectures)
-2. [How Bridges Work: On-Chain Mechanics](#on-chain-mechanics)
-3. [Bridge Security: Anatomy of Exploits](#bridge-security)
-4. [Messaging Protocols: LayerZero & CCIP](#messaging-protocols)
-5. [Build Exercise: Cross-Chain Message Handler](#exercise1-cross-chain-handler)
-6. [Cross-Chain Token Standards](#token-standards)
-7. [Build Exercise: Rate-Limited Bridge Token](#exercise2-rate-limited-token)
-8. [Cross-Chain DeFi Patterns](#cross-chain-patterns)
-9. [Summary](#summary-cross-chain)
-10. [Resources](#resources)
+**Bridge Architecture & Security**
+- [Bridge Architectures](#bridge-architectures)
+- [How Bridges Work: On-Chain Mechanics](#on-chain-mechanics)
+- [Bridge Security: Anatomy of Exploits](#bridge-security)
+
+**Messaging, Tokens & Patterns**
+- [Messaging Protocols: LayerZero & CCIP](#messaging-protocols)
+- [Build Exercise: Cross-Chain Message Handler](#exercise1-cross-chain-handler)
+- [Cross-Chain Token Standards](#token-standards)
+- [Build Exercise: Rate-Limited Bridge Token](#exercise2-rate-limited-token)
+- [Cross-Chain DeFi Patterns](#cross-chain-patterns)
 
 ---
 
@@ -398,17 +399,13 @@ When evaluating a bridge for protocol integration:
 
 ---
 
-## 📋 Summary: Bridge Fundamentals & Security
+## 📋 Key Takeaways: Bridge Fundamentals & Security
 
-**✓ Covered:**
-- Four bridge architectures: lock-and-mint, burn-and-mint, liquidity networks, canonical rollup bridges
-- Trust assumption spectrum: multisig attestation, oracle networks, optimistic verification, ZK proofs, L1 consensus
-- On-chain mechanics: lock/mint on deposit, burn/unlock on withdrawal, the critical verification step
-- Major bridge exploits: Nomad ($190M, zero-root bug), Ronin ($625M, key compromise), Wormhole ($325M, verification bypass)
-- Root causes: initialization bugs, low multisig thresholds, cross-VM verification complexity
-- Security evaluation framework: trust model, economic security, rate limiting, audit history, wrapped token risk
+After this section, you should be able to:
 
-**Next:** Messaging protocols — LayerZero and CCIP patterns for sending arbitrary data (not just tokens) across chains.
+- Compare the 4 bridge architectures (lock-and-mint, burn-and-mint, liquidity networks, canonical rollup bridges) and rank them by trust assumptions from weakest (multisig) to strongest (L1 consensus)
+- Analyze the 3 major bridge exploits (Nomad $190M zero-root bug, Ronin $625M key compromise, Wormhole $325M verification bypass) and identify the root cause pattern in each
+- Evaluate a bridge integration using the security framework: trust model, economic security, rate limiting, audit history, and wrapped token risk
 
 ---
 
@@ -774,17 +771,13 @@ Run: `forge test --match-contract RateLimitedTokenTest -vvv`
 
 ---
 
-## 📋 Summary: Cross-Chain Integration
+## 📋 Key Takeaways: Cross-Chain Integration
 
-**✓ Covered:**
-- LayerZero V2 OApp pattern: `_lzSend()` and `_lzReceive()` for cross-chain messaging
-- Chainlink CCIP defense-in-depth: DON verification, independent Risk Management Network, rate limiting
-- Source verification and replay protection as mandatory receive-side security checks
-- OFT (Omnichain Fungible Token) standard for canonical cross-chain tokens via LayerZero
-- xERC20 (ERC-7281): per-bridge rate-limited minting to bound blast radius of bridge compromise
-- Token bucket algorithm for rate limiting: capacity, refill rate, and time-based replenishment
+After this section, you should be able to:
 
-**Next:** Cross-chain DeFi patterns — how to compose swaps, governance, and state syncing across chains.
+- Implement a cross-chain message receiver using LayerZero V2's OApp pattern (`_lzSend()` / `_lzReceive()`) with mandatory source verification and replay protection
+- Compare LayerZero (configurable security via DVNs) with Chainlink CCIP (defense-in-depth: DON + independent Risk Management Network + rate limiting) for cross-chain messaging
+- Explain xERC20 (ERC-7281) rate-limited minting: how per-bridge minting caps using the token bucket algorithm (capacity, refill rate) bound the blast radius of any single bridge compromise
 
 ---
 
@@ -886,17 +879,12 @@ This pattern is used by Uniswap (governance on mainnet, execution across chains)
 ---
 
 <a id="summary-cross-chain"></a>
-## 📋 Summary: Cross-Chain & Bridges
+## 📋 Key Takeaways: Cross-Chain & Bridges
 
-**✓ Covered:**
-- Four bridge architectures and their trust tradeoffs (lock-and-mint, burn-and-mint, liquidity network, canonical)
-- On-chain bridge mechanics: lock/unlock, mint/burn patterns
-- Message verification approaches: multisig → oracle → optimistic → ZK → canonical
-- Deep dive into bridge exploits (Nomad root bug, Ronin key compromise, Wormhole verification bypass)
-- Security evaluation framework for bridge integrations
-- Messaging protocols: LayerZero OApp/OFT and CCIP receiver patterns with code
-- Cross-chain token standards: xERC20 rate limiting with token bucket math
-- Cross-chain DeFi patterns: swaps, message handlers, governance
+After this section, you should be able to:
+
+- Design cross-chain DeFi patterns: cross-chain swaps (intent-based with solver networks), cross-chain governance (message passing for proposal execution on remote chains), and cross-chain state syncing
+- Choose between OFT (LayerZero-native, single canonical deployment) and xERC20 (bridge-agnostic, per-bridge rate limits) for a new cross-chain token and justify the trade-off
 
 ---
 

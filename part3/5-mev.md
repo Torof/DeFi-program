@@ -6,16 +6,17 @@
 
 ## 📚 Table of Contents
 
-1. [The Invisible Tax](#invisible-tax)
-2. [Sandwich Attacks: Anatomy & Math](#sandwich-attacks)
-3. [Build Exercise: Sandwich Attack Simulation](#exercise1-sandwich-simulation)
-4. [Arbitrage & Liquidation MEV](#good-mev)
-5. [The Post-Merge MEV Supply Chain](#supply-chain)
-6. [MEV Protection Mechanisms](#protection)
-7. [MEV-Aware Protocol Design](#mev-aware-design)
-8. [Build Exercise: MEV-Aware Dynamic Fee Hook](#exercise2-mev-fee-hook)
-9. [Summary: MEV Defense & Protocol Design](#summary-mev-defense)
-10. [Resources](#resources)
+**Understanding MEV**
+- [The Invisible Tax](#invisible-tax)
+- [Sandwich Attacks: Anatomy & Math](#sandwich-attacks)
+- [Build Exercise: Sandwich Attack Simulation](#exercise1-sandwich-simulation)
+- [Arbitrage & Liquidation MEV](#good-mev)
+- [The Post-Merge MEV Supply Chain](#supply-chain)
+
+**Defense & Protocol Design**
+- [MEV Protection Mechanisms](#protection)
+- [MEV-Aware Protocol Design](#mev-aware-design)
+- [Build Exercise: MEV-Aware Dynamic Fee Hook](#exercise2-mev-fee-hook)
 
 ---
 
@@ -264,17 +265,13 @@ Run: `forge test --match-contract SandwichSimTest -vvv`
 
 ---
 
-## 📋 Summary: MEV Attacks
+## 📋 Key Takeaways: MEV Attacks
 
-**✓ Covered:**
-- MEV as the invisible tax on DeFi transactions — value extracted through transaction ordering
-- The MEV spectrum from benign (arbitrage, liquidation) to harmful (sandwich attacks)
-- Sandwich attack mechanics: front-run to push price, victim swap at worse rate, back-run to capture profit
-- Price impact math in constant-product AMMs and how attackers calculate optimal extraction
-- Slippage tolerance as the primary user defense — tight limits make sandwiches revert
-- AMM vulnerability to ordering-based extraction due to public mempool visibility
+After this section, you should be able to:
 
-**Next:** Arbitrage and liquidation MEV — the "good" side of the spectrum that keeps prices aligned and protocols solvent.
+- Explain MEV as an invisible tax on DeFi transactions and classify the spectrum from benign (arbitrage, liquidation) to harmful (sandwich attacks)
+- Trace a sandwich attack step by step: front-run to push price up → victim swaps at worse rate → back-run to capture the difference, and calculate the attacker's profit from price impact math
+- Explain why AMMs are inherently vulnerable to ordering-based extraction (deterministic price impact + public mempool) and how slippage tolerance is the primary user defense
 
 ---
 
@@ -793,17 +790,13 @@ Run: `forge test --match-contract MEVFeeHookTest -vvv`
 ---
 
 <a id="summary-mev-defense"></a>
-## 📋 Summary: MEV Defense & Protocol Design
+## 📋 Key Takeaways: MEV Defense & Protocol Design
 
-**✓ Covered:**
-- Post-Merge MEV supply chain: searchers, builders, relays, and proposers (PBS)
-- MEV economics: competitive bidding drives most value up to validators
-- Flashbots ecosystem: Protect (private mempool), MEV-Share (order flow auctions with rebates)
-- Protection mechanisms: transaction privacy, commit-reveal, batch auctions, threshold encryption
-- Intent-based execution as the deepest MEV defense (Module 4 connection)
-- MEV-aware protocol design: minimize info leakage, reduce ordering dependence, internalize MEV
-- Dynamic fee hooks (V4 pattern) that detect sandwich signatures and surcharge suspected MEV
-- MEV taxes: priority-fee-proportional swap fees that redirect extraction to LPs
+After this section, you should be able to:
+
+- Map the post-Merge MEV supply chain: searchers → builders → relays → proposers (PBS), and explain how competitive bidding drives most extracted value up to validators
+- Compare MEV protection mechanisms across 4 layers: transaction privacy (Flashbots Protect), order flow auctions (MEV-Share with rebates), batch auctions (CoW Protocol), and intent-based execution (Module 4)
+- Design MEV-aware protocols: minimize information leakage, reduce ordering dependence, and internalize MEV (dynamic fee hooks that surcharge suspected sandwich transactions, priority-fee-proportional swap fees that redirect extraction to LPs)
 
 ---
 

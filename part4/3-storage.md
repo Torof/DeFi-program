@@ -10,49 +10,35 @@
 
 **The Storage Model**
 - [The 2^256 Key-Value Store](#kv-store)
-  - [Deep Dive: From Slot to World State (Merkle Patricia Trie)](#mpt-diagram)
-  - [Deep Dive: Why Cold Access Costs 2100 Gas](#why-cold-costs)
 - [Verkle Trees: What's Changing](#verkle)
 
 **SLOAD & SSTORE — The Full Picture**
 - [SLOAD & SSTORE in Yul](#sload-sstore-yul)
-  - [Deep Dive: The SSTORE Cost State Machine (EIP-2200 + EIP-3529)](#sstore-state-machine)
-  - [Intermediate Example: Write Ordering Strategy](#write-ordering)
 
 **Slot Computation — From Variables to Tries**
 - [State Variables: Sequential Assignment](#sequential-slots)
 - [Why keccak256: Collision Resistance in 2^256 Space](#why-keccak)
 - [Mapping Slot Computation](#mapping-slots)
-  - [Deep Dive: Deriving the Mapping Formula](#mapping-derivation)
 - [Dynamic Array Slot Computation](#array-slots)
 - [Nested Structures: Mappings of Mappings, Mappings of Structs](#nested-slots)
-  - [Intermediate Example: Trace Aave V3's ReserveData Layout](#trace-layout)
 - [The -1 Trick: Preimage Attack Prevention](#minus-one)
 
 **Storage Packing in Assembly**
 - [Manual Pack/Unpack with Bit Operations](#manual-packing)
-  - [Deep Dive: Read-Modify-Write Pattern](#read-modify-write)
 - [Aave V3 ReserveConfiguration Case Study](#aave-case-study)
-  - [Deep Dive: Gas Analysis — Packed vs Unpacked](#gas-packed-vs-unpacked)
 
 **Transient Storage in Assembly**
 - [TLOAD & TSTORE Yul Patterns](#tload-tstore)
-  - [Uniswap V4 Assembly Walkthrough](#uniswap-v4-transient)
 
 **Production Storage Patterns**
 - [ERC-1967 Proxy Slots in Assembly](#erc-1967-assembly)
 - [ERC-7201 Namespaced Storage](#erc-7201)
 - [SSTORE2: Bytecode as Immutable Storage](#sstore2)
 - [Storage Proofs and Reading Any Contract's Storage](#storage-proofs)
-- [How to Study Storage-Heavy Contracts](#how-to-study)
 
 **Exercises**
 - [Build Exercise: SlotExplorer](#exercise1)
 - [Build Exercise: StoragePacker](#exercise2)
-
-**Wrap-Up**
-- [Summary](#summary)
-- [Resources](#resources)
 
 ---
 
@@ -1234,7 +1220,7 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract StoragePackerTest -vvv`
 ---
 
 <a id="summary"></a>
-## 📋 Summary: Storage Deep Dive
+## 📋 Key Takeaways: Storage Deep Dive
 
 **✓ The Storage Model:**
 - Each contract has a 2^256 sparse key-value store backed by a Merkle Patricia Trie

@@ -11,16 +11,16 @@
 **Oracle Fundamentals and Chainlink Architecture**
 - [The Oracle Problem](#oracle-problem)
 - [Types of Price Oracles](#oracle-types)
-- [Chainlink Architecture Deep Dive](#chainlink-architecture)
+- [Chainlink Architecture](#chainlink-architecture)
 - [Alternative Oracle Networks](#alternative-oracles)
-- [Push vs Pull Oracle Architecture](#push-vs-pull) *(Deep Dive)*
+- [Push vs Pull Oracle Architecture](#push-vs-pull)
 - [LST Oracle Challenges](#lst-oracle)
 - [Read: AggregatorV3Interface](#read-aggregator-v3)
 - [Build: Safe Chainlink Consumer](#build-chainlink-consumer)
 
 **TWAP Oracles and On-Chain Price Sources**
 - [TWAP: Time-Weighted Average Price](#twap)
-- [UQ112.112 Fixed-Point Encoding](#uq112) *(Deep Dive)*
+- [UQ112.112 Fixed-Point Encoding](#uq112)
 - [When to Use TWAP vs Chainlink](#twap-vs-chainlink)
 - [Build: TWAP Oracle](#build-twap)
 
@@ -454,22 +454,15 @@ Build an `OracleConsumer.sol` that reads Chainlink price feeds with all producti
 
 ---
 
-## 📋 Summary: Oracle Fundamentals & Chainlink
+## 📋 Key Takeaways: Oracle Fundamentals & Chainlink
 
-**✓ Covered:**
-- The oracle problem: blockchains can't access external data natively
-- Oracle types: centralized, on-chain (DEX spot), TWAP, decentralized networks (Chainlink)
-- Chainlink architecture: data providers → node operators → OCR aggregation → proxy → consumer
-- Oracle governance risk: Chainlink multisig controls feed configuration and upgrades
-- Update triggers: deviation threshold + heartbeat (not real-time!)
-- Alternative oracles: Pyth (pull-based), Redstone (modular), Chronicle (MakerDAO)
-- Push vs pull architecture: who pays for updates, freshness vs complexity trade-off
-- LST oracle challenges: chaining exchange rate + market rate, de-peg protection
-- `AggregatorV3Interface`: `latestRoundData()`, mandatory safety checks (positive, complete, fresh)
-- L2 sequencer uptime feeds and grace period pattern
-- Code reading strategy for oracle integrations in production
+After this section, you should be able to:
 
-**Next:** TWAP oracles — how they work, when to use them vs Chainlink, and dual-oracle patterns
+- Explain Chainlink's architecture end-to-end: data providers → node operators → OCR aggregation → proxy → consumer, and identify the governance risk (multisig controls feed configuration)
+- Write a safe `latestRoundData()` consumer with all 3 mandatory checks (positive answer, complete round, fresh timestamp) and explain what happens if you skip each one
+- Compare push-based (Chainlink) vs pull-based (Pyth) oracle architectures: who pays for updates, freshness guarantees, and complexity trade-offs
+- Implement an L2 oracle consumer that checks the Sequencer Uptime Feed and enforces a grace period after sequencer restart
+- Design an oracle pipeline for LST collateral: chain the internal exchange rate with the market rate and explain why you use the more conservative of the two
 
 ---
 
@@ -691,17 +684,13 @@ State transitions triggered by:
 
 ---
 
-## 📋 Summary: TWAP Oracles & On-Chain Price Sources
+## 📋 Key Takeaways: TWAP Oracles & On-Chain Price Sources
 
-**✓ Covered:**
-- TWAP mechanics: cumulative price accumulators, window-based average computation
-- Uniswap V2 TWAP (UQ112.112 fixed-point), V3 TWAP (geometric mean in tick space), V4 (hook-based)
-- Geometric vs arithmetic mean: why geometric mean is harder to manipulate
-- TWAP vs Chainlink trade-offs: manipulation resistance, latency, coverage, centralization
-- Dual-oracle pattern: Chainlink primary + TWAP secondary with deviation check and fallback
-- Production patterns: Liquity (Chainlink + Tellor), MakerDAO OSM (delayed TWAP)
+After this section, you should be able to:
 
-**Next:** Oracle manipulation attacks — spot price, TWAP, stale data, donation — and defense patterns
+- Compute a TWAP from two cumulative price snapshots and explain why geometric mean (V3's tick-space TWAP) is harder to manipulate than arithmetic mean (V2)
+- Compare TWAP vs Chainlink across 4 dimensions: manipulation resistance, latency, asset coverage, and centralization risk
+- Implement the dual-oracle pattern (Chainlink primary + TWAP secondary) with deviation check and fallback logic, as used by Liquity and MakerDAO's OSM
 
 ---
 
@@ -947,19 +936,14 @@ The tests demonstrate the full attack flow: attacker swaps 600K USDC into a pool
 
 ---
 
-## 📋 Summary: Oracle Manipulation Attacks
+## 📋 Key Takeaways: Oracle Manipulation Attacks
 
-**✓ Covered:**
-- Four attack patterns: spot price manipulation (flash loan), TWAP manipulation (multi-block), stale oracle exploitation, donation/balance manipulation
-- Oracle Extractable Value (OEV): oracle updates as MEV opportunity, emerging solutions (API3, Pyth Express Relay, UMA Oval)
-- Real exploits: Harvest ($24M), Cream ($130M), Inverse ($15M), Venus ($11M), Euler ($197M)
-- Eight defense patterns: no spot price, use Chainlink, staleness checks, sanity validation, dual oracle, circuit breakers, minimum TWAP window, virtual offsets
-- Built vulnerable protocol and fixed it with Chainlink
-- Stale price exploit simulation with `vm.mockCall`
+After this section, you should be able to:
 
-**Internalized patterns:** The oracle is your protocol's weakest link. Never derive prices from spot ratios in DEX pools. Always validate oracle data (positive answer, complete round, fresh timestamp). Chainlink is the default for production (supplement with TWAP for defense in depth). Design for oracle failure (graceful degradation path). L2 sequencer awareness is mandatory (check Sequencer Uptime Feed). Understand your oracle's trust model (Chainlink multisig vs Pyth pull-based). LST collateral needs chained oracles (internal exchange rate + market rate, use the more conservative). Oracle updates create extractable value (OEV solutions: API3, Pyth Express Relay, UMA Oval).
-
-**Complete:** You now understand oracles as both infrastructure (how to consume safely) and attack surface (how manipulation works and how to defend).
+- Describe the 4 oracle attack patterns (spot price manipulation, TWAP manipulation, stale oracle exploitation, donation/balance manipulation) and name a real exploit for each
+- Explain why `pair.getReserves()` is trivially exploitable with a flash loan and trace the attack flow: flash loan → swap to distort reserves → exploit protocol → unwind
+- List and explain the 8 defense patterns (no spot price, Chainlink, staleness checks, sanity bounds, dual oracle, circuit breakers, minimum TWAP window, virtual offsets) and match each to the attack it prevents
+- Define Oracle Extractable Value (OEV) and explain how emerging solutions (API3, Pyth Express Relay, UMA Oval) redirect this value back to the protocol
 
 #### 💼 Job Market Context — Oracle Security
 

@@ -17,7 +17,6 @@
 - [Fuzz Testing](#fuzz-testing)
 - [Invariant Testing](#invariant-testing)
 - [Build Exercise: Vault Invariants](#day12-exercise)
-- [How to Study Production Test Suites](#code-reading-strategies)
 
 **Fork Testing and Gas Optimization**
 - [Fork Testing for DeFi](#fork-testing)
@@ -372,17 +371,12 @@ Set up the project structure you'll use throughout Part 2:
 
 **🎯 Goal:** Have a battle-ready test harness before you start Part 2. The BaseTest pattern saves you from rewriting setup in every test file.
 
----
+## 📋 Key Takeaways: Foundry Essentials
 
-## 📋 Summary: Foundry Essentials
-
-**✓ Covered:**
-- Why Foundry — Solidity tests, built-in fuzzing, fast execution
-- Project setup — dependencies, remappings, configuration
-- Core cheatcodes — `vm.prank`, `vm.warp`, `deal`, `vm.expectRevert`, `vm.sign`
-- BaseTest pattern — reusable test setup for fork testing
-
-**Next:** Fuzz testing and invariant testing for DeFi
+After this section, you should be able to:
+- Build a reusable BaseTest contract with `vm.createSelectFork`, `deal()`, and `vm.prank` for DeFi fork testing
+- Explain the difference between `vm.prank` (single call) and `vm.startPrank` (persistent impersonation)
+- Use `vm.expectRevert` with a custom error selector to test specific revert conditions
 
 ---
 
@@ -826,18 +820,12 @@ Search for tests with names like `test_RevertWhen_*`, `test_EdgeCase_*`, `testFu
 3. [Uniswap V4 tests](https://github.com/Uniswap/v4-core/tree/main/test) — Production DeFi complexity
 4. [Morpho Blue invariant tests](https://github.com/morpho-org/morpho-blue/tree/main/test/forge) — Gold standard for invariant testing
 
----
+## 📋 Key Takeaways: Fuzz & Invariant Testing
 
-## 📋 Summary: Fuzz and Invariant Testing
-
-**✓ Covered:**
-- Fuzz testing — property-based testing for all inputs
-- `bound()` helper — constraining inputs without rejecting them
-- Invariant testing — system-wide properties across call sequences
-- Handler pattern — constraining fuzzer to valid operations
-- Ghost variables — tracking cumulative state for invariants
-
-**Next:** Fork testing and gas optimization
+After this section, you should be able to:
+- Write a fuzz test with `bound()` to constrain inputs to valid ranges without triggering `max_test_rejects`
+- Design a handler contract that exposes valid operations and tracks ghost variables for invariant checking
+- Explain the difference between a unit test property and a system invariant (e.g., "sum of all balances equals contract balance")
 
 ---
 
@@ -1221,17 +1209,12 @@ contract DifferentialTest is Test {
 
 **🎯 Goal:** You should be completely fluent in Foundry before starting Part 2. Fork testing and gas optimization are skills you'll use in every single module.
 
----
+## 📋 Key Takeaways: Fork Testing & Gas
 
-## 📋 Summary: Fork Testing and Gas Optimization
-
-**✓ Covered:**
-- Fork testing — testing against real deployed contracts and liquidity
-- Gas optimization workflow — snapshots, reports, opcode-level analysis
-- Optimization patterns — unchecked, packing, calldata, caching
-- Foundry scripts — Solidity deployment scripts
-
-**Key takeaway:** Foundry is your primary tool for building and testing DeFi. Master it before Part 2.
+After this section, you should be able to:
+- Set up a fork test pinned to a specific block number and explain why pinning matters for deterministic results
+- Use `forge snapshot` and `forge snapshot --diff` to measure the gas impact of an optimization
+- Explain why `deal()` is preferred over impersonating whales for setting token balances in fork tests
 
 ---
 

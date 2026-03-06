@@ -18,11 +18,8 @@
 **Composing Flash Loan Strategies**
 - [Strategy 1: DEX Arbitrage](#dex-arbitrage)
 - [Strategy 2: Flash Loan Liquidation](#flash-liquidation)
-  - [Deep Dive: Liquidation Profit — Numeric Walkthrough](#flash-liquidation)
 - [Strategy 3: Collateral Swap](#collateral-swap)
-  - [Build: CollateralSwap.sol (Code Scaffold)](#collateral-swap)
 - [Strategy 4: Leverage/Deleverage](#leverage-deleverage)
-  - [Deep Dive: Leverage — Numeric Walkthrough](#leverage-deleverage)
 - [Exercises](#day2-exercises)
 
 **Security, Anti-Patterns, and the Bigger Picture**
@@ -261,16 +258,13 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 
 ---
 
-## 📋 Summary: Flash Loan Mechanics
+## 📋 Key Takeaways: Flash Loan Mechanics
 
-**✓ Covered:**
-- The atomic guarantee: borrow → callback → repay or entire tx reverts
-- Four providers: Aave V3 (0.05%), Balancer V2 (0%), Uniswap V2 (~0.3%), Uniswap V4 (flash accounting)
-- Callback interfaces: `executeOperation` (Aave), `receiveFlashLoan` (Balancer), `uniswapV2Call` (V2)
-- Code reading strategy for flash loan provider internals
-- Aave's `modes[]` parameter: repay vs convert to debt position
+After this section, you should be able to:
 
-**Next:** Composing multi-step strategies — arbitrage, liquidation, collateral swap, leverage
+- Explain the atomic guarantee (borrow → callback → repay, or entire tx reverts) and why this enables uncollateralized borrowing without trust
+- Compare the 4 flash loan providers (Aave V3 0.05%, Balancer V2 0%, Uniswap V2 ~0.3%, Uniswap V4 flash accounting) and explain when you'd choose each based on fee and architecture
+- Implement the correct callback interface for each provider (`executeOperation`, `receiveFlashLoan`, `uniswapV2Call`) and explain Aave's `modes[]` parameter for converting flash loans into debt positions
 
 ---
 
@@ -591,16 +585,13 @@ Result:
 
 ---
 
-## 📋 Summary: Flash Loan Strategies
+## 📋 Key Takeaways: Flash Loan Strategies
 
-**✓ Covered:**
-- Four composition strategies: DEX arbitrage, flash loan liquidation, collateral swap, leverage/deleverage
-- Arbitrage: flash borrow → swap on DEX1 → swap on DEX2 → repay → keep profit
-- Liquidation: flash borrow debt asset → liquidate on Aave → swap collateral → repay
-- Collateral swap: flash borrow → repay debt → withdraw old collateral → swap → deposit new → re-borrow → repay flash
-- Leverage: flash borrow → deposit → borrow → swap → deposit more → final borrow covers repayment
+After this section, you should be able to:
 
-**Next:** Security considerations — both for protocol builders and flash loan receiver authors
+- Trace all 4 flash loan strategies step by step: DEX arbitrage (borrow → swap DEX1 → swap DEX2 → repay), flash liquidation (borrow debt → liquidate → swap collateral → repay), collateral swap (borrow → repay debt → withdraw → swap → deposit → re-borrow → repay), and leverage (borrow → deposit → borrow → deposit → repay)
+- Calculate profitability for a flash loan arbitrage: output from DEX2 minus flash loan amount minus fees minus gas, and explain why MEV searchers capture 90%+ of profit via builder tips
+- Design a collateral swap that atomically moves a user's Aave position from one collateral type to another without ever being undercollateralized
 
 ---
 
@@ -762,19 +753,14 @@ Key difference:
 
 ---
 
-## 📋 Summary: Flash Loan Security
+## 📋 Key Takeaways: Flash Loan Security
 
-**✓ Covered:**
-- Protocol builder security: never use spot prices, beware same-tx state manipulation, time-based defenses
-- Receiver security: validate `msg.sender`, validate `initiator`, never store funds in receiver
-- Flash loans → flash accounting evolution (Aave/Balancer V2 → Uniswap V4/Balancer V3)
-- Governance flash loan attacks and defenses (snapshot voting, timelocks)
-- Fee comparison across all providers
-- Vulnerable protocol exercise: donation attack + ERC-4626 defense
+After this section, you should be able to:
 
-**Internalized patterns:** Flash loans eliminate capital as a barrier (design assuming every user has infinite temporary capital). The callback pattern is universal (Aave `executeOperation`, Balancer `receiveFlashLoan`, Uniswap `uniswapV2Call`). Flash accounting is the future (V4/Balancer V3 build around delta tracking and end-of-transaction settlement). Zero-fee flash loans change the economics (lower profitability threshold for attacks). Receiver security is critical (validate `msg.sender`, validate `initiator`, never store funds). Collateral swaps and leverage are the primary production use cases (not just arbitrage). The economics are razor-thin (MEV searchers capture 90%+ of arbitrage profit via builder tips).
-
-**Complete:** You now understand flash loans as both a tool (arbitrage, liquidation, leverage) and a threat model (any attacker has unlimited temporary capital).
+- Apply the protocol builder defense framework: never rely on same-tx-manipulable values (spot prices, `balanceOf`, share ratios), use previous-block values (TWAPs, snapshots), and design assuming every user has unlimited temporary capital
+- Implement the 3 critical receiver security checks: validate `msg.sender` is the lending pool, validate `initiator` is your own contract, and never store funds in the receiver between transactions
+- Explain why flash accounting (V4, Balancer V3) is replacing traditional flash loans: delta tracking + end-of-transaction settlement is more gas efficient and composable
+- Describe a governance flash loan attack (borrow governance tokens → vote → return) and the defenses: snapshot voting power at proposal creation block, timelocks
 
 #### 💼 Job Market Context — Module-Level Interview Prep
 

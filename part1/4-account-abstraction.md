@@ -385,17 +385,12 @@ Read these contracts in order:
 
 **🎯 Goal:** Understand the smart account contract interface from the builder's perspective. You're not building a wallet product—you're understanding how these accounts interact with DeFi protocols you'll design.
 
----
+## 📋 Key Takeaways: ERC-4337
 
-## 📋 Summary: ERC-4337 Architecture
-
-**✓ Covered:**
-- EOA limitations — gas requirements, single key, no batch operations
-- ERC-4337 architecture — UserOperation, Bundler, EntryPoint, Smart Account, Paymaster
-- Validation/execution split — why it matters for security
-- SimpleAccount implementation — ECDSA validation and execution
-
-**Next:** EIP-7702 and how smart accounts change DeFi protocol design
+After this section, you should be able to:
+- Trace a UserOperation through the full ERC-4337 flow: user → bundler → EntryPoint → `validateUserOp` → `execute`
+- Explain why `msg.sender == tx.origin` checks break smart account compatibility and what the correct pattern is
+- Describe the validation/execution split and why the EntryPoint enforces separation between the two phases
 
 ---
 
@@ -786,17 +781,12 @@ function verifySignature(address signer, bytes32 hash, bytes memory sig) interna
 
 **🔗 Stretch goal (Permit2 integration):** After completing the tests, consider how you'd modify the Permit2 Vault from Module 3 to support contract signatures — check `signer.code.length > 0`, then call `isValidSignature` instead of `ecrecover`. Permit2 already does this internally via its `SignatureVerification` library.
 
----
+## 📋 Key Takeaways: EIP-7702 & DeFi
 
-## 📋 Summary: EIP-7702 and DeFi Implications
-
-**✓ Covered:**
-- EIP-7702 vs ERC-4337 — persistent delegation vs full smart accounts
-- DeFi protocol implications — `msg.sender`, `tx.origin`, batch transactions
-- EIP-1271 — contract signature verification for smart account compatibility
-- Real-world patterns — Permit2 integration with smart accounts
-
-**Next:** Paymasters and how to sponsor gas for users
+After this section, you should be able to:
+- Compare ERC-4337 and EIP-7702 — when to use each, and how an EOA can delegate to an ERC-4337-compatible implementation
+- Implement EIP-1271 `isValidSignature` and explain what the magic value `0x1626ba7e` signals
+- Explain how Permit2 verifies signatures from both EOAs (via `ecrecover`) and smart contract wallets (via EIP-1271)
 
 ---
 
@@ -999,7 +989,7 @@ postOp(mode, context, actualGasCost, actualUserOpFeePerGas)
     → Can charge user in ERC-20, update internal accounting, etc.
 ```
 
-**⚠️ Critical detail:** The `postOp` is called **even if the UserOp execution reverts** (in `PostOpMode.opReverted`), giving the paymaster a chance to still charge the user for the gas consumed.
+**⚠️ Critical detail:** The `postOp` is called **even if the UserOp execution reverts** (in `PostOpMode.opReverted`), giving the paymaster a chance to still charge the user for the gas consumed. Without this, users could submit sponsored UserOps with intentionally failing execution — the bundler spends gas to process the UserOp, but nobody pays. This is a DOS vector: attackers get free gas at the bundler's expense. By always calling `postOp`, the EntryPoint ensures the paymaster can recoup gas costs regardless of execution outcome.
 
 ---
 
@@ -1078,17 +1068,12 @@ postOp(mode, context, actualGasCost, actualUserOpFeePerGas)
 
 **🎯 Goal:** Understand paymaster economics and how DeFi protocols can use them to remove gas friction for users.
 
----
+## 📋 Key Takeaways: Paymasters
 
-## 📋 Summary: Paymasters and Gas Abstraction
-
-**✓ Covered:**
-- Paymaster patterns — verifying, ERC-20, deposit models
-- Paymaster flow — validation, context passing, postOp accounting
-- Real implementations — Pimlico, Alchemy gas managers
-- Edge cases — reverted UserOps, oracle pricing, insufficient balances
-
-**Key takeaway:** Paymasters enable gasless DeFi interactions, making protocols accessible to users without ETH. Understanding paymaster economics is essential for modern protocol design.
+After this section, you should be able to:
+- Describe the verifying paymaster pattern and how a dApp backend authorizes gas sponsorship via off-chain signatures
+- Trace the ERC-20 paymaster flow: `validatePaymasterUserOp` → context bytes → `postOp` → token charge
+- Explain what happens when a sponsored UserOp's execution reverts — does the paymaster still charge, and why?
 
 ---
 

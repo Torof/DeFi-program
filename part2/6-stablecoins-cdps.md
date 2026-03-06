@@ -11,14 +11,12 @@
 **The CDP Model and MakerDAO/Sky Architecture**
 - [How CDPs Work](#how-cdps-work)
 - [MakerDAO Contract Architecture](#maker-architecture)
-  - [Deep Dive: `rpow()` — Exponentiation by Squaring](#rpow-deep-dive)
 - [The Full Flow: Opening a Vault](#opening-vault-flow)
 - [Read: Vat.sol](#read-vat)
 - [Exercises](#day1-exercises)
 
 **Liquidations, PSM, and DAI Savings Rate**
 - [Liquidation 2.0: Dutch Auctions](#liquidation-auctions)
-  - [Deep Dive: Dutch Auction Liquidation — Numeric Walkthrough](#liquidation-walkthrough)
 - [Peg Stability Module (PSM)](#psm)
 - [Dai Savings Rate (DSR)](#dsr)
 - [Read: Dog.sol and Clipper.sol](#read-dog-clipper)
@@ -30,7 +28,6 @@
 **Stablecoin Landscape and Design Trade-offs**
 - [Taxonomy of Stablecoins](#stablecoin-taxonomy)
 - [Liquity: A Different CDP Design](#liquity)
-  - [Deep Dive: Liquity Redemption — Numeric Walkthrough](#liquity-redemption-walkthrough)
 - [The Algorithmic Stablecoin Failure Pattern](#algo-failure)
 - [Ethena (USDe): The Delta-Neutral Model](#ethena)
 - [crvUSD: Curve's Soft-Liquidation Model](#crvusd)
@@ -323,17 +320,14 @@ function rpow(uint256 x, uint256 n, uint256 base) internal pure returns (uint256
 
 ---
 
-## 📋 Summary: CDP Model and MakerDAO
+## 📋 Key Takeaways: CDP Model and MakerDAO
 
-**✓ Covered:**
-- CDP model: mint stablecoins against collateral (not lending from a pool)
-- MakerDAO architecture: Vat (accounting), Jug (fees), Join adapters, CDP Manager
-- Precision scales: WAD (18), RAY (27), RAD (45) and why each exists
-- Vault safety check: `ink × spot ≥ art × rate` with step-by-step example
-- Normalized debt and rate accumulator pattern (same as Module 4 lending indexes)
-- Code reading strategy for the terse dss codebase
+After this section, you should be able to:
 
-**Next:** Liquidation 2.0 (Dutch auctions), PSM for peg stability, and DSR/SSR for DAI demand
+- Explain how CDPs differ from lending pools: CDPs *mint* new stablecoins against collateral (central banking model) vs lending pools that lend existing deposits (commercial banking model)
+- Map MakerDAO's architecture: Vat (accounting engine), Jug (stability fee accumulator), Join adapters (token ↔ internal balance), CDP Manager (user-facing wrapper)
+- Verify a vault's safety by computing `ink × spot ≥ art × rate` with real numbers, converting between WAD (18), RAY (27), and RAD (45) precision scales
+- Explain the normalized debt and rate accumulator pattern and connect it to Module 4's lending index pattern (same mathematical structure, different domain)
 
 ---
 
@@ -621,17 +615,13 @@ In `Clipper.kick()`, trace:
 
 ---
 
-## 📋 Summary: Liquidations, PSM, and DSR
+## 📋 Key Takeaways: Liquidations, PSM, and DSR
 
-**✓ Covered:**
-- Liquidation 2.0: Dutch auctions (Dog + Clipper), why they replaced English auctions
-- Auction price functions: LinearDecrease vs StairstepExponentialDecrease
-- Circuit breakers: tail, cusp, Hole/hole — preventing liquidation cascades
-- PSM: 1:1 peg stability, centralization trade-off, tin/tout fees
-- DSR/SSR: demand-side lever for peg maintenance
-- Sky rebrand: DAI→USDS, MKR→SKY, sUSDS as ERC-4626
+After this section, you should be able to:
 
-**Next:** Building a simplified CDP engine from scratch
+- Explain why MakerDAO replaced English auctions with Dutch auctions (Liquidation 2.0): Black Thursday failure, instant settlement, MEV reduction, and describe the Dog + Clipper architecture
+- Describe the PSM mechanism (1:1 swap with tin/tout fees) and articulate the centralization trade-off it introduces (USDC backing)
+- Explain how DSR/SSR acts as a demand-side lever for peg maintenance: higher rate → more DAI locked → reduced supply → upward peg pressure
 
 ---
 
@@ -646,14 +636,12 @@ The exercises across this module build a minimal CDP system that captures the es
 
 ---
 
-## 📋 Summary: SimpleCDP
+## 📋 Key Takeaways: SimpleCDP
 
-**✓ Covered:**
-- Building the core CDP contracts: SimpleVat, SimpleJug, SimpleDog, SimplePSM
-- Implementing the vault safety check, stability fee accumulator, and liquidation trigger
-- Testing: full lifecycle, fee accrual, liquidation, debt ceiling, dust check, multi-collateral
+After this section, you should be able to:
 
-**Next:** Comparing stablecoin designs across the landscape — overcollateralized, algorithmic, delta-neutral
+- Implement a simplified CDP engine (Vat + Jug + Dog + PSM) with the vault safety check, per-second stability fee accumulator, and Dutch auction liquidation trigger
+- Write tests covering the full CDP lifecycle: open vault → draw debt → accrue fees → liquidate undercollateralized → verify debt ceiling and dust constraints
 
 ---
 
@@ -929,21 +917,14 @@ Map out the feedback loops. This is how decentralized monetary policy works.
 
 ---
 
-## 📋 Summary: Stablecoin Landscape
+## 📋 Key Takeaways: Stablecoin Landscape
 
-**✓ Covered:**
-- Stablecoin taxonomy: fiat-backed, overcollateralized, algorithmic, delta-neutral
-- MakerDAO vs Liquity: governance vs immutability, Dutch auction vs Stability Pool
-- GHO: stablecoin built on existing lending infrastructure (Aave V3)
-- crvUSD: novel soft-liquidation via LLAMMA (AMM-based continuous adjustment)
-- FRAX evolution: fractional-algorithmic → fully collateralized (lesson from Terra)
-- Ethena USDe: delta-neutral hedging with funding rate revenue and its risks
-- The fundamental trilemma: decentralization vs capital efficiency vs stability
-- Terra collapse as the definitive failure case for uncollateralized algorithmic designs
+After this section, you should be able to:
 
-**Internalized patterns:** CDPs mint money (create new stablecoins, closer to central banking than commercial banking). The Vat is the source of truth (`frob()` and normalized debt `art x rate`). Liquidation design is existential (Black Thursday proved auction mechanics can fail; Dutch auction vs Stability Pool vs LLAMMA). Peg stability requires trade-offs (PSM = stability + centralization, redemptions = decentralization + less capital-efficiency). Algorithmic stablecoins without external collateral fail (Terra $40B collapse). `rpow()` and rate accumulators are the mathematical backbone (per-second compounding via exponentiation by squaring). Stablecoins are the ultimate integration test (oracles, lending, liquidation, governance, AMMs). The landscape is diversifying (GHO, crvUSD, Ethena USDe each recombine DeFi primitives differently).
-
-**Next:** Module 7 — ERC-4626 tokenized vaults, yield aggregation, inflation attacks
+- Classify any stablecoin into the taxonomy (fiat-backed, overcollateralized, algorithmic, delta-neutral) and articulate the fundamental trilemma: decentralization vs capital efficiency vs stability
+- Compare MakerDAO vs Liquity: governance vs immutability, Dutch auction vs Stability Pool liquidation, and explain why each design made its trade-offs
+- Explain Ethena USDe's delta-neutral mechanism (collateral + short perp = hedged position) and identify the risks: negative funding rates, exchange counterparty, centralization
+- Use the Terra collapse ($40B) as the definitive case study for why uncollateralized algorithmic stablecoins fail: reflexive death spiral when confidence breaks
 
 ---
 

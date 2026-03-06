@@ -6,15 +6,18 @@
 
 ## 📚 Table of Contents
 
-1. [On-Chain Governance](#on-chain-governance)
-2. [OpenZeppelin Governor in Practice](#oz-governor)
-3. [Build Exercise: Governor + Timelock System](#exercise-governor)
-4. [ve-Tokenomics & the Curve Wars](#ve-tokenomics)
-5. [Build Exercise: Vote-Escrow Token](#exercise-vote-escrow)
-6. [Governance Security](#governance-security)
-7. [Governance Minimization](#governance-minimization)
-8. [Summary](#summary-governance)
-9. [Resources](#resources)
+**On-Chain Governance**
+- [On-Chain Governance](#on-chain-governance)
+- [OpenZeppelin Governor in Practice](#oz-governor)
+- [Build Exercise: Governor + Timelock System](#exercise-governor)
+
+**ve-Tokenomics**
+- [ve-Tokenomics & the Curve Wars](#ve-tokenomics)
+- [Build Exercise: Vote-Escrow Token](#exercise-vote-escrow)
+
+**Security & Design**
+- [Governance Security](#governance-security)
+- [Governance Minimization](#governance-minimization)
 
 ---
 
@@ -304,18 +307,14 @@ Run: `forge test --match-contract GovernorTest -vvv`
 
 ---
 
-## 📋 Summary: On-Chain Governance
+## 📋 Key Takeaways: On-Chain Governance
 
-**✓ Covered:**
-- Why governance exists: parameter updates, fee management, upgrades, emergency response
-- Proposal lifecycle: propose → voting delay → active vote → queue in timelock → execute
-- ERC20Votes: delegation activates voting power, checkpointing records snapshots per block
-- TimelockController: enforces execution delay, gives users exit rights before changes apply
-- Snapshot-based voting: prevents flash loan attacks by recording power at proposal creation
-- Quorum and threshold design: balancing spam prevention with accessibility
-- Governor + Timelock role configuration: proposer, executor, canceller
+After this section, you should be able to:
 
-**Next:** ve-tokenomics and the Curve Wars — how vote-escrow transforms governance tokens into incentive-alignment tools.
+- Trace the full proposal lifecycle: propose → voting delay → active vote → queue in timelock → execute, and explain why each phase exists (snapshot, deliberation, exit rights)
+- Explain ERC20Votes: how delegation activates voting power, why checkpointing records per-block snapshots, and how this prevents flash loan governance attacks
+- Configure the Governor + TimelockController role system: proposer, executor, canceller roles, and why the timelock enforces an execution delay that gives users exit rights before changes apply
+- Design quorum and threshold parameters that balance spam prevention with governance accessibility
 
 ---
 
@@ -560,17 +559,13 @@ Run: `forge test --match-contract VoteEscrowTest -vvv`
 
 ---
 
-## 📋 Summary: ve-Tokenomics
+## 📋 Key Takeaways: ve-Tokenomics
 
-**✓ Covered:**
-- Vote-escrow model: lock tokens for 1-4 years to receive non-transferable voting power
-- Linear decay formula: `amount * (lockEnd - now) / maxLock` forces continuous re-locking
-- Three powers of veCRV: gauge voting (directing emissions), boosted LP rewards (2.5x), fee sharing
-- The Curve Wars: Convex aggregation, vlCVX meta-governance, bribery markets (Votium, Hidden Hand)
-- Velodrome/Aerodrome ve(3,3): voters earn fees only from pools they vote for, fixing Curve's incentive misalignment
-- L2 connection: cheap gas makes weekly voting/claiming practical for all participants, not just whales
+After this section, you should be able to:
 
-**Next:** Governance security — how governance itself becomes an attack surface, from the Beanstalk exploit to emergency mechanisms.
+- Explain the vote-escrow model: lock tokens for 1-4 years → non-transferable voting power with linear decay (`amount × (lockEnd - now) / maxLock`), and why this forces continuous re-locking to maintain influence
+- Describe veCRV's three powers: gauge voting (directing CRV emissions), boosted LP rewards (up to 2.5x), fee sharing — and how the Curve Wars emerged from Convex aggregating veCRV into vlCVX meta-governance with bribery markets (Votium, Hidden Hand)
+- Compare Curve's ve model with Velodrome/Aerodrome ve(3,3): how "voters earn fees only from pools they vote for" fixes Curve's incentive misalignment between voting and liquidity provision
 
 ---
 
@@ -833,17 +828,13 @@ SHOULD NOT be governable (hardcode):
 ---
 
 <a id="summary-governance"></a>
-## 📋 Summary: Governance & DAOs
+## 📋 Key Takeaways: Governance & DAOs
 
-**✓ Covered:**
-- On-chain governance: why it exists, the fundamental tension of decentralization vs agility
-- OpenZeppelin Governor: ERC20Votes, Governor, TimelockController — the full stack with code
-- Proposal lifecycle: propose → delay → vote → queue → execute
-- ve-tokenomics: veCRV model with decay math, gauge voting, boost, fee sharing
-- The Curve Wars: Convex meta-governance, bribery markets, the economics of voting power
-- Velodrome/Aerodrome ve(3,3): the incentive-alignment fix to Curve's model
-- Governance security: Beanstalk attack deep dive, flash loan defenses, emergency mechanisms
-- Governance minimization: the spectrum from multisig to immutable, progressive decentralization
+After this section, you should be able to:
+
+- Analyze the Beanstalk governance attack: how flash-loaned governance tokens bypassed snapshot voting (no voting delay), and list the specific defenses that would have prevented it
+- Design an emergency mechanism for a governed protocol: guardian multisig with pause-only power, automatic timelock bypass for critical actions, and explain the trust trade-off
+- Position a protocol on the governance minimization spectrum (multisig → governed → immutable) and explain progressive decentralization: start governed, harden parameters over time, make core logic immutable
 
 ---
 

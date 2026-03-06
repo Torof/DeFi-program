@@ -13,7 +13,6 @@
 - [Decimal Handling — The Silent Bug Factory](#decimal-handling)
 - [Read: OpenZeppelin ERC20 and SafeERC20](#read-oz-erc20)
 - [Read: The Weird ERC-20 Catalog](#read-weird-erc20)
-- [Intermediate Example: Minimal Safe Deposit](#intermediate-example-safe-deposit)
 
 **Advanced Token Behaviors & Protocol Design**
 - [Advanced Token Behaviors That Break Protocols](#advanced-token-behaviors)
@@ -322,17 +321,13 @@ This 8-line function handles 90% of weird token edge cases. The remaining 10% (r
 
 ---
 
-## 📋 Summary: ERC-20 Core Patterns & Weird Tokens
+## 📋 Key Takeaways: ERC-20 Core Patterns & Weird Tokens
 
-**✓ Covered:**
-- The approve/transferFrom two-step and how it shapes all DeFi interactions
-- Decimal handling — normalization to common base, dynamic `decimals()` lookups
-- SafeERC20 — why it exists (USDT), `safeTransfer`, `forceApprove`, Solmate comparison
-- Weird ERC-20 catalog — 6 critical categories: missing return values, fee-on-transfer, rebasing, approval race, zero-transfer revert, multiple entry points
-- Balance-before-after pattern — the universal defense against fee-on-transfer tokens
-- Intermediate example synthesizing all patterns into a production-ready deposit function
-
-**Next:** Advanced token behaviors (ERC-777, upgradeable, pausable, flash-mintable), WETH, token listing strategies, and the build exercise.
+After this section, you should be able to:
+- Explain why SafeERC20 is mandatory for arbitrary tokens (USDT's missing return value), what `forceApprove` solves that `safeApprove` doesn't, and how Solmate's approach differs
+- Given an unknown ERC-20, classify it into the 6 weird token categories (missing returns, fee-on-transfer, rebasing, approval race, zero-transfer revert, multiple entry points) and name the defensive pattern for each
+- Implement the balance-before-after pattern for fee-on-transfer tokens and explain why trusting the `amount` parameter directly causes accounting drift
+- Normalize token amounts across different decimal scales (USDC 6, WBTC 8, DAI 18) using dynamic `decimals()` lookups without precision loss
 
 ---
 
@@ -909,23 +904,15 @@ contract FeeOnTransferToken is ERC20 {
 
 ---
 
-## 📋 Summary: Advanced Token Behaviors & Protocol Design
+## 📋 Key Takeaways: Advanced Token Behaviors & Protocol Design
 
-**✓ Covered:**
-- ERC-777 hooks — reentrancy through token transfers, not just ETH sends (imBTC, Hundred Finance exploits)
-- Upgradeable tokens — USDC/USDT behind proxies, behavior can change post-deployment
-- Pausable & blacklistable tokens — OFAC sanctions, Tornado Cash freezing, emergency withdrawal patterns
-- Token supply mechanics — inflationary (reward emissions), deflationary (burn-on-transfer), elastic (rebasing)
-- Reward-per-token accumulator pattern (Synthetix StakingRewards) — used everywhere in DeFi
-- Flash-mintable tokens — DAI `flashMint()`, never trust current-block balances
-- WETH — why it exists, V2/V3 wrapping vs V4 native ETH support
-- Token listing strategies — permissionless (Uniswap) vs curated (Aave) vs hybrid (Euler V2, Morpho)
-- Token evaluation checklist — 13-point assessment for integrating any new token
-- Build exercise — putting it all together in a Foundry test suite
+After this section, you should be able to:
 
-**Internalized patterns:** Always use SafeERC20 (no reason not to). Use balance-before-after for untrusted tokens (never trust `amount` parameters). Normalize decimals dynamically via `token.decimals()`. Guard against reentrancy on ALL token transfers (ERC-777 hooks, not just ETH sends). Design for weird tokens early (permissionless with full checks vs curated allowlist). Account for operational risks (pause, blacklist, upgrade). Use the 13-point evaluation checklist systematically. Recognize the reward-per-token accumulator pattern (`rewardPerToken`, `feeGrowthGlobal`, `liquidityIndex`) for proportional distribution without iteration.
-
-**Next:** Module 2 (AMMs from First Principles).
+- Trace an ERC-777 reentrancy attack through `tokensReceived` and explain why reentrancy guards must protect ALL token transfers, not just ETH sends
+- Walk through the reward-per-token accumulator pattern (Synthetix) step by step and identify where it reappears in Uniswap V3 (`feeGrowthGlobal`) and Aave V3 (`liquidityIndex`)
+- Explain why `balanceOf` is unsafe for governance or pricing within the same block and what snapshot-based alternative (`getPastVotes`) prevents flash-mint manipulation
+- Evaluate a new token for DeFi integration using the 13-point checklist and distinguish which risks need code-level defenses vs operational monitoring
+- Compare permissionless (Uniswap), curated (Aave), and hybrid (Euler V2) token listing strategies and explain the security trade-offs of each
 
 ---
 

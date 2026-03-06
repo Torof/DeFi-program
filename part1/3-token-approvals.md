@@ -397,17 +397,13 @@ function testDepositWithPermit() public {
 
 **🎯 Goal:** Understand the full signature flow from construction to verification. This is the foundation for Permit2.
 
----
+## 📋 Key Takeaways: The Approval Problem
 
-## 📋 Summary: The Approval Problem
-
-**✓ Covered:**
-- Traditional approval problems — 2 transactions, infinite approvals, no expiration
-- EIP-2612 permit — off-chain signatures for approvals
-- EIP-712 typed data — domain separators prevent replay attacks
-- Token compatibility — not all tokens support permit
-
-**Next:** Permit2, the universal approval infrastructure used by Uniswap V4, UniswapX, and modern DeFi
+After this section, you should be able to:
+- Explain how the Euler Finance hack ($197M) exploited unlimited approvals to drain tokens beyond what users had deposited
+- Describe the classic approve race condition and why production code approves to 0 before setting a new amount
+- Construct an EIP-712 permit digest from its components: domain separator, struct hash, and nonce
+- Identify which tokens support EIP-2612 `permit()` and what fallback strategy to use for tokens that don't
 
 ---
 
@@ -951,18 +947,12 @@ The tests pin a specific block number (`19_000_000`) so results are deterministi
 
 **🎯 Goal:** Hands-on with the Permit2 contract so you recognize its patterns when you see them in Uniswap V4, UniswapX, and other modern DeFi protocols. The witness data extension is particularly important—it's central to intent-based systems you'll study in Part 3.
 
----
+## 📋 Key Takeaways: Permit2
 
-## 📋 Summary: Permit2
-
-**✓ Covered:**
-- Permit2 architecture — SignatureTransfer vs AllowanceTransfer
-- Bitmap nonces — parallel signature collection
-- Packed storage — uint160 amounts for gas efficiency
-- Witness data — binding extra context to permit signatures
-- Real usage — 80% of Uniswap swaps use Permit2
-
-**Next:** Security considerations and attack vectors
+After this section, you should be able to:
+- Explain the difference between SignatureTransfer (one-time) and AllowanceTransfer (recurring) and when to choose each
+- Describe how bitmap nonces enable parallel signature collection without requiring sequential ordering
+- Explain what witness data is and why intent-based protocols like UniswapX need it to bind extra context to permits
 
 ---
 
@@ -1007,9 +997,23 @@ An attacker tricks a user into signing a permit message that approves tokens to 
 - March 2024: "Permit for airdrop claim" phishing campaign
 - **Scale:** $300M+ lost to permit phishing attacks (2024 alone)
 
-**Protection:**
-- ✅ Wallet UIs must clearly display what a user is signing
-- ✅ As a protocol: never ask users to sign permits for contracts they don't recognize
+**Protection — what wallet UIs must display:**
+
+A phishing permit looks identical to a legitimate one unless the wallet shows the right fields. Wallets must display:
+
+| Field | Why it matters |
+|-------|---------------|
+| **Spender address** | Who receives approval — is it the protocol you expect? |
+| **Token contract + symbol** | Which token is being approved — not just "ERC-20 Token" |
+| **Amount** | Exact amount, never just "unlimited" without warning |
+| **Deadline** | When the permit expires — an already-expired deadline is suspicious |
+| **Chain ID** | Which network — prevents cross-chain replay confusion |
+
+MetaMask and Coinbase Wallet now render EIP-712 typed data with labeled fields. But many wallets still show raw hex — users can't distinguish a legitimate Uniswap permit from a phishing one.
+
+**As a protocol developer:**
+- ✅ Never ask users to sign permits for contracts they don't recognize
+- ✅ Use descriptive EIP-712 type names (e.g., `PermitTransferFrom` not `Permit`)
 - ✅ User education: "If you didn't initiate the action, don't sign"
 
 > ⚡ **Common pitfall:** Your dApp's UI shows "Sign to deposit" but the permit is actually approving tokens to an intermediary contract. Users can't verify the `spender` address. Be transparent about what the signature authorizes.
@@ -1207,17 +1211,12 @@ try IERC20Permit(token).permit(...) {
 
 **🎯 Goal:** Understand the real security landscape of signature-based approvals so you build defensive patterns from the start.
 
----
+## 📋 Key Takeaways: Approval Security
 
-## 📋 Summary: Security
-
-**✓ Covered:**
-- Signature replay protection — domain separators, nonces, deadlines
-- Front-running attacks — how to prevent with Permit2's design
-- Phishing attacks — $314M lost in 2024, wallet UI responsibility
-- Safe permit patterns — try/catch and graceful degradation
-
-**Key takeaway:** Permit and Permit2 enable amazing UX but require defensive coding. Always use try/catch, validate signatures carefully, and never trust user-submitted permit data without verification.
+After this section, you should be able to:
+- Walk through a permit front-running attack step by step and explain why Permit2's `permitTransferFrom` is immune to it
+- Implement a safe permit wrapper using try/catch that gracefully handles both EIP-2612 tokens and non-permit tokens
+- Explain why permit phishing is a $300M+ annual problem and what information wallet UIs must display to prevent it
 
 ---
 

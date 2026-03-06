@@ -25,18 +25,18 @@
 - [Stability Fee Accrual via Rate Accumulator](#stability-fees)
 - [The Vault Lifecycle](#vault-lifecycle)
 
-**Vault Share Collateral Pricing (Deep Dive)**
+**Vault Share Collateral Pricing**
 - [The Pricing Challenge: Dynamic Exchange Rates](#pricing-challenge)
 - [The Pricing Pipeline](#pricing-pipeline)
 - [Manipulation Risk and Protection Strategies](#manipulation-risk)
 
-**Dutch Auction Liquidation (Deep Dive)**
+**Dutch Auction Liquidation**
 - [Designing Your Liquidation System](#liquidation-design)
 - [Choosing a Decay Function](#decay-function)
 - [Partial Fills and Bad Debt](#partial-fills)
 - [Full Liquidation Flow Walkthrough](#liquidation-walkthrough)
 
-**Flash Mint (Deep Dive)**
+**Flash Mint**
 - [Flash Mint vs Flash Loan](#flash-mint-vs-loan)
 - [ERC-3156 Adapted for Minting](#flash-mint-erc3156)
 - [Security Considerations](#flash-mint-security)
@@ -52,7 +52,6 @@
 - [⚠️ Common Mistakes](#common-mistakes)
 - [Portfolio & Interview Positioning](#portfolio)
 - [Production Study Order](#study-order)
-- [How to Study MakerDAO's dss](#study-makerdao)
 - [Cross-Module Concept Links](#cross-module-links)
 - [Self-Assessment Checklist](#self-assessment)
 
@@ -151,17 +150,13 @@ Before you start, verify you're comfortable with these concepts from earlier mod
 
 If any of these feel fuzzy, revisit the module before starting. This capstone assumes you've internalized them.
 
-## 📋 Summary: Overview & Design Philosophy
+## 📋 Key Takeaways: Overview & Design Philosophy
 
-**✓ Covered:**
-- Why a stablecoin is the ultimate Part 2 integration — touches every primitive from M1-M8
-- Stablecoin landscape — where your protocol sits vs DAI, LUSD, GHO, crvUSD
-- Three design principles — immutable, permissionless, crypto-native — with trade-offs
-- Prerequisite map — 13 specific concepts from 7 modules that directly map to your protocol
+After this section, you should be able to:
 
-**Key insight:** The stablecoin landscape is defined by trade-offs between decentralization, capital efficiency, and adaptability. Your protocol maximizes decentralization (no governance, no fiat collateral) at the cost of adaptability. That's a defensible design position — the same one Liquity V1 took.
-
-**Next:** Designing the architecture — how many contracts, what data structures, and the key decisions you'll make before writing a line of code.
+- Explain why a multi-collateral stablecoin is the ideal Part 2 integration project: it touches token mechanics, oracles, lending math, liquidation, flash loans, vault pricing, and security
+- Position your protocol in the stablecoin landscape vs DAI, LUSD, GHO, crvUSD and articulate the design trade-off: maximizing decentralization (immutable, permissionless, crypto-native) at the cost of adaptability
+- Map 13 specific prerequisite concepts from 7 modules to the stablecoin components where they'll be applied
 
 ---
 
@@ -323,18 +318,13 @@ For gas optimization on the hot path (health factor checks happen on every mint/
 
 Packing BPS values as `uint16` (max 65,535 — more than enough for basis points) saves SLOADs on the hot path. This is the same optimization pattern Aave V3 uses in its reserve configuration bitmap (M4).
 
-## 📋 Summary: Architecture Design
+## 📋 Key Takeaways: Architecture Design
 
-**✓ Covered:**
-- 4-contract structure with clear responsibilities and data flow
-- Core data structures — Vault (per-position) and CollateralConfig (per-type)
-- 6 design decisions with trade-offs the user must resolve before coding
-- Deployment order and cross-contract authorization
-- Storage layout optimization for gas-efficient health factor checks
+After this section, you should be able to:
 
-**Key insight:** The architecture IS the project. Getting the contract boundaries, data structures, and design decisions right before writing code is the difference between a clean protocol and a tangled mess. This is how protocol teams work — architecture review before implementation.
-
-**Next:** Deep dive into the core CDP engine — health factor math, stability fees, and the vault lifecycle.
+- Sketch the 4-contract architecture from memory (StablecoinEngine, PriceFeed, DutchAuctionLiquidator, Stablecoin) with clear responsibilities and data flow between them
+- Define the core data structures (Vault per-position, CollateralConfig per-type) and explain storage layout choices for gas-efficient health factor checks
+- Articulate a position on each of the 6 design decisions with trade-off reasoning, and explain the deployment order with cross-contract authorization
 
 > **🧭 Checkpoint — Before Moving On:**
 > Can you sketch the 4-contract architecture from memory? Can you name the 6 design decisions and articulate a preference (with rationale) for each? If you can't, re-read the Architecture Design material above — the architecture IS the project, and changing it mid-build is expensive.
@@ -561,17 +551,13 @@ The complete lifecycle with what changes in storage at each step:
        └──→ Collateral transferred to bidder
 ```
 
-## 📋 Summary: Core CDP Engine
+## 📋 Key Takeaways: Core CDP Engine
 
-**✓ Covered:**
-- Engine contract interface — 10 external functions with clear responsibilities
-- Health factor with multi-decimal normalization — full numeric walkthroughs for both ETH and vault share collateral
-- Stability fee accrual — `drip()` pattern from M6, when to call it
-- Vault lifecycle — state changes at each step, liquidation path
+After this section, you should be able to:
 
-**Key insight:** The Engine is conceptually simple — it's M6's Vat with a cleaner interface. The complexity is in getting the decimal normalization right across two collateral types and ensuring `drip()` is called at every point where debt accuracy matters.
-
-**Next:** The pricing challenge that makes vault share collateral interesting — and dangerous.
+- Implement the Engine's 10 external functions and trace the vault lifecycle: open → deposit → draw → drip → repay → withdraw → liquidate
+- Compute a health factor with multi-decimal normalization for both ETH and vault share collateral, handling different decimal scales correctly
+- Explain when `drip()` must be called (every state change where debt accuracy matters) and implement the stability fee accumulator from M6's pattern
 
 ---
 
@@ -712,17 +698,13 @@ Don't accept vault shares directly. Require users to redeem their vault shares f
 
 **Recommendation for the capstone:** Strategy 1 (rate cap). It's the simplest to implement correctly, demonstrates awareness of the manipulation vector, and is the kind of defense an interviewer would want to discuss. Document the other strategies as considered alternatives in your Architecture Decision Record.
 
-## 📋 Summary: Vault Share Collateral Pricing
+## 📋 Key Takeaways: Vault Share Collateral Pricing
 
-**✓ Covered:**
-- Two-step pricing pipeline — shares → underlying → USD
-- Manipulation risk — donation attack inflating exchange rate
-- Three defense strategies with trade-offs
-- Rate cap recommendation with numeric example
+After this section, you should be able to:
 
-**Key insight:** Accepting yield-bearing tokens as collateral is a real design challenge that production protocols face (Aave accepting stETH, Morpho accepting PT tokens). The pricing pipeline and manipulation defense you build here is directly applicable to real protocol work. This is the kind of depth that separates a "tutorial project" from a "protocol designer's project."
-
-**Next:** Designing your Dutch auction liquidation system.
+- Trace the two-step pricing pipeline for vault share collateral: shares → `convertToAssets()` → underlying amount → Chainlink price → USD value
+- Explain the donation attack on vault share pricing (attacker inflates exchange rate to manipulate collateral valuation) and implement the rate cap defense with a numeric example
+- Compare the 3 defense strategies (rate cap, TWAP of exchange rate, internal accounting) and justify which you'd choose for your protocol
 
 > **🧭 Checkpoint — Before Moving On:**
 > Take a piece of paper and trace a health factor calculation for vault share collateral end-to-end: shares → `convertToAssets()` → underlying amount → Chainlink price → USD value → HF formula. Include the rate cap check. If you can do this with concrete numbers (pick any), the pricing pipeline is solid. If the decimal normalization steps feel unclear, revisit the numeric walkthroughs above.
@@ -927,19 +909,14 @@ This is why Aave governance evaluates on-chain liquidity depth before listing ne
 
 > **🔗 Connection:** The slippage and AMM economics from M2 directly determine whether your liquidation system actually works in practice. A liquidation mechanism is only as reliable as the DEX liquidity behind it.
 
-## 📋 Summary: Dutch Auction Liquidation
+## 📋 Key Takeaways: Dutch Auction Liquidation
 
-**✓ Covered:**
-- Liquidation system architecture — separate Liquidator contract calling Engine
-- Three decay functions with trade-offs (linear, exponential step, continuous)
-- Partial fills — bidders buy portions, surplus collateral returns to owner
-- Bad debt — tracking unrecovered tab as protocol liability
-- Full numeric walkthrough — drip → health check → auction → bid → settlement
-- Liquidation economics — DEX liquidity depth determines bidder profitability and system health
+After this section, you should be able to:
 
-**Key insight:** The Dutch auction is MEV-resistant because there's no single "optimal" moment to bid — every bidder chooses their own entry point based on their profit threshold. This is why MakerDAO moved from English auctions (Liquidations 1.0) to Dutch auctions (Liquidations 2.0) after Black Thursday — English auctions failed during network congestion because keepers couldn't bid. Your protocol inherits this lesson from day one.
-
-**Next:** Flash mint — the mechanism that keeps your stablecoin pegged without a PSM.
+- Design a Dutch auction liquidation system with a separate Liquidator contract, choosing between the 3 decay functions (linear, exponential step, continuous) with trade-off reasoning
+- Implement partial fills (bidders buy portions, surplus returns to owner) and bad debt tracking (unrecovered tab as protocol liability)
+- Walk through a full liquidation numerically: drip → health check fails → auction starts → price decays → bidder bids → settlement, and calculate the bidder's profit
+- Explain why Dutch auctions are MEV-resistant (no single optimal bid moment) and why MakerDAO moved from English to Dutch auctions after Black Thursday
 
 ---
 
@@ -1037,18 +1014,13 @@ If you charge a fee: the receiver must hold `amount + fee` at the end of the cal
 3. **Liquidation funding** — flash mint stablecoin → buy collateral from Dutch auction → sell collateral on DEX → burn flash mint + keep profit. This is the flash liquidation pattern from M4/M5, but using flash *mint* instead of flash *loan*.
 4. **Composability** — any protocol can integrate your stablecoin knowing that flash mint provides infinite temporary liquidity for atomic operations.
 
-## 📋 Summary: Flash Mint
+## 📋 Key Takeaways: Flash Mint
 
-**✓ Covered:**
-- Flash mint vs flash loan — minting from thin air vs borrowing from a pool
-- Why flash mint is the peg mechanism for an immutable, no-PSM protocol
-- ERC-3156 adapted for minting — same interface, different internals
-- Security — callback reentrancy, Engine interaction, fee handling
-- Use cases — peg arbitrage, self-liquidation, liquidation funding, composability
+After this section, you should be able to:
 
-**Key insight:** Flash mint is what makes an immutable stablecoin viable without a PSM. MakerDAO relies on the PSM (backed by USDC) for peg stability. Liquity uses redemptions. Your protocol uses flash mint arbitrage. Each is a different solution to the same problem: "how does the stablecoin stay at $1?" Understanding the trade-offs between these mechanisms is exactly the kind of reasoning DeFi teams want to hear in an interview.
-
-**Next:** Testing strategy — the 5 invariants that prove your protocol is sound.
+- Explain the difference between flash mint (mint from thin air, destroy at end) and flash loan (borrow from pool), and why flash mint is the peg mechanism for an immutable protocol without a PSM
+- Implement ERC-3156 adapted for minting and identify the security requirements: callback reentrancy protection, Engine interaction safety, fee handling
+- Compare 3 peg stability mechanisms (MakerDAO's PSM, Liquity's redemptions, your flash mint arbitrage) and articulate the trade-offs of each in an interview setting
 
 ---
 
@@ -1160,16 +1132,14 @@ contract SystemHandler is Test {
 
 **Dust amounts:** What happens with 1 wei of collateral or 1 wei of debt? Rounding in the health factor calculation could allow dust vaults that are technically unhealthy but too small to profitably liquidate.
 
-## 📋 Summary: Testing & Hardening
+## 📋 Key Takeaways: Testing & Hardening
 
-**✓ Covered:**
-- 5 critical invariants — solvency, backing, accounting, health, conservation
-- Handler design with 8 bounded operations
-- Fuzz test targets — random sequences, edge conditions
-- Fork test strategy — real Chainlink, real vaults, gas benchmarks
-- Edge cases — cascading liquidations, stale oracles, exchange rate drops, dust
+After this section, you should be able to:
 
-**Key insight:** The 5 invariants ARE your protocol's specification. If they hold under arbitrary operation sequences with random inputs and random price movements, your protocol is sound. Everything else — unit tests, edge cases, fork tests — is supporting evidence. The invariant suite is the proof.
+- List all 5 critical invariants (solvency, backing, accounting, health, conservation) and explain what failure of each would mean for the protocol
+- Design an invariant test handler with 8 bounded operations that explores realistic action sequences across multiple actors with random price movements
+- Write fork tests against real Chainlink feeds and real ERC-4626 vaults to verify behavior under production conditions
+- Test edge cases that break naive implementations: cascading liquidations, stale oracles, sudden exchange rate drops, dust positions
 
 > **🧭 Checkpoint — Before Starting to Build:**
 > Can you list all 5 invariants from memory and explain what failure of each one would mean for the protocol? Can you describe at least 4 handler operations and how they interact with the invariants? If yes, you understand the system well enough to build it. If not, re-read the invariants — they are the specification you're implementing against.

@@ -12,39 +12,25 @@
 - [Yul `if` — Conditional Execution](#yul-if)
 - [`switch/case/default` — Multi-Branch Logic](#yul-switch)
 - [`for` Loops — Gas-Efficient Iteration](#yul-for)
-  - [Deep Dive: Loop Gas Anatomy](#loop-gas-anatomy)
 - [`leave` — Early Exit](#yul-leave)
-- [Deep Dive: From Yul to JUMP/JUMPI — Bytecode Comparison](#yul-to-bytecode)
 
 **Yul Functions (Internal)**
 - [Defining and Calling Yul Functions](#yul-functions)
-  - [Intermediate Example: Building a Utility Library in Yul](#utility-library)
 - [Inlining Behavior — When Functions Become JUMPs](#inlining)
 - [Stack Depth and Yul Functions](#stack-depth)
-  - [Deep Dive: Stack Layout During a Yul Function Call](#stack-layout)
 
 **Function Selector Dispatch**
 - [The Dispatch Problem](#dispatch-problem)
 - [if-Chain Dispatch](#if-chain)
 - [switch-Based Dispatch](#switch-dispatch)
-  - [Deep Dive: How Solidity Actually Dispatches](#solidity-dispatch)
 - [Fallback and Receive in Assembly](#fallback-receive)
-  - [Intermediate Example: Complete Dispatch with Receive + Fallback](#complete-dispatch)
-  - [DeFi Pattern Connection: Dispatch in Production](#dispatch-production)
 
 **Error Handling Patterns in Yul**
 - [Error Handling in the Dispatch Context](#error-patterns)
 
-**How to Study**
-- [How to Study Dispatch-Heavy Contracts](#how-to-study)
-
 **Exercises**
 - [Build Exercise: YulDispatcher](#exercise1)
 - [Build Exercise: LoopAndFunctions](#exercise2)
-
-**Wrap-Up**
-- [Summary](#summary)
-- [Resources](#resources)
 
 ---
 
@@ -1490,7 +1476,7 @@ FOUNDRY_PROFILE=part4 forge test --match-path "test/part4/module4/exercise2-loop
 ---
 
 <a id="summary"></a>
-## 📋 Summary: Control Flow & Functions
+## 📋 Key Takeaways: Control Flow & Functions
 
 **Control Flow:**
 - `if condition { }` — guard clauses; any nonzero value is true; use `iszero()` for negation; no `else`

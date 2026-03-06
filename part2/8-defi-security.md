@@ -508,20 +508,14 @@ DeFi's composability means your protocol interacts with others in ways you can't
 
 **Pro tip:** In security-focused interviews, employers care less about memorizing every exploit and more about your *systematic thinking*. Show that you have a mental taxonomy of attack classes and can map any new vulnerability into it. That's what separates a protocol engineer from a developer.
 
-## 📋 Summary: DeFi-Specific Attack Patterns
+## 📋 Key Takeaways: DeFi-Specific Attack Patterns
 
-**✓ Covered:**
-- Read-only reentrancy — the subtle variant where `view` functions read inconsistent state during callbacks
-- Cross-contract reentrancy — trust boundary violations across multi-protocol compositions
-- Price manipulation taxonomy — 5 categories from spot manipulation to governance attacks
-- Frontrunning / MEV — sandwich attacks, JIT liquidity, liquidation MEV
-- Precision loss — truncation-to-zero in reward accumulators, rounding direction exploits in share-based systems
-- Access control — OWASP #1: missing initializer guards, unprotected critical functions, Wormhole-style implementation initialization
-- Composability risk — the cascading dependency problem in DeFi
+After this section, you should be able to:
 
-**Key insight:** Most DeFi exploits are *compositions* of known patterns. The attacker combines a flash loan (free capital) with a price manipulation (create mispricing) and a protocol assumption violation (exploit the mispricing). Thinking in attack chains, not isolated vulnerabilities, is what separates effective security reviewers.
-
-**Next:** Invariant testing — the most powerful methodology for finding the multi-step bugs that unit tests miss.
+- Explain read-only reentrancy: how `view` functions can return inconsistent state during callbacks, and why this is the most common "new" DeFi exploit pattern
+- Classify price manipulation attacks into the 5 categories (spot, TWAP, donation, governance, composability) and trace an attack chain that combines flash loan + manipulation + assumption violation
+- Identify precision loss vulnerabilities: truncation-to-zero in reward accumulators, rounding direction exploits in share-based systems, and apply the correct rounding direction fix
+- Spot access control gaps: missing initializer guards, unprotected critical functions, and explain the Wormhole-style implementation initialization attack
 
 ---
 
@@ -892,19 +886,14 @@ Write a comprehensive invariant test suite for your SimpleLendingPool from Modul
 
 4. Run with `depth = 50, runs = 500`. If any invariant breaks, you have a bug — fix it and re-run.
 
-## 📋 Summary: Invariant Testing with Foundry
+## 📋 Key Takeaways: Invariant Testing with Foundry
 
-**✓ Covered:**
-- Why invariant testing beats unit/fuzz testing for DeFi protocols
-- Foundry invariant testing setup — `StdInvariant`, `targetContract`
-- Handler contracts — bounded inputs, actor management, `useActor` modifier
-- Ghost variables — tracking cumulative state (`ghost_totalDeposited`, etc.)
-- Configuration — `runs`, `depth`, `fail_on_revert`
-- Invariant catalog for vaults, lending, AMMs, and CDPs
+After this section, you should be able to:
 
-**Key insight:** The handler contract is the heart of invariant testing. It doesn't just wrap functions — it defines the *realistic action space* of your protocol. A well-designed handler with ghost variables and multiple actors will find bugs that thousands of unit tests miss, because it explores *sequences* of actions that no human would think to test.
-
-**Next:** Reading audit reports — extracting maximum learning from expert security reviews.
+- Set up Foundry invariant testing: `StdInvariant`, `targetContract`, handler contracts with bounded inputs, `useActor` modifier for multi-actor testing
+- Design handler contracts that define a realistic action space: bounded amounts, valid actor selection, and ghost variables that track cumulative state for invariant assertions
+- Write invariant assertions for each protocol type: vaults (`totalAssets ≥ totalShares` scaled), lending (`totalDebt ≤ totalSupply`), AMMs (`x * y ≥ k`), CDPs (`debt ≤ ceiling`)
+- Explain why invariant testing finds bugs that unit tests miss: it explores *sequences* of actions across multiple actors, revealing multi-step exploits
 
 ---
 
@@ -1003,19 +992,13 @@ Take your SimpleLendingPool from Module 4 and apply a structured review:
    - [ ] Slippage protection on all swaps
    - [ ] Return values of external calls are checked
 
-## 📋 Summary: Reading Audit Reports
+## 📋 Key Takeaways: Reading Audit Reports
 
-**✓ Covered:**
-- Why audit reports are the densest source of vulnerability knowledge
-- How to read an audit report — structure, severity levels, what to focus on
-- Building attacker intuition — try to construct the exploit *before* reading the PoC
-- Classifying findings into your mental taxonomy
-- Studying 3 report types: major protocol audit, smaller critical-findings audit, and bug bounty writeup
-- Self-audit methodology — threat model, trust assumptions, structured checklist
+After this section, you should be able to:
 
-**Key insight:** The highest-ROI way to read an audit report is to pause after the vulnerability description and ask "How would I exploit this?" before reading the PoC. This builds the attacker intuition that turns a good developer into a strong security reviewer. Make reading 1-2 reports per month a permanent habit.
-
-**Next:** Security tooling and audit preparation — static analysis, formal verification, and the operational checklist for deployment.
+- Read an audit report efficiently: structure, severity levels, what to focus on, and how to classify findings into your mental taxonomy of attack patterns
+- Apply the "pause and exploit" technique: after reading a vulnerability description, construct the attack yourself before reading the PoC — this builds attacker intuition
+- Conduct a self-audit using the structured methodology: threat model, trust assumption mapping, and systematic checklist
 
 ---
 
@@ -1196,18 +1179,14 @@ The security mindset isn't a checklist — it's a way of thinking about code:
 - MEV-aware protocol design as a first-class security concern
 - Cross-chain bridge security (still the largest single-exploit category by dollar value)
 
-## 📋 Summary: Security Tooling & Audit Preparation
+## 📋 Key Takeaways: Security Tooling & Audit Preparation
 
-**✓ Covered:**
-- Static analysis tooling — Slither (Python-based, broad detectors) and Aderyn (Rust-based, fast, complementary)
-- Formal verification awareness — Certora Prover, CVL rules, when it's worth the cost
-- The deployment security checklist — code-level, testing, and operational requirements
-- Audit preparation — what to provide auditors and what to do after
-- Security-first design philosophy — assume hostile inputs, design for failure, minimize trust, simplify
+After this section, you should be able to:
 
-**Internalized patterns:** DeFi-specific attacks go beyond basic Solidity security (read-only reentrancy, flash-loan-amplified manipulation, ERC-4626 exchange rate attacks). Invariant testing is the most powerful DeFi testing methodology (handlers, ghost variables, realistic actor management). Reading audit reports is high-ROI learning (1-2 per month). Security is a spectrum, not a binary (CEI + access control + oracle safety + tests + static analysis + audit + formal verification + bug bounty). Simplify (every abstraction, external call, and storage variable is a potential vulnerability). Read-only reentrancy is the most common "new" DeFi exploit pattern (verify external protocols aren't mid-execution before trusting their view functions).
-
-**Key insight:** Security isn't a phase — it's a design philosophy. The security checklist at the end of this day should be internalized as second nature, not treated as a pre-launch checkbox. The protocols that get exploited aren't the ones that skip audits — they're the ones that treat security as someone else's job.
+- Run Slither and Aderyn on a project, interpret their output, and triage false positives from real issues
+- Explain when formal verification (Certora Prover, CVL rules) is worth the cost and write a simple CVL rule for a critical invariant
+- Walk through the deployment security checklist: code-level requirements (CEI, access control, oracle safety), testing requirements (unit + fuzz + invariant + fork), operational requirements (monitoring, incident response, bug bounty)
+- Prepare a codebase for audit: what to provide auditors (documentation, threat model, known issues, test suite) and what to do with the report afterward
 
 ---
 

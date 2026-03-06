@@ -84,11 +84,19 @@
   position: relative;
 }
 
-/* Keyword pinned to the left edge */
+/* Keyword pinned to the left edge (only when :rest text follows) */
 .content main h2.section-summary .section-keyword,
 .content main h2.section-exercise .section-keyword {
   position: absolute;
   left: 0;
+}
+
+/* When there's no :rest text, keep keyword in normal flow (left-aligned) */
+.content main h2.section-summary .section-keyword:only-child,
+.content main h2.section-exercise .section-keyword:only-child {
+  position: static;
+  display: block;
+  text-align: left;
 }
 
 /* Title text centered naturally by parent text-align */

@@ -17,14 +17,12 @@
 **Dencun Upgrade (March 2024)**
 - [Transient Storage Deep Dive (EIP-1153)](#transient-storage-deep-dive)
 - [Proto-Danksharding (EIP-4844)](#proto-danksharding)
-  - [Blob Fee Market Math](#blob-fee-math)
 - [PUSH0 & MCOPY](#push0-mcopy)
 - [SELFDESTRUCT Changes](#selfdestruct-changes)
 - [Build Exercise: FlashAccounting](#day3-exercise)
 
 **Pectra Upgrade (May 2025)**
 - [EIP-7702 — EOA Code Delegation](#eip-7702)
-  - [Delegation Designator Format](#delegation-designator)
 - [EIP-7623 — Increased Calldata Cost](#eip-7623)
 - [EIP-2537 — BLS12-381 Precompile](#eip-2537)
 - [Build Exercise: EIP7702Delegate](#day4-exercise)
@@ -923,6 +921,13 @@ When you open PoolManager.sol, follow this path to understand the flash accounti
 
 > 🔍 **Deep dive:** [Dedaub - Transient Storage Impact Study](https://dedaub.com/blog/transient-storage-in-the-wild-an-impact-study-on-eip-1153/) analyzes real-world usage patterns. [Hacken - Uniswap V4 Transient Storage Security](https://hacken.io/discover/uniswap-v4-transient-storage-security/) covers security considerations in production flash accounting.
 
+#### ⚠️ Common Mistakes
+
+1. ❌ **Using transient storage for cross-transaction state** → It resets every transaction! Use regular storage.
+2. ❌ **Assuming TSTORE is cheaper than memory** → Memory is ~3 gas, TSTORE is ~100 gas. Use TSTORE when you need cross-call persistence.
+3. ❌ **Forgetting the 2,300 gas reentrancy vector** → `transfer()` and `send()` now allow TSTORE, creating new attack surfaces.
+4. ❌ **Not testing transient storage reverts** → If a call reverts, transient changes revert too. Test this behavior.
+
 #### 💼 Job Market Context: Transient Storage
 
 **Interview question you WILL be asked:**
@@ -1128,6 +1133,12 @@ Deploy in Remix (set EVM to `cancun`) and call `currentBlobBaseFee()`. In a loca
 
 > 🔍 **Deep dive:** The blob fee market uses a separate fee mechanism from regular gas. Read [EIP-4844 blob fee market dynamics](https://ethereum.org/en/roadmap/dencun/#eip-4844) to understand how blob pricing adjusts based on demand.
 
+#### ⚠️ Common Mistakes
+
+1. ❌ **Saying "full danksharding is live"** → It's **proto**-danksharding. Full danksharding comes later.
+2. ❌ **Thinking your DeFi contract needs blob logic** → Blobs are L1 infrastructure. Your L2 contract doesn't interact with them.
+3. ❌ **Assuming blob fees are always cheap** → During congestion (inscriptions, etc.), blob fees can spike.
+
 #### 💼 Job Market Context: EIP-4844 & L2 DeFi
 
 **Interview question you WILL be asked:**
@@ -1272,6 +1283,11 @@ Uniswap V4 pools copy position structs frequently during swaps:
 evm_version = "cancun"  # Enables PUSH0, MCOPY, and transient storage
 ```
 
+#### ⚠️ Common Mistakes
+
+1. ❌ **Not setting `evm_version = "cancun"` in foundry.toml** → You'll miss out on these optimizations.
+2. ❌ **Manually optimizing for PUSH0** → The compiler does this automatically. Focus on logic, not opcode-level tricks.
+
 #### 💼 Job Market Context: PUSH0 & MCOPY
 
 **Interview question:**
@@ -1377,6 +1393,12 @@ An attacker used metamorphic contracts to:
 
 > 🔍 **Deep dive:** [Dedaub - Removal of SELFDESTRUCT](https://dedaub.com/blog/eip-4758-eip-6780-removal-of-selfdestruct/) explains security benefits. [Vibranium Audits - EIP-6780 Objectives](https://www.vibraniumaudits.com/post/taking-self-destructing-contracts-to-the-next-level-the-objectives-of-eip-6780) covers how metamorphic contracts were exploited in governance attacks.
 
+#### ⚠️ Common Mistakes
+
+1. ❌ **Using SELFDESTRUCT for upgradability** → Broken post-Dencun. Use proxy patterns (Module 6).
+2. ❌ **Relying on SELFDESTRUCT for contract removal** → Code persists unless called in same transaction as deployment.
+3. ❌ **Trusting pre-2024 code with SELFDESTRUCT** → Understand it won't work as originally intended.
+
 #### 💼 Job Market Context: SELFDESTRUCT Changes
 
 **Interview question:**
@@ -1424,48 +1446,14 @@ Build a "flash accounting" pattern using transient storage:
 
 ---
 
-## ⚠️ Common Mistakes: Dencun Recap
+## 📋 Key Takeaways: Foundational & Dencun
 
-**Transient Storage:**
-1. ❌ **Using transient storage for cross-transaction state** → It resets every transaction! Use regular storage.
-2. ❌ **Assuming TSTORE is cheaper than memory** → Memory is ~3 gas, TSTORE is ~100 gas. Use TSTORE when you need cross-call persistence.
-3. ❌ **Forgetting the 2,300 gas reentrancy vector** → `transfer()` and `send()` now allow TSTORE, creating new attack surfaces.
-4. ❌ **Not testing transient storage reverts** → If a call reverts, transient changes revert too. Test this behavior.
-
-**EIP-4844:**
-1. ❌ **Saying "full danksharding is live"** → It's **proto**-danksharding. Full danksharding comes later.
-2. ❌ **Thinking your DeFi contract needs blob logic** → Blobs are L1 infrastructure. Your L2 contract doesn't interact with them.
-3. ❌ **Assuming blob fees are always cheap** → During congestion (inscriptions, etc.), blob fees can spike.
-
-**PUSH0 & MCOPY:**
-1. ❌ **Not setting `evm_version = "cancun"` in foundry.toml** → You'll miss out on these optimizations.
-2. ❌ **Manually optimizing for PUSH0** → The compiler does this automatically. Focus on logic, not opcode-level tricks.
-
-**SELFDESTRUCT:**
-1. ❌ **Using SELFDESTRUCT for upgradability** → Broken post-Dencun. Use proxy patterns (Module 6).
-2. ❌ **Relying on SELFDESTRUCT for contract removal** → Code persists unless called in same transaction as deployment.
-3. ❌ **Trusting pre-2024 code with SELFDESTRUCT** → Understand it won't work as originally intended.
-
----
-
-## 📋 Summary: Foundational Concepts & Dencun Upgrade
-
-**✓ Covered (Foundational):**
-- EIP-2929 cold/warm access model — why first storage read costs 2,100 gas vs 100 gas, access lists
-- EIP-1559 base fee market — base fee + priority fee, MEV implications
-- EIP-3529 gas refund reduction — death of gas tokens (CHI, GST2)
-- Contract size limits (EIP-170) — the 24 KiB limit and strategies to work around it
-- CREATE vs CREATE2 vs CREATE3 — deterministic deployment, counterfactual addresses
-- Precompile landscape — ecrecover, BN254 (zkSNARKs), BLS12-381 (signatures)
-
-**✓ Covered (Dencun):**
-- Transient storage mechanics (EIP-1153) — how it differs from memory and storage, gas costs, flash accounting
-- Flash accounting pattern — Uniswap V4's core innovation with code reading strategy
-- Proto-Danksharding (EIP-4844) — why L2s became 90-97% cheaper, blob fee market math
-- PUSH0 & MCOPY — bytecode comparisons and gas savings
-- SELFDESTRUCT changes (EIP-6780) — metamorphic contracts are dead, historical context
-
-**Next:** EIP-7702 (EOA code delegation) and the Pectra upgrade
+After this section, you should be able to:
+- Explain why a second `SLOAD` to the same slot costs 100 gas instead of 2,100 and how access lists let you pre-warm slots
+- Describe how Uniswap V4's flash accounting uses transient storage to settle multiple swaps with a single net transfer
+- Explain why gas tokens (CHI, GST2) stopped working after EIP-3529 reduced refund caps
+- Distinguish CREATE2 from CREATE3 and when each is appropriate for deterministic cross-chain deployment
+- Explain why EIP-6780 killed the metamorphic contract pattern and what upgrade approach replaces it
 
 ---
 
@@ -1703,6 +1691,14 @@ Real delegation targets are what EOAs point to via EIP-7702. Study them to under
 
 **Don't get stuck on:** Module installation/uninstallation flows or ERC-4337 `validateUserOp()` specifics — those are Module 4 topics. Focus on the batch execution path and auth model.
 
+#### ⚠️ Common Mistakes
+
+1. ❌ **Using `tx.origin` for authentication** → Broken by EIP-7702 delegation. Always use `msg.sender`.
+2. ❌ **Assuming EOA code is immutable** → Post-7702, EOAs can have delegated code. Check for delegation designator if needed.
+3. ❌ **Confusing EIP-7702 with ERC-4337** → 7702 = EOA delegation. 4337 = new smart account. Different approaches to AA.
+4. ❌ **Not validating delegation in batch executors** → Add `require(msg.sender == address(this))` to prevent unauthorized execution.
+5. ❌ **Assuming delegation is one-time** → Delegation persists across transactions until explicitly revoked.
+
 #### 💼 Job Market Context: EIP-7702
 
 **Interview question you WILL be asked:**
@@ -1891,6 +1887,11 @@ After BLS precompile:
 | 5-of-7 threshold verification | ~7,000,000 gas | ~40,000 gas | **99.4%** ✨ |
 | Batch verify 100 attestations | Would revert (OOG) | ~800,000 gas | **Enables new use cases** ✨ |
 
+#### ⚠️ Common Mistakes
+
+1. ❌ **Saying "BLS is for zkSNARKs"** → BLS12-381 is for signature aggregation. zkSNARKs often use BN254 (alt-bn128).
+2. ❌ **Not understanding the gas savings** → 99%+ reduction (1M gas → 8K gas). Enables on-chain validator consensus for liquid staking.
+
 #### 💼 Job Market Context: BLS12-381 Precompile
 
 **Interview question:**
@@ -1951,30 +1952,12 @@ After BLS precompile:
 
 ---
 
-## ⚠️ Common Mistakes: Pectra Recap
+## 📋 Key Takeaways: Pectra
 
-**EIP-7702:**
-1. ❌ **Using `tx.origin` for authentication** → Broken by EIP-7702 delegation. Always use `msg.sender`.
-2. ❌ **Assuming EOA code is immutable** → Post-7702, EOAs can have delegated code. Check for delegation designator if needed.
-3. ❌ **Confusing EIP-7702 with ERC-4337** → 7702 = EOA delegation. 4337 = new smart account. Different approaches to AA.
-4. ❌ **Not validating delegation in batch executors** → Add `require(msg.sender == address(this))` to prevent unauthorized execution.
-5. ❌ **Assuming delegation is one-time** → Delegation persists across transactions until explicitly revoked.
-
-**BLS12-381:**
-1. ❌ **Saying "BLS is for zkSNARKs"** → BLS12-381 is for signature aggregation. zkSNARKs often use BN254 (alt-bn128).
-2. ❌ **Not understanding the gas savings** → 99%+ reduction (1M gas → 8K gas). Enables on-chain validator consensus for liquid staking.
-
----
-
-## 📋 Summary: Pectra Upgrade
-
-**✓ Covered:**
-- EIP-7702 — EOA code delegation, delegation designator format, DELEGATECALL semantics
-- Type 4 transactions — authorization lists and how the EVM processes them
-- Security implications — `tx.origin` antipattern, delegation revocation, batch executor security
-- Other Pectra EIPs — increased calldata costs, BLS12-381 precompile with liquid staking example
-
-**Key takeaway:** EIP-7702 brings account abstraction to existing EOAs without migration. Combined with ERC-4337 (Module 4), this creates a comprehensive AA ecosystem. The `tx.origin` antipattern becomes actively exploitable with EIP-7702—always use `msg.sender` for authentication.
+After this section, you should be able to:
+- Explain why `require(msg.sender == tx.origin)` is broken by EIP-7702 and what to use instead
+- Describe how an EOA delegates to a smart contract via a Type 4 transaction and what happens to the EOA's storage
+- Explain why the BLS12-381 precompile (99% gas reduction) matters for liquid staking oracle consensus
 
 ---
 

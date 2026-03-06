@@ -14,8 +14,6 @@
 
 **Core Mechanism: The PT/YT Split**
 - [How Splitting Works](#how-splitting-works)
-- [Deep Dive: Implied Rate Math](#implied-rate-math)
-- [Deep Dive: YT Yield Accumulator](#yt-yield-accumulator)
 - [Build Exercise: Yield Tokenizer](#exercise-yield-tokenizer)
 
 **ERC-5115: Standardized Yield**
@@ -27,12 +25,10 @@
 - [YieldContractFactory: Minting PT + YT](#yield-contract-factory)
 - [PendleYieldToken: Yield Tracking](#pendle-yield-token)
 - [PendlePrincipalToken: Maturity Redemption](#pendle-principal-token)
-- [Code Reading Strategy](#code-reading-strategy)
 
 **The Pendle AMM**
 - [Why Constant Product Fails for PT](#why-xy-k-fails)
 - [Rate-Space Trading: The Key Insight](#rate-space-trading)
-- [Deep Dive: The AMM Curve](#amm-curve-deep-dive)
 - [LP Considerations](#lp-considerations)
 - [Build Exercise: PT Rate Oracle](#exercise-pt-rate-oracle)
 
@@ -42,11 +38,6 @@
 - [LP in Pendle Pool](#strategy-lp)
 - [PT as Collateral](#pt-as-collateral)
 - [The LST + Pendle Pipeline](#lst-pendle-pipeline)
-
-**Wrap Up**
-- [Summary](#summary)
-- [Cross-Module Concept Links](#cross-module-links)
-- [Resources](#resources)
 
 ---
 
@@ -435,17 +426,14 @@ Build the core PT/YT splitting mechanism from an ERC-4626 vault:
 
 ---
 
-## 📋 Summary: Yield Tokenization Fundamentals
+## 📋 Key Takeaways: Yield Tokenization Fundamentals
 
-**Covered:**
-- The fixed-rate problem in DeFi and why variable yields create uncertainty
-- Zero-coupon bond analogy: buy at a discount, redeem at par at maturity
-- PT/YT split mechanism — separating principal and yield into tradable tokens
-- Implied rate math: how PT price and time-to-maturity determine the fixed rate
-- YT yield accumulator pattern: tracking accrued yield via exchange rate snapshots
-- Maturity mechanics: PT redemption, YT expiry, and pre-maturity unsplitting
+After this section, you should be able to:
 
-**Next:** ERC-5115 (Standardized Yield) — Pendle's generalization of ERC-4626 for wrapping arbitrary yield sources.
+- Explain the PT/YT split mechanism using the zero-coupon bond analogy: how separating principal and yield into tradable tokens enables fixed-rate positions in a variable-rate world
+- Calculate the implied rate from a PT price and time-to-maturity, and work through the annualization formula with concrete numbers
+- Describe the YT yield accumulator pattern (same O(1) structure as Compound's borrowIndex and Aave's liquidityIndex) and explain how it tracks accrued yield via exchange rate snapshots
+- Trace the maturity mechanics: PT redeems 1:1 for underlying, YT expires worthless (all yield already claimed), and pre-maturity unsplitting recombines PT + YT back into the underlying
 
 ---
 
@@ -886,18 +874,14 @@ Build a rate oracle that computes and tracks implied rates from PT prices:
 
 ---
 
-## 📋 Summary: Pendle Architecture & AMM
+## 📋 Key Takeaways: Pendle Architecture & AMM
 
-**Covered:**
-- ERC-5115 Standardized Yield (SY) — wrapping diverse yield sources into a common interface
-- SY vs ERC-4626: reward token handling, multi-asset support, and exchange rate mechanics
-- Pendle system overview: SY wrapping, YieldContractFactory, PT/YT minting
-- Why constant-product AMMs fail for yield tokens (PT converges to 1:1 at maturity)
-- Rate-space trading: Pendle's key insight of trading implied rates instead of prices
-- TWAR oracle: time-weighted average rate using the cumulative accumulator pattern
-- LP considerations: impermanent loss profile and the fee/rate trade-off
+After this section, you should be able to:
 
-**Next:** Yield tokenization strategies and composability — how to use PT/YT for fixed income, leveraged yield, and structured products.
+- Compare ERC-5115 (Standardized Yield) vs ERC-4626: why Pendle needed a more general interface for reward token handling, multi-asset support, and diverse exchange rate mechanics
+- Explain why constant-product AMMs fail for time-decaying assets (PT converges to 1:1 at maturity) and how Pendle solves this with rate-space trading — trading implied rates instead of prices
+- Map Pendle's architecture: SY wrapping → YieldContractFactory → PT/YT minting → AMM (rate-space curve) → Router
+- Describe the TWAR (time-weighted average rate) oracle and explain how it uses the same cumulative accumulator pattern as Uniswap's TWAP
 
 ---
 
@@ -1042,23 +1026,13 @@ DeFi composability at its finest:
 ---
 
 <a id="summary"></a>
-## 📋 Summary: Yield Tokenization
+## 📋 Key Takeaways: Yield Tokenization
 
-**✓ Covered:**
-- The fixed-rate problem and zero-coupon bond analogy
-- PT/YT splitting mechanics and invariant (PT + YT = 1 underlying)
-- Implied rate math with worked examples (annualization, inverse formula)
-- YT yield accumulator — same O(1) pattern as Compound, Aave, Module 2 funding rate
-- ERC-5115 (Standardized Yield) vs ERC-4626
-- Pendle architecture: SY → Factory → PT/YT → AMM → Router
-- Why x*y=k fails for time-decaying assets
-- Rate-space trading and the Pendle AMM curve
-- Strategies: fixed income (PT), yield speculation (YT), LP, PT as collateral
-- LST + Pendle pipeline (Module 1 integration)
+After this section, you should be able to:
 
-**Key insight:** The accumulator pattern appears for the third time in this curriculum. Whether it's vault share pricing (P2M7), funding rates (P3M2), or yield tracking (P3M3), the math is identical: global growing counter + per-user snapshot + delta = amount owed.
-
-**Next:** Cross-module concept links and resources.
+- Design yield tokenization strategies for 4 use cases: fixed income (buy PT at discount), yield speculation (buy YT for leveraged yield exposure), LP (earn fees from rate trading), and PT as collateral (in lending markets)
+- Trace the LST + Pendle pipeline end-to-end: stake ETH → receive wstETH → wrap as SY → split into PT/YT → trade on Pendle AMM
+- Recognize the accumulator pattern's third appearance (after vault share pricing and funding rates): global growing counter + per-user snapshot + delta = amount owed
 
 ---
 

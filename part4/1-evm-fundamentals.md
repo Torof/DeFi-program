@@ -15,29 +15,17 @@
 
 **The Machine**
 - [The Stack Machine](#stack-machine)
-  - [Deep Dive: Tracing Stack Execution](#tracing-stack)
 - [Opcode Categories](#opcode-categories)
 
 **Cost & Context**
 - [Gas Model — Why Things Cost What They Cost](#gas-model)
-  - [Deep Dive: EIP-2929 Warm/Cold Access](#warm-cold)
-  - [Deep Dive: SSTORE Cost — The State Machine](#sstore-state-machine)
-  - [Deep Dive: Memory Expansion Cost](#memory-expansion)
-  - [Deep Dive: Failure Modes](#failure-modes)
-  - [The 63/64 Rule](#63-64-rule)
 - [Execution Context at the Opcode Level](#execution-context)
 
 **Writing Assembly**
 - [Your First Yul](#first-yul)
-  - [Intermediate Example: Assembly Functions](#intermediate-yul)
 - [Contract Bytecode: Creation vs Runtime](#bytecode)
-  - [How to Study EVM Bytecode](#how-to-study)
 - [Build Exercise: YulBasics](#exercise1)
 - [Build Exercise: GasExplorer](#exercise2)
-
-**Wrap-Up**
-- [Summary](#summary)
-- [Resources](#resources)
 
 ---
 
@@ -1511,7 +1499,7 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract GasExplorerTest -vvv`
 ---
 
 <a id="summary"></a>
-## 📋 Summary: EVM Fundamentals
+## 📋 Key Takeaways: EVM Fundamentals
 
 **✓ Covered:**
 - The EVM is a stack machine — 256-bit words (matching keccak-256 and secp256k1), LIFO, max depth 1024 (32 KB)
