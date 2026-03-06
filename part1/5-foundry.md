@@ -732,7 +732,7 @@ function invariant_solvency() public {
 ---
 
 <a id="code-reading-strategies"></a>
-### 📖 How to Study Production Test Suites
+#### 📖 How to Study Production Test Suites
 
 Production DeFi test suites can be overwhelming (Uniswap V4 has 100+ test files). Here's a strategy:
 

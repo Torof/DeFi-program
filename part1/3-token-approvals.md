@@ -239,7 +239,7 @@ Most modern tokens implement EIP-2612:
 ---
 
 <a id="openzeppelin-erc20permit"></a>
-### 📖 Read: OpenZeppelin's ERC20Permit Implementation
+#### 📖 Read: OpenZeppelin's ERC20Permit Implementation
 
 **Source:** [`@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC20Permit.sol)
 
@@ -836,7 +836,7 @@ function deposit(uint256 amount) external {
 ---
 
 <a id="permit2-source-code"></a>
-### 📖 Read: Permit2 Source Code
+#### 📖 Read: Permit2 Source Code
 
 **Source:** [github.com/Uniswap/permit2](https://github.com/Uniswap/permit2)
 
@@ -1137,7 +1137,7 @@ Users can call Permit2's `invalidateUnorderedNonces(uint256 wordPos, uint256 mas
 ---
 
 <a id="safe-permit-patterns"></a>
-### 📖 Read: OpenZeppelin's SafeERC20 Permit Handling
+#### 📖 Read: OpenZeppelin's SafeERC20 Permit Handling
 
 **Source:** [`SafeERC20.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/utils/SafeERC20.sol)
 

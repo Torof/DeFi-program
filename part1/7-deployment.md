@@ -606,7 +606,7 @@ contract Vault is Pausable, Ownable {
 
 ---
 
-### 📖 How to Study Production Deployment Scripts
+#### 📖 How to Study Production Deployment Scripts
 
 When you look at a protocol's `script/` directory, here's how to navigate it:
 

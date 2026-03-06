@@ -315,7 +315,7 @@ This gives you a concrete feel for how the system works in production.
 ---
 
 <a id="read-simpleaccount"></a>
-### 📖 Read: SimpleAccount and BaseAccount
+#### 📖 Read: SimpleAccount and BaseAccount
 
 **Source:** [eth-infinitism/account-abstraction](https://github.com/eth-infinitism/account-abstraction)
 
@@ -994,7 +994,7 @@ postOp(mode, context, actualGasCost, actualUserOpFeePerGas)
 ---
 
 <a id="read-paymasters"></a>
-### 📖 Read: Paymaster Implementations
+#### 📖 Read: Paymaster Implementations
 
 **Source:** [eth-infinitism/account-abstraction](https://github.com/eth-infinitism/account-abstraction)
 

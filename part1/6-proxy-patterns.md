@@ -632,7 +632,7 @@ contract V2 { uint256 public fee = 100; }             // IN storage at slot 0 �
 
 ---
 
-### 📖 How to Study Production Proxy Architectures
+#### 📖 How to Study Production Proxy Architectures
 
 When you encounter a proxy-based protocol (which is most of DeFi), here's how to navigate the code:
 
