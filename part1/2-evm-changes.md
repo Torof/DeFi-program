@@ -2003,41 +2003,6 @@ EOF container: Structured sections
 
 ---
 
-## 🔗 Cross-Module Concept Links
-
-**Backward references (← concepts from earlier modules):**
-
-| Module 2 Concept | Builds on | Where |
-|---|---|---|
-| Transient storage (EIP-1153) | `transient` keyword, `tstore`/`tload` assembly | [§1 — Transient Storage](1-solidity-modern.md#transient-storage) |
-| Flash accounting gas savings | `unchecked` blocks, `mulDiv` precision | [§1 — Checked Arithmetic](1-solidity-modern.md#checked-arithmetic) |
-| Delegation designator format | Custom types (UDVTs), type safety | [§1 — User-Defined Value Types](1-solidity-modern.md#user-defined-value-types) |
-
-**Forward references (→ concepts you'll use later):**
-
-| Module 2 Concept | Used in | Where |
-|---|---|---|
-| Transient storage | Temporary approvals, flash loans | [§3 — Token Approvals](3-token-approvals.md) |
-| EIP-7702 delegation | Account abstraction architecture, paymasters | [§4 — Account Abstraction](4-account-abstraction.md) |
-| SELFDESTRUCT neutered | Why proxy patterns are the only upgrade path | [§6 — Proxy Patterns](6-proxy-patterns.md) |
-| Gas profiling (PUSH0/MCOPY) | Forge snapshot, gas optimization workflows | [§5 — Foundry](5-foundry.md) |
-| CREATE2 deterministic deployment | Deployment scripts, cross-chain deployments | [§7 — Deployment](7-deployment.md) |
-| Cold/warm access (EIP-2929) | Gas optimization in vault operations, DEX routing | [Part 2 — AMMs](../part2/2-amms.md) |
-| Contract size limits (EIP-170) | Diamond pattern, proxy splitting | [§6 — Proxy Patterns](6-proxy-patterns.md) |
-
-**Part 2 connections:**
-
-| Module 2 Concept | Part 2 Module | How it connects |
-|---|---|---|
-| Transient storage + flash accounting | [M2 — AMMs](../part2/2-amms.md) | Uniswap V4's entire architecture is built on transient storage deltas |
-| EIP-4844 blob economics | [M2](../part2/2-amms.md)–[M9](../part2/9-integration-capstone.md) | All L2 DeFi is 90-97% cheaper post-Dencun — affects protocol design assumptions |
-| Transient storage | [M5 — Flash Loans](../part2/5-flash-loans.md) | Flash loan settlement patterns use the same lock → operate → settle flow |
-| BLS12-381 precompile | [M7 — Vaults & Yield](../part2/7-vaults-yield.md) | On-chain validator consensus for liquid staking protocols (Lido, Rocket Pool) |
-| EIP-7702 + tx.origin | [M8 — DeFi Security](../part2/8-defi-security.md) | New attack surfaces from delegated EOAs, `tx.origin` exploits |
-| SELFDESTRUCT changes | [M8 — DeFi Security](../part2/8-defi-security.md) | Metamorphic contract attacks are dead — historical context for audit work |
-
----
-
 ## 📖 Production Study Order
 
 Read these files in order to build progressive understanding of Module 2's concepts in production code:

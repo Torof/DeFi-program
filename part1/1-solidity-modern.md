@@ -1651,29 +1651,6 @@ After this section, you should be able to:
 
 ---
 
-## 🔗 Cross-Module Concept Links
-
-**→ Forward to Part 1 (where these concepts appear next):**
-- **[Module 2 (EVM Changes)](2-evm-changes.md):** TSTORE/TLOAD opcodes underpin the `transient` keyword; EVM target versioning affects available opcodes
-- **[Module 3 (Token Approvals)](3-token-approvals.md):** Permit/Permit2 build on the approve model covered here; EIP-712 signatures introduced
-- **[Module 4 (Account Abstraction)](4-account-abstraction.md):** EIP-7702 delegate transactions use `abi.encodeCall` for type-safe calldata encoding
-- **[Module 5 (Foundry)](5-foundry.md):** All exercises use Foundry; fork testing and gas snapshots for the transient storage comparison
-- **[Module 6 (Proxy Patterns)](6-proxy-patterns.md):** `delegatecall` encoding uses `abi.encodeCall`; storage layout awareness connects to UDVTs and bit-packing
-- **[Module 7 (Deployment)](7-deployment.md):** Compiler `--evm-version` setting connects to Pectra/Prague target discussion
-
-**→ Forward to Part 2 (where these patterns become foundational):**
-
-| Concept from Module 1 | Where it appears in Part 2 | How it's used |
-|---|---|---|
-| `unchecked` + `mulDiv` | **M2** (AMMs) — Uniswap FullMath | 512-bit math for constant product calculations, LP share minting |
-| UDVTs + BalanceDelta | **M2** (AMMs) — Uniswap V4 | PoolId, Currency, BalanceDelta throughout the V4 codebase |
-| Transient storage / flash accounting | **M2** (AMMs) — Uniswap V4 | Delta tracking across multi-hop swaps, settled at end of tx |
-| ERC-4626 share math | **M7** (Vaults & Yield) | `convertToShares` / `convertToAssets` uses mulDiv rounding |
-| Custom errors | **M1** (Token Mechanics) — SafeERC20 | Error propagation in cross-protocol token interactions |
-| `abi.encodeCall` | **M5** (Flash Loans) | Flash loan callback encoding, multicall batch construction |
-
----
-
 ## 📖 Production Study Order
 
 Read these in order to build understanding progressively:

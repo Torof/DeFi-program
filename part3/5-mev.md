@@ -800,18 +800,6 @@ After this section, you should be able to:
 
 ---
 
-## 🔗 Cross-Module Concept Links
-
-- AMM price impact → **P2 M2** constant product formula, slippage calculations
-- Sandwich attacks on swaps → **P2 M2** swap mechanics, minimum output enforcement
-- Flash loan arbitrage → **P2 M5** flash loan patterns, atomic execution
-- Oracle manipulation → **P2 M3** TWAP vs spot price, multi-block attacks
-- Liquidation MEV → **P2 M4** liquidation mechanics, health factor thresholds
-- PBS and block building → **P3 M7** L2 sequencer ordering, centralized block production
-- Dynamic fees as MEV defense → **P2 M2** Uniswap V4 hooks, fee adjustment
-
----
-
 ## 📖 Production Study Order
 
 1. **Flashbots MEV-Boost relay** — builder API, block submission flow

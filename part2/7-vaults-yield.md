@@ -1012,42 +1012,6 @@ After this section, you should be able to:
 - Explain why ERC-4626 composability is a double-edged sword: each layer of composition (vault-of-vaults, vault tokens as collateral) adds attack surface alongside functionality
 - Calculate when leveraged yield is profitable: incentive APY must exceed the borrow-supply spread after accounting for gas and liquidation risk
 
-## 🔗 Cross-Module Concept Links
-
-### Backward References (concepts from earlier modules used here)
-
-| Source | Concept | How It Connects |
-|---|---|---|
-| **Part 1 Module 1** | `mulDiv` with rounding | Vault conversions use `Math.mulDiv` with explicit rounding direction — rounds down for deposits, up for withdrawals |
-| **Part 1 Module 1** | Custom errors | Vault revert patterns (`DepositExceedsMax`, `InsufficientShares`) use typed errors from Module 1 |
-| **Part 1 Module 2** | Transient storage | Reentrancy guard for vault deposit/withdraw uses transient storage pattern from Module 2 |
-| **Part 1 Module 5** | Fork testing | ERC-4626 Quick Try reads a live Yearn vault on mainnet fork — fork testing from Module 5 enables this |
-| **Part 1 Module 5** | Invariant testing | ERC-4626 property tests (a16z suite) use invariant/fuzz patterns from Module 5 |
-| **Part 1 Module 6** | Proxy / delegateCall | Yearn V3 TokenizedStrategy uses `delegateCall` to shared implementation — proxy pattern from Module 6 |
-| **M1** | SafeERC20 | All vault deposit/withdraw flows use SafeERC20 for underlying token transfers |
-| **M1** | Fee-on-transfer tokens | Break naive vault accounting — balance-before-after check from M1 is required |
-| **M2** | MINIMUM_LIQUIDITY / dead shares | Uniswap V2's dead shares defense is the same pattern as Defense 2 (burn shares to `address(1)`) |
-| **M2** | AMM swaps / MEV | Auto-compound harvest routes through DEXs — slippage and sandwich risks from M2 apply directly |
-| **M3** | Oracle pricing | Vault tokens used as lending collateral need oracle pricing — can't trust the vault's own `convertToAssets()` |
-| **M4** | Index-based accounting | `shares × rate = assets` is the same pattern as Aave's `scaledBalance × liquidityIndex` |
-| **M5** | Flash loans | Enable single-tx recursive leverage; also enable atomic sandwich attacks on harvest |
-| **M6** | MakerDAO DSR / sDAI | DSR Pot is a vault pattern; sDAI is an ERC-4626 wrapper around it — same share math |
-
-### Forward References (where these concepts lead)
-
-| Target | Concept | How It Connects |
-|---|---|---|
-| **M8** | Invariant testing for vaults | Property-based tests verify vault rounding, share price monotonicity, withdrawal guarantees |
-| **M8** | Composability attack surfaces | Multi-layer vault composition creates novel attack vectors covered in M8 threat models |
-| **M9** | Vault shares as collateral | Integration capstone uses ERC-4626 vault tokens as building blocks |
-| **M9** | Yield aggregator integration | Capstone combines vault patterns with flash loans and liquidation mechanics |
-| **Part 3 M1** | Liquid staking vaults | LST wrappers (wstETH) are ERC-4626 vaults — same share math, same inflation risk, applied to staking yield |
-| **Part 3 M3** | Structured product vaults | Structured products compose ERC-4626 vaults into layered yield strategies with tranching and risk segmentation |
-| **Part 3 M5** | MEV and vault harvests | MEV searchers target vault harvest transactions — sandwich attacks on `harvest()` and profit unlocking as defense |
-| **Part 3 M8** | Governance over vault parameters | Vault configuration (strategy caps, fee rates, unlock periods) managed through governance mechanisms |
-
----
-
 ## 📖 Production Study Order
 
 Study these implementations in order — each builds on concepts from the previous:

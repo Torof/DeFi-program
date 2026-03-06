@@ -52,7 +52,6 @@
 - [⚠️ Common Mistakes](#common-mistakes)
 - [Portfolio & Interview Positioning](#portfolio)
 - [Production Study Order](#study-order)
-- [Cross-Module Concept Links](#cross-module-links)
 - [Self-Assessment Checklist](#self-assessment)
 
 ---
@@ -1417,45 +1416,6 @@ MakerDAO's codebase uses terse, domain-specific naming that can be disorienting.
 6. **Skip NatSpec docs initially** — `///` comments describe function behavior but add reading noise when you're tracing logic. Certora formal verification specs (separate `.spec` files) can also be ignored for now
 
 **Don't get stuck on:** MakerDAO's `auth` modifier pattern, the `wards` mapping, or the `rely`/`deny` authorization system. These are MakerDAO-specific access control — your protocol uses simpler immutable authorization.
-
----
-
-<a id="cross-module-links"></a>
-## 🔗 Cross-Module Concept Links
-
-### Backward References
-
-| Source | Concept | How It Connects |
-|---|---|---|
-| **Part 1 M1** | `mulDiv` / safe math | Health factor calculation, rate accumulator multiplication |
-| **Part 1 M1** | Custom errors | Typed errors across all 4 contracts for clear debugging |
-| **Part 1 M2** | Transient storage | Reentrancy guard for flash mint callback |
-| **Part 1 M5** | Fork testing | Mainnet fork for real Chainlink oracles and real ERC-4626 vaults |
-| **Part 1 M5** | Invariant testing | 5-invariant test suite with handler and ghost variables |
-| **M1** | SafeERC20 / decimals | Multi-collateral token handling, decimal normalization |
-| **M3** | Chainlink + staleness | PriceFeed.sol — ETH/USD with heartbeat and deviation checks |
-| **M4** | Health factor | Core solvency check in StablecoinEngine |
-| **M4** | Interest rate math | Stability fee per-second compounding pattern |
-| **M4** | Liquidation mechanics | Dutch auction builds on M4's liquidation concepts |
-| **M5** | ERC-3156 interface | Flash mint in Stablecoin.sol — same interface, different internals |
-| **M5** | Flash loan callback security | Flash mint callback reentrancy defense |
-| **M6** | Normalized debt (`art × rate`) | Engine's debt tracking — same pattern as SimpleVat |
-| **M6** | `rpow()` exponentiation | Rate accumulator compounding — same implementation as SimpleJug |
-| **M6** | Dutch auction (Dog/Clipper) | DutchAuctionLiquidator.sol — adapted from SimpleDog |
-| **M6** | WAD/RAY precision scales | All arithmetic throughout the protocol |
-| **M7** | ERC-4626 `convertToAssets()` | Vault share collateral pricing pipeline |
-| **M7** | Inflation attack | Rate cap defense for vault share exchange rate manipulation |
-| **M8** | Invariant testing methodology | Handler + ghost variable + invariant assertion pattern |
-| **M8** | Oracle manipulation defense | PriceFeed defensive design, rate cap for vault shares |
-
-### Forward References
-
-| Target | Concept | How It Connects |
-|---|---|---|
-| **Part 3 M1** (Liquid Staking & Restaking) | LST collateral types | Adding wstETH/rETH as collateral — your vault share pricing pipeline generalizes directly to LSTs (same `convertToAssets()`-style exchange rate, same manipulation concerns) |
-| **Part 3 M5** (MEV) | MEV-resistant design | Dutch auction as MEV defense studied in depth — your Liquidator is a concrete implementation of the principles covered theoretically |
-| **Part 3 M8** (Governance) | Governance upgrade | Adding Governor + Timelock for parameter updates to your stablecoin — transforming from immutable V1 to governed V2 |
-| **Part 3 M9** (Capstone: Perpetual Exchange) | Protocol extension | Building on this foundation with Part 3 advanced concepts — your stablecoin becomes the base layer for more sophisticated protocol design |
 
 ---
 

@@ -1036,33 +1036,6 @@ After this section, you should be able to:
 
 ---
 
-<a id="cross-module-links"></a>
-## 🔗 Cross-Module Concept Links
-
-**The accumulator pattern (3rd appearance):**
-
-| Module | Accumulator | What it tracks | Update trigger |
-|--------|-------------|----------------|----------------|
-| P2M7 | ERC-4626 share price | Vault yield per share | Deposit/withdraw |
-| P3M2 | cumulativeFundingPerUnit | Funding payments per unit | Position open/close |
-| **P3M3** | **Exchange rate (pyIndex)** | **Yield per unit of SY** | **YT claim/transfer** |
-
-Each is the SAME mathematical pattern: a global counter that grows, per-user snapshots at entry, delta = amount owed. The only difference is what's being accumulated (vault yield, funding payments, staking yield).
-
-**Time-decaying assets:**
-- PT value converges to 1.0 at maturity
-- Options value decays (theta) as expiry approaches
-- Bond price converges to par at maturity
-- Any AMM for time-decaying assets needs a time-aware curve
-
-**Fixed rate from variable rate (financial engineering pattern):**
-- PT/YT splitting in Pendle
-- Interest rate swaps in TradFi
-- Notional Finance (fixed-rate lending)
-- All achieve the same goal: converting floating exposure to fixed
-
----
-
 <a id="production-study-order"></a>
 ## 📖 Production Study Order
 

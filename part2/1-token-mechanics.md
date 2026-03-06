@@ -907,40 +907,6 @@ After this section, you should be able to:
 - Evaluate a new token for DeFi integration using the 13-point checklist and distinguish which risks need code-level defenses vs operational monitoring
 - Compare permissionless (Uniswap), curated (Aave), and hybrid (Euler V2) token listing strategies and explain the security trade-offs of each
 
-## 🔗 Cross-Module Concept Links
-
-### Building on Part 1
-
-| Module | Concept | How It Connects |
-|--------|---------|-----------------|
-| [← Module 1: Modern Solidity](../part1/1-solidity-modern.md) | Custom errors | Token transfer failure revert data — `InsufficientBalance()` over string messages |
-| [← Module 1: Modern Solidity](../part1/1-solidity-modern.md) | `unchecked` blocks | Gas-optimized balance math where underflow is impossible (post-require) |
-| [← Module 1: Modern Solidity](../part1/1-solidity-modern.md) | UDVTs | Prevent mixing up token amounts with share amounts — `type Shares is uint256` |
-| [← Module 2: EVM Changes](../part1/2-evm-changes.md) | Transient storage | Reentrancy guards for ERC-777 hook protection — `TSTORE`/`TLOAD` pattern |
-| [← Module 3: Token Approvals](../part1/3-token-approvals.md) | Permit (EIP-2612) | Gasless approve built on the approval mechanics covered in this module |
-| [← Module 3: Token Approvals](../part1/3-token-approvals.md) | Permit2 | Universal approval manager — extends the approve/transferFrom pattern |
-| [← Module 5: Foundry](../part1/5-foundry.md) | Fork testing | Test against real mainnet tokens (USDC, USDT, WETH) — catch behaviors mocks miss |
-| [← Module 5: Foundry](../part1/5-foundry.md) | Fuzz testing | Randomized token amounts and decimal values to catch edge cases |
-| [← Module 6: Proxy Patterns](../part1/6-proxy-patterns.md) | Upgradeable proxies | USDC/USDT are proxy tokens — same storage layout and upgrade mechanics from Module 6 |
-
-### Forward to Part 2
-
-| Module | Token Pattern | Application |
-|--------|--------------|-------------|
-| [→ M2: AMMs](2-amms.md) | Balance-before-after | V2's `swap()` uses balance checks, not transfer amounts — handles fee-on-transfer |
-| [→ M2: AMMs](2-amms.md) | WETH in routers | V2/V3 Router wraps ETH → WETH; V4 handles native ETH via flash accounting |
-| [→ M3: Oracles](3-oracles.md) | Decimal normalization | Combining token amounts with price feeds requires dynamic `decimals()` handling |
-| [→ M4: Lending](4-lending.md) | SafeERC20 everywhere | Aave V3 supply/borrow/repay all use SafeERC20, decimal normalization via reserveDecimals |
-| [→ M4: Lending](4-lending.md) | Token listing as risk | Collateral token properties (decimals, pausability) directly affect lending risk |
-| [→ M5: Flash Loans](5-flash-loans.md) | Flash-mintable tokens | DAI `flashMint()` and flash loan callbacks as reentrancy vectors |
-| [→ M6: Stablecoins & CDPs](6-stablecoins-cdps.md) | Pausable/blacklistable | USDC/USDT freeze risk directly impacts stablecoin protocol design |
-| [→ M7: Vaults & Yield](7-vaults-yield.md) | Reward-per-token | Synthetix StakingRewards pattern reappears in vault yield distribution and gauge systems |
-| [→ M7: Vaults & Yield](7-vaults-yield.md) | Rebasing tokens | ERC-4626 shares/assets pattern solves rebasing token accounting |
-| [→ M8: DeFi Security](8-defi-security.md) | Token attack vectors | ERC-777 reentrancy, flash mint oracle manipulation, fee-on-transfer accounting bugs |
-| [→ M9: Integration](9-integration-capstone.md) | Full token integration | Capstone requires handling all token edge cases in a complete protocol |
-
----
-
 ## 📖 Production Study Order
 
 Study these codebases in order — each builds on the previous one's patterns:

@@ -1704,44 +1704,6 @@ After this section, you should be able to:
 - Describe the modular lending trend: Morpho Blue's ~650-line minimal core with permissionless isolated markets, Euler V2's vault graph architecture, and how they differ from Aave/Compound monoliths
 - Explain GHO's facilitator pattern: how Aave serves as both lending protocol and stablecoin issuer
 
-## 🔗 Cross-Module Concept Links
-
-**The lending module is the curriculum's crossroads** — nearly every other module either feeds into it (oracles, tokens) or builds on it (flash loans, stablecoins, vaults).
-
-### ← Backward References (Part 1 + Modules 1–3)
-
-| Source | Concept | How It Connects |
-|--------|---------|-----------------|
-| Part 1 Module 1 | Bit manipulation / UDVTs | Aave's `ReserveConfigurationMap` packs all risk params into a single `uint256` bitmap — production example of Module 1 patterns |
-| Part 1 Module 1 | `mulDiv` / fixed-point math | RAY (27-decimal) arithmetic for index calculations; `rayMul`/`rayDiv` used in every balance computation |
-| Part 1 Module 1 | Custom errors | Aave V3 uses custom errors for revert reasons; Compound V3 uses custom errors throughout Comet |
-| Part 1 Module 2 | Transient storage | Reentrancy guards in lending pools; V4-era lending integrations can use TSTORE for flash accounting |
-| Part 1 Module 3 | Permit / Permit2 | Gasless approvals for supply/repay operations; Compound V3 supports EIP-2612 permit natively |
-| Part 1 Module 5 | Fork testing / `vm.mockCall` | Essential for testing against live Aave/Compound state and simulating oracle price movements |
-| Part 1 Module 5 | Invariant / fuzz testing | Property-based testing for lending invariants: total debt ≤ total supply, HF checks, index monotonicity |
-| Part 1 Module 6 | Proxy patterns | Both Aave V3 (Pool proxy + logic libraries) and Compound V3 (Comet proxy + CometExt fallback) use proxy architecture |
-| Module 1 | SafeERC20 / token decimals | Safe transfers for supply/withdraw/liquidate; decimal normalization when computing collateral values across different tokens |
-| Module 2 | Constant product / mechanism design | AMMs use `x × y = k` to set prices; lending uses kinked curves to set rates — both replace human market-makers with math |
-| Module 2 | DEX liquidity for liquidation | Liquidators sell seized collateral on AMMs; pool depth determines liquidation feasibility for illiquid assets |
-| Module 3 | Chainlink consumer / staleness | Lending protocols are the #1 consumer of oracles — every M3 pattern (staleness, deviation, L2 sequencer) is load-bearing here |
-| Module 3 | Dual oracle / fallback | Liquity's 5-state oracle machine directly protects lending liquidation triggers |
-
-### → Forward References (Modules 5–9 + Part 3)
-
-| Target | Concept | How Lending Knowledge Applies |
-|--------|---------|-------------------------------|
-| Module 5 (Flash Loans) | Flash loan liquidation | Flash loans enable zero-capital liquidation — borrow → liquidate → swap → repay atomically |
-| Module 6 (Stablecoins) | CDP liquidation | CDPs are a specialized lending model where the "borrowed" asset is minted (DAI); same HF math, same liquidation triggers |
-| Module 7 (Yield/Vaults) | Index-based accounting | ERC-4626 share pricing uses the same `scaledBalance × index` pattern; vaults use `totalAssets / totalShares` instead of accumulating index |
-| Module 7 (Yield/Vaults) | aToken composability | aTokens as yield-bearing inputs to vault strategies; auto-compounding aToken deposits |
-| Module 8 (Security) | Economic attack modeling | Reserve factor determines treasury growth; economic exploits target the gap between reserves and potential bad debt |
-| Module 8 (Security) | Invariant testing targets | Lending pool invariants (solvency, HF consistency, index monotonicity) are prime targets for formal verification |
-| Module 9 (Integration) | Full-stack lending integration | Capstone combines lending + AMMs + oracles + flash loans in a production-grade protocol |
-| Part 3 Module 8 (Governance) | Governance attack surface | Credit delegation and risk parameter changes create governance attack vectors; lending param manipulation |
-| Part 3 Module 6 (Cross-chain) | Cross-chain lending | L2 ↔ L1 collateral, shared liquidity across chains — extending lending architecture cross-chain |
-
----
-
 ## 📖 Production Study Order
 
 Study these codebases in order — each builds on the previous one's patterns:

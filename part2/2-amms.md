@@ -1861,38 +1861,6 @@ After this section, you should be able to:
 
 ---
 
-## 🔗 Cross-Module Concept Links
-
-### ← Backward References (Part 1 + Module 1)
-
-| Source | Concept | How It Connects |
-|--------|---------|-----------------|
-| Part 1 Module 1 | [ERC-4626](https://eips.ethereum.org/EIPS/eip-4626) share math / `mulDiv` | LP token minting uses the same shares-proportional-to-deposit pattern; `Math.sqrt` in V2 parallels vault share math |
-| Part 1 Module 1 | Unchecked arithmetic | V2/V3 use unchecked blocks for gas-optimized tick and fee math where overflow is intentional |
-| Part 1 Module 2 | Transient storage | V4 flash accounting uses TSTORE/TLOAD for delta tracking — 20× cheaper than SSTORE |
-| Part 1 Module 3 | Permit2 | Universal token approvals for V4 PositionManager; aggregator integrations use Permit2 for gasless approvals |
-| Part 1 Module 5 | Fork testing | Essential for testing AMM integrations against real mainnet liquidity and verifying swap routing |
-| Part 1 Module 5 | Invariant / fuzz testing | Property-based testing for AMM invariants: `x * y >= k`, tick math boundaries, fee accumulation monotonicity |
-| Part 1 Module 6 | Immutable core + periphery | V2/V3/V4 all use immutable core contracts with upgradeable periphery routers — the canonical DeFi proxy pattern |
-| Module 1 | SafeERC20 / balance-before-after | V2 implements its own `_safeTransfer`; `mint()`/`burn()` read balances directly — the foundation of composability |
-| Module 1 | Fee-on-transfer tokens | V2's `_update()` syncs reserves from actual balances; V3/V4 don't natively support fee-on-transfer |
-| Module 1 | WETH wrapping | All AMM routers wrap/unwrap ETH; V4 supports native ETH pairs directly |
-| Module 1 | Token decimals handling | Price display and tick math must account for differing decimals between token0/token1 |
-
-### → Forward References (Modules 3–9)
-
-| Target | Concept | How AMM Knowledge Applies |
-|--------|---------|---------------------------|
-| Module 3 (Oracles) | TWAP oracles | Built on AMM price accumulators; oracle manipulation via concentrated liquidity price impact |
-| Module 4 (Lending) | Liquidation swaps | Route through AMMs; LP tokens as collateral; CEX-DEX arb informs liquidation MEV |
-| Module 5 (Flash Loans) | Flash swaps / flash accounting | V2 flash swaps and V4 flash accounting are specialized flash loan patterns |
-| Module 6 (Stablecoins) | Curve StableSwap | AMM design optimized for peg maintenance; AMM-based depegging detection signals |
-| Module 7 (Yield) | LP fee income | Yield source from trading fees; auto-compounding vaults; LVR framework for LP strategy evaluation |
-| Module 8 (DeFi Security) | Protocol fee switches | V2 `feeTo`, V3 factory owner, V4 hook governance; ve(3,3) gauge voting and bribe markets |
-| Module 9 (Integration) | Full-stack capstone | Combining AMM + lending + oracles + yield in a production-grade protocol |
-
----
-
 ## 📖 Production Study Order
 
 Study these codebases in order — each builds on the previous one's patterns:

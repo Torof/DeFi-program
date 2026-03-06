@@ -972,42 +972,6 @@ After this section, you should be able to:
 - Explain Ethena USDe's delta-neutral mechanism (collateral + short perp = hedged position) and identify the risks: negative funding rates, exchange counterparty, centralization
 - Use the Terra collapse ($40B) as the definitive case study for why uncollateralized algorithmic stablecoins fail: reflexive death spiral when confidence breaks
 
-## 🔗 Cross-Module Concept Links
-
-### ← Backward References (Part 1 + Modules 1–5)
-
-| Source | Concept | How It Connects |
-|--------|---------|-----------------|
-| Part 1 Module 1 | `mulDiv` / fixed-point math | WAD/RAY/RAD arithmetic throughout the Vat; `rmul`/`rpow` for stability fee compounding |
-| Part 1 Module 1 | Custom errors | Production CDP contracts use custom errors for vault safety violations, ceiling breaches |
-| Part 1 Module 2 | Transient storage | Modern CDP implementations can use TSTORE for reentrancy guards during liquidation callbacks |
-| Part 1 Module 5 | Fork testing / `vm.mockCall` | Essential for testing against live MakerDAO state and simulating oracle price drops for liquidation |
-| Part 1 Module 5 | Invariant testing | Property-based testing for CDP invariants: total debt ≤ total DAI, all vaults safe, rate monotonicity |
-| Part 1 Module 6 | Proxy patterns | MakerDAO's authorization system (`wards`/`can`) and join adapter pattern for upgradeable periphery |
-| Module 1 | SafeERC20 / token decimals | Join adapters bridge external ERC-20 tokens to Vat's internal accounting; decimal handling critical for multi-collateral |
-| Module 1 | Fee-on-transfer awareness | Collateral join adapters must handle non-standard token behavior; PSM must handle USDC's blacklist |
-| Module 2 | AMM / Curve StableSwap | PSM uses 1:1 swap; crvUSD's LLAMMA repurposes AMM as liquidation mechanism; Curve pools for peg monitoring |
-| Module 3 | Oracle Security Module (OSM) | MakerDAO delays oracle prices by 1 hour via OSM — gives governance reaction time before liquidations |
-| Module 3 | Chainlink / staleness checks | Collateral pricing for vault safety checks; oracle failure triggers emergency shutdown |
-| Module 4 | Index-based accounting | Normalized debt (`art × rate`) is the same pattern as Aave's `scaledBalance × liquidityIndex` |
-| Module 4 | Liquidation mechanics | Dutch auction (Dog/Clipper) parallels Aave's direct liquidation; Stability Pool parallels Compound's absorb |
-| Module 5 | Flash loans / flash mint | Dutch auctions designed for flash loan compatibility; DssFlash mints unlimited DAI for flash borrowing |
-
-### → Forward References (Modules 7–9 + Part 3)
-
-| Target | Concept | How Stablecoin/CDP Knowledge Applies |
-|--------|---------|--------------------------------------|
-| Module 7 (Yield/Vaults) | sUSDS as ERC-4626 | Sky Savings Rate packaged as standard vault interface — stablecoin meets tokenized vault |
-| Module 7 (Yield/Vaults) | DSR as yield source | DAI Savings Rate and sUSDS as yield-bearing stablecoin deposits for vault strategies |
-| Module 8 (Security) | CDP invariant testing | Invariant testing SimpleCDP: total debt ≤ ceiling, all active vaults safe, rate accumulator monotonic |
-| Module 8 (Security) | Peg stability threat model | Modeling peg attacks: PSM drain, oracle manipulation, governance parameter manipulation |
-| Module 9 (Capstone) | Multi-collateral stablecoin | Building a decentralized stablecoin protocol — CDP engine, Dutch auction liquidation, flash mint, vault share collateral |
-| Part 3 Module 1 (Liquid Staking) | LSTs as collateral | wstETH, rETH as CDP collateral types — requires exchange rate oracle chaining |
-| Part 3 Module 2 (Perpetuals) | Funding rate mechanics | Ethena's USDe uses perpetual funding rates as stablecoin backing — studied in depth |
-| Part 3 Module 8 (Governance) | Monetary policy governance | Governor for stability fee, DSR, debt ceiling parameter updates; governance attack surface |
-
----
-
 ## 📖 Production Study Order
 
 Study these codebases in order — each builds on the previous one's patterns:

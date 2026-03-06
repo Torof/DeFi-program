@@ -971,42 +971,6 @@ After this section, you should be able to:
 - List and explain the 8 defense patterns (no spot price, Chainlink, staleness checks, sanity bounds, dual oracle, circuit breakers, minimum TWAP window, virtual offsets) and match each to the attack it prevents
 - Define Oracle Extractable Value (OEV) and explain how emerging solutions (API3, Pyth Express Relay, UMA Oval) redirect this value back to the protocol
 
-## 🔗 Cross-Module Concept Links
-
-### ← Backward References (Part 1 + Modules 1–2)
-
-| Source | Concept | How It Connects |
-|--------|---------|-----------------|
-| Part 1 Module 1 | `mulDiv` / fixed-point math | Decimal normalization when combining feeds with different `decimals()` values (e.g., ETH/USD × EUR/USD) |
-| Part 1 Module 1 | Custom errors | Production oracle wrappers use custom errors for staleness, invalid price, sequencer down |
-| Part 1 Module 2 | Transient storage | V4 oracle hooks can use TSTORE for gas-efficient observation caching within a transaction |
-| Part 1 Module 5 | Fork testing | Essential for testing oracle integrations against real Chainlink feeds on mainnet forks |
-| Part 1 Module 5 | `vm.mockCall` / `vm.warp` | Simulating stale feeds, sequencer downtime, and oracle failure modes in Foundry tests |
-| Part 1 Module 6 | Proxy pattern | Chainlink's EACAggregatorProxy allows aggregator upgrades without breaking consumer addresses |
-| Module 1 | Token decimals handling | Oracle `decimals()` must be reconciled with token decimals when computing collateral values |
-| Module 2 | TWAP accumulators | V2 `price0CumulativeLast`, V3 `observations` ring buffer — the on-chain data TWAP oracles read |
-| Module 2 | Price impact / spot price | `reserve1/reserve0` spot price is trivially manipulable — the core reason Chainlink exists |
-| Module 2 | Flash accounting (V4) | V4 hooks can integrate oracle reads into the flash accounting settlement flow |
-
-### → Forward References (Modules 4–9 + Part 3)
-
-| Target | Concept | How Oracle Knowledge Applies |
-|--------|---------|------------------------------|
-| Module 4 (Lending) | Collateral valuation / liquidation | Oracle prices determine health factors and liquidation triggers — the #1 consumer of oracle data |
-| Module 5 (Flash Loans) | Flash loan attack surface | Flash loans make spot price manipulation free — reinforces why Chainlink/TWAP are necessary |
-| Module 6 (Stablecoins) | Oracle Security Module (OSM) | MakerDAO delays price feeds by 1 hour; CDP liquidation triggered by oracle price vs safety margin |
-| Module 7 (Yield/Vaults) | Share price manipulation | Donation attacks on ERC-4626 vaults are an oracle problem — protocols reading vault prices need defense |
-| Module 8 (Security) | Oracle threat modeling | Oracle manipulation as a primary threat model for invariant testing and security reviews |
-| Module 8 (Security) | MEV / OEV | Oracle extractable value — oracle updates triggering liquidations as MEV opportunity |
-| Module 9 (Capstone: Stablecoin) | Full-stack oracle design | Capstone requires end-to-end oracle architecture: feed selection, fallback, circuit breakers for collateral pricing |
-| Part 3 Module 1 (Liquid Staking) | LST pricing | Chaining exchange rate oracles (wstETH/stETH) with ETH/USD feeds for accurate LST collateral valuation |
-| Part 3 Module 2 (Perpetuals) | Pyth pull-based oracles | Sub-second price feeds for funding rate calculation; oracle vs mark price divergence |
-| Part 3 Module 5 (MEV) | Multi-block MEV | Validator-controlled consecutive blocks make TWAP manipulation cheaper — active research area |
-| Part 3 Module 7 (L2 DeFi) | Sequencer uptime feeds | L2-specific oracle concerns: grace periods after restart, sequencer-aware price consumers |
-| Part 3 Module 9 (Capstone: Perpetual Exchange) | Oracle architecture for perps | Mark price, index price, funding rate — all oracle-dependent; dual-oracle and OEV patterns apply |
-
----
-
 ## 📖 Production Study Order
 
 Study these codebases in order — each builds on the previous one's patterns:

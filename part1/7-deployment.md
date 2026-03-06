@@ -702,39 +702,6 @@ After this section, you should be able to:
 
 ---
 
-## 🔗 Cross-Module Concept Links
-
-**Backward references (← concepts from earlier modules):**
-
-| Module | Concept | How It Connects |
-|--------|---------|-----------------|
-| [← M1 Modern Solidity](1-solidity-modern.md) | `abi.encodeCall` | Type-safe initialization data in deployment scripts — compiler catches mismatched args |
-| [← M1 Modern Solidity](1-solidity-modern.md) | Custom errors | Deployment validation failures with rich error data |
-| [← M2 EVM Changes](2-evm-changes.md) | EIP-7702 delegation | Delegation targets must exist before EOA delegates — deployment order matters |
-| [← M3 Token Approvals](3-token-approvals.md) | Permit2 `CREATE2` | Gold standard for deterministic multi-chain deployment — canonical address everywhere |
-| [← M3 Token Approvals](3-token-approvals.md) | `DOMAIN_SEPARATOR` | Includes `block.chainid` — verify it differs per chain after deployment |
-| [← M4 Account Abstraction](4-account-abstraction.md) | `CREATE2` factories | ERC-4337 wallet factories use counterfactual addresses — wallet exists before deployment |
-| [← M5 Foundry](5-foundry.md) | `forge script` | Primary deployment tool — simulation, broadcast, resume |
-| [← M5 Foundry](5-foundry.md) | `cast` commands | Post-deployment interaction: `cast call` for reads, `cast send` for writes |
-| [← M6 Proxy Patterns](6-proxy-patterns.md) | Atomic deploy+init | UUPS proxy must deploy + initialize in one tx to prevent front-running |
-| [← M6 Proxy Patterns](6-proxy-patterns.md) | Storage layout checks | `forge inspect storage-layout` before any upgrade deployment |
-
-**Part 2 connections:**
-
-| Part 2 Module | Deployment Pattern | Application |
-|---------------|-------------------|-------------|
-| [M1: Token Mechanics](../part2/1-token-mechanics.md) | Token deployment | ERC-20 deployment with initial supply, fee configuration, and access control setup |
-| [M2: AMMs](../part2/2-amms.md) | Factory pattern | Pool creation through factory contracts — deterministic pool addresses from token pairs |
-| [M3: Oracles](../part2/3-oracles.md) | Feed configuration | Chain-specific Chainlink feed addresses — different on every L2 |
-| [M4: Lending](../part2/4-lending.md) | Multi-contract deploy | Aave V3 deploys Pool + Configurator + Oracle + aTokens atomically via AddressesProvider |
-| [M5: Flash Loans](../part2/5-flash-loans.md) | Arbitrage scripts | Flash loan deployment with DEX router addresses per chain |
-| [M6: Stablecoins](../part2/6-stablecoins-cdps.md) | CDP deployment | Multi-contract CDP engine with oracle + liquidation + stability modules |
-| [M7: Vaults](../part2/7-vaults-yield.md) | Strategy deployment | Vault + strategy deploy scripts with yield source configuration per chain |
-| [M8: Security](../part2/8-defi-security.md) | Post-deploy audit | Deployment verification as security practice — check all state before going live |
-| [M9: Integration](../part2/9-integration-capstone.md) | Full pipeline | End-to-end deployment: factory → pools → oracles → governance → monitoring |
-
----
-
 ## 📖 Production Study Order
 
 Study these deployment scripts in this order — each builds on patterns from the previous:

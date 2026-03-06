@@ -1077,41 +1077,6 @@ After this section, you should be able to:
 
 ---
 
-## 🔗 Cross-Module Concept Links
-
-**Backward references (← concepts from earlier modules):**
-
-| Module 4 Concept | Builds on | Where |
-|---|---|---|
-| PackedUserOperation + validationData packing | BalanceDelta bit-packing, uint256 slot layout | [M1 — BalanceDelta](1-solidity-modern.md#balance-delta) |
-| UserOp validation errors | Custom errors for clear revert reasons | [M1 — Custom Errors](1-solidity-modern.md#custom-errors) |
-| Type-safe EntryPoint calls | `abi.encodeCall` for compile-time type checking | [M1 — abi.encodeCall](1-solidity-modern.md#abi-encodecall) |
-| EIP-7702 + ERC-4337 combined approach | Delegation designator format, DELEGATECALL semantics | [M2 — EIP-7702](2-evm-changes.md#eip-7702) |
-| EIP-1271 signature verification | Permit2's SignatureVerification handles EOA + contract sigs | [M3 — Permit2 Source Code](3-token-approvals.md#permit2-source-code) |
-| Smart account permit support | Permit2 works with smart accounts via EIP-1271 | [M3 — EIP-2612 Permit](3-token-approvals.md#eip-2612-permit) |
-
-**Forward references (→ concepts you'll use later):**
-
-| Module 4 Concept | Used in | Where |
-|---|---|---|
-| UserOp signature testing | `vm.sign`, `vm.addr`, fork testing for EntryPoint | [M5 — Foundry](5-foundry.md) |
-| Smart account upgradeability | UUPS proxy pattern — Kernel, Safe are upgradeable proxies | [M6 — Proxy Patterns](6-proxy-patterns.md) |
-| EntryPoint singleton deployment | CREATE2 deterministic addresses across chains | [M7 — Deployment](7-deployment.md) |
-
-**Part 2 connections:**
-
-| Module 4 Concept | Part 2 Module | How it connects |
-|---|---|---|
-| EIP-1271 + smart account signatures | [M2 — AMMs](../part2/2-amms.md) | Smart accounts using Permit2 for swaps — EIP-1271 verifies the permit signature |
-| Paymaster oracle pricing | [M3 — Oracles](../part2/3-oracles.md) | ERC-20 paymasters need Chainlink feeds for ETH/token exchange rates |
-| Batch liquidations via smart accounts | [M4 — Lending](../part2/4-lending.md) | Atomic batch liquidation: scan → liquidate multiple → swap rewards in one UserOp |
-| Gasless flash loan execution | [M5 — Flash Loans](../part2/5-flash-loans.md) | Paymasters can sponsor flash loan arb execution for users |
-| Gas sponsorship for vault deposits | [M7 — Vaults & Yield](../part2/7-vaults-yield.md) | Protocol-sponsored gasless deposits to attract TVL |
-| AA security implications | [M8 — DeFi Security](../part2/8-defi-security.md) | `msg.sender == tx.origin` checks, EIP-1271 griefing, paymaster draining |
-| Full AA integration | [M9 — Integration Capstone](../part2/9-integration-capstone.md) | Capstone should support smart account users with paymaster option |
-
----
-
 ## 📖 Production Study Order
 
 Read these files in order to build progressive understanding of account abstraction in production:

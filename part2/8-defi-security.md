@@ -1197,46 +1197,6 @@ After this section, you should be able to:
 - Walk through the deployment security checklist: code-level requirements (CEI, access control, oracle safety), testing requirements (unit + fuzz + invariant + fork), operational requirements (monitoring, incident response, bug bounty)
 - Prepare a codebase for audit: what to provide auditors (documentation, threat model, known issues, test suite) and what to do with the report afterward
 
-## 🔗 Cross-Module Concept Links
-
-### Backward References (concepts from earlier modules used here)
-
-| Source | Concept | How It Connects |
-|---|---|---|
-| **Part 1 Module 1** | Custom errors | Security checklist requires typed errors for all revert paths — error taxonomy from Module 1 |
-| **Part 1 Module 2** | Transient storage reentrancy guard | Global `nonReentrant` via transient storage is the recommended cross-contract reentrancy defense |
-| **Part 1 Module 5** | Fork testing | Flash loan attack exercises require mainnet fork setup from Module 5 |
-| **Part 1 Module 5** | Invariant / fuzz testing | The Invariant Testing section builds directly on foundry fuzz patterns from Module 5 |
-| **Part 1 Module 6** | Proxy patterns | Security checklist covers upgradeable contract risks — initializer, storage gap from Module 6 |
-| **M1** | SafeERC20 / `balanceOf` pitfalls | Donation attack (Category 3) exploits `balanceOf`-based accounting — internal tracking from M1 is the defense |
-| **M1** | Fee-on-transfer / rebasing tokens | Security Tooling section checklist: these break naive vault and lending accounting |
-| **M2** | AMM spot price / MEV / sandwich | Price manipulation Category 1 uses DEX swaps; sandwich attacks from M2's MEV section |
-| **M2** | Read-only reentrancy (Balancer) | The Attack Patterns section's read-only reentrancy uses Balancer pool `getRate()` manipulation during join/exit |
-| **M3** | Oracle manipulation taxonomy | The Attack Patterns section's 5-category taxonomy extends M3's Chainlink/TWAP/dual-oracle patterns |
-| **M3** | Staleness checks / L2 sequencer | Security checklist oracle safety requirements come directly from M3 |
-| **M4** | Lending / liquidation mechanics | Invariant catalog for lending protocols; SimpleLendingPool as invariant test target |
-| **M5** | Flash loans as capital amplifier | Flash loans make price manipulation free — the core enabler for Categories 1, 4, 5 |
-| **M6** | CDP mechanics / governance params | Invariant catalog for CDPs; governance manipulation (Category 5) targets stability fees and debt ceilings |
-| **M7** | ERC-4626 inflation attack | Price manipulation Category 4 — exchange rate manipulation, virtual shares defense |
-| **M7** | Profit unlocking (anti-sandwich) | The Attack Patterns sandwich defense references M7's `profitMaxUnlockTime` pattern |
-
-### Forward References (where these concepts lead)
-
-| Target | Concept | How It Connects |
-|---|---|---|
-| **M9** | Self-audit methodology | Apply the Reading Audit Reports threat model + security checklist to the integration capstone |
-| **M9** | Invariant test suite | Capstone requires comprehensive invariant tests using the Invariant Testing handler/ghost pattern |
-| **M9** | Stress testing | Capstone stress tests combine flash loan attacks + oracle manipulation from the Attack Patterns section |
-| **Part 3 M1** | Liquid staking security | LST/LRT composability risks — read-only reentrancy on staking derivatives, oracle manipulation on rebasing tokens |
-| **Part 3 M2** | Perpetuals security | Funding rate manipulation, oracle frontrunning in perp exchanges — extends the price manipulation taxonomy |
-| **Part 3 M4** | Cross-chain security | Bridge exploit patterns, message verification bypasses — cross-chain composability risk extends the composability section |
-| **Part 3 M5** | MEV and security | Sandwich attacks, JIT liquidity, and MEV extraction defenses build directly on the frontrunning/MEV section |
-| **Part 3 M7** | L2 DeFi security | L2 sequencer risks, forced inclusion, and cross-L2 bridge security expand on the oracle L2 sequencer checks |
-| **Part 3 M8** | Governance security | Timelock, multisig, and governance attack defenses build on Category 5 (governance manipulation) |
-| **Part 3 M9** | Capstone stress testing | The Perpetual Exchange capstone requires comprehensive invariant tests and adversarial stress testing from this module |
-
----
-
 ## 📖 Production Study Order
 
 Study these security resources in order — each builds on the previous:

@@ -1216,46 +1216,6 @@ After this section, you should be able to:
 
 ---
 
-## 🔗 Cross-Module Concept Links
-
-**Backward references (← concepts from earlier modules):**
-
-| Module | Concept | How It Connects |
-|--------|---------|-----------------|
-| [← M1 Modern Solidity](1-solidity-modern.md) | Custom errors | Tested with `vm.expectRevert(CustomError.selector)` — verify revert selectors |
-| [← M1 Modern Solidity](1-solidity-modern.md) | UDVTs | Type-safe test assertions — unwrap for comparison, wrap for inputs |
-| [← M1 Modern Solidity](1-solidity-modern.md) | Transient storage | Verified with cheatcodes — `vm.load` at transient slots, cross-call state |
-| [← M2 EVM Changes](2-evm-changes.md) | Flash accounting | `vm.expectRevert` for lock violations, settlement verification |
-| [← M2 EVM Changes](2-evm-changes.md) | EIP-7702 delegation | `vm.etch` for code injection, delegation target testing |
-| [← M3 Token Approvals](3-token-approvals.md) | EIP-2612 permits | `vm.sign` + EIP-712 digest construction for permit flows |
-| [← M3 Token Approvals](3-token-approvals.md) | Permit2 integration | `deal()` for token balances, approval chain testing |
-| [← M4 Account Abstraction](4-account-abstraction.md) | ERC-4337 validation | `vm.prank(entryPoint)` for validateUserOp testing |
-| [← M4 Account Abstraction](4-account-abstraction.md) | EIP-1271 signatures | Fork tests against real deployed smart wallets |
-
-**Forward references (→ concepts you'll use later):**
-
-| Module | Concept | How It Connects |
-|--------|---------|-----------------|
-| [→ M6 Proxy Patterns](6-proxy-patterns.md) | Upgradeable testing | Verify storage layout compatibility, test initializers vs constructors |
-| [→ M6 Proxy Patterns](6-proxy-patterns.md) | Fork test upgrades | Test proxy upgrades against live deployments |
-| [→ M7 Deployment](7-deployment.md) | Foundry scripts | Deterministic deployment scripts, `CREATE2` address prediction tests |
-| [→ M7 Deployment](7-deployment.md) | Multi-chain verification | Cross-chain deployment consistency checks |
-
-**Part 2 connections:**
-
-| Part 2 Module | Foundry Technique | Application |
-|---------------|-------------------|-------------|
-| [M2: AMMs](../part2/2-amms.md) | Invariant testing | `x * y = k` preservation, price bounds, LP share accounting |
-| [M3: Oracles](../part2/3-oracles.md) | `vm.warp` + `vm.roll` | Time manipulation for oracle staleness, TWAP testing |
-| [M4: Lending](../part2/4-lending.md) | Fork testing + fuzz testing | Test against live Aave/Compound pools, randomized health factor scenarios |
-| [M5: Flash Loans](../part2/5-flash-loans.md) | Fork testing + scripts | Flash loan PoCs against real pools, arbitrage scripts |
-| [M6: Stablecoins](../part2/6-stablecoins-cdps.md) | Invariant testing | CDP solvency, peg stability, liquidation thresholds |
-| [M7: Vaults](../part2/7-vaults-yield.md) | Fuzz testing | Share/asset conversion edge cases, yield strategy invariants |
-| [M8: Security](../part2/8-defi-security.md) | Exploit reproduction | DeFiHackLabs-style fork tests reproducing real attacks |
-| [M9: Integration](../part2/9-integration-capstone.md) | Full test suite | All techniques combined — capstone integration testing |
-
----
-
 ## 📖 Production Study Order
 
 Study these test suites in this order — each builds on skills from the previous:

@@ -1138,24 +1138,6 @@ After this section, you should be able to:
 
 ---
 
-<a id="cross-module-links"></a>
-## 🔗 Cross-Module Concept Links
-
-**← Backward References (where these patterns were introduced):**
-- Exchange rate math → **P1M1** ShareMath (shares/assets pattern), **P2M7** ERC-4626 `convertToShares`/`convertToAssets` — LSTs use the same shares-proportional-to-underlying model
-- Oracle integration → **P2M3** Chainlink patterns, staleness checks, heartbeat monitoring — LST oracles add beacon chain finality as an extra trust assumption
-- Lending collateral → **P2M4** health factor calculation, liquidation mechanics — LST collateral requires dual oracle pricing (exchange rate + market price)
-- Rebasing tokens → **P2M1** weird token behaviors — stETH rebasing breaks `balanceOf` assumptions; wstETH wrapping solves this
-- Yield-bearing assets → **P2M7** vault shares as collateral, ERC-4626 accounting — LSTs are essentially yield-bearing receipt tokens with the same math
-
-**→ Forward References (where LST concepts appear next in Part 3):**
-- Restaking → **P3M8** (Governance & DAOs) — risk stacking from restaked assets, correlated slashing conditions
-- LST as perp collateral → **P3M2** (Perpetuals) — yield-bearing margin, funding rate interaction with staking yield
-- LST yield tokenization → **P3M3** (Yield Tokenization) — Pendle PT-stETH, fixed-rate staking exposure via PT/YT split
-- LST price feeds → **P3M5** (MEV & Frontrunning) — oracle manipulation vectors, sandwich attacks on LST swaps
-
----
-
 <a id="production-study-order"></a>
 ## 📖 Production Study Order
 

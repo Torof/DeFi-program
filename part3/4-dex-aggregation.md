@@ -1059,24 +1059,6 @@ After this section, you should be able to:
 
 ---
 
-<a id="cross-module-links"></a>
-## 🔗 Cross-Module Concept Links
-
-**← Backward References (where these patterns were introduced):**
-- AMM integration → **P2M2** Uniswap V2/V3 swap interfaces — aggregators route through these pools, understanding their price impact curves is essential
-- Oracle prices for routing → **P2M3** Chainlink price feeds — off-chain routers use oracle prices as reference for optimal splitting
-- Flash loans in arbitrage → **P2M5** flash loan patterns — solvers use flash swaps to fill orders without pre-funded inventory
-- EIP-712 signatures → **P1M3** Permit/Permit2 signing — intent-based systems (UniswapX, CoW) rely on typed structured data signatures
-- Dutch auctions → **P2M6** liquidation auctions — similar time-decay math for price discovery (auction output decays over time)
-
-**→ Forward References (where aggregation concepts appear next in Part 3):**
-- MEV protection → **P3M5** (MEV & Frontrunning) — sandwich attacks, private mempools, proposer-builder separation
-- Solver economics → **P3M5** (MEV & Frontrunning) — solver competition as MEV redistribution mechanism
-- Cross-chain routing → **P3M6** (Cross-Chain & Bridges) — bridge-aware aggregation, cross-chain intents
-- Governance of solver sets → **P3M8** (Governance & DAOs) — who can be a solver, slashing conditions, reputation systems
-
----
-
 <a id="production-study-order"></a>
 ## 📖 Production Study Order
 

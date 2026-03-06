@@ -1220,41 +1220,6 @@ After this section, you should be able to:
 
 ---
 
-## 🔗 Cross-Module Concept Links
-
-**Backward references (← concepts from earlier modules):**
-
-| Module 3 Concept | Builds on | Where |
-|---|---|---|
-| EIP-712 typed data signing | `abi.encode` for struct hashing, `abi.encodeCall` for type safety | [M1 — abi.encodeCall](1-solidity-modern.md#abi-encodecall) |
-| Permit failure errors | Custom errors for clear revert reasons | [M1 — Custom Errors](1-solidity-modern.md#custom-errors) |
-| Packed AllowanceTransfer storage | BalanceDelta slot packing, bit manipulation | [M1 — BalanceDelta](1-solidity-modern.md#balance-delta) |
-| Permit2 + flash accounting | Transient storage for Uniswap V4 token flow | [M2 — Transient Storage](2-evm-changes.md#transient-storage-deep-dive) |
-| Temporary approvals via transient storage | EIP-1153 use cases beyond reentrancy guards | [M2 — DeFi Use Cases](2-evm-changes.md#transient-storage-deep-dive) |
-
-**Forward references (→ concepts you'll use later):**
-
-| Module 3 Concept | Used in | Where |
-|---|---|---|
-| EIP-1271 signature validation | Smart wallet permit support, account abstraction | [M4 — Account Abstraction](4-account-abstraction.md) |
-| EIP-712 domain separators | Test signature construction in Foundry | [M5 — Foundry](5-foundry.md) |
-| Permit2 singleton deployment | CREATE2 deterministic addresses, cross-chain consistency | [M7 — Deployment](7-deployment.md) |
-| Safe permit try/catch pattern | Proxy upgrade safety, defensive coding patterns | [M6 — Proxy Patterns](6-proxy-patterns.md) |
-
-**Part 2 connections:**
-
-| Module 3 Concept | Part 2 Module | How it connects |
-|---|---|---|
-| Token approval hygiene | [M1 — Token Mechanics](../part2/1-token-mechanics.md) | Weird ERC-20 behaviors (fee-on-transfer, rebasing) interact with approval flows |
-| Permit2 SignatureTransfer | [M2 — AMMs](../part2/2-amms.md) | Uniswap V4 token ingress — all swaps flow through Permit2 |
-| Bitmap nonces + witness data | [M2 — AMMs](../part2/2-amms.md) | UniswapX intent-based trading relies on parallel signature collection |
-| Permit2 AllowanceTransfer | [M4 — Lending](../part2/4-lending.md) | Lending protocols use time-bounded allowances for recurring deposits |
-| Permit2 integration patterns | [M5 — Flash Loans](../part2/5-flash-loans.md) | Flash loan protocols integrate Permit2 for token sourcing |
-| Permit phishing + front-running | [M8 — DeFi Security](../part2/8-defi-security.md) | $314M lost in 2024 — signature-based attack surface analysis |
-| Full Permit2 integration | [M9 — Integration Capstone](../part2/9-integration-capstone.md) | Capstone project requires Permit2 as token ingress path |
-
----
-
 ## 📖 Production Study Order
 
 Read these files in order to build progressive understanding of signature-based approvals in production:

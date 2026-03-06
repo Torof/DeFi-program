@@ -838,17 +838,6 @@ After this section, you should be able to:
 
 ---
 
-## 🔗 Cross-Module Concept Links
-
-- Token voting → **P2 M1** ERC-20 extensions, ERC20Votes delegation
-- Flash loan governance attacks → **P2 M5** flash loans for vote manipulation
-- Timelock patterns → **P1 M6** proxy upgrades via governance, admin controls
-- ve-tokenomics → **P2 M2** Curve AMM, gauge voting for liquidity direction
-- Security patterns → **P2 M8** access control, multisig validation
-- Treasury management → **P2 M7** vault strategies for DAO treasury yield
-
----
-
 ## 📖 Production Study Order
 
 1. **OpenZeppelin Governor.sol** — proposal lifecycle, counting modules

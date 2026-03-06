@@ -785,17 +785,6 @@ After this section, you should be able to:
 
 ---
 
-## 🔗 Cross-Module Concept Links
-
-- Gas optimization on L2 → **P1 M2** EVM gas costs, **P2 M2** AMM gas patterns
-- Oracle on L2 → **P2 M3** Chainlink feeds, sequencer uptime feeds
-- MEV on L2 → **P3 M5** MEV supply chain, sequencer ordering differences
-- Bridge deposits → **P3 M6** canonical bridges, message passing
-- Multi-chain tokens → **P3 M6** xERC20, OFT standards for cross-chain fungibility
-- Deployment scripts → **P1 M7** CREATE2, multi-chain deployment strategies
-
----
-
 ## 📖 Production Study Order
 
 1. **Optimism L2OutputOracle** — state root posting, challenge period

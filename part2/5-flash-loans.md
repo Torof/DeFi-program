@@ -773,40 +773,6 @@ After this section, you should be able to:
 - Explain why flash accounting (V4, Balancer V3) is replacing traditional flash loans: delta tracking + end-of-transaction settlement is more gas efficient and composable
 - Describe a governance flash loan attack (borrow governance tokens → vote → return) and the defenses: snapshot voting power at proposal creation block, timelocks
 
-## 🔗 Cross-Module Concept Links
-
-### ← Backward References (Part 1 + Modules 1–4)
-
-| Source | Concept | How It Connects |
-|--------|---------|-----------------|
-| Part 1 Module 1 | Custom errors | Flash loan receivers use custom errors for initiator validation, repayment failures |
-| Part 1 Module 2 | Transient storage / [EIP-1153](https://eips.ethereum.org/EIPS/eip-1153) | V4 flash accounting uses TSTORE/TLOAD for delta tracking — flash loans become emergent from the accounting model |
-| Part 1 Module 3 | Permit / Permit2 | Gasless approvals in flash loan callbacks — approve repayment without separate tx |
-| Part 1 Module 5 | Fork testing / `vm.mockCall` | Essential for testing flash loan strategies against real Aave/Balancer/Uniswap liquidity on mainnet forks |
-| Part 1 Module 6 | Proxy patterns | Aave Pool proxy delegates to FlashLoanLogic library; Balancer Vault is a single immutable entry point |
-| Module 1 | SafeERC20 / token transfers | Safe token handling in callbacks — approve patterns differ between providers (Aave: approve, Balancer: transfer) |
-| Module 2 | AMM swaps / price impact | DEX swaps are the core operation inside most flash loan strategies (arbitrage, liquidation collateral disposal) |
-| Module 2 | Flash accounting (V4) | V4 doesn't have dedicated flash loans — flash borrowing is emergent from the delta tracking system |
-| Module 3 | Oracle manipulation threat model | Flash loans make spot price manipulation free — the entire oracle attack surface assumes flash loan access |
-| Module 3 | TWAP / Chainlink defense | Time-based oracles resist flash loan manipulation because they span multiple blocks |
-| Module 4 | Liquidation mechanics / health factor | Flash loan liquidation: borrow debt asset → liquidate → swap collateral → repay — zero-capital liquidation |
-| Module 4 | Collateral swap / leverage | Flash borrow → repay debt → withdraw → swap → redeposit → re-borrow → repay flash — Aave's "liquidity switch" |
-
-### → Forward References (Modules 6–9 + Part 3)
-
-| Target | Concept | How Flash Loan Knowledge Applies |
-|--------|---------|----------------------------------|
-| Module 6 (Stablecoins) | DAI flash mint | Unlimited flash minting from CDP-issued stablecoins — infinite liquidity because the protocol controls issuance |
-| Module 6 (Stablecoins) | Liquidation 2.0 | MakerDAO Dutch auctions designed for flash loan compatibility — more competition, better prices, less bad debt |
-| Module 7 (Yield/Vaults) | ERC-4626 inflation attack | Flash loans amplify donation attacks on vault share prices — virtual shares/assets offset is the defense |
-| Module 8 (Security) | Attack simulation | Flash-loan-amplified attack scenarios as primary threat model for invariant testing |
-| Module 9 (Stablecoin Capstone) | Flash mint | Capstone stablecoin protocol includes ERC-3156-adapted flash mint — CDP-issued tokens can offer infinite flash liquidity |
-| Part 3 Module 5 (MEV) | Searcher strategies | Flash loan arbitrage profits captured by MEV searchers via Flashbots bundles; builder tips consume 90%+ of profit |
-| Part 3 Module 8 (Governance) | Governance attacks | Flash loan voting attacks and snapshot-based voting defense; quorum requirements |
-| Part 3 Module 9 (Capstone) | Perpetual Exchange | Capstone perp exchange integrates flash loan patterns for liquidation and MEV strategies learned throughout Part 3 |
-
----
-
 ## 📖 Production Study Order
 
 Study these codebases in order — each builds on the previous one's patterns:
