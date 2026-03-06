@@ -595,7 +595,7 @@ After this section, you should be able to:
 
 ---
 
-## ⚠️ Security, Anti-Patterns, and the Bigger Picture
+## 💡 Security, Anti-Patterns, and the Bigger Picture
 
 <a id="flash-security"></a>
 #### ⚠️ Flash Loan Security for Protocol Builders

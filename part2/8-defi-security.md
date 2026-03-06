@@ -62,10 +62,10 @@ If any of these feel unfamiliar, review Part 1 and the OpenZeppelin documentatio
 
 ---
 
-## ⚠️ DeFi-Specific Attack Patterns
+## 💡 DeFi-Specific Attack Patterns
 
 <a id="read-only-reentrancy"></a>
-### ⚠️ Read-Only Reentrancy
+### 💡 Concept: Read-Only Reentrancy
 
 The most subtle reentrancy variant. No state modification needed — just reading at the wrong time.
 
@@ -165,7 +165,7 @@ uint256 rate = pool.getRate();
 - Use time-delayed or externally-sourced rates instead of live pool calculations
 
 <a id="cross-contract-reentrancy"></a>
-### ⚠️ Cross-Contract Reentrancy in DeFi Compositions
+### 💡 Concept: Cross-Contract Reentrancy in DeFi Compositions
 
 When your protocol interacts with multiple external protocols, reentrancy can occur across trust boundaries:
 
@@ -290,7 +290,7 @@ Step 5: Repay flash loan: 1,500,000 USDC
 **Why Chainlink prevents this:** Chainlink prices come from off-chain aggregation of multiple exchanges. A swap on one Uniswap pool doesn't affect the Chainlink price. Even TWAP oracles resist this because the manipulation must be sustained across the averaging window (expensive for deep-liquidity pools).
 
 <a id="frontrunning-mev"></a>
-### ⚠️ Frontrunning and MEV
+### 💡 Concept: Frontrunning and MEV
 
 **Sandwich attacks:** Attacker sees your pending swap in the mempool. They front-run (buy before you, pushing price up), your swap executes at the worse price, they back-run (sell after you, profiting from the difference).
 
@@ -301,7 +301,7 @@ Defense: slippage protection (`amountOutMin` in Uniswap swaps), private transact
 **Liquidation MEV:** When a position becomes liquidatable, MEV searchers race to execute the liquidation (and capture the bonus). For protocol builders: ensure your liquidation mechanism is MEV-aware and that the bonus isn't so large it incentivizes price manipulation to trigger liquidations.
 
 <a id="precision-loss"></a>
-### ⚠️ Precision Loss and Rounding Exploits
+### 💡 Concept: Precision Loss and Rounding Exploits
 
 Integer division in Solidity always truncates (rounds toward zero). In DeFi, this creates two distinct classes of vulnerability:
 
@@ -380,7 +380,7 @@ For mulDiv with explicit rounding: use OpenZeppelin's `Math.mulDiv(a, b, c, Math
 - MakerDAO's Vat tracks debt as `art * rate` (both in RAY = 1e27) to preserve precision across stability fee accruals
 
 <a id="access-control-attacks"></a>
-### ⚠️ Access Control Vulnerabilities
+### 💡 Concept: Access Control Vulnerabilities
 
 Access control is the [#1 vulnerability in the OWASP Smart Contract Top 10](https://owasp.org/www-project-smart-contract-top-10/) (2024 and 2025). It's devastatingly simple and the most common cause of total fund loss in DeFi.
 
@@ -452,7 +452,7 @@ In older Solidity versions (< 0.8.0), functions without explicit visibility defa
 - [ ] All roles assigned correctly in initializer, verified in tests
 
 <a id="composability-risk"></a>
-### ⚠️ Composability Risk
+### 💡 Concept: Composability Risk
 
 DeFi's composability means your protocol interacts with others in ways you can't fully predict:
 - Your vault accepts aTokens as collateral → aTokens interact with Aave → Aave interacts with Chainlink → Chainlink relies on external data providers

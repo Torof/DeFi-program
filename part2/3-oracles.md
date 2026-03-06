@@ -694,7 +694,7 @@ After this section, you should be able to:
 
 ---
 
-## ⚠️ Oracle Manipulation Attacks
+## 💡 Oracle Manipulation Attacks
 
 <a id="attack-surface"></a>
 #### ⚠️ The Attack Surface

@@ -1341,7 +1341,7 @@ After this section, you should be able to:
 
 ---
 
-## 📚 Beyond Uniswap and Advanced AMM Topics
+## 💡 Beyond Uniswap and Advanced AMM Topics
 
 <a id="amms-vs-clobs"></a>
 ### AMMs vs Order Books (CLOBs)

@@ -57,7 +57,7 @@
 
 ---
 
-## 📚 Overview & Design Philosophy
+## 💡 Overview & Design Philosophy
 
 <a id="why-capstone"></a>
 ### 💡 Concept: Why a Stablecoin Capstone

@@ -321,7 +321,7 @@ After this section, you should be able to:
 
 ---
 
-## ⚠️ The Inflation Attack and Defenses
+## 💡 The Inflation Attack and Defenses
 
 <a id="inflation-attack"></a>
 #### ⚠️ The Attack

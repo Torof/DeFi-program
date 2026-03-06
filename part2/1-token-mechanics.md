@@ -334,7 +334,7 @@ After this section, you should be able to:
 ## 💡 Advanced Token Behaviors & Protocol Design
 
 <a id="advanced-token-behaviors"></a>
-### ⚠️ Advanced Token Behaviors That Break Protocols
+### 💡 Concept: Advanced Token Behaviors That Break Protocols
 
 Beyond the "weird ERC-20" edge cases above, several token categories introduce behaviors that fundamentally affect protocol architecture. You won't encounter these on every integration, but when you do, not knowing about them leads to exploits.
 
