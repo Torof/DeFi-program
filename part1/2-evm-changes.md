@@ -2003,24 +2003,6 @@ EOF container: Structured sections
 
 ---
 
-## 📖 Production Study Order
-
-Read these files in order to build progressive understanding of Module 2's concepts in production code:
-
-| # | File | Why | Lines |
-|---|------|-----|-------|
-| 1 | [OZ ReentrancyGuardTransient.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/ReentrancyGuardTransient.sol) | Simplest transient storage usage — compare to classic ReentrancyGuard | ~30 |
-| 2 | [V4 Transient state declarations](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) | See `NonzeroDeltaCount transient` and `mapping(...) transient` — how V4 declares transient state | Top ~50 |
-| 3 | [V4 `swap()` → `_accountPoolBalanceDelta()`](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) | Follow how swaps update transient deltas without moving tokens | ~100 |
-| 4 | [V4 `settle()` and `take()`](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) | Where actual token transfers happen — the settlement phase | ~60 |
-| 5 | [Lido AccountingOracle.sol](https://github.com/lidofinance/lido-dao/blob/master/contracts/0.8.9/oracle/AccountingOracle.sol) | Validator reporting — context for BLS precompile use cases | ~200 |
-| 6 | [Rhinestone ModuleKit](https://github.com/rhinestonewtf/modulekit) | EIP-7702 compatible account modules — delegation target patterns | ~150 |
-| 7 | [Alchemy LightAccount.sol](https://github.com/alchemyplatform/light-account/blob/main/src/LightAccount.sol) | Production ERC-4337 account that works with EIP-7702 delegation | ~200 |
-
-**Reading strategy:** Files 1–4 cover transient storage from simple → complex. File 5 gives BLS context. Files 6–7 show real EIP-7702 delegation targets — study how they validate `msg.sender` and handle batch execution.
-
----
-
 ## 📚 Resources
 
 ### EIP-1153 — Transient Storage

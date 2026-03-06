@@ -888,15 +888,6 @@ After this section, you should be able to:
 
 ---
 
-## 📖 Production Study Order
-
-1. **LayerZero EndpointV2.sol** — message dispatching, ULN verification flow
-2. **LayerZero OApp.sol** — application pattern, `_lzReceive` handler
-3. **Chainlink CCIP Router.sol** — message sending, fee estimation
-4. **Chainlink CCIP OnRamp/OffRamp** — token transfer mechanics, rate limiting
-5. **Wormhole CoreBridge** — VAA verification, guardian set management
-6. **Across SpokePool** — optimistic relaying, LP-based bridging economics
-
 ---
 
 <a id="resources"></a>

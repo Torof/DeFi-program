@@ -702,23 +702,6 @@ After this section, you should be able to:
 
 ---
 
-## 📖 Production Study Order
-
-Study these deployment scripts in this order — each builds on patterns from the previous:
-
-| # | Repository | Why Study This | Key Files |
-|---|-----------|----------------|-----------|
-| 1 | [Foundry Book - Scripting](https://book.getfoundry.sh/tutorials/solidity-scripting) | Official patterns — learn the `Script` base class and `vm.broadcast` | Tutorial examples |
-| 2 | [Morpho Blue scripts](https://github.com/morpho-org/morpho-blue/tree/main/script) | Clean, minimal production deployment — single contract, no proxies | Deploy.s.sol |
-| 3 | [Uniswap V4 scripts](https://github.com/Uniswap/v4-core/tree/main/script) | `CREATE2` deterministic deployment — immutable core pattern | DeployPoolManager.s.sol |
-| 4 | [Permit2 deployment](https://github.com/Uniswap/permit2) | Canonical `CREATE2` address — the gold standard for multi-chain deployment | DeployPermit2.s.sol |
-| 5 | [Aave V3 deploy](https://github.com/aave/aave-v3-deploy) | Full production pipeline — multi-contract, multi-chain, proxy + beacon | deploy/, config/ |
-| 6 | [Safe deployment](https://github.com/safe-global/safe-contracts/tree/main/scripts) | Factory + `CREATE2` for deterministic wallet addresses | deploy scripts |
-
-**Reading strategy:** Start with the Foundry Book for idioms, then Morpho for the simplest real deployment. Move to Uniswap/Permit2 for `CREATE2` mastery. Finish with Aave for the most complex deployment you'll encounter — multi-contract, multi-chain, proxy architecture. Safe shows `CREATE2` applied to wallet infrastructure.
-
----
-
 ## 📚 Resources
 
 ### Deployment & Scripting

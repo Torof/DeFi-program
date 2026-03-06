@@ -51,7 +51,6 @@
 - [Suggested Build Order](#build-order)
 - [⚠️ Common Mistakes](#common-mistakes)
 - [Portfolio & Interview Positioning](#portfolio)
-- [Production Study Order](#study-order)
 - [Self-Assessment Checklist](#self-assessment)
 
 ---
@@ -1365,24 +1364,6 @@ Wire everything together. Write the 5 invariant tests with the system handler. R
 > **Checkpoint:** All 5 invariants pass with depth ≥ 50, runs ≥ 256. Fork test works. Gas benchmarks logged.
 
 ---
-
-<a id="study-order"></a>
-## 📖 Production Study Order
-
-Study these in order — each builds understanding for the next.
-
-| # | Repository / Resource | Why Study This | Key Files |
-|---|---|---|---|
-| 1 | [MakerDAO Vat + Jug](https://github.com/makerdao/dss) | The foundational CDP engine — your Engine mirrors this | `vat.sol` (frob, grab), `jug.sol` (drip, rpow) |
-| 2 | [MakerDAO Dog + Clipper](https://github.com/makerdao/dss) | Dutch auction liquidation — your Liquidator mirrors this | `dog.sol` (bark), `clip.sol` (kick, take), `abaci.sol` (decay functions) |
-| 3 | [MakerDAO DssFlash](https://github.com/makerdao/dss-flash) | Flash mint reference — your Stablecoin's flash mint | `DssFlash.sol` (flashLoan, max, fee) |
-| 4 | [Liquity V1](https://github.com/liquity/dev) | Immutable CDP alternative — different design philosophy | `BorrowerOperations.sol`, `TroveManager.sol`, `StabilityPool.sol` |
-| 5 | [GHO Flash Minter](https://github.com/aave/gho-core) | Facilitator-based minting + flash mint implementation | `Gho.sol`, `GhoFlashMinter.sol` |
-| 6 | [Reflexer RAI](https://github.com/reflexer-labs/geb) | Non-pegged stablecoin — the furthest point on the decentralization spectrum. Note: project is largely inactive/archived, but the codebase remains educational | `SAFEEngine.sol`, `OracleRelayer.sol` |
-
-**Reading strategy:** Start with MakerDAO (1-3) since your protocol directly mirrors its patterns. Compare Liquity (4) for the immutable design philosophy — note how they handle peg without governance or PSM (redemptions). Study GHO (5) for flash mint implementation specifics. Read Reflexer RAI (6) if you want to understand the frontier of decentralized stablecoin design — no peg target, pure market-driven stability.
-
-> **Note:** MakerDAO's `dss` repo is the "classic" Multi-Collateral DAI codebase. MakerDAO has since rebranded to Sky Protocol and launched Spark (lending arm), but the `dss` codebase remains the canonical reference for CDP mechanics. Focus on `dss` for this capstone.
 
 <a id="study-makerdao"></a>
 #### 📖 How to Study MakerDAO's dss

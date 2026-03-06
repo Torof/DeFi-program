@@ -1077,26 +1077,6 @@ After this section, you should be able to:
 
 ---
 
-## 📖 Production Study Order
-
-Read these files in order to build progressive understanding of account abstraction in production:
-
-| # | File | Why | Lines |
-|---|------|-----|-------|
-| 1 | [IAccount.sol](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/interfaces/IAccount.sol) | One function: `validateUserOp` — the minimal smart account interface | ~15 |
-| 2 | [BaseAccount.sol](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/core/BaseAccount.sol) | Validation helper — see how `_validateSignature` is separated from nonce/payment handling | ~50 |
-| 3 | [SimpleAccount.sol](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccount.sol) | Reference implementation — ECDSA owner validation, execute/executeBatch | ~100 |
-| 4 | [EntryPoint.sol — `handleOps`](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/core/EntryPoint.sol) | The orchestrator — follow validate → execute → postOp flow (skim, don't deep-read) | ~500 |
-| 5 | [BasePaymaster.sol](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/core/BasePaymaster.sol) | Paymaster interface — `validatePaymasterUserOp` + `postOp` with context passing | ~60 |
-| 6 | [VerifyingPaymaster.sol](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/VerifyingPaymaster.sol) | Simplest paymaster — off-chain signature verification | ~80 |
-| 7 | [TokenPaymaster.sol](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/TokenPaymaster.sol) | ERC-20 gas payment — oracle integration, postOp accounting | ~200 |
-| 8 | [OZ SignatureChecker.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/SignatureChecker.sol) | Universal sig verification — the bridge between EOA and smart account signatures | ~30 |
-| 9 | [Kernel (ZeroDev)](https://github.com/zerodev-app/kernel) | Production modular account — plugins, session keys, how the industry builds on top of ERC-4337 | ~300 |
-
-**Reading strategy:** Files 1–3 build the smart account from interface → reference implementation. File 4 is the orchestrator (skim the flow, don't memorize). Files 5–7 cover paymasters from simple → complex. File 8 is the EIP-1271 bridge. File 9 shows where the industry is heading — modular, pluggable account architecture.
-
----
-
 ## 📚 Resources
 
 ### ERC-4337

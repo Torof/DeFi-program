@@ -1861,23 +1861,6 @@ After this section, you should be able to:
 
 ---
 
-## 📖 Production Study Order
-
-Study these codebases in order — each builds on the previous one's patterns:
-
-| # | Repository | Why Study This | Key Files |
-|---|-----------|----------------|-----------|
-| 1 | [Uniswap V2 Pair](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol) | The foundational AMM — `mint()`, `burn()`, `swap()` in ~250 lines. Understand constant product, LP share math (`Math.sqrt`), and the TWAP price accumulator | `UniswapV2Pair.sol` (`mint`, `burn`, `swap`, `_update`), `UniswapV2Factory.sol` |
-| 2 | [Uniswap V2 Router02](https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol) | User-facing routing — multi-hop swaps, slippage protection, deadline enforcement, WETH wrapping. Separation of core (immutable) from periphery (upgradeable) | `UniswapV2Router02.sol` (`swapExactTokensForTokens`, `addLiquidity`), `UniswapV2Library.sol` (`getAmountOut`) |
-| 3 | [Uniswap V3 Pool](https://github.com/Uniswap/v3-core/blob/main/contracts/UniswapV3Pool.sol) | Concentrated liquidity — ticks, positions, fee accumulation per-position. Understand how `swap()` traverses ticks and how liquidity is tracked per-range | `UniswapV3Pool.sol` (`swap`, `mint`, `burn`), `Position.sol`, `Tick.sol` |
-| 4 | [Uniswap V3 TickMath + SqrtPriceMath](https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/) | Core AMM math — `getSqrtRatioAtTick()` (log-space conversion), `getAmount0Delta`/`getAmount1Delta` (liquidity-to-amount conversion). The mathematical foundation of concentrated liquidity | `libraries/TickMath.sol`, `libraries/SqrtPriceMath.sol` |
-| 5 | [Uniswap V4 PoolManager](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) | Singleton architecture — all pools in one contract, flash accounting via transient storage, `unlock()` → callback → `settle()` pattern | `src/PoolManager.sol` (`swap`, `modifyLiquidity`, `unlock`), `src/libraries/Pool.sol` |
-| 6 | [Uniswap V4 Hooks](https://github.com/Uniswap/v4-core/blob/main/src/libraries/Hooks.sol) | Hook interface and lifecycle — `beforeSwap`/`afterSwap`, fee overrides, custom curves via `NoOp`. Address-based permission encoding | `src/libraries/Hooks.sol`, `src/interfaces/IHooks.sol`, `src/PoolManager.sol` (hook calls) |
-| 7 | [Curve StableSwap](https://github.com/curvefi/curve-contract/blob/master/contracts/pool-templates/base/SwapTemplateBase.vy) | StableSwap invariant — amplification parameter `A`, multi-asset pools, Newton's method for `get_y()`. The dominant AMM design for pegged assets | `SwapTemplateBase.vy` (`exchange`, `get_dy`, `_get_D`, `_get_y`) |
-| 8 | [Balancer V2 Vault](https://github.com/balancer/balancer-v2-monorepo/tree/master/pkg/vault/contracts) | Multi-pool singleton — all tokens held in one vault contract, internal balances, batch swaps. Predecessor to V4's singleton pattern | `Vault.sol` (`swap`, `batchSwap`), `PoolBalances.sol`, `FlashLoans.sol` |
-
-**Reading strategy:** Start with V2 Pair (1) — it's the simplest production AMM and every later design builds on it. Then the Router (2) to see the user-facing layer and core/periphery separation. Move to V3 Pool (3) for concentrated liquidity — trace one `swap()` call through tick traversal. Study the math libraries (4) separately with small number examples. V4 PoolManager (5) shows the singleton + flash accounting evolution; compare with Balancer V2's earlier singleton (8). Read Hooks (6) to understand the extensibility model. Finally, Curve's StableSwap (7) shows an entirely different invariant optimized for pegged assets — compare the `A` parameter's effect with constant product.
-
 ---
 
 ## 📚 Resources

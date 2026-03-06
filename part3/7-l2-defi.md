@@ -785,15 +785,6 @@ After this section, you should be able to:
 
 ---
 
-## 📖 Production Study Order
-
-1. **Optimism L2OutputOracle** — state root posting, challenge period
-2. **Arbitrum Sequencer Inbox** — transaction ordering, delayed inbox
-3. **Base/Optimism L1Block.sol** — L1 data cost estimation, gas oracle
-4. **Aave V3 on Arbitrum** — sequencer uptime integration, PriceOracleSentinel
-5. **Uniswap V3 on multiple L2s** — deployment comparison, chain-specific adaptations
-6. **Velodrome/Aerodrome** — L2-native AMM design, ve(3,3) on OP Stack
-
 ---
 
 <a id="resources"></a>

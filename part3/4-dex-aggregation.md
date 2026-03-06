@@ -1059,22 +1059,6 @@ After this section, you should be able to:
 
 ---
 
-<a id="production-study-order"></a>
-## 📖 Production Study Order
-
-Study these codebases in order — each builds on the previous one's patterns:
-
-| # | Repository | Why Study This | Key Files |
-|---|-----------|----------------|-----------|
-| 1 | [1inch AggregationRouterV6](https://github.com/1inch/limit-order-protocol) | Executor pattern, multi-source routing — the classic aggregator architecture (V6 router source not public; limit order protocol is the best open reference) | `contracts/LimitOrderProtocol.sol` |
-| 2 | [UniswapX DutchOrderReactor](https://github.com/Uniswap/UniswapX) | Intent settlement, Dutch auction price decay, callback pattern for just-in-time liquidity | `src/reactors/DutchOrderReactor.sol`, `src/lib/DutchDecayLib.sol` |
-| 3 | [UniswapX ExclusiveDutchOrderReactor](https://github.com/Uniswap/UniswapX) | Exclusive filler period, priority ordering, enhanced MEV protection | `src/reactors/ExclusiveDutchOrderReactor.sol` |
-| 4 | [CoW Protocol GPv2Settlement](https://github.com/cowprotocol/contracts) | Batch settlement, uniform clearing price, coincidence of wants matching | `src/contracts/GPv2Settlement.sol`, `src/contracts/GPv2AllowListAuthentication.sol` |
-| 5 | [0x Exchange Proxy](https://github.com/0xProject/protocol) | Multi-source routing, transform ERC20 pattern, feature-based architecture | `contracts/zero-ex/contracts/src/ZeroEx.sol` |
-| 6 | [Paraswap Augustus](https://github.com/paraswap/augustus-v5) | Multi-DEX aggregation, adapter pattern for different AMM interfaces | `contracts/AugustusSwapper.sol` |
-
-**Reading strategy:** Start with UniswapX — it's the cleanest intent-based codebase. Trace the full flow: user signs EIP-712 order → solver calls `execute` → Reactor validates → callback to solver → solver sources liquidity → Reactor checks output. Then read CoW Protocol's batch settlement as a contrasting model. The 1inch limit order protocol shows the hybrid approach. 0x and Paraswap show the traditional multi-call executor pattern — useful for understanding what intents are replacing.
-
 ---
 
 <a id="resources"></a>

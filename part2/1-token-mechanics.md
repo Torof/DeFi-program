@@ -907,22 +907,6 @@ After this section, you should be able to:
 - Evaluate a new token for DeFi integration using the 13-point checklist and distinguish which risks need code-level defenses vs operational monitoring
 - Compare permissionless (Uniswap), curated (Aave), and hybrid (Euler V2) token listing strategies and explain the security trade-offs of each
 
-## 📖 Production Study Order
-
-Study these codebases in order — each builds on the previous one's patterns:
-
-| # | Repository | Why Study This | Key Files |
-|---|-----------|----------------|-----------|
-| 1 | [OpenZeppelin ERC20](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol) | The canonical implementation — understand the `_update()` hook, virtual functions, and how every other token inherits or deviates from this | `ERC20.sol` (`_update`, `_approve`, `_spendAllowance`), `extensions/` |
-| 2 | [Solmate ERC20](https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC20.sol) | Gas-optimized alternative — compare with OZ to understand which safety checks are worth the gas and which are ceremony. No virtual `_update()` hook | `src/tokens/ERC20.sol` (compare `transfer`, `approve` with OZ) |
-| 3 | [Weird ERC-20 Tokens](https://github.com/d-xo/weird-erc20) | Catalog of every non-standard ERC-20 behavior — fee-on-transfer, missing return values, rebasing, pausable, blocklist. Every integrating protocol must handle these | `README.md` (the catalog itself), individual token implementations |
-| 4 | [USDT TetherToken](https://etherscan.io/address/0xdac17f958d2ee523a2206206994597c13d831ec7#code) | The most integrated non-standard token — missing return values on `transfer`/`approve`, non-zero-to-non-zero approval restriction. Why SafeERC20 exists | `TetherToken.sol` (compare `transfer` signature with ERC-20 spec) |
-| 5 | [WETH9](https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2#code) | Canonical wrapped ETH — deposit/withdraw pattern, `fallback` for implicit wrapping. Every DeFi router integrates this | `WETH9.sol` (`deposit`, `withdraw`, `fallback`) |
-| 6 | [Uniswap V2 Pair](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol) | Balance-before-after pattern in production — `swap()` reads actual balances instead of trusting transfer amounts; `skim()` and `sync()` for balance recovery | `UniswapV2Pair.sol` (`swap`, `_update`, `skim`, `sync`) |
-| 7 | [Aave V3 AToken](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/tokenization/AToken.sol) | Rebasing token via scaled balances — `balanceOf()` returns `scaledBalance * liquidityIndex`, not stored balance. The index-based accounting pattern used across all lending protocols | `AToken.sol`, `ScaledBalanceTokenBase.sol` |
-
-**Reading strategy:** Start with OZ ERC20 (1) — read `_update()` and understand the hook pattern all extensions build on. Compare with Solmate (2) to see what a minimal implementation looks like without hooks. Study the weird-erc20 catalog (3) to map the full landscape of non-standard behaviors. Then read USDT (4) to see the real-world token that forced the creation of SafeERC20. WETH9 (5) is short and shows the ETH wrapping pattern every router uses. Uniswap V2 Pair (6) shows how production protocols defend against fee-on-transfer tokens via balance-before-after. Aave's AToken (7) shows the rebasing/scaled-balance pattern you'll encounter in lending and yield protocols.
-
 ---
 
 ## 📚 Resources

@@ -1012,21 +1012,6 @@ After this section, you should be able to:
 - Explain why ERC-4626 composability is a double-edged sword: each layer of composition (vault-of-vaults, vault tokens as collateral) adds attack surface alongside functionality
 - Calculate when leveraged yield is profitable: incentive APY must exceed the borrow-supply spread after accounting for gas and liquidation risk
 
-## 📖 Production Study Order
-
-Study these implementations in order — each builds on concepts from the previous:
-
-| # | Repository | Why Study This | Key Files |
-|---|---|---|---|
-| 1 | [OpenZeppelin ERC4626](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC4626.sol) | Foundation implementation with virtual shares defense — the reference all others compare against | `ERC4626.sol` (conversion math, rounding), `Math.sol` (mulDiv) |
-| 2 | [Solmate ERC4626](https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC4626.sol) | Minimal gas-efficient alternative — no virtual shares, shows the trade-off between safety and efficiency | `ERC4626.sol` (compare rounding, no `_decimalsOffset`) |
-| 3 | [Yearn TokenizedStrategy](https://github.com/yearn/tokenized-strategy/blob/master/src/TokenizedStrategy.sol) | The delegation pattern — how a strategy delegates ERC-4626 logic to a shared implementation via `delegateCall` | `TokenizedStrategy.sol` (accounting, reporting), `BaseStrategy.sol` (the 3 overrides) |
-| 4 | [Yearn VaultV3](https://github.com/yearn/yearn-vaults-v3/blob/master/contracts/VaultV3.vy) | Allocator vault with profit unlocking, role system, and multi-strategy debt management | `VaultV3.vy` (`process_report`, `update_debt`, profit unlock), `TECH_SPEC.md` |
-| 5 | [Morpho MetaMorpho](https://github.com/morpho-org/metamorpho/blob/main/src/MetaMorpho.sol) | Production curator vault — allocates across Morpho Blue lending markets, real-world fee/cap/queue mechanics | `MetaMorpho.sol` (allocation logic, fee handling, withdrawal queue) |
-| 6 | [a16z ERC-4626 Property Tests](https://github.com/a16z/ERC4626-property-tests) | Comprehensive compliance test suite — run against any vault to verify rounding, preview accuracy, edge cases | `ERC4626.prop.sol` (all property tests), README (how to integrate) |
-
-**Reading strategy:** Start with OZ ERC4626 (1) to understand the math foundation. Compare with Solmate (2) to see what "no virtual shares" means in practice. Then read a simple Yearn strategy (3) to understand the user-facing abstraction. VaultV3 (4) shows how strategies compose into an allocator. MetaMorpho (5) is the most production-complete curator vault. Finally, run the a16z tests (6) against your own implementations.
-
 ---
 
 ## 📚 Resources

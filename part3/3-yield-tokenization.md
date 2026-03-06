@@ -1036,22 +1036,6 @@ After this section, you should be able to:
 
 ---
 
-<a id="production-study-order"></a>
-## 📖 Production Study Order
-
-Study these codebases in order — each builds on the previous one's patterns:
-
-| # | Repository | Why Study This | Key Files |
-|---|-----------|----------------|-----------|
-| 1 | [Pendle SYBase.sol](https://github.com/pendle-finance/pendle-core-v2-public) | ERC-5115 standardized yield implementation — the abstraction layer that wraps any yield source | `contracts/core/StandardizedYield/SYBase.sol`, `contracts/core/StandardizedYield/implementations/` |
-| 2 | [Pendle PendleYieldToken.sol](https://github.com/pendle-finance/pendle-core-v2-public) | Yield accumulator pattern, reward tracking, per-user snapshot math — the core accounting | `contracts/core/YieldContracts/PendleYieldToken.sol` |
-| 3 | [Pendle PendlePrincipalToken.sol](https://github.com/pendle-finance/pendle-core-v2-public) | Maturity redemption, PT value convergence, mint/burn tied to YT lifecycle | `contracts/core/YieldContracts/PendlePrincipalToken.sol` |
-| 4 | [Pendle MarketMathCore.sol](https://github.com/pendle-finance/pendle-core-v2-public) | Rate-space AMM math — the time-decaying curve that makes PT/YT trading work | `contracts/core/Market/MarketMathCore.sol` |
-| 5 | [Pendle PendleMarketV7.sol](https://github.com/pendle-finance/pendle-core-v2-public) | AMM pool implementation, LP mechanics, fee structure, swap execution | `contracts/core/Market/PendleMarketV7.sol` |
-| 6 | [Spectra (formerly APWine)](https://github.com/perspectivefi/spectra-core) | Alternative yield tokenization — compare design choices with Pendle | Core contracts |
-
-**Reading strategy:** Start with `SYBase.sol` to understand the yield abstraction layer — this is the adapter pattern that makes Pendle protocol-agnostic. Then read `PendleYieldToken.sol` for the accumulator math (compare with P2M7 ERC-4626 and P3M2 funding accumulators — same pattern). Study `PendlePrincipalToken.sol` to see how PT and YT are coupled. Only then tackle `MarketMathCore.sol` — this is the hardest file, focus on the rate-space transformation before the implementation details. Finally, read the market contract to see the AMM in action.
-
 ---
 
 <a id="resources"></a>

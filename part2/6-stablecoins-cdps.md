@@ -972,21 +972,6 @@ After this section, you should be able to:
 - Explain Ethena USDe's delta-neutral mechanism (collateral + short perp = hedged position) and identify the risks: negative funding rates, exchange counterparty, centralization
 - Use the Terra collapse ($40B) as the definitive case study for why uncollateralized algorithmic stablecoins fail: reflexive death spiral when confidence breaks
 
-## 📖 Production Study Order
-
-Study these codebases in order — each builds on the previous one's patterns:
-
-| # | Repository | Why Study This | Key Files |
-|---|-----------|----------------|-----------|
-| 1 | [MakerDAO dss (Vat)](https://github.com/sky-ecosystem/dss) | The foundational CDP engine — normalized debt, rate accumulator, `frob()` as the atomic vault operation | `src/vat.sol` |
-| 2 | [MakerDAO Jug](https://github.com/sky-ecosystem/dss/blob/master/src/jug.sol) | Stability fee accumulator — per-second compounding via `drip()`, same index pattern as lending protocols | `src/jug.sol` |
-| 3 | [MakerDAO Dog + Clipper](https://github.com/sky-ecosystem/dss/blob/master/src/clip.sol) | Liquidation 2.0 — Dutch auction mechanics, circuit breakers, keeper incentives (post-Black Thursday redesign) | `src/dog.sol`, `src/clip.sol`, `src/abaci.sol` |
-| 4 | [MakerDAO PSM](https://github.com/sky-ecosystem/dss-psm) | Peg Stability Module — 1:1 stablecoin swaps, `tin`/`tout` fee mechanism, centralization trade-off | `src/psm.sol` |
-| 5 | [Liquity V1](https://github.com/liquity/dev/blob/main/packages/contracts/contracts/) | Alternative CDP: no governance, 110% CR, Stability Pool instant liquidation, redemption mechanism | `contracts/TroveManager.sol`, `contracts/StabilityPool.sol`, `contracts/BorrowerOperations.sol` |
-| 6 | [crvUSD LLAMMA](https://github.com/curvefi/curve-stablecoin) | Novel soft-liquidation via AMM — continuous collateral conversion, PegKeeper for peg maintenance | `contracts/AMM.sol`, `contracts/Controller.sol` |
-
-**Reading strategy:** Start with the Vat — memorize the glossary (ilk, urn, ink, art, gem, dai, sin) and read `frob()` line by line. Then Jug for the fee accumulator. Dog + Clipper show the Dutch auction (trace `bark()` → `kick()` → `take()`). PSM is short and shows the peg mechanism. Liquity shows a radically different CDP design (no governance). crvUSD shows the frontier: AMM-based soft liquidation.
-
 ---
 
 ## 📚 Resources

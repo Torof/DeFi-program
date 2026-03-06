@@ -1297,21 +1297,6 @@ After this section, you should be able to:
 
 ---
 
-<a id="production-study-order"></a>
-## 📖 Production Study Order
-
-Study these codebases in order — each builds on the previous one's patterns:
-
-| # | Repository | Why Study This | Key Files |
-|---|-----------|----------------|-----------|
-| 1 | [GMX V2 MarketUtils.sol](https://github.com/gmx-io/gmx-synthetics) | Start here — position math, PnL calculation, funding rate accumulator, pool value computation | `contracts/market/MarketUtils.sol`, `contracts/pricing/PositionPricingUtils.sol` |
-| 2 | [GMX V2 PositionUtils.sol](https://github.com/gmx-io/gmx-synthetics) | Open/close/liquidation flows, leverage validation, minimum position size enforcement | `contracts/position/IncreasePositionUtils.sol`, `contracts/position/DecreasePositionUtils.sol`, `contracts/position/LiquidationUtils.sol` |
-| 3 | [Synthetix V3 PerpsMarket.sol](https://github.com/Synthetixio/synthetix-v3) | Debt pool model, skew-based funding, async order execution with Pyth oracles | `markets/perps-market/contracts/modules/PerpsMarketModule.sol`, `markets/perps-market/contracts/storage/PerpsMarket.sol` |
-| 4 | [dYdX V4 Perpetual Contracts](https://github.com/dydxprotocol/v4-chain) | Order book matching on Cosmos app-chain — see how off-chain matching + on-chain settlement works | `protocol/x/clob/` module |
-| 5 | [Hyperliquid Documentation](https://hyperliquid.gitbook.io/hyperliquid-docs) | L1 order book design — compare with dYdX's approach, understand performance tradeoffs | Architecture docs, API specification |
-
-**Reading strategy:** Start with GMX V2 — it's the most readable pool-based perp codebase. Trace one flow: user opens long → `IncreasePositionUtils` → pool accounting updates → funding accrual. Then study Synthetix V3's debt pool model as a contrast. dYdX and Hyperliquid show the order book alternative — focus on the architecture rather than every implementation detail.
-
 ---
 
 <a id="resources"></a>

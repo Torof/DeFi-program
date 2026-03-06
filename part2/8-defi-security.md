@@ -1197,21 +1197,6 @@ After this section, you should be able to:
 - Walk through the deployment security checklist: code-level requirements (CEI, access control, oracle safety), testing requirements (unit + fuzz + invariant + fork), operational requirements (monitoring, incident response, bug bounty)
 - Prepare a codebase for audit: what to provide auditors (documentation, threat model, known issues, test suite) and what to do with the report afterward
 
-## 📖 Production Study Order
-
-Study these security resources in order — each builds on the previous:
-
-| # | Repository / Resource | Why Study This | Key Files / Sections |
-|---|---|---|---|
-| 1 | [Slither](https://github.com/crytic/slither) | The most widely-used static analyzer — learn its detector categories and how to triage false positives | `slither/detectors/` (detector implementations), README (usage), [detector docs](https://github.com/crytic/slither/wiki/Detector-Documentation) |
-| 2 | [Aderyn](https://github.com/Cyfrin/aderyn) | Rust-based complement to Slither — faster, catches different patterns, understand the overlap | `src/` (detector implementations), compare output against Slither on the same codebase |
-| 3 | [a16z ERC-4626 Property Tests](https://github.com/a16z/ERC4626-property-tests) | The gold standard for vault invariant testing — study how they encode properties as handler-based tests | `ERC4626.prop.sol` (all properties), README (integration guide) |
-| 4 | [Aave V3 Audit — OpenZeppelin](https://blog.openzeppelin.com/aave-v3-core-audit) | Major protocol audit from a top firm — study finding structure, severity classification, root cause analysis | Focus on Critical/High findings, trace each to the attack taxonomy |
-| 5 | [Trail of Bits Public Audits](https://github.com/trailofbits/publications/tree/master/reviews) | Dozens of real audit reports — build your finding taxonomy across protocols | Pick 3 DeFi audits, classify every High finding into the Attack Patterns categories |
-| 6 | [Certora Tutorials](https://github.com/Certora/tutorials) | Introduction to formal verification — write CVL specs for simple protocols | `01.Lesson_GettingStarted/`, `02.Lesson_InvariantChecking/`, example specs |
-
-**Reading strategy:** Start with Slither (1) and Aderyn (2) by running both on your own exercise code — compare findings and learn to triage. Study the a16z property tests (3) to understand professional invariant test design. Then read the Aave audit (4) deeply using the Reading Audit Reports methodology. Browse Trail of Bits reports (5) to build breadth across protocol types. Finally, explore Certora tutorials (6) if you want to pursue formal verification.
-
 ---
 
 ## 📚 Resources

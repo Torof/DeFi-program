@@ -1651,24 +1651,6 @@ After this section, you should be able to:
 
 ---
 
-## 📖 Production Study Order
-
-Read these in order to build understanding progressively:
-
-| Order | File | What to study | Difficulty | Lines |
-|-------|------|--------------|------------|-------|
-| 1 | [OZ Math.sol — `mulDiv`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol) | Clean `mulDiv` implementation — understand the concept without assembly optimizations | ⭐⭐ | ~50 lines |
-| 2 | [Uniswap V4 FullMath.sol](https://github.com/Uniswap/v4-core/blob/main/src/libraries/FullMath.sol) | Assembly-optimized `mulDiv` — compare with OZ version, note the `unchecked` blocks | ⭐⭐⭐ | ~120 lines |
-| 3 | [Uniswap V4 PoolId.sol](https://github.com/Uniswap/v4-core/blob/main/src/types/PoolId.sol) | Simplest UDVT — `type PoolId is bytes32`, one function | ⭐ | ~10 lines |
-| 4 | [Uniswap V4 Currency.sol](https://github.com/Uniswap/v4-core/blob/main/src/types/Currency.sol) | UDVT with custom operators — `type Currency is address`, native ETH handling | ⭐⭐ | ~40 lines |
-| 5 | [Uniswap V4 BalanceDelta.sol](https://github.com/Uniswap/v4-core/blob/main/src/types/BalanceDelta.sol) | Advanced UDVT — bit-packed int128 pair with custom `+`, `-`, `==` operators | ⭐⭐⭐ | ~60 lines |
-| 6 | [OZ ReentrancyGuardTransient.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/ReentrancyGuardTransient.sol) | Production transient storage — compare with classic ReentrancyGuard.sol | ⭐ | ~30 lines |
-| 7 | [Aave V3 Errors.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/helpers/Errors.sol) | Centralized error library — 60+ `string constant` revert reasons (pre-custom-error pattern), study the organizational principle | ⭐ | ~100 lines |
-
-**Don't get stuck on:** Assembly optimizations in FullMath — understand the mulDiv concept from OZ first, then see how Uniswap optimizes it.
-
----
-
 ## 📚 Resources
 
 ### Core Solidity Documentation

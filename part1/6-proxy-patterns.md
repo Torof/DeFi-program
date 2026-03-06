@@ -742,24 +742,6 @@ After this section, you should be able to:
 
 ---
 
-## 📖 Production Study Order
-
-Study these proxy implementations in this order — each builds on patterns from the previous:
-
-| # | Repository | Why Study This | Key Files |
-|---|-----------|----------------|-----------|
-| 1 | [OZ Proxy contracts](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/proxy) | Clean reference implementations — learn the standards | ERC1967Proxy.sol, TransparentUpgradeableProxy.sol |
-| 2 | [OZ UUPSUpgradeable](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/proxy/utils/UUPSUpgradeable.sol) | Understand UUPS internals — `_authorizeUpgrade`, rollback test | UUPSUpgradeable.sol, Initializable.sol |
-| 3 | [Compound V3 (Comet)](https://github.com/compound-finance/comet) | Custom immutable proxy — simpler than Aave, different philosophy | Comet.sol, CometConfiguration.sol |
-| 4 | [Aave V3 Pool](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/pool/Pool.sol) | Full production proxy architecture — Transparent for core, individual transparent-style proxies for aTokens | Pool.sol, PoolStorage.sol, AToken.sol |
-| 5 | [Aave V3 aToken proxies](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/tokenization/AToken.sol) | Individual transparent-style proxies for aTokens — 100+ instances, upgraded via `PoolConfigurator` | AToken.sol, VersionedInitializable.sol |
-| 6 | [Gnosis Safe](https://github.com/safe-global/safe-smart-account/blob/main/contracts/Safe.sol) | EIP-1167 minimal proxy + singleton pattern | Safe.sol, SafeProxy.sol — most-deployed proxy in DeFi |
-| 7 | [ERC-4337 SimpleAccount](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccount.sol) | UUPS for smart wallets — proxy as account abstraction pattern | SimpleAccount.sol, BaseAccount.sol |
-
-**Reading strategy:** Start with OZ to learn the canonical proxy patterns, then study Compound's intentionally different approach (immutable implementation). Move to Aave for the most complex production proxy architecture you'll encounter. Finish with ERC-4337 to see UUPS applied to a completely different domain — smart wallets instead of DeFi protocols.
-
----
-
 ## 📚 Resources
 
 ### Proxy Standards

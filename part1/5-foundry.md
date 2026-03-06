@@ -1216,23 +1216,6 @@ After this section, you should be able to:
 
 ---
 
-## 📖 Production Study Order
-
-Study these test suites in this order — each builds on skills from the previous:
-
-| # | Repository | Why Study This | Key Files |
-|---|-----------|----------------|-----------|
-| 1 | [Solmate tests](https://github.com/transmissions11/solmate/tree/main/src/test) | Clean, minimal — learn Foundry idioms | ERC20.t.sol, ERC4626.t.sol |
-| 2 | [OZ test suite](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/test) | Industry-standard patterns, comprehensive coverage | ERC20.test.js → Foundry equivalents |
-| 3 | [Uniswap V4 basic tests](https://github.com/Uniswap/v4-core/tree/main/test) | State-of-the-art DeFi testing patterns | PoolManager.t.sol, Swap.t.sol |
-| 4 | [Uniswap V4 handlers](https://github.com/Uniswap/v4-core/tree/main/test) | Invariant testing with handler contracts | invariant/ directory |
-| 5 | [Morpho Blue invariant tests](https://github.com/morpho-org/morpho-blue/tree/main/test/forge) | Complex protocol invariant testing | Handler patterns for lending |
-| 6 | [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) | Exploit reproduction with fork tests | src/test/ — real attack PoCs |
-
-**Reading strategy:** Start with Solmate to learn clean Foundry patterns, then OZ for coverage standards. Move to V4 for DeFi-specific testing, then Aave for invariant handler patterns. Finish with DeFiHackLabs to understand exploit reproduction — the ultimate fork testing skill.
-
----
-
 ## 📚 Resources
 
 ### Foundry Documentation

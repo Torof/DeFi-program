@@ -838,16 +838,6 @@ After this section, you should be able to:
 
 ---
 
-## 📖 Production Study Order
-
-1. **OpenZeppelin Governor.sol** — proposal lifecycle, counting modules
-2. **OpenZeppelin TimelockController.sol** — delayed execution, role management
-3. **Compound GovernorBravo** — historical reference, delegation mechanics
-4. **Curve VotingEscrow.vy** — original ve implementation, decay math
-5. **Convex CvxLocker** — vlCVX vote locking, reward distribution
-6. **Velodrome VotingEscrow** — ve(3,3) implementation, rebasing
-7. **MakerDAO DSChief** — hat-based governance, historical significance
-
 ---
 
 <a id="resources"></a>

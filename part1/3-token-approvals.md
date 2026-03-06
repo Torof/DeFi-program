@@ -1220,25 +1220,6 @@ After this section, you should be able to:
 
 ---
 
-## 📖 Production Study Order
-
-Read these files in order to build progressive understanding of signature-based approvals in production:
-
-| # | File | Why | Lines |
-|---|------|-----|-------|
-| 1 | [OZ Nonces.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Nonces.sol) | Simplest nonce pattern — sequential counter for replay protection | ~20 |
-| 2 | [OZ EIP712.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/EIP712.sol) | Domain separator construction — the security anchor for all typed signing | ~80 |
-| 3 | [OZ ERC20Permit.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC20Permit.sol) | Complete EIP-2612 implementation — see how Nonces + EIP712 compose | ~40 |
-| 4 | [Permit2 ISignatureTransfer.sol](https://github.com/Uniswap/permit2/blob/main/src/interfaces/ISignatureTransfer.sol) | Interface-first — understand the mental model before implementation | ~60 |
-| 5 | [Permit2 SignatureTransfer.sol](https://github.com/Uniswap/permit2/blob/main/src/SignatureTransfer.sol) | One-time permits + bitmap nonces — the core innovation | ~120 |
-| 6 | [Permit2 AllowanceTransfer.sol](https://github.com/Uniswap/permit2/blob/main/src/AllowanceTransfer.sol) | Persistent allowances with packed storage — compare with SignatureTransfer | ~150 |
-| 7 | [OZ SafeERC20.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/utils/SafeERC20.sol) | Try/catch permit pattern — the defensive standard for production code | ~100 |
-| 8 | [UniswapX ResolvedOrder.sol](https://github.com/Uniswap/UniswapX/blob/main/src/base/ResolvedOrder.sol) | Witness data in production — how intent-based trading binds order params to signatures | ~80 |
-
-**Reading strategy:** Files 1–3 build EIP-2612 understanding from primitives. Files 4–6 cover Permit2's two modes. File 7 is the defensive pattern every protocol needs. File 8 shows the cutting edge — witness data powering intent-based DeFi.
-
----
-
 ## 📚 Resources
 
 ### EIP-2612 — Permit

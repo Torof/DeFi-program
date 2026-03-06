@@ -800,15 +800,6 @@ After this section, you should be able to:
 
 ---
 
-## 📖 Production Study Order
-
-1. **Flashbots MEV-Boost relay** — builder API, block submission flow
-2. **Flashbots Protect RPC** — private transaction submission, frontrunning protection
-3. **MEV-Share contracts** — programmable MEV redistribution, order flow auctions
-4. **UniswapX** — MEV-aware execution via Dutch auctions, filler network
-5. **CoW Protocol** — batch auctions as MEV defense, solver competition
-6. **Notable MEV bot contracts on Etherscan** — study real searcher strategies and gas optimization
-
 ---
 
 <a id="resources"></a>

@@ -971,21 +971,6 @@ After this section, you should be able to:
 - List and explain the 8 defense patterns (no spot price, Chainlink, staleness checks, sanity bounds, dual oracle, circuit breakers, minimum TWAP window, virtual offsets) and match each to the attack it prevents
 - Define Oracle Extractable Value (OEV) and explain how emerging solutions (API3, Pyth Express Relay, UMA Oval) redirect this value back to the protocol
 
-## 📖 Production Study Order
-
-Study these codebases in order — each builds on the previous one's patterns:
-
-| # | Repository | Why Study This | Key Files |
-|---|-----------|----------------|-----------|
-| 1 | [Chainlink Contracts](https://github.com/smartcontractkit/chainlink) | Understand the interface your protocol consumes — `AggregatorV3Interface`, proxy pattern, OCR aggregation | `contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol`, `contracts/src/v0.8/shared/interfaces/AggregatorProxyInterface.sol` |
-| 2 | [Aave V3 AaveOracle](https://github.com/aave/aave-v3-core/blob/master/contracts/misc/AaveOracle.sol) | The standard Chainlink wrapper pattern — per-asset feed mapping, fallback sources, decimal normalization | `contracts/misc/AaveOracle.sol`, `contracts/protocol/libraries/logic/GenericLogic.sol` |
-| 3 | [Liquity PriceFeed](https://github.com/liquity/dev/blob/main/packages/contracts/contracts/PriceFeed.sol) | The most thorough dual-oracle implementation — 5-state fallback machine, Chainlink + Tellor, automatic switching | `packages/contracts/contracts/PriceFeed.sol` |
-| 4 | [MakerDAO OSM](https://github.com/sky-ecosystem/osm) | Delayed oracle pattern — 1-hour price lag for governance reaction time, medianized TWAP | `src/OSM.sol`, `src/Median.sol` |
-| 5 | [Compound V3 Comet](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol) | Minimal oracle integration — how a lean lending protocol reads prices with built-in fallback | `contracts/Comet.sol` (search `getPrice`), `contracts/CometConfiguration.sol` |
-| 6 | [Uniswap V3 Oracle Library](https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/Oracle.sol) | On-chain TWAP mechanics — ring buffer observations, geometric mean in tick space, `observe()` | `contracts/libraries/Oracle.sol`, `contracts/UniswapV3Pool.sol` (oracle functions) |
-
-**Reading strategy:** Start with Chainlink's interface (it's only 5 functions). Then study Aave's wrapper to see how production protocols consume it. Move to Liquity to understand fallback design. MakerDAO shows the delayed oracle pattern. Compound shows the lean alternative. Finally, V3's Oracle library shows the on-chain TWAP internals.
-
 ---
 
 ## 📚 Resources
