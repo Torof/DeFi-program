@@ -1533,12 +1533,12 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract GasExplorerTest -vvv`
 <a id="resources"></a>
 ## 📚 Resources
 
-### Essential References
+**Essential References:**
 - [evm.codes](https://www.evm.codes/) — Interactive opcode reference with gas costs, stack effects, and playground
 - [Ethereum Yellow Paper](https://ethereum.github.io/yellowpaper/paper.pdf) — Formal specification (Appendix H has the opcode table)
 - [Yul Documentation](https://docs.soliditylang.org/en/latest/yul.html) — Official Solidity docs on Yul syntax
 
-### EIPs Referenced
+**EIPs Referenced:**
 - [EIP-7](https://eips.ethereum.org/EIPS/eip-7) — DELEGATECALL (replaced CALLCODE)
 - [EIP-150](https://eips.ethereum.org/EIPS/eip-150) — 63/64 gas forwarding rule (Tangerine Whistle)
 - [EIP-170](https://eips.ethereum.org/EIPS/eip-170) — Contract code size limit (24,576 bytes)
@@ -1554,16 +1554,16 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract GasExplorerTest -vvv`
 - [EIP-6780](https://eips.ethereum.org/EIPS/eip-6780) — SELFDESTRUCT deprecation (Dencun fork)
 - [EIP-7692](https://eips.ethereum.org/EIPS/eip-7692) — EOF (EVM Object Format) meta-EIP (proposed)
 
-### Production Code to Study
+**Production Code to Study:**
 - [Solady](https://github.com/Vectorized/solady) — Gas-optimized Solidity with heavy assembly usage
 - [OpenZeppelin Proxy.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Proxy.sol) — Assembly-based delegatecall forwarding
 - [Uniswap V4 PoolManager](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) — Transient storage for flash accounting
 
-### Hands-On
+**Hands-On:**
 - [EVM From Scratch](https://github.com/w1nt3r-eth/evm-from-scratch) — Build your own EVM in your language of choice. Excellent for deepening understanding of opcode execution
 - [EVM Puzzles](https://github.com/fvictorio/evm-puzzles) — Solve puzzles using raw EVM bytecode
 
-### Tools
+**Tools:**
 - [Remix Debugger](https://remix.ethereum.org/) — Step through opcodes, watch the stack
 - [evm.codes Playground](https://www.evm.codes/playground) — Interactive opcode experimentation
 - [forge inspect](https://book.getfoundry.sh/reference/forge/forge-inspect) — Examine bytecode, ABI, storage layout
@@ -1571,4 +1571,4 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract GasExplorerTest -vvv`
 
 ---
 
-**Navigation:** [Previous: Part 4 Overview](README.md) | [Next: Module 2 — Memory & Calldata](2-memory-calldata.md)
+**Navigation:** [Next: Module 2 — Memory & Calldata](2-memory-calldata.md)

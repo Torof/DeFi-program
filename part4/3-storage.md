@@ -1268,12 +1268,12 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract StoragePackerTest -vvv`
 <a id="resources"></a>
 ## 📚 Resources
 
-### Essential References
+**Essential References:**
 - [Solidity Docs — Storage Layout](https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html) — Official specification for slot assignment, packing, and mapping/array formulas
 - [Solidity Docs — Layout of Mappings and Arrays](https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html#mappings-and-dynamic-arrays) — Detailed formulas with examples
 - [evm.codes — SLOAD](https://www.evm.codes/#54) | [SSTORE](https://www.evm.codes/#55) | [TLOAD](https://www.evm.codes/#5c) | [TSTORE](https://www.evm.codes/#5d) — Interactive opcode reference
 
-### EIPs Referenced
+**EIPs Referenced:**
 - [EIP-1967](https://eips.ethereum.org/EIPS/eip-1967) — Standard proxy storage slots
 - [EIP-2200](https://eips.ethereum.org/EIPS/eip-2200) — SSTORE gas cost state machine (Istanbul)
 - [EIP-2929](https://eips.ethereum.org/EIPS/eip-2929) — Cold/warm access costs (Berlin)
@@ -1281,17 +1281,17 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract StoragePackerTest -vvv`
 - [EIP-7201](https://eips.ethereum.org/EIPS/eip-7201) — Namespaced storage layout
 - [EIP-6800](https://eips.ethereum.org/EIPS/eip-6800) — Verkle trees (proposed)
 
-### Production Code
+**Production Code:**
 - [Aave V3 ReserveConfiguration.sol](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/configuration/ReserveConfiguration.sol) — Production bitmap packing
 - [Solady SSTORE2](https://github.com/vectorized/solady/blob/main/src/utils/SSTORE2.sol) — Bytecode as immutable storage
 - [OpenZeppelin StorageSlot.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/StorageSlot.sol) — Typed storage slot access
 - [Uniswap V4 PoolManager](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) — Transient storage flash accounting
 
-### Deep Dives
+**Deep Dives:**
 - [EVM Deep Dives: Storage — Noxx](https://noxx.substack.com/p/evm-deep-dives-the-path-to-shadowy-5) — Excellent visual walkthrough of slot computation
 - [EVM Storage Layout — RareSkills](https://www.rareskills.io/post/evm-solidity-storage-layout) — Detailed guide with examples
 
-### Tools
+**Tools:**
 - [`cast storage`](https://book.getfoundry.sh/reference/cast/cast-storage) — Read any slot from any contract
 - [`forge inspect`](https://book.getfoundry.sh/reference/forge/forge-inspect) — Examine compiled storage layout
 - [`cast proof`](https://book.getfoundry.sh/reference/cast/cast-proof) — Get a Merkle storage proof

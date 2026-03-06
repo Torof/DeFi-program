@@ -1512,21 +1512,21 @@ FOUNDRY_PROFILE=part4 forge test --match-path "test/part4/module4/exercise2-loop
 <a id="resources"></a>
 ## 📚 Resources
 
-### Essential References
+**Essential References:**
 - [Yul Specification](https://docs.soliditylang.org/en/latest/yul.html) — Official Yul language reference (control flow, functions, scoping rules)
 - [evm.codes](https://www.evm.codes/) — Interactive opcode reference with gas costs for JUMP, JUMPI, JUMPDEST
 - [EVM Playground](https://www.evm.codes/playground) — Step through bytecode execution to see JUMP/JUMPI in action
 
-### EIPs Referenced
+**EIPs Referenced:**
 - [EIP-1167: Minimal Proxy Contract](https://eips.ethereum.org/EIPS/eip-1167) — Clone factory standard (the 45-byte dispatcher)
 - [EIP-2535: Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) — Multi-facet proxy with selector-to-facet dispatch
 
-### Production Code
+**Production Code:**
 - [Solady](https://github.com/Vectorized/solady) — Gas-optimized Solidity/assembly library; study `src/tokens/ERC20.sol` for dispatch patterns
 - [OpenZeppelin Proxy.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Proxy.sol) — Proxy dispatch implemented in Solidity inline assembly
 - [Huff ERC-20](https://github.com/huff-language/huff-examples/tree/main/erc20) — Full ERC-20 in raw opcodes (no Yul, no Solidity)
 
-### Tools
+**Tools:**
 - `forge inspect Contract ir-optimized` — View the Yul IR output to see how Solidity compiles dispatch logic
 - `cast disassemble` — Decode deployed bytecode to human-readable opcodes
 - `cast sig "transfer(address,uint256)"` — Compute the 4-byte function selector from a signature

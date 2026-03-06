@@ -1070,19 +1070,19 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract CalldataDecoderTest -vvv
 <a id="resources"></a>
 ## 📚 Resources
 
-### Essential References
+**Essential References:**
 - [Solidity Docs — Memory Layout](https://docs.soliditylang.org/en/latest/internals/layout_in_memory.html) — Official documentation on the reserved regions
 - [Solidity Docs — ABI Specification](https://docs.soliditylang.org/en/latest/abi-spec.html) — Complete encoding rules for all types
 - [Solidity Docs — Inline Assembly](https://docs.soliditylang.org/en/latest/assembly.html) — Memory-safe annotation and Yul memory opcodes
 
-### Formal Specification
+**Formal Specification:**
 - [Ethereum Yellow Paper — Appendix H](https://ethereum.github.io/yellowpaper/paper.pdf) — Formal definitions of MLOAD, MSTORE, MSIZE, CALLDATALOAD, CALLDATACOPY, RETURN, REVERT. The memory expansion cost formula appears in equation (326)
 
-### EIPs
+**EIPs:**
 - [EIP-5656](https://eips.ethereum.org/EIPS/eip-5656) — MCOPY opcode (Cancun fork)
 - [EIP-712: Typed Structured Data Hashing](https://eips.ethereum.org/EIPS/eip-712) — Uses ABI encoding for structured hashing in signatures
 
-### Production Code
+**Production Code:**
 - [Solady SafeTransferLib](https://github.com/vectorized/solady/blob/main/src/utils/SafeTransferLib.sol) — Memory-safe assembly for token transfers
 - [Solady Ownable](https://github.com/vectorized/solady/blob/main/src/auth/Ownable.sol) — Scratch space error encoding throughout
 - [Solady MerkleProofLib](https://github.com/vectorized/solady/blob/main/src/utils/MerkleProofLib.sol) — Scratch space hashing for Merkle proofs
@@ -1090,11 +1090,11 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract CalldataDecoderTest -vvv
 - [Permit2 SignatureTransfer.sol](https://github.com/Uniswap/permit2/blob/main/src/SignatureTransfer.sol) — Calldata parsing in assembly for gas efficiency
 - [Uniswap V4 PoolManager](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) — Callback calldata decoding patterns
 
-### Deep Dives
+**Deep Dives:**
 - [Ethereum In Depth Part 2 — OpenZeppelin](https://blog.openzeppelin.com/ethereum-in-depth-part-2-6339cf6bddb9) — Excellent deep dive on data locations
 - [ABI Encoding Deep Dive — Andrey Obruchkov](https://andreyobruchkov1996.substack.com/p/abi-encoding-deep-dive-how-solidity) — Visual walkthrough of encoding
 
-### Hands-On
+**Hands-On:**
 - [evm.codes](https://www.evm.codes/) — Interactive opcode reference with memory visualization
 - [Remix IDE](https://remix.ethereum.org/) — Deploy Quick Try examples and step through with the debugger
 
