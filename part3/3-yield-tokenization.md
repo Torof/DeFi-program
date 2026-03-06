@@ -1061,4 +1061,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** [← Module 2: Perpetuals & Derivatives](2-perpetuals.md) | [Part 3 Overview](README.md) | [Next: Module 4 — DEX Aggregation & Intents →](4-dex-aggregation.md)
+**Navigation:** [← Module 2: Perpetuals & Derivatives](2-perpetuals.md) | [Next: Module 4 — DEX Aggregation & Intents →](4-dex-aggregation.md)

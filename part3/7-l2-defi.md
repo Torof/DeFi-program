@@ -811,4 +811,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** [← Module 6: Cross-Chain & Bridges](6-cross-chain.md) | [Part 3 Overview](README.md) | [Next: Module 8 — Governance & DAOs →](8-governance.md)
+**Navigation:** [← Module 6: Cross-Chain & Bridges](6-cross-chain.md) | [Next: Module 8 — Governance & DAOs →](8-governance.md)

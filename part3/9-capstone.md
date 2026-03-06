@@ -26,4 +26,4 @@
 
 ---
 
-**Navigation:** [← Module 8: Governance & DAOs](8-governance.md) | [Part 3 Overview](README.md)
+**Navigation:** [← Module 8: Governance & DAOs](8-governance.md)

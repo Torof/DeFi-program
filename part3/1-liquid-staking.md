@@ -1160,4 +1160,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** [Part 3 Overview](README.md) | [Next: Module 2 — Perpetuals & Derivatives →](2-perpetuals.md)
+**Navigation:** [Next: Module 2 — Perpetuals & Derivatives →](2-perpetuals.md)

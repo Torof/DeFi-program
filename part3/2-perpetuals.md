@@ -1321,4 +1321,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** [← Module 1: Liquid Staking](1-liquid-staking.md) | [Part 3 Overview](README.md) | [Next: Module 3 — Yield Tokenization →](3-yield-tokenization.md)
+**Navigation:** [← Module 1: Liquid Staking](1-liquid-staking.md) | [Next: Module 3 — Yield Tokenization →](3-yield-tokenization.md)

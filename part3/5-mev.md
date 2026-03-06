@@ -825,4 +825,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** [← Module 4: DEX Aggregation](4-dex-aggregation.md) | [Part 3 Overview](README.md) | [Next: Module 6 — Cross-Chain & Bridges →](6-cross-chain.md)
+**Navigation:** [← Module 4: DEX Aggregation](4-dex-aggregation.md) | [Next: Module 6 — Cross-Chain & Bridges →](6-cross-chain.md)

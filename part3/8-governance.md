@@ -863,4 +863,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** [← Module 7: L2-Specific DeFi](7-l2-defi.md) | [Part 3 Overview](README.md) | [Next: Module 9 — Capstone →](9-capstone.md)
+**Navigation:** [← Module 7: L2-Specific DeFi](7-l2-defi.md) | [Next: Module 9 — Capstone →](9-capstone.md)
