@@ -2005,26 +2005,26 @@ EOF container: Structured sections
 
 ## 📚 Resources
 
-### EIP-1153 — Transient Storage
+**EIP-1153 — Transient Storage:**
 - [EIP-1153 specification](https://eips.ethereum.org/EIPS/eip-1153) — full technical spec
 - [Uniswap V4 PoolManager.sol](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) — production flash accounting using transient storage
 - [go-ethereum PR #26003](https://github.com/ethereum/go-ethereum/pull/26003) — implementation discussion
 
-### EIP-4844 — Proto-Danksharding
+**EIP-4844 — Proto-Danksharding:**
 - [EIP-4844 specification](https://eips.ethereum.org/EIPS/eip-4844) — blob transactions and data availability
 - [Ethereum.org — Dencun upgrade](https://ethereum.org/en/roadmap/dencun/) — overview of all Dencun EIPs
 - [L2Beat — Blob Explorer](https://l2beat.com/blobs) — see real-time blob usage and costs
 
-### SELFDESTRUCT Changes
+**SELFDESTRUCT Changes:**
 - [EIP-6780 specification](https://eips.ethereum.org/EIPS/eip-6780) — SELFDESTRUCT behavior change
 - [Why SELFDESTRUCT was changed](https://ethereum-magicians.org/t/eip-6780-deactivate-selfdestruct-except-where-it-occurs-in-the-same-transaction-in-which-a-contract-was-created/13539) — Ethereum Magicians discussion
 
-### EIP-7702 — EOA Code Delegation
+**EIP-7702 — EOA Code Delegation:**
 - [EIP-7702 specification](https://eips.ethereum.org/EIPS/eip-7702) — full technical spec
 - [Vitalik's account abstraction roadmap](https://notes.ethereum.org/@vbuterin/account_abstraction_roadmap) — context on how EIP-7702 fits into AA
 - [Ethereum.org — Pectra upgrade](https://ethereum.org/en/roadmap/pectra/) — overview of all Pectra EIPs
 
-### Other EIPs
+**Other EIPs:**
 - [EIP-3855 (PUSH0)](https://eips.ethereum.org/EIPS/eip-3855) — single-byte zero push (Shanghai)
 - [EIP-5656 (MCOPY)](https://eips.ethereum.org/EIPS/eip-5656) — memory copy opcode (Cancun)
 - [EIP-7623 (Calldata cost)](https://eips.ethereum.org/EIPS/eip-7623) — increased calldata pricing (Pectra)
@@ -2033,16 +2033,16 @@ EOF container: Structured sections
 - [EIP-1559 (Base fee)](https://eips.ethereum.org/EIPS/eip-1559) — fee market reform (London)
 - [EIP-3529 (Gas refund reduction)](https://eips.ethereum.org/EIPS/eip-3529) — reduced SSTORE/SELFDESTRUCT refunds (London)
 
-### Foundational EVM EIPs
+**Foundational EVM EIPs:**
 - [EIP-170 (Contract size limit)](https://eips.ethereum.org/EIPS/eip-170) — 24 KiB bytecode limit
 - [EIP-1014 (CREATE2)](https://eips.ethereum.org/EIPS/eip-1014) — deterministic contract deployment
 - [EIP-2930 (Access lists)](https://eips.ethereum.org/EIPS/eip-2930) — optional access list transaction type
 
-### Future EVM
+**Future EVM:**
 - [EIP-3540 (EOF v1)](https://eips.ethereum.org/EIPS/eip-3540) — EVM Object Format specification
 - [ipsilon/eof](https://github.com/ipsilon/eof) — EOF reference implementation
 
-### Tooling & Pectra Support
+**Tooling & Pectra Support:**
 - [Foundry EIP-7702 support](https://book.getfoundry.sh/) — evolving Type 4 transaction support
 - [ethers.js v6 Type 4 transactions](https://docs.ethers.org/v6/) — account abstraction integration
 

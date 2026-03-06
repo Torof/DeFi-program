@@ -1653,44 +1653,44 @@ After this section, you should be able to:
 
 ## 📚 Resources
 
-### Core Solidity Documentation
+**Core Solidity Documentation:**
 - [0.8.0 Breaking Changes](https://docs.soliditylang.org/en/latest/080-breaking-changes.html) — complete list of all changes from 0.7
 - [Solidity Blog - Release Announcements](https://www.soliditylang.org/blog/category/releases/) — every version explained
 - [Solidity Changelog](https://github.com/ethereum/solidity/blob/develop/Changelog.md) — detailed version history
 
-### Checked Arithmetic & Unchecked
+**Checked Arithmetic & Unchecked:**
 - [Solidity docs — Checked or Unchecked Arithmetic](https://docs.soliditylang.org/en/latest/control-structures.html#checked-or-unchecked-arithmetic)
 - [Uniswap V4 FullMath.sol](https://github.com/Uniswap/v4-core/blob/d153b048868a60c2403a3ef5b2301bb247884d46/src/libraries/FullMath.sol) — production `unchecked` usage for 512-bit math
 
-### Custom Errors
+**Custom Errors:**
 - [Solidity docs — Errors](https://docs.soliditylang.org/en/latest/structure-of-a-contract.html#errors)
 - [Solidity blog — "Custom Errors in Solidity"](https://www.soliditylang.org/blog/2021/04/21/custom-errors/) — introduction, gas savings, ABI encoding
 - [Aave V3 Errors.sol](https://github.com/aave/aave-v3-core/blob/ea4867086d39f094303916e72e180f99d8149fd5/contracts/protocol/libraries/helpers/Errors.sol) — centralized error library pattern
 
-### User-Defined Value Types
+**User-Defined Value Types:**
 - [Solidity docs — UDVTs](https://docs.soliditylang.org/en/latest/types.html#user-defined-value-types)
 - [Uniswap V4 PoolId.sol](https://github.com/Uniswap/v4-core/blob/d153b048868a60c2403a3ef5b2301bb247884d46/src/types/PoolId.sol) — `type PoolId is bytes32`
 - [Uniswap V4 Currency.sol](https://github.com/Uniswap/v4-core/blob/d153b048868a60c2403a3ef5b2301bb247884d46/src/types/Currency.sol) — `type Currency is address` with custom operators
 - [Uniswap V4 BalanceDelta.sol](https://github.com/Uniswap/v4-core/blob/d153b048868a60c2403a3ef5b2301bb247884d46/src/types/BalanceDelta.sol) — `type BalanceDelta is int256` with bit-packed int128 pair
 
-### ABI Encoding
+**ABI Encoding:**
 - [Solidity docs — ABI Encoding and Decoding Functions](https://docs.soliditylang.org/en/latest/units-and-global-variables.html#abi-encoding-and-decoding-functions)
 
-### Transient Storage
+**Transient Storage:**
 - [Solidity blog — "Transient Storage Opcodes in Solidity 0.8.24"](https://www.soliditylang.org/blog/2024/01/26/transient-storage/) — EIP-1153, use cases, risks
 - [Solidity blog — 0.8.28 Release](https://www.soliditylang.org/blog/2024/10/09/solidity-0.8.28-release-announcement/) — full `transient` keyword support
 - [EIP-1153: Transient Storage Opcodes](https://eips.ethereum.org/EIPS/eip-1153) — the EIP specification
 - [OpenZeppelin ReentrancyGuardTransient.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/ReentrancyGuardTransient.sol) — production implementation
 
-### OpenZeppelin v5
+**OpenZeppelin v5:**
 - [Introducing OpenZeppelin Contracts 5.0](https://blog.openzeppelin.com/introducing-openzeppelin-contracts-5.0) — all breaking changes, migration from v4
 - [OpenZeppelin Contracts 5.x docs](https://docs.openzeppelin.com/contracts/5.x)
 - [Changelog with migration guide](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/CHANGELOG.md)
 
-### Solidity 0.9.0 Deprecations
+**Solidity 0.9.0 Deprecations:**
 - [Solidity blog — 0.8.31 Release](https://www.soliditylang.org/blog/2025/12/03/solidity-0.8.31-release-announcement/) — first deprecation warnings for 0.9.0
 
-### Security & Analysis Tools
+**Security & Analysis Tools:**
 - [Slither Detector Documentation](https://github.com/crytic/slither/wiki/Detector-Documentation) — automated security checks for modern Solidity features
 
 ---

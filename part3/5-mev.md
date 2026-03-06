@@ -805,32 +805,23 @@ After this section, you should be able to:
 <a id="resources"></a>
 ## 📚 Resources
 
-### Production Code
+**Production Code:**
 - [Flashbots MEV-Boost](https://github.com/flashbots/mev-boost) — validator sidecar for PBS
 - [Flashbots Builder](https://github.com/flashbots/builder) — reference block builder implementation
 - [MEV-Share Node](https://github.com/flashbots/mev-share-node) — order flow auction implementation
 - [CoW Protocol Solver](https://github.com/cowprotocol/solver) — batch auction solver
 
-### Documentation
+**Documentation:**
 - [Flashbots Docs](https://docs.flashbots.net/) — full architecture docs for MEV-Boost, Protect, and MEV-Share
 - [Ethereum.org: MEV](https://ethereum.org/en/developers/docs/mev/) — official MEV explainer
 - [Builder API Specification](https://ethereum.github.io/builder-specs/) — Ethereum builder API spec
 
-### Key Reading
+**Key Reading:**
 - [Paradigm: Priority Is All You Need (MEV Taxes)](https://www.paradigm.xyz/2024/02/priority-is-all-you-need) — the MEV tax framework
 - [Flashbots: The Future of MEV](https://writings.flashbots.net/the-future-of-mev) — post-Merge supply chain analysis
 - [Flashbots: MEV-Share Design](https://collective.flashbots.net/t/mev-share-programmably-private-orderflow-to-share-mev-with-users/1264) — OFA design and economics
 - [Frontier Research: Order Flow Auctions](https://frontier.tech/the-orderflow-auction-design-space) — design space analysis
 - [MEV-Explore Dashboard](https://explore.flashbots.net/) — historical MEV extraction data
-
-#### 📖 How to Study: MEV Ecosystem
-
-1. Start with [Ethereum.org MEV page](https://ethereum.org/en/developers/docs/mev/) — the 10,000-foot overview
-2. Read [Flashbots Protect docs](https://docs.flashbots.net/flashbots-protect/overview) — understand user-facing protection
-3. Study [MEV-Share design](https://collective.flashbots.net/t/mev-share-programmably-private-orderflow-to-share-mev-with-users/1264) — understand order flow auctions
-4. Read Paradigm's [MEV Taxes paper](https://www.paradigm.xyz/2024/02/priority-is-all-you-need) — the theoretical framework
-5. Explore [MEV-Explore](https://explore.flashbots.net/) — look at real extraction data
-6. Don't try to build a searcher from docs alone — the competitive advantage is in execution speed and gas optimization, which is best learned by doing
 
 ---
 

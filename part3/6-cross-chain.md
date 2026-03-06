@@ -893,33 +893,24 @@ After this section, you should be able to:
 <a id="resources"></a>
 ## 📚 Resources
 
-### Production Code
+**Production Code:**
 - [LayerZero V2](https://github.com/LayerZero-Labs/LayerZero-v2) — OApp, OFT, endpoint contracts
 - [Chainlink CCIP](https://github.com/smartcontractkit/ccip) — router, receiver, token pool
 - [Wormhole](https://github.com/wormhole-foundation/wormhole) — guardian network, VAA verification
 - [Across Protocol](https://github.com/across-protocol/contracts) — intent-based cross-chain bridge
 - [Hyperlane](https://github.com/hyperlane-xyz/hyperlane-monorepo) — permissionless messaging
 
-### Documentation
+**Documentation:**
 - [LayerZero V2 docs](https://docs.layerzero.network/) — OApp and OFT developer guides
 - [Chainlink CCIP docs](https://docs.chain.link/ccip) — getting started and architecture
 - [Wormhole docs](https://docs.wormhole.com/) — protocol overview and integration guides
 - [ERC-7281: Sovereign Bridged Tokens](https://eips.ethereum.org/EIPS/eip-7281) — xERC20 specification
 
-### Key Reading
+**Key Reading:**
 - [Vitalik: Why the future will be multi-chain but not cross-chain](https://old.reddit.com/r/ethereum/comments/rwojtk/ama_we_are_the_efs_research_team_pt_7_07_january/hrngyk8/) — foundational post on bridge security limits
 - [L2Beat Bridge Risk Framework](https://l2beat.com/bridges/summary) — bridge risk comparison dashboard
 - [Rekt.news: Bridge hacks](https://rekt.news/) — detailed exploit post-mortems
 - [Nomad Bridge Post-Mortem](https://medium.com/nomad-xyz-blog/nomad-bridge-hack-root-cause-analysis-875ad2e5aacd) — official root cause analysis
-
-#### 📖 How to Study: Bridge Security
-
-1. Start with [Vitalik's Reddit post](https://old.reddit.com/r/ethereum/comments/rwojtk/ama_we_are_the_efs_research_team_pt_7_07_january/hrngyk8/) — understand why cross-chain is fundamentally hard
-2. Read the [Nomad post-mortem](https://medium.com/nomad-xyz-blog/nomad-bridge-hack-root-cause-analysis-875ad2e5aacd) — the most instructive exploit
-3. Browse [L2Beat bridges](https://l2beat.com/bridges/summary) — compare trust models across bridges
-4. Study [Rekt.news bridge hacks](https://rekt.news/) — each exploit teaches a different lesson
-5. Read the [ERC-7281 proposal](https://eips.ethereum.org/EIPS/eip-7281) — understand the xERC20 solution to wrapped token risk
-6. Build with LayerZero OApp template — the fastest way to understand cross-chain development
 
 ---
 

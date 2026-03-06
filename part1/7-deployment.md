@@ -704,28 +704,28 @@ After this section, you should be able to:
 
 ## 📚 Resources
 
-### Deployment & Scripting
+**Deployment & Scripting:**
 - [Foundry Book - Solidity Scripting](https://book.getfoundry.sh/tutorials/solidity-scripting) — full tutorial
 - [Foundry Book - Deploying](https://book.getfoundry.sh/reference/forge/forge-script) — `forge script` reference
 - [Etherscan Verification](https://docs.etherscan.io/tutorials/verifying-contracts-programmatically) — API docs
 
-### Safe Multisig
+**Safe Multisig:**
 - [Safe App](https://app.safe.global/) — create and manage Safes
 - [Safe Contracts](https://github.com/safe-global/safe-contracts) — source code
 - [Safe Documentation](https://docs.safe.global/) — full docs
 - [Safe Transaction Service API](https://docs.safe.global/safe-core-api/available-services)
 
-### Monitoring & Operations
+**Monitoring & Operations:**
 - [Tenderly](https://tenderly.co/) — monitoring and simulation
 - [OpenZeppelin Defender](https://www.openzeppelin.com/defender) — automated ops
 - [Blocknative Mempool Explorer](https://www.blocknative.com/) — real-time transaction monitoring
 
-### Testnets & Faucets
+**Testnets & Faucets:**
 - [Sepolia Faucet (Alchemy)](https://sepoliafaucet.com/)
 - [Sepolia Faucet (Infura)](https://www.infura.io/faucet/sepolia)
 - [Chainlist](https://chainlist.org/) — RPC endpoints for all networks
 
-### Post-Deployment Security
+**Post-Deployment Security:**
 - [Nomad Bridge postmortem](https://medium.com/nomad-xyz-blog/nomad-bridge-hack-root-cause-analysis-875ad2e5aacd) — initialization error ($190M)
 - [Ronin Bridge postmortem](https://www.halborn.com/blog/post/explained-the-ronin-hack-march-2022) — compromised keys ($625M)
 - [Rekt News](https://rekt.news/) — exploit case studies

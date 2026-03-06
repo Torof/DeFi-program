@@ -1222,25 +1222,25 @@ After this section, you should be able to:
 
 ## 📚 Resources
 
-### EIP-2612 — Permit
+**EIP-2612 — Permit:**
 - [EIP-2612 specification](https://eips.ethereum.org/EIPS/eip-2612) — permit function standard
 - [EIP-712 specification](https://eips.ethereum.org/EIPS/eip-712) — typed structured data hashing and signing
 - [OpenZeppelin ERC20Permit](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC20Permit.sol) — production implementation
 - [DAI permit implementation](https://github.com/makerdao/dss/blob/master/src/dai.sol) — the original (predates EIP-2612)
 
-### Permit2
+**Permit2:**
 - [Permit2 repository](https://github.com/Uniswap/permit2) — source code and docs
 - [Permit2 deployment addresses](https://github.com/Uniswap/permit2#deployments) — same address on all chains
 - [Uniswap Universal Router](https://github.com/Uniswap/universal-router) — Permit2 integration example
 - [Permit2 integration guide](https://docs.uniswap.org/contracts/permit2/overview) — official docs
 - [Dune: Permit2 adoption metrics](https://dune.com/queries/1635283) — usage stats
 
-### Security
+**Security:**
 - [OpenZeppelin SafeERC20](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/utils/SafeERC20.sol) — safe permit handling patterns
 - [Revoke.cash](https://revoke.cash/) — check your active approvals
 - [EIP-1271 specification](https://eips.ethereum.org/EIPS/eip-1271) — signature validation for smart accounts (covered in Module 4)
 
-### Advanced Topics
+**Advanced Topics:**
 - [UniswapX ResolvedOrder](https://github.com/Uniswap/UniswapX/blob/main/src/base/ResolvedOrder.sol) — witness data in production
 - [EIP-2098 compact signatures](https://eips.ethereum.org/EIPS/eip-2098) — 64-byte vs 65-byte signatures
 

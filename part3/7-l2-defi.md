@@ -790,33 +790,24 @@ After this section, you should be able to:
 <a id="resources"></a>
 ## 📚 Resources
 
-### Production Code
+**Production Code:**
 - [Aave PriceOracleSentinel](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/configuration/PriceOracleSentinel.sol) — the gold standard sequencer uptime pattern
 - [Chainlink L2 Sequencer Feed](https://docs.chain.link/data-feeds/l2-sequencer-feeds) — integration guide and addresses
 - [Aerodrome](https://github.com/aerodrome-finance/contracts) — L2-native ve(3,3) DEX
 - [Arbitrum Nitro Contracts](https://github.com/OffchainLabs/nitro-contracts) — ArbSys, ArbGasInfo
 - [Optimism GasPriceOracle](https://github.com/ethereum-optimism/optimism/blob/develop/packages/contracts-bedrock/src/L2/GasPriceOracle.sol) — L1 data cost estimation
 
-### Documentation
+**Documentation:**
 - [Arbitrum developer docs](https://docs.arbitrum.io/build-decentralized-apps/precompiles/reference) — precompiles and system contracts
 - [Optimism developer docs](https://docs.optimism.io/builders/app-developers/transactions/estimates) — gas estimation and L1 data costs
 - [Base developer docs](https://docs.base.org/) — building on OP Stack
 
-### Key Reading
+**Key Reading:**
 - [Vitalik: Different types of layer 2s](https://vitalik.eth.limo/general/2023/10/31/l2types.html) — framework for understanding L2 tradeoffs
 - [L2Beat — L2 risk analysis](https://l2beat.com/) — risk comparison dashboard for all L2s
 - [EIP-4844 FAQ](https://www.eip4844.com/) — blob transaction impact on L2s
 - [Arbitrum Timeboost](https://docs.arbitrum.io/how-arbitrum-works/timeboost) — auction-based express lane
 - [Chainlink: Using L2 Sequencer Feeds](https://docs.chain.link/data-feeds/l2-sequencer-feeds) — integration tutorial
-
-#### 📖 How to Study: L2 DeFi
-
-1. Start with [Vitalik's L2 types post](https://vitalik.eth.limo/general/2023/10/31/l2types.html) — understand the landscape
-2. Read [Aave PriceOracleSentinel](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/configuration/PriceOracleSentinel.sol) — the most important L2-specific pattern
-3. Study [Chainlink's L2 Sequencer Feed docs](https://docs.chain.link/data-feeds/l2-sequencer-feeds) — how to integrate
-4. Browse [L2Beat](https://l2beat.com/) — compare risk profiles of different L2s
-5. Deploy a simple contract to Arbitrum Sepolia testnet — feel the gas difference
-6. Read Optimism's [gas estimation docs](https://docs.optimism.io/builders/app-developers/transactions/estimates) — understand the two-component cost model
 
 ---
 

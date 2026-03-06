@@ -1302,18 +1302,18 @@ After this section, you should be able to:
 <a id="resources"></a>
 ## 📚 Resources
 
-### Production Code
+**Production Code:**
 - [GMX V2 Synthetics](https://github.com/gmx-io/gmx-synthetics) — pool-based perp protocol (Arbitrum)
 - [Synthetix V2 Perps](https://github.com/Synthetixio/synthetix/tree/develop/contracts) — debt pool model (Optimism)
 - [Synthetix V3](https://github.com/Synthetixio/synthetix-v3) — modular redesign
 - [dYdX V4](https://github.com/dydxprotocol/v4-chain) — order book on Cosmos app-chain
 
-### Documentation
+**Documentation:**
 - [GMX V2 docs](https://docs.gmx.io/) — position mechanics, fee structure, risk parameters
 - [Synthetix V2 docs](https://docs.synthetix.io/) — debt pool, synths, perps
 - [dYdX V4 docs](https://docs.dydx.exchange/) — order book mechanics
 
-### Further Reading
+**Further Reading:**
 - [Paradigm: Everlasting Options](https://www.paradigm.xyz/2021/05/everlasting-options) — academic foundation for perpetual instruments
 - [GMX V2 technical overview](https://gmx-io.notion.site/) — architecture deep dive
 - [Ethena Labs](https://ethena.fi/docs) — delta-neutral funding rate yield (P3M3 Yield Tokenization connection)

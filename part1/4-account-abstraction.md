@@ -1079,39 +1079,39 @@ After this section, you should be able to:
 
 ## 📚 Resources
 
-### ERC-4337
+**ERC-4337:**
 - [EIP-4337 specification](https://eips.ethereum.org/EIPS/eip-4337) — full technical spec
 - [eth-infinitism/account-abstraction](https://github.com/eth-infinitism/account-abstraction) — reference implementation
 - [ERC-4337 docs](https://docs.alchemy.com/docs/account-abstraction-overview) — Alchemy's guide
 - [Bundler endpoints](https://www.alchemy.com/account-abstraction/bundler-endpoints) — public bundler services
 
-### Smart Account Implementations
+**Smart Account Implementations:**
 - [Safe Smart Account](https://github.com/safe-global/safe-smart-account) — most widely deployed
 - [Kernel by ZeroDev](https://github.com/zerodev-app/kernel) — modular plugins
 - [Biconomy Smart Accounts](https://github.com/bcnmy/scw-contracts) — gas-optimized
 - [SimpleAccount](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/SimpleAccount.sol) — reference
 
-### EIP-7702
+**EIP-7702:**
 - [EIP-7702 specification](https://eips.ethereum.org/EIPS/eip-7702) — EOA code delegation
 - [Vitalik's account abstraction roadmap](https://notes.ethereum.org/@vbuterin/account_abstraction_roadmap) — how EIP-7702 fits
 
-### EIP-1271
+**EIP-1271:**
 - [EIP-1271 specification](https://eips.ethereum.org/EIPS/eip-1271) — contract signature verification
 - [Permit2 SignatureVerification.sol](https://github.com/Uniswap/permit2/blob/main/src/libraries/SignatureVerification.sol) — production implementation
 - [OpenZeppelin SignatureChecker](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/SignatureChecker.sol) — helper library
 
-### Paymasters
+**Paymasters:**
 - [Pimlico paymaster docs](https://docs.pimlico.io/how-to/paymaster/verifying-paymaster)
 - [Alchemy Gas Manager](https://docs.alchemy.com/docs/gas-manager-services)
 - [eth-infinitism VerifyingPaymaster](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/VerifyingPaymaster.sol)
 - [eth-infinitism TokenPaymaster](https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/samples/TokenPaymaster.sol)
 
-### Modular Accounts
+**Modular Accounts:**
 - [ERC-6900 specification](https://eips.ethereum.org/EIPS/eip-6900) — modular smart contract accounts (Alchemy)
 - [ERC-7579 specification](https://eips.ethereum.org/EIPS/eip-7579) — minimal modular accounts (Rhinestone)
 - [Rhinestone Module Registry](https://docs.rhinestone.wtf/module-sdk) — reusable account modules
 
-### Deployment Data
+**Deployment Data:**
 - [4337 Stats](https://www.bundlebear.com/overview/all) — account abstraction adoption metrics
 - [Dune: Smart Account Growth](https://dune.com/johnrising/account-abstraction) — deployment trends
 

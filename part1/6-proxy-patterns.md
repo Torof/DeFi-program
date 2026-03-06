@@ -744,27 +744,27 @@ After this section, you should be able to:
 
 ## 📚 Resources
 
-### Proxy Standards
+**Proxy Standards:**
 - [EIP-1967](https://eips.ethereum.org/EIPS/eip-1967) — standard proxy storage slots (implementation, admin, and beacon slots)
 - [EIP-1822 (UUPS)](https://eips.ethereum.org/EIPS/eip-1822) — universal upgradeable proxy standard
 - [EIP-2535 (Diamond)](https://eips.ethereum.org/EIPS/eip-2535) — multi-facet proxy
 
-### OpenZeppelin Implementations
+**OpenZeppelin Implementations:**
 - [TransparentUpgradeableProxy](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/transparent/TransparentUpgradeableProxy.sol)
 - [UUPSUpgradeable](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/proxy/utils/UUPSUpgradeable.sol)
 - [BeaconProxy](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/beacon/BeaconProxy.sol)
 - [Initializable](https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/proxy/utils/Initializable.sol)
 
-### Production Examples
+**Production Examples:**
 - [Aave V3 Proxy Architecture](https://github.com/aave/aave-v3-core/tree/master/contracts/protocol/tokenization) — individual transparent-style proxies for aTokens, initialization patterns
 - [Compound V3 Configurator](https://github.com/compound-finance/comet) — custom proxy with immutable implementation
 
-### Security Resources
+**Security Resources:**
 - [OpenZeppelin Proxy Upgrade Guide](https://docs.openzeppelin.com/upgrades-plugins/proxies) — best practices
 - [Audius governance takeover postmortem](https://www.openzeppelin.com/blog/audius-governance-takeover-post-mortem) — storage collision exploit
 - [Wormhole uninitialized proxy](https://medium.com/immunefi/wormhole-uninitialized-proxy-bugfix-review-90250c41a43a) — initialization attack
 
-### Tools
+**Tools:**
 - [Foundry storage layout](https://book.getfoundry.sh/reference/forge/forge-inspect) — `forge inspect storage-layout`
 - [OpenZeppelin Upgrades Plugin](https://docs.openzeppelin.com/upgrades-plugins/) — automated layout checking
 

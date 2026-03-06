@@ -843,32 +843,23 @@ After this section, you should be able to:
 <a id="resources"></a>
 ## 📚 Resources
 
-### Production Code
+**Production Code:**
 - [OpenZeppelin Governor](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/governance) — Governor, GovernorVotes, TimelockController
 - [Compound Governor Bravo](https://github.com/compound-finance/compound-protocol/blob/master/contracts/Governance/GovernorBravoDelegate.sol) — the original DeFi governor
 - [Curve VotingEscrow](https://github.com/curvefi/curve-dao-contracts/blob/master/contracts/VotingEscrow.vy) — the original ve-token (Vyper)
 - [Velodrome V2](https://github.com/velodrome-finance/contracts) — ve(3,3) implementation
 - [Aerodrome](https://github.com/aerodrome-finance/contracts) — ve(3,3) on Base
 
-### Documentation
+**Documentation:**
 - [OpenZeppelin Governor Guide](https://docs.openzeppelin.com/contracts/5.x/governance) — step-by-step setup
 - [Curve DAO Documentation](https://resources.curve.fi/crv-token/overview/) — veCRV mechanics
 - [Velodrome Docs](https://docs.velodrome.finance/) — ve(3,3) model
 
-### Key Reading
+**Key Reading:**
 - [Vitalik: Moving Beyond Coin Voting Governance](https://vitalik.eth.limo/general/2021/08/16/voting3.html) — fundamental critique and alternative designs
 - [a16z: Governance Minimization](https://a16zcrypto.com/posts/article/governance-minimization/) — the case for reducing governable surface
 - [Beanstalk Governance Attack Post-Mortem](https://rekt.news/beanstalk-rekt/) — detailed exploit analysis
 - [Curve Wars Explainer](https://every.to/almanack/curve-wars) — the economics of governance competition
-
-#### 📖 How to Study: DeFi Governance
-
-1. Start with [OpenZeppelin Governor Guide](https://docs.openzeppelin.com/contracts/5.x/governance) — deploy a test governor in Foundry
-2. Read `ERC20Votes.sol` — understand checkpointing (this is what prevents flash loan attacks)
-3. Study the [Beanstalk post-mortem](https://rekt.news/beanstalk-rekt/) — the most important governance attack
-4. Read [Vitalik's governance post](https://vitalik.eth.limo/general/2021/08/16/voting3.html) — understand the limitations of token voting
-5. Explore [Curve DAO docs](https://resources.curve.fi/crv-token/overview/) — understand ve-tokenomics
-6. Read [a16z governance minimization](https://a16zcrypto.com/posts/article/governance-minimization/) — the design philosophy
 
 ---
 

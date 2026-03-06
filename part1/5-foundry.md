@@ -1218,27 +1218,27 @@ After this section, you should be able to:
 
 ## 📚 Resources
 
-### Foundry Documentation
+**Foundry Documentation:**
 - [Foundry Book](https://book.getfoundry.sh/) — official docs (read cover-to-cover)
 - [Foundry GitHub](https://github.com/foundry-rs/foundry) — source code and examples
 - [Foundry cheatcodes reference](https://book.getfoundry.sh/cheatcodes/) — all `vm.*` functions
 
-### Testing Best Practices
+**Testing Best Practices:**
 - [Foundry Book - Testing](https://book.getfoundry.sh/forge/tests) — basics
 - [Foundry Book - Fuzz Testing](https://book.getfoundry.sh/forge/fuzz-testing) — property-based testing
 - [Foundry Book - Invariant Testing](https://book.getfoundry.sh/forge/invariant-testing) — advanced fuzzing
 
-### Production Examples
+**Production Examples:**
 - [Uniswap V4 test suite](https://github.com/Uniswap/v4-core/tree/main/test) — state-of-the-art testing patterns
 - [Morpho Blue invariant tests](https://github.com/morpho-org/morpho-blue/tree/main/test/forge) — handler patterns
 - [Solmate tests](https://github.com/transmissions11/solmate/tree/main/src/test) — clean, minimal examples
 
-### Gas Optimization
+**Gas Optimization:**
 - [Rareskills Gas Optimization](https://www.rareskills.io/post/gas-optimization) — comprehensive guide
 - [EVM Codes](https://www.evm.codes/) — opcode gas costs
 - [Solidity gas optimization tips](https://gist.github.com/hrkrshnn/ee8fabd532058307229d65dcd5836ddc) — from Solidity team
 
-### RPC Providers
+**RPC Providers:**
 - [Alchemy](https://www.alchemy.com/) — free tier, reliable
 - [Infura](https://www.infura.io/) — industry standard
 - [Ankr](https://www.ankr.com/rpc/) — multi-chain support

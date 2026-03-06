@@ -1138,29 +1138,22 @@ After this section, you should be able to:
 
 ---
 
----
-
 <a id="resources"></a>
 ## 📚 Resources
 
-### Production Code
+**Production Code:**
+- [Lido stETH](https://github.com/lidofinance/lido-dao) — shares accounting, oracle, rebase (`Lido.sol`, `WstETH.sol`, `AccountingOracle.sol`)
+- [Rocket Pool](https://github.com/rocket-pool/rocketpool) — rETH exchange rate, minipool model (`RocketTokenRETH.sol`, `RocketDepositPool.sol`)
+- [EigenLayer](https://github.com/Layr-Labs/eigenlayer-contracts) — restaking architecture (`StrategyManager.sol`, `DelegationManager.sol`)
+- [EtherFi](https://github.com/etherfi-protocol/smart-contracts) — LRT implementation (`weETH.sol`, `LiquidityPool.sol`)
 
-| Repository | What to Study | Key Files |
-|---|---|---|
-| [Lido stETH](https://github.com/lidofinance/lido-dao) | Shares accounting, oracle, rebase | `Lido.sol`, `WstETH.sol`, `AccountingOracle.sol` |
-| [Rocket Pool](https://github.com/rocket-pool/rocketpool) | rETH exchange rate, minipool model | `RocketTokenRETH.sol`, `RocketDepositPool.sol` |
-| [EigenLayer](https://github.com/Layr-Labs/eigenlayer-contracts) | Restaking architecture | `StrategyManager.sol`, `DelegationManager.sol` |
-| [EtherFi](https://github.com/etherfi-protocol/smart-contracts) | LRT implementation | `weETH.sol`, `LiquidityPool.sol` |
-
-### Documentation
-
+**Documentation:**
 - [Lido docs](https://docs.lido.fi/) — comprehensive, well-maintained
 - [Lido stETH integration guide](https://docs.lido.fi/guides/steth-integration-guide) — essential reading for any integration
 - [Rocket Pool docs](https://docs.rocketpool.net/)
 - [EigenLayer docs](https://docs.eigenlayer.xyz/)
 
-### Further Reading
-
+**Further Reading:**
 - [stETH depeg analysis (June 2022)](https://research.lido.fi/) — post-mortem and market analysis
 - [EigenLayer whitepaper](https://docs.eigenlayer.xyz/eigenlayer/overview) — restaking design rationale
 - [Aave V3 wstETH risk parameters](https://governance.aave.com/) — search for wstETH listing proposals to see risk team analysis

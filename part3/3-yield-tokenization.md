@@ -1041,21 +1041,21 @@ After this section, you should be able to:
 <a id="resources"></a>
 ## 📚 Resources
 
-### Production Code
+**Production Code:**
 - [Pendle V2 Core (GitHub)](https://github.com/pendle-finance/pendle-core-v2-public) — full protocol implementation
 - [PendleYieldToken.sol](https://github.com/pendle-finance/pendle-core-v2-public/blob/main/contracts/core/YieldContracts/PendleYieldToken.sol) — yield accumulator implementation
 - [PendleMarketV7.sol](https://github.com/pendle-finance/pendle-core-v2-public/blob/main/contracts/core/Market/PendleMarketV7.sol) — AMM with rate-space trading
 
-### Standards
+**Standards:**
 - [ERC-5115: Standardized Yield (EIP)](https://eips.ethereum.org/EIPS/eip-5115) — the SY token standard
 - [ERC-4626: Tokenized Vault (EIP)](https://eips.ethereum.org/EIPS/eip-4626) — comparison reference
 
-### Documentation
+**Documentation:**
 - [Pendle Documentation](https://docs.pendle.finance/) — official protocol docs
 - [Pendle Academy](https://academy.pendle.finance/) — educational resources from the team (note: Pendle Academy may have been deprecated or merged into main docs; if the link is dead, see [Pendle Docs](https://docs.pendle.finance/) instead)
 - [Notional Finance Docs](https://docs.notional.finance/) — AMM curve inspiration
 
-### Further Reading
+**Further Reading:**
 - [Pendle Documentation](https://docs.pendle.finance/) — includes AMM curve details (navigate to Developers → Contracts)
 - [Dan Robinson & Allan Niemerg: Yield Protocol](https://research.paradigm.xyz/Yield.pdf) — foundational research on yield tokenization
 

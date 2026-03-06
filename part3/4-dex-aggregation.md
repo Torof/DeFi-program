@@ -1064,17 +1064,17 @@ After this section, you should be able to:
 <a id="resources"></a>
 ## 📚 Resources
 
-### Production Code
+**Production Code:**
 - [UniswapX](https://github.com/Uniswap/UniswapX) — ExclusiveDutchOrderReactor, DutchDecayLib, IReactorCallback
 - [CoW Protocol (GPv2)](https://github.com/cowprotocol/contracts) — GPv2Settlement
 - [1inch Limit Order Protocol](https://github.com/1inch/limit-order-protocol) — V6 aggregation router source is not public; this is the best open-source reference
 
-### Documentation
+**Documentation:**
 - [UniswapX docs](https://docs.uniswap.org/contracts/uniswapx/overview)
 - [CoW Protocol docs](https://docs.cow.fi/)
 - [EIP-712: Typed structured data hashing and signing](https://eips.ethereum.org/EIPS/eip-712)
 
-### Key Reading
+**Key Reading:**
 - [Paradigm: An Analysis of Intent-Based Markets](https://www.paradigm.xyz/2023/06/intents)
 - [Frontier Research: Order Flow Auctions and Centralisation](https://frontier.tech/the-orderflow-auction-design-space)
 - [Flashbots: MEV, Intents, and the Suave Future](https://writings.flashbots.net/)
