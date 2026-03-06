@@ -336,7 +336,7 @@ After this section, you should be able to:
 ---
 
 <a id="sequencer-uptime"></a>
-## ⚠️ Sequencer Uptime & Oracle Safety
+## 💡 Sequencer Uptime & Oracle Safety
 
 ### 💡 Concept: The Sequencer Downtime Problem
 

@@ -570,7 +570,7 @@ After this section, you should be able to:
 ---
 
 <a id="governance-security"></a>
-## ⚠️ Governance Security
+## 💡 Governance Security
 
 ### 💡 Concept: When Governance Itself Is the Attack Surface
 

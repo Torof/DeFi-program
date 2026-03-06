@@ -273,7 +273,7 @@ The industry is moving from (1) toward (4) and (5). Every new bridge architectur
 ---
 
 <a id="bridge-security"></a>
-## ⚠️ Bridge Security: Anatomy of Exploits
+## 💡 Bridge Security: Anatomy of Exploits
 
 ### 💡 Concept: Why Bridges Are the Highest-Risk DeFi Category
 
