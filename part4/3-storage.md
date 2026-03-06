@@ -1166,7 +1166,7 @@ forge inspect <Contract> storageLayout
 ---
 
 <a id="how-to-study"></a>
-### 📖 How to Study Storage-Heavy Contracts
+#### 📖 How to Study Storage-Heavy Contracts
 
 1. **Start with `forge inspect storageLayout`** — map out all slots and their byte offsets within slots.
 2. **Identify packed slots** — look for multiple variables sharing one slot (variables smaller than 32 bytes).

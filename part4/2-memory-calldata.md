@@ -968,7 +968,7 @@ function readFirstWord(bytes calldata data) external pure returns (uint256) {
 ---
 
 <a id="how-to-study"></a>
-### 📖 How to Study Memory-Heavy Assembly
+#### 📖 How to Study Memory-Heavy Assembly
 
 When you encounter assembly that manipulates memory extensively (common in Solady, Uniswap V4, and custom routers):
 

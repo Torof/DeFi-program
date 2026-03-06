@@ -1394,7 +1394,7 @@ assembly {
 ## 💡 How to Study
 
 <a id="how-to-study"></a>
-### 📖 How to Study Dispatch-Heavy Contracts
+#### 📖 How to Study Dispatch-Heavy Contracts
 
 1. **Start with `cast disassemble` or `forge inspect`** to see the dispatch table. Count the JUMPI instructions in the opening section — each one is a selector comparison.
 

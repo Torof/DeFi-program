@@ -290,6 +290,21 @@ Don't try to understand the full router in one pass. The core pattern is the mul
 
 > 🔍 **Code:** [1inch Limit Order Protocol](https://github.com/1inch/limit-order-protocol) — V6 aggregation router source is not publicly available; the limit-order-protocol repo is the best open-source reference for 1inch's on-chain patterns
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How does a DEX aggregator find the optimal route?"**
+   - Good answer: "Aggregators query multiple pools off-chain, run an optimization algorithm to find the best split and routing path, then encode the solution as calldata for an on-chain executor contract."
+   - Great answer: "The routing problem is a constrained optimization — maximize output given pools with different liquidity profiles. For constant-product pools, the optimal split is approximately proportional to pool depth, because price impact is nonlinear — doubling the trade size more than doubles slippage. In practice, aggregators use heuristics because the general multi-hop, multi-split problem is NP-hard. The on-chain part is just a multi-call executor with a min-output check — all the intelligence is off-chain. On L2s, routing gets more aggressive because the gas overhead of extra hops is near-zero, so more splits become profitable."
+
+**Interview Red Flags:**
+- 🚩 Thinking aggregators only do single-pool routing (the whole point is multi-pool, multi-hop optimization)
+- 🚩 Not distinguishing on-chain vs off-chain components (the intelligence is off-chain, execution is on-chain)
+- 🚩 Ignoring gas costs in split analysis (extra hops have different economics on L1 vs L2)
+
+**Pro tip:** When discussing aggregator architecture, mention that the on-chain executor is deliberately simple (multi-call + min-output check) while the off-chain router is where all the complexity lives. This separation of concerns is a key design pattern across DeFi infrastructure.
+
 ---
 
 <a id="exercise-split-router"></a>
@@ -314,21 +329,6 @@ Build a simple DEX router that splits trades across two constant-product pools.
 **🎯 Goal:** Prove that splitting a large trade across two unequal pools gives more output than routing through either pool alone.
 
 Run: `forge test --match-contract SplitRouterTest -vvv`
-
-#### 💼 Job Market Context
-
-**What DeFi teams expect you to know:**
-
-1. **"How does a DEX aggregator find the optimal route?"**
-   - Good answer: "Aggregators query multiple pools off-chain, run an optimization algorithm to find the best split and routing path, then encode the solution as calldata for an on-chain executor contract."
-   - Great answer: "The routing problem is a constrained optimization — maximize output given pools with different liquidity profiles. For constant-product pools, the optimal split is approximately proportional to pool depth, because price impact is nonlinear — doubling the trade size more than doubles slippage. In practice, aggregators use heuristics because the general multi-hop, multi-split problem is NP-hard. The on-chain part is just a multi-call executor with a min-output check — all the intelligence is off-chain. On L2s, routing gets more aggressive because the gas overhead of extra hops is near-zero, so more splits become profitable."
-
-**Interview Red Flags:**
-- 🚩 Thinking aggregators only do single-pool routing (the whole point is multi-pool, multi-hop optimization)
-- 🚩 Not distinguishing on-chain vs off-chain components (the intelligence is off-chain, execution is on-chain)
-- 🚩 Ignoring gas costs in split analysis (extra hops have different economics on L1 vs L2)
-
-**Pro tip:** When discussing aggregator architecture, mention that the on-chain executor is deliberately simple (multi-call + min-output check) while the off-chain router is where all the complexity lives. This separation of concerns is a key design pattern across DeFi infrastructure.
 
 ---
 
