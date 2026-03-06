@@ -303,6 +303,60 @@ function rpow(uint256 x, uint256 n, uint256 base) internal pure returns (uint256
 
 **Where you'll see this:** Every protocol that compounds per-second rates uses this pattern or a variation. Aave's `MathUtils.calculateCompoundedInterest()` uses a 3-term Taylor approximation instead (see Module 4) — faster but less precise for large exponents.
 
+#### ⚠️ Common CDP Implementation Mistakes
+
+**1. Confusing normalized debt (`art`) with actual debt (`art × rate`)**
+```solidity
+// ❌ WRONG — reading art directly as the debt amount
+(uint256 ink, uint256 art) = vat.urns(ilk, user);
+uint256 debtOwed = art;  // This is NORMALIZED debt, not actual
+
+// ✅ CORRECT — multiply by the rate accumulator
+(uint256 ink, uint256 art) = vat.urns(ilk, user);
+(, uint256 rate,,,) = vat.ilks(ilk);
+uint256 debtOwed = art * rate / RAY;  // Actual debt in WAD
+```
+**Impact:** After years of accumulated stability fees, `rate` might be 1.15e27 (15% total fees). Reading `art` directly understates the debt by 15%. This same mistake applies to Aave's `scaledBalance` vs actual balance.
+
+**2. Forgetting to call `drip()` before reading or modifying debt**
+```solidity
+// ❌ WRONG — rate is stale (hasn't been updated since last drip)
+(, uint256 rate,,,) = vat.ilks(ilk);
+uint256 debtOwed = art * rate / RAY;  // Could be hours/days stale
+
+// ✅ CORRECT — drip first to update the rate accumulator
+jug.drip(ilk);  // Updates rate to current timestamp
+(, uint256 rate,,,) = vat.ilks(ilk);
+uint256 debtOwed = art * rate / RAY;  // Accurate to this block
+```
+**Impact:** If nobody has called `drip()` for a week, the rate is a week stale. Any debt calculation, vault safety check, or liquidation trigger that reads the stale rate will be wrong.
+
+**3. PSM decimal mismatch (USDC is 6 decimals, DAI is 18)**
+```solidity
+// ❌ WRONG — treating USDC and DAI amounts as the same scale
+uint256 usdcAmount = 1000e18;  // 10^21 base units ÷ 10^6 decimals = $1 quadrillion!
+psm.sellGem(address(this), usdcAmount);
+
+// ✅ CORRECT — USDC uses 6 decimals
+uint256 usdcAmount = 1000e6;   // 1000 USDC ($1,000)
+psm.sellGem(address(this), usdcAmount);
+// The PSM internally handles the 6→18 decimal conversion via GemJoin
+```
+**Impact:** The PSM's GemJoin adapter handles the decimal conversion, but you must pass the USDC amount in USDC's native 6-decimal scale.
+
+**4. Not checking the `dust` minimum when partially repaying**
+```solidity
+// ❌ WRONG — partial repay leaves vault below dust threshold
+// Vault has 10,000 DAI debt, dust = 5,000 DAI
+vat.frob(ilk, address(this), address(this), address(this), 0, -int256(8000e18));
+// Tries to reduce debt to 2,000 DAI → REVERTS (below dust of 5,000)
+
+// ✅ CORRECT — either repay fully (dart = -art) or keep above dust
+vat.frob(ilk, ..., 0, -int256(art));    // Option A: Full repay
+vat.frob(ilk, ..., 0, -int256(5000e18)); // Option B: Stay above dust
+```
+**Impact:** The `dust` parameter prevents tiny vaults whose gas costs for liquidation would exceed the recovered value. When a vault has debt, it must be either 0 or ≥ `dust`.
+
 ---
 
 <a id="day1-exercises"></a>
@@ -870,6 +924,26 @@ Speed of peg restoration:
 
 **The pattern:** Faster peg restoration requires either centralization (USDC, PSM's USDC dependency) or capital lock-up (Liquity's 110% CR). Slower mechanisms preserve decentralization but risk prolonged depegs during stress.
 
+#### 💼 Job Market Context
+
+**Stablecoin design is a senior-level interview topic:**
+
+1. **"Explain the stablecoin trilemma and where DAI sits"**
+   - Good answer: DAI trades off capital efficiency for decentralization and stability
+   - Great answer: DAI started decentralized (ETH-only collateral) but the PSM made it USDC-dependent for better stability. The Sky rebrand pushed further toward centralization with USDS's freeze function. Liquity V1 sits at the opposite extreme — fully decentralized and immutable, but less capital-efficient and narrower collateral. No design achieves all three.
+
+2. **"How does crvUSD's LLAMMA differ from traditional liquidation?"**
+   - Good answer: It gradually converts collateral instead of a sudden liquidation event
+   - Great answer: LLAMMA is essentially an AMM where your collateral IS the liquidity. As price drops, the AMM sells your collateral for crvUSD automatically. If price recovers, it buys back. This eliminates the discrete liquidation penalty but introduces AMM-like impermanent loss during soft liquidation. It's a fundamentally different paradigm — continuous adjustment vs threshold-triggered liquidation.
+
+3. **"What's the main risk with Ethena's USDe?"**
+   - Good answer: Funding rates can go negative
+   - Great answer: Three correlated risks: (1) prolonged negative funding drains the insurance fund and erodes backing, (2) centralized exchange counterparty risk — positions are on Binance/Bybit/Deribit via custodians, (3) during a black swan, all three risks compound simultaneously (funding reversal + exchange stress + basis blowout). The model works great in bull markets with positive funding but hasn't been tested through a severe extended downturn with the current AUM.
+
+**Interview Red Flags:**
+- 🚩 Thinking algorithmic stablecoins without external collateral can work (Terra killed this thesis)
+- 🚩 Not knowing the difference between a CDP and a lending protocol
+
 <a id="day4-exercises"></a>
 ## 🎯 Build Exercise: Stablecoin Design Trade-offs
 
@@ -897,101 +971,6 @@ After this section, you should be able to:
 - Compare MakerDAO vs Liquity: governance vs immutability, Dutch auction vs Stability Pool liquidation, and explain why each design made its trade-offs
 - Explain Ethena USDe's delta-neutral mechanism (collateral + short perp = hedged position) and identify the risks: negative funding rates, exchange counterparty, centralization
 - Use the Terra collapse ($40B) as the definitive case study for why uncollateralized algorithmic stablecoins fail: reflexive death spiral when confidence breaks
-
----
-
-<a id="common-mistakes"></a>
-## ⚠️ Common Mistakes
-
-**Mistake 1: Confusing normalized debt (`art`) with actual debt (`art × rate`)**
-
-```solidity
-// ❌ WRONG — reading art directly as the debt amount
-(uint256 ink, uint256 art) = vat.urns(ilk, user);
-uint256 debtOwed = art;  // This is NORMALIZED debt, not actual
-
-// ✅ CORRECT — multiply by the rate accumulator
-(uint256 ink, uint256 art) = vat.urns(ilk, user);
-(, uint256 rate,,,) = vat.ilks(ilk);
-uint256 debtOwed = art * rate / RAY;  // Actual debt in WAD
-```
-
-After years of accumulated stability fees, `rate` might be 1.15e27 (15% total fees). Reading `art` directly would understate the debt by 15%. This same mistake applies to Aave's `scaledBalance` vs actual balance.
-
-**Mistake 2: Forgetting to call `drip()` before reading or modifying debt**
-
-```solidity
-// ❌ WRONG — rate is stale (hasn't been updated since last drip)
-(, uint256 rate,,,) = vat.ilks(ilk);
-uint256 debtOwed = art * rate / RAY;  // Could be hours/days stale
-
-// ✅ CORRECT — drip first to update the rate accumulator
-jug.drip(ilk);  // Updates rate to current timestamp
-(, uint256 rate,,,) = vat.ilks(ilk);
-uint256 debtOwed = art * rate / RAY;  // Accurate to this block
-```
-
-If nobody has called `drip()` for a week, the rate is a week stale. Any debt calculation, vault safety check, or liquidation trigger that reads the stale rate will be wrong. In practice, keepers and frontends call `drip()` before state-changing operations. Your contracts should too.
-
-**Mistake 3: PSM decimal mismatch (USDC is 6 decimals, DAI is 18)**
-
-```solidity
-// ❌ WRONG — treating USDC and DAI amounts as the same scale
-uint256 usdcAmount = 1000e18;  // 10^21 base units ÷ 10^6 decimals = 10^15 USDC ($1 quadrillion!)
-psm.sellGem(address(this), usdcAmount);
-
-// ✅ CORRECT — USDC uses 6 decimals
-uint256 usdcAmount = 1000e6;   // 1000 USDC ($1,000)
-psm.sellGem(address(this), usdcAmount);
-// The PSM internally handles the 6→18 decimal conversion via GemJoin
-```
-
-The PSM's GemJoin adapter handles the decimal conversion (`gem_amount * 10^(18-6)`), but you must pass the USDC amount in USDC's native 6-decimal scale. Passing 18-decimal amounts will either overflow or swap vastly more than intended.
-
-**Mistake 4: Not checking the `dust` minimum when partially repaying**
-
-```solidity
-// ❌ WRONG — partial repay leaves vault below dust threshold
-// Vault has 10,000 DAI debt, dust = 5,000 DAI
-vat.frob(ilk, address(this), address(this), address(this), 0, -int256(8000e18));
-// Tries to reduce debt to 2,000 DAI → REVERTS (below dust of 5,000)
-
-// ✅ CORRECT — either repay fully (dart = -art) or keep above dust
-// Option A: Full repay
-vat.frob(ilk, ..., 0, -int256(art));  // Close to 0 debt
-// Option B: Stay above dust
-vat.frob(ilk, ..., 0, -int256(5000e18));  // Leaves 5,000 DAI ≥ dust
-```
-
-The `dust` parameter prevents tiny vaults whose gas costs for liquidation would exceed the recovered value. When a vault has debt, it must be either 0 or ≥ `dust`. This catches developers who try to partially repay without checking.
-
----
-
-## 💼 Job Market Context
-
-**What DeFi teams expect you to know:**
-
-1. **"Explain the stablecoin trilemma and where DAI sits"**
-   - Good answer: DAI trades off capital efficiency for decentralization and stability
-   - Great answer: DAI started decentralized (ETH-only collateral) but the PSM made it USDC-dependent for better stability. The Sky rebrand pushed further toward centralization with USDS's freeze function. Liquity V1 sits at the opposite extreme — fully decentralized and immutable, but less capital-efficient and narrower collateral. No design achieves all three.
-
-2. **"How does crvUSD's LLAMMA differ from traditional liquidation?"**
-   - Good answer: It gradually converts collateral instead of a sudden liquidation event
-   - Great answer: LLAMMA is essentially an AMM where your collateral IS the liquidity. As price drops, the AMM sells your collateral for crvUSD automatically. If price recovers, it buys back. This eliminates the discrete liquidation penalty but introduces AMM-like impermanent loss during soft liquidation. It's a fundamentally different paradigm — continuous adjustment vs threshold-triggered liquidation.
-
-3. **"What's the main risk with Ethena's USDe?"**
-   - Good answer: Funding rates can go negative
-   - Great answer: Three correlated risks: (1) prolonged negative funding drains the insurance fund and erodes backing, (2) centralized exchange counterparty risk — positions are on Binance/Bybit/Deribit via custodians, (3) during a black swan, all three risks compound simultaneously (funding reversal + exchange stress + basis blowout). The model works great in bull markets with positive funding but hasn't been tested through a severe extended downturn with the current AUM.
-
-**Interview Red Flags:**
-- 🚩 Thinking algorithmic stablecoins without external collateral can work (Terra killed this thesis)
-- 🚩 Not knowing the difference between a CDP and a lending protocol
-- 🚩 Inability to explain how stability fees act as monetary policy
-- 🚩 Not recognizing that MakerDAO's terse naming convention exists (demonstrates you haven't read the code)
-
-**Pro tip:** The stablecoin landscape is one of the most interview-relevant DeFi topics because it touches everything — oracles, liquidation, governance, monetary policy, risk management. Being able to compare MakerDAO vs Liquity vs Ethena design trade-offs demonstrates systems-level thinking that teams value highly.
-
----
 
 ## 🔗 Cross-Module Concept Links
 

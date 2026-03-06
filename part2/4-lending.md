@@ -550,6 +550,75 @@ function calculateCompoundedInterest(uint256 rate, uint40 lastUpdateTimestamp, u
 
 > **Compound V3's approach:** [Comet uses simple interest per-period](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol#L313) (`index × (1 + rate × elapsed)`), which is slightly less accurate for long gaps but even cheaper. The difference is negligible because `accrueInternal()` is called frequently.
 
+#### ⚠️ Common Lending Accounting Mistakes
+
+**These patterns have caused real exploits and audit findings:**
+
+**1. Not accruing interest before state changes**
+```solidity
+// ❌ WRONG — reads stale index
+function borrow(uint256 amount) external {
+    uint256 debt = getDebt(msg.sender); // uses old borrowIndex
+    require(isHealthy(msg.sender), "undercollateralized");
+    // ...
+}
+
+// ✅ CORRECT — accrue first, then compute
+function borrow(uint256 amount) external {
+    accrueInterest();  // updates indexes to current timestamp
+    uint256 debt = getDebt(msg.sender); // uses fresh borrowIndex
+    require(isHealthy(msg.sender), "undercollateralized");
+    // ...
+}
+```
+**Impact:** Stale indexes undercount debt → users borrow more than they should → protocol becomes undercollateralized.
+
+**2. Using `balanceOf()` instead of internal accounting for pool balances**
+```solidity
+// ❌ WRONG — vulnerable to donation attacks
+function totalDeposits() public view returns (uint256) {
+    return token.balanceOf(address(this));
+}
+
+// ✅ CORRECT — track internally
+function totalDeposits() public view returns (uint256) {
+    return _internalTotalDeposits;
+}
+```
+**Impact:** Attacker sends tokens directly to the contract → inflates share ratio → drains funds. This is how [Euler was exploited for $197M](https://rekt.news/euler-rekt/).
+
+**3. Rounding in the wrong direction**
+```solidity
+// ❌ WRONG — rounds in user's favor for debt
+scaledDebt = debtAmount * RAY / borrowIndex;  // rounds down = less debt
+
+// ✅ CORRECT — round UP for debt, DOWN for deposits
+scaledDebt = (debtAmount * RAY + borrowIndex - 1) / borrowIndex;  // rounds up
+```
+**Impact:** Each borrow creates slightly less debt than it should. Over millions of borrows, the shortfall accumulates. Aave V3 uses `rayDiv` (round down) for deposits and `rayDiv` with round-up for debt.
+
+**4. Not handling `type(uint256).max` for full repayment**
+```solidity
+// ❌ WRONG — interest accrues between tx submission and execution
+function repay(uint256 amount) external {
+    token.transferFrom(msg.sender, address(this), amount);
+    userDebt[msg.sender] -= amount;
+    // If amount > actual debt → underflow revert
+    // If amount < actual debt → dust remains
+}
+
+// ✅ CORRECT — handle the "repay everything" case explicitly
+function repay(uint256 amount) external {
+    accrueInterest();
+    uint256 currentDebt = getDebt(msg.sender);
+    uint256 repayAmount = amount == type(uint256).max ? currentDebt : amount;
+    require(repayAmount <= currentDebt, "repay exceeds debt");
+    token.transferFrom(msg.sender, address(this), repayAmount);
+    userDebt[msg.sender] -= repayAmount;
+}
+```
+**Impact:** Without this pattern, users can never fully repay their debt because interest accrues between calculation and execution. Tiny dust debts accumulate across thousands of users. [Aave V3 handles this explicitly](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/BorrowLogic.sol#L116).
+
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know about lending fundamentals:**
@@ -1329,6 +1398,34 @@ After absorption, the protocol holds seized collateral. Anyone can buy this coll
 
 > **Deep dive:** [Flashbots docs](https://docs.flashbots.net/) — MEV infrastructure and searcher strategies, [Eigenphi liquidation tracking](https://eigenphi.io/)
 
+#### ⚠️ Common Liquidation Mistakes
+
+**1. Not checking oracle freshness before liquidation**
+```solidity
+// ❌ WRONG — uses potentially stale price
+uint256 price = oracle.latestAnswer();
+
+// ✅ CORRECT — validate freshness
+(, int256 answer,, uint256 updatedAt,) = oracle.latestRoundData();
+require(block.timestamp - updatedAt < STALENESS_THRESHOLD, "stale price");
+require(answer > 0, "invalid price");
+```
+**Impact:** Stale oracle → incorrect HF calculation → either wrongful liquidation (user loss) or missed liquidation (protocol loss). See Module 3 for complete oracle safety patterns.
+
+**2. Liquidation that doesn't restore health**
+```solidity
+// ❌ WRONG — doesn't check post-liquidation state
+function liquidate(address user, uint256 amount) external {
+    _repayDebt(user, amount);
+    _seizeCollateral(user, amount * bonus);
+    // done — but what if HF is still < 1?
+}
+
+// ✅ CORRECT — verify the liquidation actually helped
+// Aave V3 enforces minimum position sizes and validates post-liquidation state
+```
+**Impact:** Partial liquidation that leaves a dust position still underwater → no one can liquidate the remainder profitably → bad debt.
+
 #### 💼 Job Market Context — Liquidation Mechanics
 
 **What DeFi teams expect you to know about liquidation:**
@@ -1606,106 +1703,6 @@ After this section, you should be able to:
 - Explain bad debt handling: Aave's Safety Module (staked AAVE backstop) vs Compound's absorb/auction socialization, and describe the liquidation cascade feedback loop and its defenses
 - Describe the modular lending trend: Morpho Blue's ~650-line minimal core with permissionless isolated markets, Euler V2's vault graph architecture, and how they differ from Aave/Compound monoliths
 - Explain GHO's facilitator pattern: how Aave serves as both lending protocol and stablecoin issuer
-
----
-
-## ⚠️ Common Mistakes
-
-**Mistakes that have caused real exploits and audit findings in lending protocols:**
-
-1. **Not accruing interest before state changes**
-   ```solidity
-   // WRONG — reads stale index
-   function borrow(uint256 amount) external {
-       uint256 debt = getDebt(msg.sender); // uses old borrowIndex
-       require(isHealthy(msg.sender), "undercollateralized");
-       // ...
-   }
-
-   // CORRECT — accrue first, then compute
-   function borrow(uint256 amount) external {
-       accrueInterest();  // updates indexes to current timestamp
-       uint256 debt = getDebt(msg.sender); // uses fresh borrowIndex
-       require(isHealthy(msg.sender), "undercollateralized");
-       // ...
-   }
-   ```
-   **Impact:** Stale indexes undercount debt → users borrow more than they should → protocol becomes undercollateralized.
-
-2. **Using `balanceOf()` instead of internal accounting for pool balances**
-   ```solidity
-   // WRONG — vulnerable to donation attacks
-   function totalDeposits() public view returns (uint256) {
-       return token.balanceOf(address(this));
-   }
-
-   // CORRECT — track internally
-   function totalDeposits() public view returns (uint256) {
-       return _internalTotalDeposits;
-   }
-   ```
-   **Impact:** Attacker sends tokens directly to the contract → inflates share ratio → drains funds. This is how [Euler was exploited for $197M](https://rekt.news/euler-rekt/).
-
-3. **Rounding in the wrong direction**
-   ```solidity
-   // WRONG — rounds in user's favor for debt
-   scaledDebt = debtAmount * RAY / borrowIndex;  // rounds down = less debt
-
-   // CORRECT — round UP for debt, DOWN for deposits
-   scaledDebt = (debtAmount * RAY + borrowIndex - 1) / borrowIndex;  // rounds up
-   ```
-   **Impact:** Each borrow creates slightly less debt than it should. Over millions of borrows, the shortfall accumulates. Aave V3 uses `rayDiv` (round down) for deposits and `rayDiv` with round-up for debt.
-
-4. **Not checking oracle freshness before liquidation**
-   ```solidity
-   // WRONG — uses potentially stale price
-   uint256 price = oracle.latestAnswer();
-
-   // CORRECT — validate freshness
-   (, int256 answer,, uint256 updatedAt,) = oracle.latestRoundData();
-   require(block.timestamp - updatedAt < STALENESS_THRESHOLD, "stale price");
-   require(answer > 0, "invalid price");
-   ```
-   **Impact:** Stale oracle → incorrect HF calculation → either wrongful liquidation (user loss) or missed liquidation (protocol loss). See Module 3 for complete oracle safety patterns.
-
-5. **Liquidation that doesn't restore health**
-   ```solidity
-   // WRONG — doesn't check post-liquidation state
-   function liquidate(address user, uint256 amount) external {
-       _repayDebt(user, amount);
-       _seizeCollateral(user, amount * bonus);
-       // done — but what if HF is still < 1?
-   }
-
-   // CORRECT — verify the liquidation actually helped
-   // Aave V3 enforces minimum position sizes and validates post-liquidation state
-   ```
-   **Impact:** Partial liquidation that leaves a dust position still underwater → no one can liquidate the remainder profitably → bad debt.
-
-6. **Not handling `type(uint256).max` for full repayment**
-   ```solidity
-   // WRONG — user passes type(uint256).max to mean "repay all"
-   // but interest accrues between tx submission and execution
-   function repay(uint256 amount) external {
-       token.transferFrom(msg.sender, address(this), amount);
-       userDebt[msg.sender] -= amount;
-       // If amount > actual debt → underflow revert
-       // If amount < actual debt → dust remains
-   }
-
-   // CORRECT — handle the "repay everything" case explicitly
-   function repay(uint256 amount) external {
-       accrueInterest();
-       uint256 currentDebt = getDebt(msg.sender);
-       uint256 repayAmount = amount == type(uint256).max ? currentDebt : amount;
-       require(repayAmount <= currentDebt, "repay exceeds debt");
-       token.transferFrom(msg.sender, address(this), repayAmount);
-       userDebt[msg.sender] -= repayAmount;
-   }
-   ```
-   **Impact:** Without the `type(uint256).max` pattern, users can never fully repay their debt because interest accrues between the time they calculate the amount and when the transaction executes. This leaves tiny dust debts that accumulate across thousands of users. [Aave V3 handles this explicitly](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/BorrowLogic.sol#L116).
-
----
 
 ## 🔗 Cross-Module Concept Links
 

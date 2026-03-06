@@ -1163,6 +1163,15 @@ The security mindset isn't a checklist — it's a way of thinking about code:
 - MEV-aware protocol design as a first-class security concern
 - Cross-chain bridge security (still the largest single-exploit category by dollar value)
 
+**Security career paths beyond protocol developer:**
+
+- **Protocol Security Engineer** — Build protocols with security as a core responsibility. Threat modeling, invariant test suites, security-aware architecture. Premium over general Solidity devs (~$180-300k+ for senior roles). Signal: invariant tests in your portfolio, security-first design decisions, audit participation.
+- **Smart Contract Auditor** — Review other teams' code. Entry via audit competitions ([Code4rena](https://code4rena.com/), [Sherlock](https://www.sherlock.xyz/), [CodeHawks](https://codehawks.cyfrin.io/)) → audit firm → independent. Compensation: $200-500k+ annually for competitive auditors. Signal: competition track record, published findings.
+- **Security Researcher / Bug Hunter** — Find vulnerabilities in deployed protocols for bounties ($10k-$10M+ for critical findings). Signal: [Immunefi](https://immunefi.com/) profile, published writeups, responsible disclosure track record.
+- **Security Tooling Developer** — Build static analyzers, formal verification tools, monitoring systems. Companies: Trail of Bits (Slither), Certora (Prover), Cyfrin (Aderyn), Forta, OpenZeppelin. Signal: open-source contributions, research publications.
+
+Every path requires the fundamentals covered in this module — attack pattern taxonomy, invariant testing, audit report reading, and tooling familiarity.
+
 ## 🎯 Build Exercise: Security Review
 
 **Exercise 1: Full security review.** Run Slither and Aderyn on your SimpleLendingPool from Module 4 and your SimpleCDP from Module 6. Triage every finding: real vulnerability, informational, or false positive. Fix any real vulnerabilities found.
@@ -1187,123 +1196,6 @@ After this section, you should be able to:
 - Explain when formal verification (Certora Prover, CVL rules) is worth the cost and write a simple CVL rule for a critical invariant
 - Walk through the deployment security checklist: code-level requirements (CEI, access control, oracle safety), testing requirements (unit + fuzz + invariant + fork), operational requirements (monitoring, incident response, bug bounty)
 - Prepare a codebase for audit: what to provide auditors (documentation, threat model, known issues, test suite) and what to do with the report afterward
-
----
-
-## ⚠️ Common Mistakes
-
-**Mistake 1: Trusting external `view` functions during state transitions**
-
-```solidity
-// WRONG: reading price during a callback
-function _callback() internal {
-    uint256 price = externalPool.getRate(); // ← stale/manipulated during reentrancy
-    _updateCollateralValue(price);
-}
-```
-
-```solidity
-// CORRECT: verify the external protocol isn't mid-transaction
-function _callback() internal {
-    // Check Balancer's reentrancy lock before reading
-    IVault(balancerVault).manageUserBalance(new IVault.UserBalanceOp[](0));
-    // If we get here, Balancer isn't in a reentrant state
-    uint256 price = externalPool.getRate();
-    _updateCollateralValue(price);
-}
-```
-
-**Mistake 2: Checking oracle staleness with too-generous thresholds**
-
-```solidity
-// WRONG: 24-hour staleness window is way too long for DeFi
-(, int256 price, , uint256 updatedAt, ) = priceFeed.latestRoundData();
-require(block.timestamp - updatedAt < 24 hours, "Stale price");
-```
-
-```solidity
-// CORRECT: match staleness to the feed's heartbeat (varies per asset)
-(, int256 price, , uint256 updatedAt, ) = priceFeed.latestRoundData();
-require(block.timestamp - updatedAt < HEARTBEAT + GRACE_PERIOD, "Stale price");
-require(price > 0, "Invalid price");
-// On L2: also check sequencer uptime feed
-```
-
-**Mistake 3: Writing invariant tests without a handler contract**
-
-```solidity
-// WRONG: letting Foundry call the vault directly with random calldata
-function setUp() public {
-    targetContract(address(vault)); // ← Foundry sends garbage inputs, everything reverts
-}
-```
-
-```solidity
-// CORRECT: handler bounds inputs and manages actors
-function setUp() public {
-    handler = new VaultHandler(vault, token);
-    targetContract(address(handler)); // ← realistic, bounded interactions
-}
-```
-
-**Mistake 4: Using `balanceOf` for critical accounting**
-
-```solidity
-// WRONG: total assets = token balance (manipulable via direct transfer)
-function totalAssets() public view returns (uint256) {
-    return token.balanceOf(address(this));
-}
-```
-
-```solidity
-// CORRECT: track deposits/withdrawals internally
-function totalAssets() public view returns (uint256) {
-    return _totalManagedAssets; // updated only by deposit/withdraw/harvest
-}
-```
-
-**Mistake 5: Assuming audited means secure**
-
-An audit is a snapshot — it covers specific code at a specific time. Common traps:
-- Deploying code that differs from what was audited (even "minor" changes)
-- Adding new integrations post-audit (new external dependencies = new attack surface)
-- Not re-auditing after fixing audit findings (fixes can introduce new bugs)
-- Treating a clean audit as permanent (the protocol evolves, dependencies change, new attack patterns emerge)
-
----
-
-## 💼 Job Market Context
-
-Security knowledge opens multiple career paths beyond "protocol developer." Understanding where the demand is helps you position yourself.
-
-**Path 1: Protocol Security Engineer**
-- Role: Build protocols with security as a core responsibility
-- Day-to-day: Threat modeling, invariant test suites, security-aware architecture
-- Compensation: Premium over general Solidity devs (~$180-300k+ for senior roles)
-- Signal: Invariant tests in your portfolio, security-first design decisions, audit participation
-
-**Path 2: Smart Contract Auditor**
-- Role: Review other teams' code for vulnerabilities
-- Day-to-day: Code review, writing findings, PoC construction, client communication
-- Entry: Audit competitions ([Code4rena](https://code4rena.com/), [Sherlock](https://www.sherlock.xyz/), [CodeHawks](https://codehawks.cyfrin.io/)) → audit firm → independent
-- Compensation: Highly variable — competitive auditors earn $200-500k+ annually
-- Signal: Audit competition track record, published findings, Immunefi bug bounties
-
-**Path 3: Security Researcher / Bug Hunter**
-- Role: Find vulnerabilities in deployed protocols for bounties
-- Day-to-day: Reading code, building attack PoCs, submitting to Immunefi/bug bounty programs
-- Compensation: Per-bounty ($10k-$10M+ for critical findings)
-- Signal: Immunefi profile, published writeups, responsible disclosure track record
-
-**Path 4: Security Tooling Developer**
-- Role: Build the static analyzers, formal verification tools, and monitoring systems
-- Day-to-day: Compiler theory, abstract interpretation, SMT solvers, protocol monitoring
-- Companies: Trail of Bits (Slither), Certora (Prover), Cyfrin (Aderyn), Forta, OpenZeppelin
-- Signal: Contributions to open-source security tools, research publications
-
-**How this module prepares you:** Every path above requires the fundamentals covered here — attack pattern taxonomy, invariant testing, audit report reading, and tooling familiarity. The exercises in this module build the portfolio evidence that differentiates you in any of these directions.
-
----
 
 ## 🔗 Cross-Module Concept Links
 

@@ -551,6 +551,70 @@ The complete lifecycle with what changes in storage at each step:
        └──→ Collateral transferred to bidder
 ```
 
+#### ⚠️ Common CDP Engine Mistakes
+
+**1. Decimal mismatch in health factor**
+```solidity
+// ❌ WRONG: mixing decimal bases
+uint256 collateralUSD = collateral * ethPrice;     // 18 + 8 = 26 decimals
+uint256 debtUSD = debt * stablecoinPrice;           // 18 + 8 = 26 decimals... or is it?
+uint256 hf = collateralUSD / debtUSD;               // If debt is already in stablecoin (18 dec), this is 26 vs 18
+
+// ✅ CORRECT: normalize to a common base at every step
+uint256 collateralUSD = collateral * ethPrice / (10 ** tokenDecimals);  // → 8 decimals
+uint256 debtUSD = actualDebt * 1e8 / 1e18;                              // → 8 decimals
+uint256 hf = collateralUSD * 1e18 / debtUSD;                            // → 18 decimals
+```
+
+**2. Not calling `drip()` before health factor check**
+```solidity
+// ❌ WRONG: rate accumulator is stale
+function isLiquidatable(address user, bytes32 colType) external view returns (bool) {
+    uint256 hf = _getHealthFactor(user, colType);  // uses stale rateAccumulator
+    return hf < 1e18;
+}
+
+// ✅ CORRECT: use current rate (either drip first or calculate inline)
+function isLiquidatable(address user, bytes32 colType) external view returns (bool) {
+    uint256 currentRate = _getCurrentRate(colType);
+    uint256 hf = _getHealthFactorWithRate(user, colType, currentRate);
+    return hf < 1e18;
+}
+```
+
+**3. Forgetting to burn stablecoin on repay**
+```solidity
+// ❌ WRONG: reducing debt but not burning the stablecoin
+function repayStablecoin(bytes32 colType, uint256 amount) external {
+    Vault storage vault = vaults[msg.sender][colType];
+    vault.normalizedDebt -= amount * RAY / configs[colType].rateAccumulator;
+    // stablecoin is still in circulation, unbacked!
+}
+
+// ✅ CORRECT: burn the stablecoin as debt is reduced
+function repayStablecoin(bytes32 colType, uint256 amount) external {
+    _drip(colType);
+    Vault storage vault = vaults[msg.sender][colType];
+    uint256 normalizedAmount = amount * RAY / configs[colType].rateAccumulator;
+    vault.normalizedDebt -= normalizedAmount;
+    configs[colType].totalNormalizedDebt -= normalizedAmount;
+    stablecoin.burn(msg.sender, amount);  // CRITICAL: remove from circulation
+}
+```
+
+**4. Stale rate accumulator on the wrong collateral type**
+```solidity
+// ❌ WRONG: dripping one type but operating on another
+function mintStablecoin(bytes32 colType, uint256 amount) external {
+    _drip(ETH_TYPE);  // oops — dripped ETH but minting against VAULT_SHARE_TYPE
+}
+
+// ✅ CORRECT: always drip the specific collateral type being operated on
+function mintStablecoin(bytes32 colType, uint256 amount) external {
+    _drip(colType);  // drip the correct type
+}
+```
+
 ## 📋 Key Takeaways: Core CDP Engine
 
 After this section, you should be able to:
@@ -697,6 +761,22 @@ Don't accept vault shares directly. Require users to redeem their vault shares f
 - Con: Worse UX, users lose vault yield after depositing.
 
 **Recommendation for the capstone:** Strategy 1 (rate cap). It's the simplest to implement correctly, demonstrates awareness of the manipulation vector, and is the kind of defense an interviewer would want to discuss. Document the other strategies as considered alternatives in your Architecture Decision Record.
+
+**Common mistake: Using `convertToAssets()` without rate cap**
+```solidity
+// ❌ WRONG: directly trusting vault exchange rate (manipulable via donation)
+uint256 underlyingAmount = IERC4626(vault).convertToAssets(shares);
+uint256 value = underlyingAmount * price / 1e18;
+
+// ✅ CORRECT: apply rate cap
+uint256 currentRate = IERC4626(vault).convertToAssets(1e18);
+uint256 maxRate = lastKnownRate * (10000 + MAX_RATE_BPS) / 10000;
+uint256 safeRate = currentRate > maxRate ? maxRate : currentRate;
+uint256 underlyingAmount = shares * safeRate / 1e18;
+uint256 value = underlyingAmount * price / 1e18;
+```
+
+**Design awareness: Vault share redemption limits during liquidation.** ERC-4626 vaults can have withdrawal limits (`maxWithdraw`, `maxRedeem`). If the vault is at capacity or paused, auction bidders receive shares they can't redeem. Options: accept vault shares as-is (bidder's problem to redeem), redeem to underlying during the auction (adds gas, may fail), or document the risk and let the market price it into bids.
 
 ## 📋 Key Takeaways: Vault Share Collateral Pricing
 
@@ -909,6 +989,26 @@ This is why Aave governance evaluates on-chain liquidity depth before listing ne
 
 > **🔗 Connection:** The slippage and AMM economics from M2 directly determine whether your liquidation system actually works in practice. A liquidation mechanism is only as reliable as the DEX liquidity behind it.
 
+#### ⚠️ Common Auction Mistake: Unhandled Bad Debt
+
+```solidity
+// ❌ WRONG: assuming auction always covers tab
+function buyCollateral(uint256 auctionId, uint256 maxAmount) external {
+    // ... price calculation, transfer ...
+    if (auction.lot == 0) {
+        delete auctions[auctionId];  // auction done, but what if tab > 0 still?
+    }
+}
+
+// ✅ CORRECT: track bad debt when auction expires or lot is exhausted
+if (auction.lot == 0 || _auctionExpired(auctionId)) {
+    if (auction.tab > 0) {
+        totalBadDebt += auction.tab;  // acknowledge the loss
+    }
+    delete auctions[auctionId];
+}
+```
+
 ## 📋 Key Takeaways: Dutch Auction Liquidation
 
 After this section, you should be able to:
@@ -1005,6 +1105,33 @@ Beyond flash mint, consider the broader reentrancy surface across your 4 contrac
 If fee is zero: `_burn(address(receiver), amount)`. Simpler, maximizes arbitrage incentive.
 
 If you charge a fee: the receiver must hold `amount + fee` at the end of the callback. But you can't simply `_burn(amount + fee)` — that destroys the fee, breaking Invariant 2 (Backing). The fee stablecoin wasn't minted against any CDP debt, so burning it creates a gap between `totalSupply` and total debt. Instead: `_burn(amount)` to undo the flash mint, then `transferFrom(receiver, surplus, fee)` to route the fee to the protocol surplus address. This way the fee remains in circulation as protocol revenue, and the backing invariant holds.
+
+Combining reentrancy protection (§1) and correct fee handling (§4):
+
+```solidity
+// ❌ WRONG: no reentrancy protection, burns fee instead of routing to surplus
+function flashLoan(...) external returns (bool) {
+    _mint(address(receiver), amount);
+    receiver.onFlashLoan(msg.sender, token, amount, fee, data);  // external call!
+    _burn(address(receiver), amount + fee);  // destroys fee — breaks Backing invariant
+    return true;
+}
+
+// ✅ CORRECT: reentrancy guard + proper fee routing
+function flashLoan(...) external nonReentrant returns (bool) {
+    _mint(address(receiver), amount);
+    require(
+        receiver.onFlashLoan(msg.sender, token, amount, fee, data) == CALLBACK_SUCCESS,
+        "callback failed"
+    );
+    _burn(address(receiver), amount);  // burn only the minted amount
+    if (fee > 0) {
+        // Route fee to surplus — don't burn it (see §4 above)
+        stablecoin.transferFrom(address(receiver), surplus, fee);
+    }
+    return true;
+}
+```
 
 <a id="flash-mint-uses"></a>
 ### 💡 Concept: Use Cases: Peg Stability and Beyond
@@ -1132,6 +1259,63 @@ contract SystemHandler is Test {
 
 **Dust amounts:** What happens with 1 wei of collateral or 1 wei of debt? Rounding in the health factor calculation could allow dust vaults that are technically unhealthy but too small to profitably liquidate.
 
+#### 💼 Portfolio & Interview Positioning
+
+**What This Project Proves:**
+
+- You can **design a multi-contract DeFi protocol** from scratch — not fill in TODOs, but make architectural decisions
+- You understand **CDP mechanics deeply** — normalized debt, rate accumulators, health factors, liquidation
+- You can handle **complex pricing challenges** — multi-decimal normalization, vault share pricing with manipulation defense
+- You chose **Dutch auction over fixed-discount** and can explain why (MEV resistance, capital efficiency)
+- You chose **immutable design** and can articulate the trade-offs vs governed protocols
+- You can write **production-quality invariant tests** that prove system correctness
+
+**Interview Questions This Prepares For:**
+
+**1. "Walk me through building a CDP-based stablecoin from scratch."**
+- Good: Describe the 4 contracts and their responsibilities.
+- Great: Explain the design *decisions* — why immutable, why Dutch auction, why rate cap for vault share pricing. Show you understand the trade-off space, not just the implementation.
+
+**2. "How would you handle ERC-4626 vault shares as collateral?"**
+- Good: Two-step pricing — `convertToAssets()` then Chainlink for the underlying.
+- Great: Identify the manipulation risk (donation attack), describe the rate cap defense, and explain why you chose it over TWAP or mandatory redemption.
+
+**3. "What's the difference between a flash loan and a flash mint?"**
+- Good: Flash loan borrows existing tokens, flash mint creates new ones.
+- Great: Explain why flash mint provides infinite liquidity (no pool constraint), how it enables peg arbitrage without a PSM, and the security implications (totalSupply inflation during callback).
+
+**4. "How do you prevent oracle manipulation in a CDP protocol?"**
+- Good: Chainlink with staleness checks.
+- Great: Distinguish ETH pricing (straightforward) from vault share pricing (manipulable exchange rate), explain the rate cap mechanism, and note that Chainlink itself is the residual trust assumption in an otherwise decentralized system.
+
+**5. "What invariants would you test for a stablecoin protocol?"**
+- Good: "Total supply should equal total debt."
+- Great: List all 5 invariants, explain what each prevents, and describe the handler with 8 bounded operations that stress-tests them.
+
+**6. "Why Dutch auction over other liquidation models?"**
+- Good: "Less MEV, better price discovery."
+- Great: Explain two failure modes — English auctions (MakerDAO Liq 1.0) failed on Black Thursday because network congestion prevented keeper bidding. Fixed-discount liquidation (Aave/Compound model) creates gas wars where all liquidators see the same profit → pure priority fee competition → MEV extraction. Dutch auctions solve both: they're non-interactive (no bidding rounds to miss) and provide natural price discovery — each bidder enters at their own threshold.
+
+**Interview Red Flags** — things that signal "tutorial-level understanding" in a stablecoin interview:
+- Suggesting fixed-discount liquidation without understanding the MEV problem it creates
+- Not knowing the difference between algorithmic (UST) and collateral-backed (DAI) stablecoins
+- Treating all collateral types as having the same pricing path (ignoring vault share exchange rate complexity)
+- Saying "`totalSupply()` tells you the total stablecoin debt" — it doesn't during flash mint callbacks
+- Not being able to explain why `drip()` must be called before health factor checks
+
+**Pro tip:** In interviews, describe your protocol by its trade-off position first: "I chose immutability over adaptability, similar to Liquity V1, because..." This signals protocol design thinking, not just Solidity implementation skills. Teams want to hear you reason about the design space before diving into code details.
+
+**Pro tip:** If asked about stablecoin peg mechanisms, compare at least three approaches (PSM, redemptions, flash mint arbitrage). Showing you understand the design space — not just one solution — is what separates senior candidates from mid-level ones.
+
+**How to Present This:**
+
+- Push to a public GitHub repo with a clear README
+- Include an architecture diagram (the ASCII diagram from this doc, or a nicer one)
+- Include a comparison table: your protocol vs MakerDAO vs Liquity (what's similar, what's different, why)
+- Include gas benchmarks for core operations (deposit, mint, liquidation, auction bid)
+- Show your invariant test results — this signals maturity beyond basic unit testing
+- Write a brief Architecture Decision Record: the 6 design decisions and your rationale
+
 ## 📋 Key Takeaways: Testing & Hardening
 
 After this section, you should be able to:
@@ -1180,235 +1364,6 @@ Build `DutchAuctionLiquidator.sol`. Wire it to the Engine's `seizeCollateral()`.
 Wire everything together. Write the 5 invariant tests with the system handler. Run fuzz tests. Fork test with real Chainlink. Explore edge cases. Profile gas. Write your Architecture Decision Record.
 
 > **Checkpoint:** All 5 invariants pass with depth ≥ 50, runs ≥ 256. Fork test works. Gas benchmarks logged.
-
----
-
-<a id="common-mistakes"></a>
-## ⚠️ Common Mistakes
-
-**Mistake 1: Decimal mismatch in health factor**
-
-```solidity
-// WRONG: mixing decimal bases
-uint256 collateralUSD = collateral * ethPrice;     // 18 + 8 = 26 decimals
-uint256 debtUSD = debt * stablecoinPrice;           // 18 + 8 = 26 decimals... or is it?
-uint256 hf = collateralUSD / debtUSD;               // If debt is already in stablecoin (18 dec), this is 26 vs 18
-```
-
-```solidity
-// CORRECT: normalize to a common base at every step
-uint256 collateralUSD = collateral * ethPrice / (10 ** tokenDecimals);  // → 8 decimals
-uint256 debtUSD = actualDebt * 1e8 / 1e18;                              // → 8 decimals
-// Note: full HF also multiplies by liqThreshold / 10000 — omitted here to focus on decimal normalization
-uint256 hf = collateralUSD * 1e18 / debtUSD;                            // → 18 decimals
-```
-
-**Mistake 2: Not calling `drip()` before health factor check**
-
-```solidity
-// WRONG: rate accumulator is stale
-function isLiquidatable(address user, bytes32 colType) external view returns (bool) {
-    uint256 hf = _getHealthFactor(user, colType);  // uses stale rateAccumulator
-    return hf < 1e18;
-    // Debt appears lower than it actually is → healthy-looking vault is actually underwater
-}
-```
-
-```solidity
-// CORRECT: use current rate (either drip first or calculate inline)
-function isLiquidatable(address user, bytes32 colType) external view returns (bool) {
-    uint256 currentRate = _getCurrentRate(colType);  // calculates what rate WOULD be after drip
-    uint256 hf = _getHealthFactorWithRate(user, colType, currentRate);
-    return hf < 1e18;
-}
-```
-
-**Mistake 3: Using `convertToAssets()` without rate cap**
-
-```solidity
-// WRONG: directly trusting vault exchange rate (manipulable via donation)
-uint256 underlyingAmount = IERC4626(vault).convertToAssets(shares);
-uint256 value = underlyingAmount * price / 1e18;
-```
-
-```solidity
-// CORRECT: apply rate cap
-uint256 currentRate = IERC4626(vault).convertToAssets(1e18);
-uint256 maxRate = lastKnownRate * (10000 + MAX_RATE_BPS) / 10000;
-uint256 safeRate = currentRate > maxRate ? maxRate : currentRate;
-uint256 underlyingAmount = shares * safeRate / 1e18;
-uint256 value = underlyingAmount * price / 1e18;
-```
-
-**Mistake 4: Auction price below debt → unhandled bad debt**
-
-```solidity
-// WRONG: assuming auction always covers tab
-function buyCollateral(uint256 auctionId, uint256 maxAmount) external {
-    // ... price calculation, transfer ...
-    if (auction.lot == 0) {
-        delete auctions[auctionId];  // auction done, but what if tab > 0 still?
-    }
-}
-```
-
-```solidity
-// CORRECT: track bad debt when auction expires or lot is exhausted
-if (auction.lot == 0 || _auctionExpired(auctionId)) {
-    if (auction.tab > 0) {
-        totalBadDebt += auction.tab;  // acknowledge the loss
-    }
-    delete auctions[auctionId];
-}
-```
-
-**Mistake 5: Flash mint callback reentrancy**
-
-```solidity
-// WRONG: no reentrancy protection, burns fee instead of routing to surplus
-function flashLoan(...) external returns (bool) {
-    _mint(address(receiver), amount);
-    receiver.onFlashLoan(msg.sender, token, amount, fee, data);  // external call!
-    _burn(address(receiver), amount + fee);  // destroys fee — breaks Backing invariant
-    return true;
-}
-// Two bugs: (1) during callback, totalSupply is inflated — any protocol reading it gets wrong value
-// (2) burning amount+fee destroys the fee instead of routing it to surplus
-```
-
-```solidity
-// CORRECT: reentrancy guard + awareness
-function flashLoan(...) external nonReentrant returns (bool) {
-    _mint(address(receiver), amount);
-    require(
-        receiver.onFlashLoan(msg.sender, token, amount, fee, data) == CALLBACK_SUCCESS,
-        "callback failed"
-    );
-    _burn(address(receiver), amount);  // burn only the minted amount
-    if (fee > 0) {
-        // Route fee to surplus — don't burn it (see Security §4: Fee handling)
-        stablecoin.transferFrom(address(receiver), surplus, fee);
-    }
-    return true;
-}
-```
-
-**Mistake 6: Forgetting to burn stablecoin on repay**
-
-```solidity
-// WRONG: reducing debt but not burning the stablecoin
-function repayStablecoin(bytes32 colType, uint256 amount) external {
-    Vault storage vault = vaults[msg.sender][colType];
-    vault.normalizedDebt -= amount * RAY / configs[colType].rateAccumulator;
-    configs[colType].totalNormalizedDebt -= amount * RAY / configs[colType].rateAccumulator;
-    // stablecoin is still in circulation, unbacked!
-}
-```
-
-```solidity
-// CORRECT: burn the stablecoin as debt is reduced
-function repayStablecoin(bytes32 colType, uint256 amount) external {
-    _drip(colType);
-    Vault storage vault = vaults[msg.sender][colType];
-    uint256 normalizedAmount = amount * RAY / configs[colType].rateAccumulator;
-    vault.normalizedDebt -= normalizedAmount;
-    configs[colType].totalNormalizedDebt -= normalizedAmount;
-    stablecoin.burn(msg.sender, amount);  // CRITICAL: remove from circulation
-}
-```
-
-**Mistake 7: Vault share redemption limits during liquidation**
-
-```solidity
-// WRONG: assuming vault shares can always be redeemed by the auction bidder
-// ERC-4626 vaults can have withdrawal limits (maxWithdraw, maxRedeem)
-// If the vault is at capacity or paused, the bidder receives shares they can't redeem
-```
-
-This isn't a code fix — it's a design awareness issue. Options:
-- Accept vault shares as-is in the auction (bidder receives shares, their problem to redeem)
-- Redeem to underlying during the auction (adds gas, may fail if vault is limited)
-- Document the risk and let the market price it into auction bids
-
-**Mistake 8: Stale rate accumulator on the wrong collateral type**
-
-```solidity
-// WRONG: dripping one type but operating on another
-function mintStablecoin(bytes32 colType, uint256 amount) external {
-    _drip(ETH_TYPE);  // oops — dripped ETH but minting against VAULT_SHARE_TYPE
-    // ...
-}
-```
-
-```solidity
-// CORRECT: always drip the specific collateral type being operated on
-function mintStablecoin(bytes32 colType, uint256 amount) external {
-    _drip(colType);  // drip the correct type
-    // ...
-}
-```
-
----
-
-<a id="portfolio"></a>
-## 💼 Portfolio & Interview Positioning
-
-### What This Project Proves
-
-- You can **design a multi-contract DeFi protocol** from scratch — not fill in TODOs, but make architectural decisions
-- You understand **CDP mechanics deeply** — normalized debt, rate accumulators, health factors, liquidation
-- You can handle **complex pricing challenges** — multi-decimal normalization, vault share pricing with manipulation defense
-- You chose **Dutch auction over fixed-discount** and can explain why (MEV resistance, capital efficiency)
-- You chose **immutable design** and can articulate the trade-offs vs governed protocols
-- You can write **production-quality invariant tests** that prove system correctness
-
-### Interview Questions This Prepares For
-
-**1. "Walk me through building a CDP-based stablecoin from scratch."**
-- Good: Describe the 4 contracts and their responsibilities.
-- Great: Explain the design *decisions* — why immutable, why Dutch auction, why rate cap for vault share pricing. Show you understand the trade-off space, not just the implementation.
-
-**2. "How would you handle ERC-4626 vault shares as collateral?"**
-- Good: Two-step pricing — `convertToAssets()` then Chainlink for the underlying.
-- Great: Identify the manipulation risk (donation attack), describe the rate cap defense, and explain why you chose it over TWAP or mandatory redemption.
-
-**3. "What's the difference between a flash loan and a flash mint?"**
-- Good: Flash loan borrows existing tokens, flash mint creates new ones.
-- Great: Explain why flash mint provides infinite liquidity (no pool constraint), how it enables peg arbitrage without a PSM, and the security implications (totalSupply inflation during callback).
-
-**4. "How do you prevent oracle manipulation in a CDP protocol?"**
-- Good: Chainlink with staleness checks.
-- Great: Distinguish ETH pricing (straightforward) from vault share pricing (manipulable exchange rate), explain the rate cap mechanism, and note that Chainlink itself is the residual trust assumption in an otherwise decentralized system.
-
-**5. "What invariants would you test for a stablecoin protocol?"**
-- Good: "Total supply should equal total debt."
-- Great: List all 5 invariants, explain what each prevents, and describe the handler with 8 bounded operations that stress-tests them.
-
-**6. "Why Dutch auction over other liquidation models?"**
-- Good: "Less MEV, better price discovery."
-- Great: Explain two failure modes — English auctions (MakerDAO Liq 1.0) failed on Black Thursday because network congestion prevented keeper bidding. Fixed-discount liquidation (Aave/Compound model) creates gas wars where all liquidators see the same profit → pure priority fee competition → MEV extraction. Dutch auctions solve both: they're non-interactive (no bidding rounds to miss) and provide natural price discovery — each bidder enters at their own threshold.
-
-### Interview Red Flags
-
-Things that signal "tutorial-level understanding" in a stablecoin interview:
-- Suggesting fixed-discount liquidation without understanding the MEV problem it creates
-- Not knowing the difference between algorithmic (UST) and collateral-backed (DAI) stablecoins
-- Treating all collateral types as having the same pricing path (ignoring vault share exchange rate complexity)
-- Saying "`totalSupply()` tells you the total stablecoin debt" — it doesn't during flash mint callbacks
-- Not being able to explain why `drip()` must be called before health factor checks
-
-**Pro tip:** In interviews, describe your protocol by its trade-off position first: "I chose immutability over adaptability, similar to Liquity V1, because..." This signals protocol design thinking, not just Solidity implementation skills. Teams want to hear you reason about the design space before diving into code details.
-
-**Pro tip:** If asked about stablecoin peg mechanisms, compare at least three approaches (PSM, redemptions, flash mint arbitrage). Showing you understand the design space — not just one solution — is what separates senior candidates from mid-level ones.
-
-### How to Present This
-
-- Push to a public GitHub repo with a clear README
-- Include an architecture diagram (the ASCII diagram from this doc, or a nicer one)
-- Include a comparison table: your protocol vs MakerDAO vs Liquity (what's similar, what's different, why)
-- Include gas benchmarks for core operations (deposit, mint, liquidation, auction bid)
-- Show your invariant test results — this signals maturity beyond basic unit testing
-- Write a brief Architecture Decision Record: the 6 design decisions and your rationale
 
 ---
 

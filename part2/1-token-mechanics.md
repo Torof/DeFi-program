@@ -837,6 +837,23 @@ Is your protocol permissionless or curated?
 | 4 | [Compound V3 Comet](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol) | Curated approach, scaling, immutable config | `supply()` and `withdraw()` |
 | 5 | [OpenZeppelin SafeERC20](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/utils/SafeERC20.sol) | How low-level calls handle missing return values | Full file (~60 lines) |
 
+#### 💼 Job Market Context
+
+**The synthesis question — tying the whole module together:**
+
+1. **"How would you safely integrate an arbitrary ERC-20 token into a lending protocol?"**
+   - Good answer: "Use SafeERC20, balance-before-after for deposits, normalize decimals, check for reentrancy"
+   - Great answer: "First decide if we're permissionless or curated. If permissionless: SafeERC20, balance-before-after, reentrancy guard, decimal normalization via `token.decimals()`, guard against zero transfers. If curated: still use SafeERC20, but we can skip balance-before-after for tokens we've verified. Either way, test with fee-on-transfer, rebasing, and USDT mocks. I'd also check if the token is upgradeable or pausable — that affects our risk model. I'd run through the 13-point token evaluation checklist before listing."
+
+2. **"Walk me through your token evaluation process for a new collateral asset."**
+   - Good answer: "Check decimals, see if it's upgradeable, look for weird behaviors"
+   - Great answer: "I have a 13-point checklist: return values, fee-on-transfer, rebasing, decimals, upgradeability, pausability, blacklistability, ERC-777 hooks, zero-transfer behavior, multiple entry points, flash-mintability, supply inflation, and approve race conditions. For a curated protocol, I'd write a Foundry fork test against the real deployed token to verify assumptions. For permissionless, I'd build defensive code that handles all 13 cases."
+
+**Interview Red Flags:**
+- 🚩 Treating all tokens as 18 decimals
+- 🚩 Not knowing about ERC-777 reentrancy vectors
+- 🚩 No systematic approach to token evaluation (ad-hoc vs checklist)
+
 ---
 
 <a id="build-token-test-suite"></a>
@@ -889,32 +906,6 @@ After this section, you should be able to:
 - Explain why `balanceOf` is unsafe for governance or pricing within the same block and what snapshot-based alternative (`getPastVotes`) prevents flash-mint manipulation
 - Evaluate a new token for DeFi integration using the 13-point checklist and distinguish which risks need code-level defenses vs operational monitoring
 - Compare permissionless (Uniswap), curated (Aave), and hybrid (Euler V2) token listing strategies and explain the security trade-offs of each
-
----
-
-## 💼 Job Market Context
-
-**The synthesis question — this is what ties the whole module together:**
-
-1. **"How would you safely integrate an arbitrary ERC-20 token into a lending protocol?"**
-   - Good answer: "Use SafeERC20, balance-before-after for deposits, normalize decimals, check for reentrancy"
-   - Great answer: "First decide if we're permissionless or curated. If permissionless: SafeERC20, balance-before-after, reentrancy guard, decimal normalization via `token.decimals()`, guard against zero transfers. If curated: still use SafeERC20, but we can skip balance-before-after for tokens we've verified. Either way, test with fee-on-transfer, rebasing, and USDT mocks. I'd also check if the token is upgradeable or pausable — that affects our risk model. I'd run through the 13-point token evaluation checklist before listing."
-
-2. **"Walk me through your token evaluation process for a new collateral asset."**
-   - Good answer: "Check decimals, see if it's upgradeable, look for weird behaviors"
-   - Great answer: "I have a 13-point checklist: return values, fee-on-transfer, rebasing, decimals, upgradeability, pausability, blacklistability, ERC-777 hooks, zero-transfer behavior, multiple entry points, flash-mintability, supply inflation, and approve race conditions. For a curated protocol, I'd write a Foundry fork test against the real deployed token to verify assumptions. For permissionless, I'd build defensive code that handles all 13 cases."
-
-**Interview Red Flags — signals of outdated or shallow knowledge:**
-- 🚩 Not knowing what SafeERC20 is or why it's needed
-- 🚩 Never heard of fee-on-transfer tokens or the balance-before-after pattern
-- 🚩 Treating all tokens as 18 decimals
-- 🚩 Unaware that USDC/USDT are upgradeable, pausable, and blacklistable
-- 🚩 Not knowing about ERC-777 reentrancy vectors
-- 🚩 No systematic approach to token evaluation (ad-hoc vs checklist)
-
-**Pro tip:** When interviewing, mention the [Weird ERC-20 catalog](https://github.com/d-xo/weird-erc20) by name and the 13-point evaluation checklist approach — it shows you think systematically about token integration, not just "use SafeERC20 and hope for the best."
-
----
 
 ## 🔗 Cross-Module Concept Links
 
