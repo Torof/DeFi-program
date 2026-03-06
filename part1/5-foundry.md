@@ -731,6 +731,48 @@ function invariant_solvency() public {
 
 ---
 
+<a id="code-reading-strategies"></a>
+### 📖 How to Study Production Test Suites
+
+Production DeFi test suites can be overwhelming (Uniswap V4 has 100+ test files). Here's a strategy:
+
+**Step 1: Start with the simplest test file**
+Find a basic unit test (not invariant or fork). In Uniswap V4, start with `test/PoolManager.t.sol` basic swap tests, not the complex hook tests.
+
+**Step 2: Read the base test contract**
+Every production suite has a `BaseTest` or `TestHelper`. This shows:
+- How they set up fork state
+- What helper functions they use
+- How they create test users and fund them
+- Common assertions they reuse
+
+**Step 3: Study the handler contracts**
+Handlers reveal what the team considers "valid operations." Look at:
+- Which functions are exposed (the attack surface)
+- How inputs are bounded (what ranges are realistic)
+- What ghost variables they track (what they think can go wrong)
+
+**Step 4: Read the invariant definitions**
+These are the protocol's core properties in code form:
+```
+Uniswap V4: "Pool reserves satisfy x*y >= k after every swap"
+Aave V3:    "Total borrows never exceed total deposits"
+Morpho:     "Sum of all user balances equals contract balance"
+```
+
+**Step 5: Look for edge case tests**
+Search for tests with names like `test_RevertWhen_*`, `test_EdgeCase_*`, `testFuzz_*`. These reveal the bugs the team found and patched.
+
+**Don't get stuck on:** Complex multi-contract integration tests or deployment scripts initially. Build up to those after understanding the unit and fuzz tests.
+
+**Recommended study order:**
+1. [Solmate tests](https://github.com/transmissions11/solmate/tree/main/src/test) — Clean, minimal, great for learning patterns
+2. [OpenZeppelin tests](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/test) — Comprehensive, well-documented
+3. [Uniswap V4 tests](https://github.com/Uniswap/v4-core/tree/main/test) — Production DeFi complexity
+4. [Morpho Blue invariant tests](https://github.com/morpho-org/morpho-blue/tree/main/test/forge) — Gold standard for invariant testing
+
+---
+
 <a id="day12-exercise"></a>
 ## 🎯 Build Exercise: Vault Invariants
 
@@ -777,48 +819,6 @@ function invariant_solvency() public {
 5. **Intentionally break an invariant** (e.g., remove `_burn` from withdraw) and verify the fuzzer catches it
 
 **🎯 Goal:** Invariant testing is how real DeFi auditors find bugs. Getting comfortable with the handler pattern now pays off enormously in Part 2 when you're testing AMMs, lending pools, and CDPs.
-
----
-
-<a id="code-reading-strategies"></a>
-### 📖 How to Study Production Test Suites
-
-Production DeFi test suites can be overwhelming (Uniswap V4 has 100+ test files). Here's a strategy:
-
-**Step 1: Start with the simplest test file**
-Find a basic unit test (not invariant or fork). In Uniswap V4, start with `test/PoolManager.t.sol` basic swap tests, not the complex hook tests.
-
-**Step 2: Read the base test contract**
-Every production suite has a `BaseTest` or `TestHelper`. This shows:
-- How they set up fork state
-- What helper functions they use
-- How they create test users and fund them
-- Common assertions they reuse
-
-**Step 3: Study the handler contracts**
-Handlers reveal what the team considers "valid operations." Look at:
-- Which functions are exposed (the attack surface)
-- How inputs are bounded (what ranges are realistic)
-- What ghost variables they track (what they think can go wrong)
-
-**Step 4: Read the invariant definitions**
-These are the protocol's core properties in code form:
-```
-Uniswap V4: "Pool reserves satisfy x*y >= k after every swap"
-Aave V3:    "Total borrows never exceed total deposits"
-Morpho:     "Sum of all user balances equals contract balance"
-```
-
-**Step 5: Look for edge case tests**
-Search for tests with names like `test_RevertWhen_*`, `test_EdgeCase_*`, `testFuzz_*`. These reveal the bugs the team found and patched.
-
-**Don't get stuck on:** Complex multi-contract integration tests or deployment scripts initially. Build up to those after understanding the unit and fuzz tests.
-
-**Recommended study order:**
-1. [Solmate tests](https://github.com/transmissions11/solmate/tree/main/src/test) — Clean, minimal, great for learning patterns
-2. [OpenZeppelin tests](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/test) — Comprehensive, well-documented
-3. [Uniswap V4 tests](https://github.com/Uniswap/v4-core/tree/main/test) — Production DeFi complexity
-4. [Morpho Blue invariant tests](https://github.com/morpho-org/morpho-blue/tree/main/test/forge) — Gold standard for invariant testing
 
 ## 📋 Key Takeaways: Fuzz & Invariant Testing
 
@@ -1005,47 +1005,6 @@ When you encounter a gas-optimized DeFi contract and want to understand the opti
 
 **Don't get stuck on:** Micro-optimizations like `unchecked ++i` vs `i++` (~20 gas). Focus on storage access patterns — a single eliminated `SLOAD` saves more gas than 100 unchecked increments.
 
----
-
-<a id="foundry-scripts"></a>
-### 💡 Concept: Foundry Scripts for Deployment
-
-**Why this matters:** Deployment scripts in Solidity (not JavaScript) mean you can test your deployments before running them on-chain. You can also reuse the same scripts for local testing and production deployment.
-
-```solidity
-// script/Deploy.s.sol
-import "forge-std/Script.sol";
-
-contract DeployScript is Script {
-    function run() public {
-        uint256 deployerKey = vm.envUint("PRIVATE_KEY");
-
-        vm.startBroadcast(deployerKey);
-
-        MyContract c = new MyContract(constructorArg);
-
-        vm.stopBroadcast();
-
-        console.log("Deployed at:", address(c));
-    }
-}
-```
-
-```bash
-# Dry run (simulation)
-forge script script/Deploy.s.sol --rpc-url $RPC_URL
-
-# Actual deployment + etherscan verification
-forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast --verify
-
-# Resume failed broadcast (e.g., if etherscan verification failed)
-forge script script/Deploy.s.sol --rpc-url $RPC_URL --resume
-```
-
-> ⚡ **Common pitfall:** Forgetting to fund the deployer address with ETH before broadcasting. The script will simulate successfully but fail when you try to broadcast.
-
----
-
 #### 🎓 Intermediate Example: Differential Testing
 
 Differential testing compares two implementations of the same function to find discrepancies. This is how auditors verify optimized code matches the reference implementation.
@@ -1137,6 +1096,45 @@ contract DifferentialTest is Test {
 - 🚩 Not knowing the difference between `forge snapshot` and `forge test --gas-report`
 
 **Pro tip:** Maintain a personal repository of exploit reproductions as Foundry fork tests. It's the most effective way to learn DeFi security, and it's impressive in interviews. Start with [DeFiHackLabs](https://github.com/SunWeb3Sec/DeFiHackLabs) — they have 200+ reproductions.
+
+---
+
+<a id="foundry-scripts"></a>
+### 💡 Concept: Foundry Scripts for Deployment
+
+**Why this matters:** Deployment scripts in Solidity (not JavaScript) mean you can test your deployments before running them on-chain. You can also reuse the same scripts for local testing and production deployment.
+
+```solidity
+// script/Deploy.s.sol
+import "forge-std/Script.sol";
+
+contract DeployScript is Script {
+    function run() public {
+        uint256 deployerKey = vm.envUint("PRIVATE_KEY");
+
+        vm.startBroadcast(deployerKey);
+
+        MyContract c = new MyContract(constructorArg);
+
+        vm.stopBroadcast();
+
+        console.log("Deployed at:", address(c));
+    }
+}
+```
+
+```bash
+# Dry run (simulation)
+forge script script/Deploy.s.sol --rpc-url $RPC_URL
+
+# Actual deployment + etherscan verification
+forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast --verify
+
+# Resume failed broadcast (e.g., if etherscan verification failed)
+forge script script/Deploy.s.sol --rpc-url $RPC_URL --resume
+```
+
+> ⚡ **Common pitfall:** Forgetting to fund the deployer address with ETH before broadcasting. The script will simulate successfully but fail when you try to broadcast.
 
 ---
 

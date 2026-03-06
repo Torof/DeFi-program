@@ -632,6 +632,49 @@ contract V2 { uint256 public fee = 100; }             // IN storage at slot 0 �
 
 ---
 
+### 📖 How to Study Production Proxy Architectures
+
+When you encounter a proxy-based protocol (which is most of DeFi), here's how to navigate the code:
+
+**Step 1: Identify the proxy type**
+On Etherscan, look for the "Read as Proxy" tab. This tells you:
+- The proxy address (what users interact with)
+- The implementation address (where the logic lives)
+- The admin address (who can upgrade)
+
+**Step 2: Read the implementation, not the proxy**
+The proxy itself is usually minimal (just `fallback` + `DELEGATECALL`). All the interesting logic is in the implementation. On Etherscan, click "Read as Proxy" to see the implementation's ABI.
+
+**Step 3: Check the storage layout**
+For Aave V3, look at how they organize storage:
+```
+Pool.sol inherits:
+  ├── PoolStorage (defines all state variables)
+  ├── VersionedInitializable (custom initializer)
+  └── IPool (interface)
+```
+The pattern: one base contract holds ALL storage, preventing inheritance conflicts.
+
+**Step 4: Trace the upgrade path**
+Look for:
+- `upgradeTo()` or `upgradeToAndCall()` — who can call it?
+- Is there a timelock? A multisig?
+- What governance process is required?
+- Aave V3: Governed by [Aave Governance V3](https://governance.aave.com/) with timelock
+
+**Step 5: Verify the initializer chain**
+Check that every base contract's initializer is called:
+```solidity
+function initialize(IPoolAddressesProvider provider) external initializer {
+    __Pool_init(provider);       // Calls PoolStorage init
+    // All parent initializers must be called
+}
+```
+
+**Don't get stuck on:** The proxy contract's assembly code. Once you understand the pattern (it delegates everything), focus entirely on the implementation.
+
+---
+
 <a id="day14-15-exercise"></a>
 ## 🎯 Build Exercise: Proxy Patterns
 
@@ -687,49 +730,6 @@ contract V2 { uint256 public fee = 100; }             // IN storage at slot 0 �
 5. Show that upgrading once updated all instances
 
 **🎯 Goal:** Understand proxy mechanics deeply enough to read Aave V3's proxy architecture and deploy your own upgradeable contracts safely.
-
----
-
-### 📖 How to Study Production Proxy Architectures
-
-When you encounter a proxy-based protocol (which is most of DeFi), here's how to navigate the code:
-
-**Step 1: Identify the proxy type**
-On Etherscan, look for the "Read as Proxy" tab. This tells you:
-- The proxy address (what users interact with)
-- The implementation address (where the logic lives)
-- The admin address (who can upgrade)
-
-**Step 2: Read the implementation, not the proxy**
-The proxy itself is usually minimal (just `fallback` + `DELEGATECALL`). All the interesting logic is in the implementation. On Etherscan, click "Read as Proxy" to see the implementation's ABI.
-
-**Step 3: Check the storage layout**
-For Aave V3, look at how they organize storage:
-```
-Pool.sol inherits:
-  ├── PoolStorage (defines all state variables)
-  ├── VersionedInitializable (custom initializer)
-  └── IPool (interface)
-```
-The pattern: one base contract holds ALL storage, preventing inheritance conflicts.
-
-**Step 4: Trace the upgrade path**
-Look for:
-- `upgradeTo()` or `upgradeToAndCall()` — who can call it?
-- Is there a timelock? A multisig?
-- What governance process is required?
-- Aave V3: Governed by [Aave Governance V3](https://governance.aave.com/) with timelock
-
-**Step 5: Verify the initializer chain**
-Check that every base contract's initializer is called:
-```solidity
-function initialize(IPoolAddressesProvider provider) external initializer {
-    __Pool_init(provider);       // Calls PoolStorage init
-    // All parent initializers must be called
-}
-```
-
-**Don't get stuck on:** The proxy contract's assembly code. Once you understand the pattern (it delegates everything), focus entirely on the implementation.
 
 ## 📋 Key Takeaways: Proxy Patterns
 

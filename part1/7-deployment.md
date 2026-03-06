@@ -606,6 +606,44 @@ contract Vault is Pausable, Ownable {
 
 ---
 
+### 📖 How to Study Production Deployment Scripts
+
+When you look at a protocol's `script/` directory, here's how to navigate it:
+
+**Step 1: Find the main deployment script**
+Usually named `Deploy.s.sol`, `DeployProtocol.s.sol`, or similar. This is the entry point.
+
+**Step 2: Look for the configuration pattern**
+How does the script handle different chains?
+- Environment variables (`vm.envAddress`)
+- Chain-specific config files
+- `if (block.chainid == 1)` branching
+- Separate config contracts
+
+**Step 3: Trace the deployment order**
+Contracts are deployed in dependency order. The script reveals the architecture:
+```
+1. Deploy libraries (no dependencies)
+2. Deploy core contracts (depend on libraries)
+3. Deploy proxies (wrap core contracts)
+4. Initialize (set parameters, link contracts)
+5. Transfer ownership (to multisig/governance)
+```
+
+**Step 4: Check post-deployment verification**
+Good scripts verify state after deployment:
+```solidity
+require(vault.owner() == expectedOwner, "Owner mismatch");
+require(vault.token() == expectedToken, "Token mismatch");
+```
+
+**Step 5: Look for upgrade scripts**
+Separate from initial deployment — these handle proxy upgrades with storage layout checks.
+
+**Don't get stuck on:** Helper utilities and test-specific deployment code. Focus on the production deployment path.
+
+---
+
 <a id="deployment-exercise"></a>
 ## 🎯 Build Exercise: Deployment Capstone
 
@@ -652,44 +690,6 @@ This is the capstone exercise for Part 1:
    ```
 
 **🎯 Goal:** Understand the full lifecycle from development to deployment. This pipeline is what you'll use in Part 2 when deploying your builds to testnets for more realistic testing.
-
----
-
-### 📖 How to Study Production Deployment Scripts
-
-When you look at a protocol's `script/` directory, here's how to navigate it:
-
-**Step 1: Find the main deployment script**
-Usually named `Deploy.s.sol`, `DeployProtocol.s.sol`, or similar. This is the entry point.
-
-**Step 2: Look for the configuration pattern**
-How does the script handle different chains?
-- Environment variables (`vm.envAddress`)
-- Chain-specific config files
-- `if (block.chainid == 1)` branching
-- Separate config contracts
-
-**Step 3: Trace the deployment order**
-Contracts are deployed in dependency order. The script reveals the architecture:
-```
-1. Deploy libraries (no dependencies)
-2. Deploy core contracts (depend on libraries)
-3. Deploy proxies (wrap core contracts)
-4. Initialize (set parameters, link contracts)
-5. Transfer ownership (to multisig/governance)
-```
-
-**Step 4: Check post-deployment verification**
-Good scripts verify state after deployment:
-```solidity
-require(vault.owner() == expectedOwner, "Owner mismatch");
-require(vault.token() == expectedToken, "Token mismatch");
-```
-
-**Step 5: Look for upgrade scripts**
-Separate from initial deployment — these handle proxy upgrades with storage layout checks.
-
-**Don't get stuck on:** Helper utilities and test-specific deployment code. Focus on the production deployment path.
 
 ## 📋 Key Takeaways: Deployment & Operations
 

@@ -1369,7 +1369,7 @@ Deploy and compare execution costs. You'll see ~20,000 vs ~100 gas difference.
 
 > ⚡ **Note:** Exact gas costs vary by compiler version, optimizer settings, and EVM upgrades. The relative difference (transient is dramatically cheaper) is what matters, not the precise numbers.
 
-#### 🔍 Understanding Transient Storage at EVM Level
+#### 🔍 Deep Dive: Transient Storage at EVM Level
 
 **How it works:**
 

@@ -95,6 +95,27 @@ When protocols get hacked ([Euler Finance March 2023](https://www.certik.com/res
 
 **Pro tip:** Check [Revoke.cash](https://revoke.cash/) for your own wallet before interviews. Being able to say "I had 47 active unlimited approvals and revoked them all last week" shows you practice what you preach — security-conscious teams love that.
 
+#### 🔍 Deep Dive: The Approve Race Condition
+
+Before EIP-2612, there was already a well-known vulnerability with `approve()`:
+
+```solidity
+// Scenario: Alice approved Bob for 100 tokens, now wants to change to 50
+// Step 1: Alice calls approve(Bob, 50)
+// Step 2: Bob sees the pending tx and front-runs with transferFrom(Alice, Bob, 100)
+// Step 3: Alice's approve(50) executes → Bob now has 50 allowance
+// Step 4: Bob calls transferFrom(Alice, Bob, 50)
+// Result: Bob stole 150 tokens instead of the intended 100→50 change
+```
+
+**Production pattern:** Always approve to 0 first, then approve the new amount:
+```solidity
+token.approve(spender, 0);      // Reset to zero
+token.approve(spender, newAmount); // Set new value
+```
+
+OpenZeppelin's `forceApprove` handles this automatically. EIP-2612 avoids this entirely because each permit signature is nonce-bound — you can't "change" a permit, you just sign a new one with the next nonce.
+
 ---
 
 <a id="eip-2612-permit"></a>
@@ -274,27 +295,6 @@ Most modern tokens implement EIP-2612:
 **The limitation that led to Permit2:** All these only work if the token itself implements EIP-2612. For tokens like USDT, WETH (mainnet), and thousands of pre-2021 tokens — you're back to two transactions. This gap is exactly what Permit2 fills (next topic).
 
 > **Connection to Module 1:** The EIP-712 typed data signing uses `abi.encode` for struct hashing — the same encoding you studied with `abi.encodeCall`. Custom errors (Module 1) are also critical here: permit failures need clear error messages for debugging.
-
-#### ⚠️ The Classic Approve Race Condition
-
-Before EIP-2612, there was already a well-known vulnerability with `approve()`:
-
-```solidity
-// Scenario: Alice approved Bob for 100 tokens, now wants to change to 50
-// Step 1: Alice calls approve(Bob, 50)
-// Step 2: Bob sees the pending tx and front-runs with transferFrom(Alice, Bob, 100)
-// Step 3: Alice's approve(50) executes → Bob now has 50 allowance
-// Step 4: Bob calls transferFrom(Alice, Bob, 50)
-// Result: Bob stole 150 tokens instead of the intended 100→50 change
-```
-
-**Production pattern:** Always approve to 0 first, then approve the new amount:
-```solidity
-token.approve(spender, 0);      // Reset to zero
-token.approve(spender, newAmount); // Set new value
-```
-
-OpenZeppelin's `forceApprove` handles this automatically. EIP-2612 avoids this entirely because each permit signature is nonce-bound — you can't "change" a permit, you just sign a new one with the next nonce.
 
 #### ⚠️ Common Mistakes
 
@@ -1211,7 +1211,7 @@ try IERC20Permit(token).permit(...) {
 
 **🎯 Goal:** Understand the real security landscape of signature-based approvals so you build defensive patterns from the start.
 
-## 📋 Key Takeaways: Approval Security
+## 📋 Key Takeaways: Security Considerations and Edge Cases
 
 After this section, you should be able to:
 - Walk through a permit front-running attack step by step and explain why Permit2's `permitTransferFrom` is immune to it
