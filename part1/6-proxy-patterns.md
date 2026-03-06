@@ -1,4 +1,4 @@
-# Module 6: Proxy Patterns & Upgradeability
+# Part 1 — Module 6: Proxy Patterns & Upgradeability
 
 > **Difficulty:** Advanced
 >

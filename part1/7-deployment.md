@@ -1,4 +1,4 @@
-# Module 7: Deployment & Operations
+# Part 1 — Module 7: Deployment & Operations
 
 > **Difficulty:** Beginner
 >

@@ -1,4 +1,4 @@
-# Module 3: Modern Token Approval Patterns
+# Part 1 — Module 3: Modern Token Approval Patterns
 
 > **Difficulty:** Intermediate
 >
@@ -956,7 +956,7 @@ After this section, you should be able to:
 
 ---
 
-## ⚠️ Security Considerations and Edge Cases
+## 💡 Security Considerations and Edge Cases
 
 <a id="permit-attack-vectors"></a>
 ### 💡 Concept: Permit/Permit2 Attack Vectors

@@ -1,4 +1,4 @@
-# Module 1: Solidity 0.8.x — What Changed
+# Part 1 — Module 1: Solidity 0.8.x — What Changed
 
 > **Difficulty:** Beginner
 >

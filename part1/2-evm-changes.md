@@ -1,4 +1,4 @@
-# Module 2: EVM-Level Changes
+# Part 1 — Module 2: EVM-Level Changes
 
 > **Difficulty:** Intermediate
 >
@@ -1961,7 +1961,7 @@ After this section, you should be able to:
 
 ---
 
-## 📚 Looking Ahead
+## 💡 Looking Ahead
 
 <a id="eof"></a>
 ### 💡 Concept: EOF — EVM Object Format
