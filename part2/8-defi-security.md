@@ -177,7 +177,7 @@ Your Protocol → Uniswap (swap) → token transfer → receiver fallback → Yo
 **Defense:** Apply `nonReentrant` globally (not per-function) when your protocol makes external calls that could trigger callbacks. For protocols that interact with many external contracts, a single transient storage lock covering all entry points is the cleanest approach.
 
 <a id="price-manipulation"></a>
-#### 📋 Price Manipulation Taxonomy
+### 📋 Price Manipulation Taxonomy
 
 This consolidates oracle attacks from Module 3 with flash loan amplification from Module 5:
 
@@ -464,6 +464,28 @@ DeFi's composability means your protocol interacts with others in ways you can't
 - Use interface types (not concrete contracts) and validate return values
 - Implement circuit breakers that pause the protocol if unexpected conditions are detected
 
+### 💼 Job Market Context
+
+**What DeFi teams expect you to know about attack patterns:**
+
+1. **"Walk me through a read-only reentrancy attack."**
+   - Good answer: Explains that a view function reads inconsistent state during an external call's callback
+   - Great answer: Gives the Balancer BPT / Sentiment example — pool has received tokens but hasn't minted BPT yet, so `getRate()` is inflated. Mentions that the defense is checking the vault's reentrancy lock *before* reading the rate, and that this class of bug is extremely common in DeFi compositions
+
+2. **"How would you prevent price manipulation in a lending protocol?"**
+   - Good answer: Use Chainlink instead of spot prices, add staleness checks
+   - Great answer: Describes the full taxonomy — spot manipulation (flash loan + swap), TWAP manipulation (capital × time), donation attacks (`balanceOf` inflation), ERC-4626 exchange rate attacks. Explains that defense is layered: primary oracle + TWAP fallback + rate caps + circuit breakers. Mentions that even "safe" oracles like Chainlink need staleness checks, L2 sequencer checks, and zero-price validation
+
+3. **"What's the most underestimated attack vector in DeFi right now?"**
+   - Strong answer: Composability risk / cross-protocol interactions. Any time your protocol reads state from another protocol, you inherit their entire attack surface. Read-only reentrancy is one example, but there's also governance manipulation, oracle dependency chains, and the risk of external protocol upgrades changing behavior. The defense is documenting every external dependency and its failure modes
+
+**Interview red flags:**
+- ❌ Only knowing about classic reentrancy (state-modifying) but not read-only reentrancy
+- ❌ Saying "just use Chainlink" without mentioning staleness checks, L2 sequencer, or multi-oracle patterns
+- ❌ Not knowing about flash-loan-amplified attacks (thinking flash loans are just for arbitrage)
+
+**Pro tip:** In security-focused interviews, employers care less about memorizing every exploit and more about your *systematic thinking*. Show that you have a mental taxonomy of attack classes and can map any new vulnerability into it. That's what separates a protocol engineer from a developer.
+
 ## 🎯 Build Exercise: Security Exploits and Defenses
 
 **Workspace:** [`workspace/src/part2/module8/exercise1-reentrancy/`](../workspace/src/part2/module8/exercise1-reentrancy/) — starter files: [`ReentrancyAttack.sol`](../workspace/src/part2/module8/exercise1-reentrancy/ReentrancyAttack.sol), [`DefendedLending.sol`](../workspace/src/part2/module8/exercise1-reentrancy/DefendedLending.sol), tests: [`ReadOnlyReentrancy.t.sol`](../workspace/test/part2/module8/exercise1-reentrancy/ReadOnlyReentrancy.t.sol)
@@ -485,28 +507,6 @@ DeFi's composability means your protocol interacts with others in ways you can't
 **Workspace:** [`workspace/src/part2/module8/exercise5-access-control/`](../workspace/src/part2/module8/exercise5-access-control/) — starter files: [`AccessControlAttack.sol`](../workspace/src/part2/module8/exercise5-access-control/AccessControlAttack.sol), [`DefendedVault.sol`](../workspace/src/part2/module8/exercise5-access-control/DefendedVault.sol), tests: [`AccessControl.t.sol`](../workspace/test/part2/module8/exercise5-access-control/AccessControl.t.sol)
 
 **Exercise 5: Access control exploit.** A vault has two bugs: `initialize()` can be re-called to overwrite the owner, and `emergencyWithdraw()` has no access control. Exploit both to drain user funds in a single transaction. Then build a defended version with initialization guards and proper owner checks.
-
-#### 💼 Job Market Context
-
-**What DeFi teams expect you to know about attack patterns:**
-
-1. **"Walk me through a read-only reentrancy attack."**
-   - Good answer: Explains that a view function reads inconsistent state during an external call's callback
-   - Great answer: Gives the Balancer BPT / Sentiment example — pool has received tokens but hasn't minted BPT yet, so `getRate()` is inflated. Mentions that the defense is checking the vault's reentrancy lock *before* reading the rate, and that this class of bug is extremely common in DeFi compositions
-
-2. **"How would you prevent price manipulation in a lending protocol?"**
-   - Good answer: Use Chainlink instead of spot prices, add staleness checks
-   - Great answer: Describes the full taxonomy — spot manipulation (flash loan + swap), TWAP manipulation (capital × time), donation attacks (`balanceOf` inflation), ERC-4626 exchange rate attacks. Explains that defense is layered: primary oracle + TWAP fallback + rate caps + circuit breakers. Mentions that even "safe" oracles like Chainlink need staleness checks, L2 sequencer checks, and zero-price validation
-
-3. **"What's the most underestimated attack vector in DeFi right now?"**
-   - Strong answer: Composability risk / cross-protocol interactions. Any time your protocol reads state from another protocol, you inherit their entire attack surface. Read-only reentrancy is one example, but there's also governance manipulation, oracle dependency chains, and the risk of external protocol upgrades changing behavior. The defense is documenting every external dependency and its failure modes
-
-**Interview red flags:**
-- ❌ Only knowing about classic reentrancy (state-modifying) but not read-only reentrancy
-- ❌ Saying "just use Chainlink" without mentioning staleness checks, L2 sequencer, or multi-oracle patterns
-- ❌ Not knowing about flash-loan-amplified attacks (thinking flash loans are just for arbitrage)
-
-**Pro tip:** In security-focused interviews, employers care less about memorizing every exploit and more about your *systematic thinking*. Show that you have a mental taxonomy of attack classes and can map any new vulnerability into it. That's what separates a protocol engineer from a developer.
 
 ## 📋 Key Takeaways: DeFi-Specific Attack Patterns
 
@@ -784,7 +784,7 @@ function withdraw(uint256 shares) external returns (uint256 amount) {
 This is exactly the kind of ordering bug that unit tests miss — you'd have to think of the exact multi-user interleaving. Invariant tests find it automatically by exploring random call sequences.
 
 <a id="invariant-catalog"></a>
-#### 📋 What Invariants to Test for Each DeFi Primitive
+### 📋 What Invariants to Test for Each DeFi Primitive
 
 **For a vault/ERC-4626:**
 - Total assets ≥ sum of all shares × share price (no phantom assets)
@@ -810,7 +810,7 @@ This is exactly the kind of ordering bug that unit tests miss — you'd have to 
 - Total stablecoin supply = sum of all vault debt
 - Stability fee index only increases
 
-#### 🔍 Deep Dive: Writing Good Invariants — A Mental Model
+### 🔍 Deep Dive: Writing Good Invariants — A Mental Model
 
 Coming up with invariants can feel abstract. Here's a systematic approach:
 
@@ -1141,23 +1141,7 @@ The security mindset isn't a checklist — it's a way of thinking about code:
 
 **Simplify.** The most secure protocol is the simplest one that achieves the goal. Every line of code is a potential vulnerability. MakerDAO's Vat is ~300 lines. Uniswap V2 core is ~400 lines. Compound V3's Comet is ~4,300 lines. Complexity is the enemy of security.
 
-## 🎯 Build Exercise: Security Review
-
-**Exercise 1: Full security review.** Run Slither and Aderyn on your SimpleLendingPool from Module 4 and your SimpleCDP from Module 6. Triage every finding: real vulnerability, informational, or false positive. Fix any real vulnerabilities found.
-
-**Exercise 2: Threat model.** Write a threat model for your SimpleCDP from Module 6:
-- Identify all actors (vault owner, liquidator, PSM arbitrageur, governance)
-- For each actor, list what they should be able to do
-- For each actor, list what they should NOT be able to do
-- Identify the trust assumptions (oracle, governance, collateral token behavior)
-- For each trust assumption, describe the failure scenario
-
-**Exercise 3: Invariant test your CDP.** Apply the Invariant Testing methodology to your SimpleCDP:
-- Handler with: openVault, addCollateral, generateStablecoin, repay, withdrawCollateral, liquidate, updateOraclePrice
-- Invariants: every vault safe or liquidatable, total stablecoin ≤ total vault debt × rate, debt ceiling not exceeded
-- Run with high depth and runs
-
-#### 💼 Job Market Context
+### 💼 Job Market Context
 
 **What DeFi teams expect you to know about security tooling and process:**
 
@@ -1178,6 +1162,22 @@ The security mindset isn't a checklist — it's a way of thinking about code:
 - Security-as-a-service platforms (continuous monitoring, not just one-time audits)
 - MEV-aware protocol design as a first-class security concern
 - Cross-chain bridge security (still the largest single-exploit category by dollar value)
+
+## 🎯 Build Exercise: Security Review
+
+**Exercise 1: Full security review.** Run Slither and Aderyn on your SimpleLendingPool from Module 4 and your SimpleCDP from Module 6. Triage every finding: real vulnerability, informational, or false positive. Fix any real vulnerabilities found.
+
+**Exercise 2: Threat model.** Write a threat model for your SimpleCDP from Module 6:
+- Identify all actors (vault owner, liquidator, PSM arbitrageur, governance)
+- For each actor, list what they should be able to do
+- For each actor, list what they should NOT be able to do
+- Identify the trust assumptions (oracle, governance, collateral token behavior)
+- For each trust assumption, describe the failure scenario
+
+**Exercise 3: Invariant test your CDP.** Apply the Invariant Testing methodology to your SimpleCDP:
+- Handler with: openVault, addCollateral, generateStablecoin, repay, withdrawCollateral, liquidate, updateOraclePrice
+- Invariants: every vault safe or liquidatable, total stablecoin ≤ total vault debt × rate, debt ceiling not exceeded
+- Run with high depth and runs
 
 ## 📋 Key Takeaways: Security Tooling & Audit Preparation
 

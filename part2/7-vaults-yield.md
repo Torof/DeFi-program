@@ -324,7 +324,7 @@ After this section, you should be able to:
 ## 💡 The Inflation Attack and Defenses
 
 <a id="inflation-attack"></a>
-#### ⚠️ The Attack
+### ⚠️ The Attack
 
 The inflation attack (also called the donation attack or first-depositor attack) exploits empty or nearly-empty vaults:
 
@@ -808,7 +808,7 @@ After this section, you should be able to:
 ## 💡 Composable Yield Patterns and Security
 
 <a id="yield-strategies"></a>
-#### 📋 Yield Strategy Comparison
+### Yield Strategy Comparison
 
 | Strategy | Typical APY | Risk Level | Complexity | Key Risk | Example |
 |---|---|---|---|---|---|
@@ -951,7 +951,7 @@ Because ERC-4626 vaults are ERC-20 tokens, they can be used as:
 This composability is why ERC-4626 adoption has been so rapid — each new vault automatically works with every protocol that supports the standard.
 
 <a id="vault-security"></a>
-#### ⚠️ Security Considerations for Vault Builders
+### ⚠️ Security Considerations for Vault Builders
 
 **1. totalAssets() must be manipulation-resistant.** If `totalAssets()` reads external state that can be manipulated within a transaction (DEX spot prices, raw token balances), your vault is vulnerable. Use internal accounting or time-delayed oracles.
 

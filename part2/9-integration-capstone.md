@@ -564,7 +564,7 @@ After this section, you should be able to:
 ## 💡 Vault Share Collateral Pricing
 
 <a id="pricing-challenge"></a>
-#### 🔍 Deep Dive: The Pricing Challenge
+### 🔍 Deep Dive: The Pricing Challenge
 
 ETH is straightforward to price: one Chainlink lookup, done. ERC-4626 vault shares are fundamentally different — their value changes continuously as the vault earns yield.
 
@@ -923,7 +923,7 @@ After this section, you should be able to:
 ## 💡 Flash Mint
 
 <a id="flash-mint-vs-loan"></a>
-#### 🔍 Deep Dive: Flash Mint vs Flash Loan
+### 🔍 Deep Dive: Flash Mint vs Flash Loan
 
 Flash loans (M5) borrow existing tokens from a liquidity pool. Flash mint creates tokens from thin air. This is a fundamental difference:
 
@@ -1027,7 +1027,7 @@ After this section, you should be able to:
 ## 💡 Testing & Hardening
 
 <a id="critical-invariants"></a>
-#### 🔍 Deep Dive: The 5 Critical Invariants
+### 🔍 Deep Dive: The 5 Critical Invariants
 
 Invariant testing (M8) is where you prove your protocol works under arbitrary sequences of operations. These 5 invariants are your protocol's correctness properties.
 
