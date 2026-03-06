@@ -401,6 +401,26 @@ When reading how a production protocol consumes oracle data:
 
 **Don't get stuck on:** The OCR aggregation mechanics (how nodes agree off-chain). That's Chainlink's internal concern. Focus on what your protocol controls: which feed to use, how to validate the answer, and what to do when the feed fails.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What checks do you perform when reading a Chainlink price feed?"**
+   - Good answer: Check that the price is positive and the data isn't stale
+   - Great answer: Four mandatory checks: (1) `answer > 0` — invalid/negative prices crash your math, (2) `updatedAt > 0` — round is complete, (3) `block.timestamp - updatedAt < heartbeat + buffer` — staleness, (4) `answeredInRound >= roundId` — stale round. On L2, also check the sequencer uptime feed and enforce a grace period after restart. Set `MAX_STALENESS` based on the specific feed's heartbeat, not a generic value.
+
+2. **"Why can't you use a DEX spot price as an oracle?"**
+   - Good answer: It can be manipulated with a flash loan
+   - Great answer: A flash loan gives any attacker unlimited temporary capital at zero cost. They can move the spot price `reserve1/reserve0` by any amount within a single transaction, exploit your protocol's reaction to that price, and restore it — all atomically. The cost is just gas. Chainlink is immune because its price is aggregated off-chain across multiple data sources. TWAPs resist single-block manipulation because the attacker needs to sustain the price across the entire window.
+
+**Interview Red Flags:**
+- 🚩 Not checking staleness on Chainlink feeds (the most commonly missed check)
+- 🚩 Hardcoding `decimals` to 8 (some feeds use 18)
+- 🚩 Not knowing about L2 sequencer uptime feeds when discussing L2 deployments
+- 🚩 Using `balanceOf` or DEX reserves as a price source
+
+**Pro tip:** In a security review or interview, the first thing to check in any protocol is the oracle integration. Trace where prices come from, what validations exist, and what happens when the oracle fails. If you can identify a missing staleness check or a spot-price dependency, you've found the most common class of DeFi vulnerabilities.
+
 ---
 
 <a id="build-chainlink-consumer"></a>
@@ -431,28 +451,6 @@ Build an `OracleConsumer.sol` that reads Chainlink price feeds with all producti
 > **Used by:** [Aave V3 on Arbitrum](https://github.com/aave/aave-v3-core/blob/master/contracts/misc/AaveOracle.sol) checks sequencer uptime, [GMX V2](https://github.com/gmx-io/gmx-synthetics) on Arbitrum and Avalanche
 
 **TODO 5: `getL2Price()` — Full L2 pattern.** Combines sequencer check with normalized price read. This is the function your L2-deployed protocol would call in production.
-
-#### 💼 Job Market Context
-
-**What DeFi teams expect you to know:**
-
-1. **"What checks do you perform when reading a Chainlink price feed?"**
-   - Good answer: Check that the price is positive and the data isn't stale
-   - Great answer: Four mandatory checks: (1) `answer > 0` — invalid/negative prices crash your math, (2) `updatedAt > 0` — round is complete, (3) `block.timestamp - updatedAt < heartbeat + buffer` — staleness, (4) `answeredInRound >= roundId` — stale round. On L2, also check the sequencer uptime feed and enforce a grace period after restart. Set `MAX_STALENESS` based on the specific feed's heartbeat, not a generic value.
-
-2. **"Why can't you use a DEX spot price as an oracle?"**
-   - Good answer: It can be manipulated with a flash loan
-   - Great answer: A flash loan gives any attacker unlimited temporary capital at zero cost. They can move the spot price `reserve1/reserve0` by any amount within a single transaction, exploit your protocol's reaction to that price, and restore it — all atomically. The cost is just gas. Chainlink is immune because its price is aggregated off-chain across multiple data sources. TWAPs resist single-block manipulation because the attacker needs to sustain the price across the entire window.
-
-**Interview Red Flags:**
-- 🚩 Not checking staleness on Chainlink feeds (the most commonly missed check)
-- 🚩 Hardcoding `decimals` to 8 (some feeds use 18)
-- 🚩 Not knowing about L2 sequencer uptime feeds when discussing L2 deployments
-- 🚩 Using `balanceOf` or DEX reserves as a price source
-
-**Pro tip:** In a security review or interview, the first thing to check in any protocol is the oracle integration. Trace where prices come from, what validations exist, and what happens when the oracle fails. If you can identify a missing staleness check or a spot-price dependency, you've found the most common class of DeFi vulnerabilities.
-
----
 
 ## 📋 Key Takeaways: Oracle Fundamentals & Chainlink
 
@@ -607,6 +605,42 @@ amountOut = (amountIn * priceAverage) >> 112;
 
 > **Used by:** [Liquity](https://github.com/liquity/dev/blob/main/packages/contracts/contracts/PriceFeed.sol) uses Chainlink primary + Tellor fallback, [Maker's OSM](https://github.com/sky-ecosystem/osm) uses delayed TWAP, [Euler](https://github.com/euler-xyz/euler-contracts/blob/master/contracts/modules/RiskManager.sol) used Uniswap V3 TWAP (before Euler relaunch).
 
+#### 🔍 Deep Dive: Liquity's Oracle State Machine (5 States)
+
+Liquity's `PriceFeed.sol` is the most thorough oracle fallback implementation in DeFi. It manages 5 states:
+
+```
+                    ┌─────────────────────────┐
+                    │  0: chainlinkWorking     │ ← Normal operation
+                    │  Use: Chainlink price    │
+                    └───────┬──────────┬───────┘
+                            │          │
+            Chainlink breaks│          │Chainlink & Tellor
+            Tellor works    │          │both break
+                            ▼          ▼
+              ┌──────────────┐   ┌──────────────────┐
+              │ 1: usingTellor│   │ 2: bothUntrusted │
+              │ Use: Tellor   │   │ Use: last good   │
+              └──────┬────────┘   │      price       │
+                     │            └────────┬─────────┘
+        Chainlink    │                     │ Either oracle
+        recovers     │                     │ recovers
+                     ▼                     ▼
+              ┌──────────────────────────────┐
+              │  Back to state 0 or 1        │
+              │  (with freshness checks)     │
+              └──────────────────────────────┘
+
+State transitions triggered by:
+  - Chainlink returning 0 or negative price
+  - Chainlink stale (updatedAt too old)
+  - Chainlink price deviates >50% from previous
+  - Tellor frozen (no update in 4+ hours)
+  - Tellor price deviates >50% from Chainlink
+```
+
+**Why this matters:** Most protocols have one oracle and hope it works. Liquity's state machine handles every combination of oracle failure gracefully. When you build your Part 2 capstone stablecoin (Module 9), you'll need similar robustness — and in Part 3's capstone Perpetual Exchange, oracle reliability is equally critical for funding rate and liquidation accuracy.
+
 ---
 
 <a id="build-twap"></a>
@@ -645,44 +679,6 @@ Build a production-grade dual-oracle system inspired by [Liquity's PriceFeed.sol
 **TODO 5: `_updateStatus()` — State transition with events.** Emits `OracleStatusChanged` when transitioning between states. Off-chain monitoring systems watch these events to trigger alerts.
 
 > **Deep dive:** [Liquity PriceFeed.sol](https://github.com/liquity/dev/blob/main/packages/contracts/contracts/PriceFeed.sol) — implements Chainlink primary, Tellor fallback, with deviation checks and 5-state machine
-
-#### 🔍 Deep Dive: Liquity's Oracle State Machine (5 States)
-
-Liquity's `PriceFeed.sol` is the most thorough oracle fallback implementation in DeFi. It manages 5 states:
-
-```
-                    ┌─────────────────────────┐
-                    │  0: chainlinkWorking     │ ← Normal operation
-                    │  Use: Chainlink price    │
-                    └───────┬──────────┬───────┘
-                            │          │
-            Chainlink breaks│          │Chainlink & Tellor
-            Tellor works    │          │both break
-                            ▼          ▼
-              ┌──────────────┐   ┌──────────────────┐
-              │ 1: usingTellor│   │ 2: bothUntrusted │
-              │ Use: Tellor   │   │ Use: last good   │
-              └──────┬────────┘   │      price       │
-                     │            └────────┬─────────┘
-        Chainlink    │                     │ Either oracle
-        recovers     │                     │ recovers
-                     ▼                     ▼
-              ┌──────────────────────────────┐
-              │  Back to state 0 or 1        │
-              │  (with freshness checks)     │
-              └──────────────────────────────┘
-
-State transitions triggered by:
-  - Chainlink returning 0 or negative price
-  - Chainlink stale (updatedAt too old)
-  - Chainlink price deviates >50% from previous
-  - Tellor frozen (no update in 4+ hours)
-  - Tellor price deviates >50% from Chainlink
-```
-
-**Why this matters:** Most protocols have one oracle and hope it works. Liquity's state machine handles every combination of oracle failure gracefully. When you build your Part 2 capstone stablecoin (Module 9), you'll need similar robustness — and in Part 3's capstone Perpetual Exchange, oracle reliability is equally critical for funding rate and liquidation accuracy.
-
----
 
 ## 📋 Key Takeaways: TWAP Oracles & On-Chain Price Sources
 
@@ -907,6 +903,25 @@ require(timeElapsed >= MINIMUM_WINDOW, "Window too short"); // e.g., 1800 second
 
 > **Deep dive:** [ERC-4626 inflation attack analysis](https://mixbytes.io/blog/overview-of-the-inflation-attack), [OpenZeppelin ERC4626 security](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC4626.sol#L30-L40)
 
+#### 💼 Job Market Context — Oracle Security
+
+**What DeFi teams expect you to know:**
+
+1. **"You're auditing a protocol that uses `pair.getReserves()` for pricing. What's the risk?"**
+   - Good answer: It can be manipulated with a flash loan
+   - Great answer: Any protocol reading DEX spot price (`reserve1/reserve0`) for financial decisions is trivially exploitable. An attacker flash-loans massive capital (zero cost), swaps to distort reserves, exploits the protocol's reaction to the manipulated price, then unwinds. Cost: just gas. This is the Harvest Finance / Cream Finance / Inverse Finance pattern. The fix depends on the use case: for high-stakes decisions (collateral valuation, liquidation), use Chainlink. For supplementary checks, use a TWAP with a sufficiently long window (30+ minutes). Never trust any same-block-manipulable value.
+
+2. **"How would you detect an oracle manipulation attempt in a live protocol?"**
+   - Good answer: Compare the oracle price to a secondary source
+   - Great answer: Defense in depth: (1) Dual-oracle deviation check — if Chainlink and TWAP disagree by more than a threshold, pause. (2) Price velocity check — if the oracle-reported price moves more than X% in a single update, flag it. (3) Position size limits — cap the maximum collateral/borrow in a single transaction to limit the damage from any single oracle-dependent action. (4) Time-delay on large operations — require a delay between depositing collateral and borrowing against it (MakerDAO's OSM does this at the oracle level). (5) Monitor for flash loan + oracle interaction patterns off-chain.
+
+**Interview Red Flags:**
+- 🚩 Can't explain why `balanceOf()` or `getReserves()` is dangerous as a price source
+- 🚩 Doesn't know about the donation/inflation attack vector on vault share prices
+- 🚩 Can't name at least one real oracle exploit and explain the attack flow
+
+**Pro tip:** In a security review, trace every price source to its origin. For each one, ask: "Can this be manipulated within a single transaction?" If yes, that's a critical vulnerability. If it requires multi-block manipulation, calculate the cost — if it's cheaper than the potential profit, it's still a vulnerability.
+
 ---
 
 <a id="build-oracle-lab"></a>
@@ -944,47 +959,6 @@ After this section, you should be able to:
 - Explain why `pair.getReserves()` is trivially exploitable with a flash loan and trace the attack flow: flash loan → swap to distort reserves → exploit protocol → unwind
 - List and explain the 8 defense patterns (no spot price, Chainlink, staleness checks, sanity bounds, dual oracle, circuit breakers, minimum TWAP window, virtual offsets) and match each to the attack it prevents
 - Define Oracle Extractable Value (OEV) and explain how emerging solutions (API3, Pyth Express Relay, UMA Oval) redirect this value back to the protocol
-
-#### 💼 Job Market Context — Oracle Security
-
-**What DeFi teams expect you to know:**
-
-1. **"You're auditing a protocol that uses `pair.getReserves()` for pricing. What's the risk?"**
-   - Good answer: It can be manipulated with a flash loan
-   - Great answer: Any protocol reading DEX spot price (`reserve1/reserve0`) for financial decisions is trivially exploitable. An attacker flash-loans massive capital (zero cost), swaps to distort reserves, exploits the protocol's reaction to the manipulated price, then unwinds. Cost: just gas. This is the Harvest Finance / Cream Finance / Inverse Finance pattern. The fix depends on the use case: for high-stakes decisions (collateral valuation, liquidation), use Chainlink. For supplementary checks, use a TWAP with a sufficiently long window (30+ minutes). Never trust any same-block-manipulable value.
-
-2. **"How would you detect an oracle manipulation attempt in a live protocol?"**
-   - Good answer: Compare the oracle price to a secondary source
-   - Great answer: Defense in depth: (1) Dual-oracle deviation check — if Chainlink and TWAP disagree by more than a threshold, pause. (2) Price velocity check — if the oracle-reported price moves more than X% in a single update, flag it. (3) Position size limits — cap the maximum collateral/borrow in a single transaction to limit the damage from any single oracle-dependent action. (4) Time-delay on large operations — require a delay between depositing collateral and borrowing against it (MakerDAO's OSM does this at the oracle level). (5) Monitor for flash loan + oracle interaction patterns off-chain.
-
-**Interview Red Flags:**
-- 🚩 Can't explain why `balanceOf()` or `getReserves()` is dangerous as a price source
-- 🚩 Doesn't know about the donation/inflation attack vector on vault share prices
-- 🚩 Can't name at least one real oracle exploit and explain the attack flow
-
-**Pro tip:** In a security review, trace every price source to its origin. For each one, ask: "Can this be manipulated within a single transaction?" If yes, that's a critical vulnerability. If it requires multi-block manipulation, calculate the cost — if it's cheaper than the potential profit, it's still a vulnerability.
-
-#### 💼 Job Market Context — Module-Level Interview Prep
-
-**What DeFi teams expect you to know:**
-
-1. **"Design the oracle system for a new lending protocol"**
-   - Good answer: Use Chainlink price feeds with staleness checks
-   - Great answer: Primary: Chainlink feeds per asset with per-feed staleness thresholds based on heartbeat. Secondary: on-chain TWAP as cross-check — if Chainlink and TWAP disagree by >5%, pause new borrows and flag for review. Circuit breaker: if price moves >20% in a single update, require manual governance confirmation. For L2: sequencer uptime feed + grace period. Fallback: if Chainlink is stale beyond threshold, fall back to TWAP if it passes its own quality checks, otherwise pause. For LST collateral (wstETH): chain exchange rate oracle × ETH/USD from Chainlink, with a secondary market-price check.
-
-2. **"Walk through how the Harvest Finance exploit worked"**
-   - Good answer: They manipulated a Curve pool price with a flash loan
-   - Great answer: The attacker flash-loaned USDT/USDC, made massive swaps in Curve's Y pool to temporarily move the stablecoin ratios, then deposited into Harvest's vault which read the manipulated Curve pool as its price oracle for share price calculation. The vault minted shares at the inflated price. The attacker unwound the Curve swap, restoring the true price, and withdrew their shares at the correct (lower) price — netting $24M. The fix: never use any pool's spot state as a price source.
-
-**Interview Red Flags:**
-- 🚩 Proposing a single oracle source without a fallback strategy
-- 🚩 Not knowing the difference between arithmetic and geometric mean TWAPs
-- 🚩 Thinking Chainlink is "real-time" (it updates on deviation threshold + heartbeat)
-- 🚩 Not considering oracle failure modes in protocol design
-- 🚩 Not knowing about oracle governance risk (who controls the feed multisig)
-- 🚩 Using the same oracle approach for ETH and LSTs (wstETH needs chained oracle + de-peg check)
-
-**Pro tip:** Oracle architecture is a senior-level topic that separates protocol designers from protocol consumers. If you can draw the full oracle flow (data sources → Chainlink nodes → OCR → proxy → your wrapper → your core logic) and explain what can go wrong at each layer, you demonstrate the systems-level thinking that DeFi teams value most. Bonus points: mention OEV as an emerging concern — showing awareness of oracle-triggered MEV signals that you follow the cutting edge.
 
 ---
 
@@ -1059,6 +1033,30 @@ try this.getChainlinkPrice(feed) returns (uint256 price) {
     return getTWAPPrice(); // or pause new borrows, or use last known good price
 }
 ```
+
+---
+
+## 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"Design the oracle system for a new lending protocol"**
+   - Good answer: Use Chainlink price feeds with staleness checks
+   - Great answer: Primary: Chainlink feeds per asset with per-feed staleness thresholds based on heartbeat. Secondary: on-chain TWAP as cross-check — if Chainlink and TWAP disagree by >5%, pause new borrows and flag for review. Circuit breaker: if price moves >20% in a single update, require manual governance confirmation. For L2: sequencer uptime feed + grace period. Fallback: if Chainlink is stale beyond threshold, fall back to TWAP if it passes its own quality checks, otherwise pause. For LST collateral (wstETH): chain exchange rate oracle × ETH/USD from Chainlink, with a secondary market-price check.
+
+2. **"Walk through how the Harvest Finance exploit worked"**
+   - Good answer: They manipulated a Curve pool price with a flash loan
+   - Great answer: The attacker flash-loaned USDT/USDC, made massive swaps in Curve's Y pool to temporarily move the stablecoin ratios, then deposited into Harvest's vault which read the manipulated Curve pool as its price oracle for share price calculation. The vault minted shares at the inflated price. The attacker unwound the Curve swap, restoring the true price, and withdrew their shares at the correct (lower) price — netting $24M. The fix: never use any pool's spot state as a price source.
+
+**Interview Red Flags:**
+- 🚩 Proposing a single oracle source without a fallback strategy
+- 🚩 Not knowing the difference between arithmetic and geometric mean TWAPs
+- 🚩 Thinking Chainlink is "real-time" (it updates on deviation threshold + heartbeat)
+- 🚩 Not considering oracle failure modes in protocol design
+- 🚩 Not knowing about oracle governance risk (who controls the feed multisig)
+- 🚩 Using the same oracle approach for ETH and LSTs (wstETH needs chained oracle + de-peg check)
+
+**Pro tip:** Oracle architecture is a senior-level topic that separates protocol designers from protocol consumers. If you can draw the full oracle flow (data sources → Chainlink nodes → OCR → proxy → your wrapper → your core logic) and explain what can go wrong at each layer, you demonstrate the systems-level thinking that DeFi teams value most. Bonus points: mention OEV as an emerging concern — showing awareness of oracle-triggered MEV signals that you follow the cutting edge.
 
 ---
 

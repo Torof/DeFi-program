@@ -550,29 +550,6 @@ function calculateCompoundedInterest(uint256 rate, uint40 lastUpdateTimestamp, u
 
 > **Compound V3's approach:** [Comet uses simple interest per-period](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol#L313) (`index × (1 + rate × elapsed)`), which is slightly less accurate for long gaps but even cheaper. The difference is negligible because `accrueInternal()` is called frequently.
 
----
-
-<a id="build-lending-math"></a>
-## 🎯 Build Exercise: Interest Rate Model
-
-**Workspace:** [`workspace/src/part2/module4/exercise1-interest-rate/`](../workspace/src/part2/module4/exercise1-interest-rate/) — starter file: [`InterestRateModel.sol`](../workspace/src/part2/module4/exercise1-interest-rate/InterestRateModel.sol), tests: [`InterestRateModel.t.sol`](../workspace/test/part2/module4/exercise1-interest-rate/InterestRateModel.t.sol)
-
-Implement a complete interest rate model contract that covers all the math from this section:
-
-1. **RAY multiplication** (`rayMul`) — the bread-and-butter operation of all lending protocol math. A reference `rayDiv` implementation is provided for you to study.
-2. **Utilization rate** (`getUtilization`) — the x-axis of the kinked curve
-3. **Kinked borrow rate** (`getBorrowRate`) — the two-slope curve with the gentle slope below optimal and the steep slope above
-4. **Supply rate** (`getSupplyRate`) — derived from borrow rate, utilization, and reserve factor
-5. **Compound interest approximation** (`calculateCompoundInterest`) — the 3-term Taylor expansion used by Aave V3's MathUtils
-
-All rates use RAY precision (27 decimals), matching Aave V3's internal math. The exercise scaffold has detailed hints and worked examples in the TODO comments.
-
-> **Common pitfall:** Integer overflow when multiplying rates. Always ensure intermediate calculations don't overflow. Use smaller precision (e.g., per-second rates in RAY = 27 decimals) rather than storing APY directly.
-
-**🎯 Goal:** Internalize RAY arithmetic and the kinked curve math before moving to the full lending pool. This is pure math — no tokens, no protocol state.
-
----
-
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know about lending fundamentals:**
@@ -595,6 +572,27 @@ All rates use RAY precision (27 decimals), matching Aave V3's internal math. The
 - Confusing LTV (max borrow ratio) with Liquidation Threshold (liquidation trigger ratio)
 
 **Pro tip:** The single most impressive thing you can do in a lending protocol interview is articulate the *trade-offs* between Aave and Compound architectures. This signals senior-level thinking.
+
+---
+
+<a id="build-lending-math"></a>
+## 🎯 Build Exercise: Interest Rate Model
+
+**Workspace:** [`workspace/src/part2/module4/exercise1-interest-rate/`](../workspace/src/part2/module4/exercise1-interest-rate/) — starter file: [`InterestRateModel.sol`](../workspace/src/part2/module4/exercise1-interest-rate/InterestRateModel.sol), tests: [`InterestRateModel.t.sol`](../workspace/test/part2/module4/exercise1-interest-rate/InterestRateModel.t.sol)
+
+Implement a complete interest rate model contract that covers all the math from this section:
+
+1. **RAY multiplication** (`rayMul`) — the bread-and-butter operation of all lending protocol math. A reference `rayDiv` implementation is provided for you to study.
+2. **Utilization rate** (`getUtilization`) — the x-axis of the kinked curve
+3. **Kinked borrow rate** (`getBorrowRate`) — the two-slope curve with the gentle slope below optimal and the steep slope above
+4. **Supply rate** (`getSupplyRate`) — derived from borrow rate, utilization, and reserve factor
+5. **Compound interest approximation** (`calculateCompoundInterest`) — the 3-term Taylor expansion used by Aave V3's MathUtils
+
+All rates use RAY precision (27 decimals), matching Aave V3's internal math. The exercise scaffold has detailed hints and worked examples in the TODO comments.
+
+> **Common pitfall:** Integer overflow when multiplying rates. Always ensure intermediate calculations don't overflow. Use smaller precision (e.g., per-second rates in RAY = 27 decimals) rather than storing APY directly.
+
+**🎯 Goal:** Internalize RAY arithmetic and the kinked curve math before moving to the full lending pool. This is pure math — no tokens, no protocol state.
 
 ## 📋 Key Takeaways: The Lending Model
 
@@ -1331,25 +1329,6 @@ After absorption, the protocol holds seized collateral. Anyone can buy this coll
 
 > **Deep dive:** [Flashbots docs](https://docs.flashbots.net/) — MEV infrastructure and searcher strategies, [Eigenphi liquidation tracking](https://eigenphi.io/)
 
----
-
-## 🎯 Build Exercise: Flash Loan Liquidation Bot
-
-**Workspace:** [`workspace/src/part2/module4/exercise4-flash-liquidator/`](../workspace/src/part2/module4/exercise4-flash-liquidator/) — starter file: [`FlashLiquidator.sol`](../workspace/src/part2/module4/exercise4-flash-liquidator/FlashLiquidator.sol), tests: [`FlashLiquidator.t.sol`](../workspace/test/part2/module4/exercise4-flash-liquidator/FlashLiquidator.t.sol)
-
-Build a zero-capital liquidation bot using ERC-3156 flash loans. The scaffold provides all the mock infrastructure (flash lender, lending pool, DEX) and the contract skeleton with interfaces. You wire together the composability flow:
-
-1. **`liquidate(borrower, debtToken, debtAmount, collateralToken)`** — entry point that encodes parameters and requests a flash loan
-2. **`onFlashLoan(...)`** — ERC-3156 callback that performs the liquidation with borrowed funds. Two critical security checks are required (caller validation and initiator validation).
-3. **`_sellCollateral(...)`** — approve and swap seized collateral on the DEX
-4. **`_verifyProfit(...)`** — ensure the liquidation was profitable after accounting for flash loan fees
-
-The tests cover: profitable liquidation end-to-end, exact profit calculation (5% bonus minus 0.09% flash fee), close factor mechanics (50% vs 100%), unprofitable liquidation revert, callback security (wrong caller/initiator), and profit withdrawal.
-
-**🎯 Goal:** Understand how MEV bots and liquidation bots compose flash loans, lending pools, and DEXes in a single atomic transaction.
-
----
-
 #### 💼 Job Market Context — Liquidation Mechanics
 
 **What DeFi teams expect you to know about liquidation:**
@@ -1371,6 +1350,23 @@ The tests cover: profitable liquidation end-to-end, exact profit calculation (5%
 - Not understanding why close factor exists (prevent cascade selling)
 
 **Pro tip:** If asked about liquidation in an interview, mention the **Euler V1 exploit** — the attacker used `donateToReserves()` to manipulate health factors, bypassing the standard liquidation check. This shows you understand how liquidation edge cases create attack surfaces.
+
+---
+
+## 🎯 Build Exercise: Flash Loan Liquidation Bot
+
+**Workspace:** [`workspace/src/part2/module4/exercise4-flash-liquidator/`](../workspace/src/part2/module4/exercise4-flash-liquidator/) — starter file: [`FlashLiquidator.sol`](../workspace/src/part2/module4/exercise4-flash-liquidator/FlashLiquidator.sol), tests: [`FlashLiquidator.t.sol`](../workspace/test/part2/module4/exercise4-flash-liquidator/FlashLiquidator.t.sol)
+
+Build a zero-capital liquidation bot using ERC-3156 flash loans. The scaffold provides all the mock infrastructure (flash lender, lending pool, DEX) and the contract skeleton with interfaces. You wire together the composability flow:
+
+1. **`liquidate(borrower, debtToken, debtAmount, collateralToken)`** — entry point that encodes parameters and requests a flash loan
+2. **`onFlashLoan(...)`** — ERC-3156 callback that performs the liquidation with borrowed funds. Two critical security checks are required (caller validation and initiator validation).
+3. **`_sellCollateral(...)`** — approve and swap seized collateral on the DEX
+4. **`_verifyProfit(...)`** — ensure the liquidation was profitable after accounting for flash loan fees
+
+The tests cover: profitable liquidation end-to-end, exact profit calculation (5% bonus minus 0.09% flash fee), close factor mechanics (50% vs 100%), unprofitable liquidation revert, callback security (wrong caller/initiator), and profit withdrawal.
+
+**🎯 Goal:** Understand how MEV bots and liquidation bots compose flash loans, lending pools, and DEXes in a single atomic transaction.
 
 ## 📋 Key Takeaways: Liquidation Mechanics
 
@@ -1464,7 +1460,7 @@ After this section, you should be able to:
 ## 💡 Synthesis and Advanced Patterns
 
 <a id="arch-comparison"></a>
-#### 📋 Architectural Comparison: Aave V3 vs Compound V3
+### Architectural Comparison: Aave V3 vs Compound V3
 
 | Dimension | Aave V3 | Compound V3 |
 |-----------|---------|-------------|
@@ -1569,20 +1565,6 @@ Aave continues evolving within the V3 framework. These updates are important to 
 
 > **Why this matters for interviews:** Knowing about V3.1+ updates signals that you follow the space actively. Mentioning Liquid eMode or Umbrella shows you're beyond textbook knowledge.
 
----
-
-## 🎯 Build Exercise: Liquidation Scenarios
-
-**Workspace:** [`workspace/test/part2/module4/exercise4b-liquidation-scenarios/`](../workspace/test/part2/module4/exercise4b-liquidation-scenarios/) — test-only exercise: [`LiquidationScenarios.t.sol`](../workspace/test/part2/module4/exercise4b-liquidation-scenarios/LiquidationScenarios.t.sol) (implements `BadDebtPool.handleBadDebt()` inline, then runs cascade and bad debt tests)
-
-**Exercise 1: Liquidation cascade simulation.** Using your SimpleLendingPool from the Build exercise, set up 5 users with progressively tighter health factors. Drop the oracle price in steps. After each drop, execute available liquidations. Track how each liquidation changes the "market" (the oracle price reflects the collateral being sold). Does the cascade stabilize or spiral?
-
-**Exercise 2: Bad debt scenario.** Configure your pool with a very volatile collateral. Use `vm.warp` and `vm.mockCall` to simulate a 50% price crash in a single block (too fast for liquidation). Show the resulting bad debt. Implement a `handleBadDebt()` function that socializes the loss across suppliers.
-
-**Exercise 3: Read Morpho Blue's minimal core.** Read [Morpho.sol](https://github.com/morpho-org/morpho-blue/blob/main/src/Morpho.sol) (~650 lines). Focus on: how are markets created (the 5 immutable parameters)? How does `supply()` / `borrow()` / `liquidate()` work without aTokens or debt tokens? How does the architecture achieve risk isolation without Aave's E-Mode/Isolation Mode complexity? Compare the simplicity with Aave's 15,000 lines. No build — just analysis.
-
----
-
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know about lending architecture:**
@@ -1603,6 +1585,18 @@ Aave continues evolving within the V3 framework. These updates are important to 
 - Modular lending (Euler V2 vault graph, Morpho Blue's minimal core + modules)
 - Real-World Assets (RWA) as collateral in lending markets (Maker/Sky, Centrifuge)
 - Point-of-sale lending with on-chain credit scoring (undercollateralized lending frontier)
+
+---
+
+## 🎯 Build Exercise: Liquidation Scenarios
+
+**Workspace:** [`workspace/test/part2/module4/exercise4b-liquidation-scenarios/`](../workspace/test/part2/module4/exercise4b-liquidation-scenarios/) — test-only exercise: [`LiquidationScenarios.t.sol`](../workspace/test/part2/module4/exercise4b-liquidation-scenarios/LiquidationScenarios.t.sol) (implements `BadDebtPool.handleBadDebt()` inline, then runs cascade and bad debt tests)
+
+**Exercise 1: Liquidation cascade simulation.** Using your SimpleLendingPool from the Build exercise, set up 5 users with progressively tighter health factors. Drop the oracle price in steps. After each drop, execute available liquidations. Track how each liquidation changes the "market" (the oracle price reflects the collateral being sold). Does the cascade stabilize or spiral?
+
+**Exercise 2: Bad debt scenario.** Configure your pool with a very volatile collateral. Use `vm.warp` and `vm.mockCall` to simulate a 50% price crash in a single block (too fast for liquidation). Show the resulting bad debt. Implement a `handleBadDebt()` function that socializes the loss across suppliers.
+
+**Exercise 3: Read Morpho Blue's minimal core.** Read [Morpho.sol](https://github.com/morpho-org/morpho-blue/blob/main/src/Morpho.sol) (~650 lines). Focus on: how are markets created (the 5 immutable parameters)? How does `supply()` / `borrow()` / `liquidate()` work without aTokens or debt tokens? How does the architecture achieve risk isolation without Aave's E-Mode/Isolation Mode complexity? Compare the simplicity with Aave's 15,000 lines. No build — just analysis.
 
 ## 📋 Key Takeaways: Synthesis and Advanced Patterns
 

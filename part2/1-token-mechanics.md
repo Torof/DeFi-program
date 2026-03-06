@@ -819,6 +819,24 @@ Is your protocol permissionless or curated?
 
 > **Pro tip:** When listing a new token in a curated protocol, write a Foundry fork test that interacts with the real deployed token on mainnet. This catches behaviors that documentation misses.
 
+### 📖 How to Study Token Integration in Production
+
+1. **Start with the token interface** — Look for `using SafeERC20 for IERC20` or custom token interfaces
+2. **Follow the money** — Trace every `safeTransfer`, `safeTransferFrom` call. Map who sends tokens where
+3. **Check decimal handling** — Search for `decimals()`, `10**`, and scaling factors
+4. **Look for guards** — Reentrancy protection, zero-amount checks, allowance management
+5. **Read the tests** — Production test suites often include weird-token mocks that reveal what the team considered
+
+**Recommended study order:**
+
+| Order | Protocol | What to study | Key file |
+|-------|----------|--------------|----------|
+| 1 | [Solmate ERC20](https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC20.sol) | Minimal ERC20 — understand the base | `ERC20.sol` (180 lines) |
+| 2 | [Uniswap V2 Pair](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol) | Balance-before-after in `swap()` and `mint()` | Lines 159-187 |
+| 3 | [Aave V3 SupplyLogic](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/SupplyLogic.sol) | SafeERC20, decimal normalization, aToken minting | Full file |
+| 4 | [Compound V3 Comet](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol) | Curated approach, scaling, immutable config | `supply()` and `withdraw()` |
+| 5 | [OpenZeppelin SafeERC20](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/utils/SafeERC20.sol) | How low-level calls handle missing return values | Full file (~60 lines) |
+
 ---
 
 <a id="build-token-test-suite"></a>
@@ -862,7 +880,19 @@ contract FeeOnTransferToken is ERC20 {
 
 > **Common pitfall:** Testing only with standard ERC-20 mocks. Your vault will pass all tests but fail in production when encountering USDT or fee-on-transfer tokens. Always test with weird token mocks.
 
-#### 💼 Module-Level Interview Prep
+## 📋 Key Takeaways: Advanced Token Behaviors & Protocol Design
+
+After this section, you should be able to:
+
+- Trace an ERC-777 reentrancy attack through `tokensReceived` and explain why reentrancy guards must protect ALL token transfers, not just ETH sends
+- Walk through the reward-per-token accumulator pattern (Synthetix) step by step and identify where it reappears in Uniswap V3 (`feeGrowthGlobal`) and Aave V3 (`liquidityIndex`)
+- Explain why `balanceOf` is unsafe for governance or pricing within the same block and what snapshot-based alternative (`getPastVotes`) prevents flash-mint manipulation
+- Evaluate a new token for DeFi integration using the 13-point checklist and distinguish which risks need code-level defenses vs operational monitoring
+- Compare permissionless (Uniswap), curated (Aave), and hybrid (Euler V2) token listing strategies and explain the security trade-offs of each
+
+---
+
+## 💼 Job Market Context
 
 **The synthesis question — this is what ties the whole module together:**
 
@@ -884,41 +914,11 @@ contract FeeOnTransferToken is ERC20 {
 
 **Pro tip:** When interviewing, mention the [Weird ERC-20 catalog](https://github.com/d-xo/weird-erc20) by name and the 13-point evaluation checklist approach — it shows you think systematically about token integration, not just "use SafeERC20 and hope for the best."
 
-#### 📖 How to Study Token Integration in Production
-
-1. **Start with the token interface** — Look for `using SafeERC20 for IERC20` or custom token interfaces
-2. **Follow the money** — Trace every `safeTransfer`, `safeTransferFrom` call. Map who sends tokens where
-3. **Check decimal handling** — Search for `decimals()`, `10**`, and scaling factors
-4. **Look for guards** — Reentrancy protection, zero-amount checks, allowance management
-5. **Read the tests** — Production test suites often include weird-token mocks that reveal what the team considered
-
-**Recommended study order:**
-
-| Order | Protocol | What to study | Key file |
-|-------|----------|--------------|----------|
-| 1 | [Solmate ERC20](https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC20.sol) | Minimal ERC20 — understand the base | `ERC20.sol` (180 lines) |
-| 2 | [Uniswap V2 Pair](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol) | Balance-before-after in `swap()` and `mint()` | Lines 159-187 |
-| 3 | [Aave V3 SupplyLogic](https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/SupplyLogic.sol) | SafeERC20, decimal normalization, aToken minting | Full file |
-| 4 | [Compound V3 Comet](https://github.com/compound-finance/comet/blob/main/contracts/Comet.sol) | Curated approach, scaling, immutable config | `supply()` and `withdraw()` |
-| 5 | [OpenZeppelin SafeERC20](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/utils/SafeERC20.sol) | How low-level calls handle missing return values | Full file (~60 lines) |
-
----
-
-## 📋 Key Takeaways: Advanced Token Behaviors & Protocol Design
-
-After this section, you should be able to:
-
-- Trace an ERC-777 reentrancy attack through `tokensReceived` and explain why reentrancy guards must protect ALL token transfers, not just ETH sends
-- Walk through the reward-per-token accumulator pattern (Synthetix) step by step and identify where it reappears in Uniswap V3 (`feeGrowthGlobal`) and Aave V3 (`liquidityIndex`)
-- Explain why `balanceOf` is unsafe for governance or pricing within the same block and what snapshot-based alternative (`getPastVotes`) prevents flash-mint manipulation
-- Evaluate a new token for DeFi integration using the 13-point checklist and distinguish which risks need code-level defenses vs operational monitoring
-- Compare permissionless (Uniswap), curated (Aave), and hybrid (Euler V2) token listing strategies and explain the security trade-offs of each
-
 ---
 
 ## 🔗 Cross-Module Concept Links
 
-#### Building on Part 1
+### Building on Part 1
 
 | Module | Concept | How It Connects |
 |--------|---------|-----------------|
@@ -932,7 +932,7 @@ After this section, you should be able to:
 | [← Module 5: Foundry](../part1/5-foundry.md) | Fuzz testing | Randomized token amounts and decimal values to catch edge cases |
 | [← Module 6: Proxy Patterns](../part1/6-proxy-patterns.md) | Upgradeable proxies | USDC/USDT are proxy tokens — same storage layout and upgrade mechanics from Module 6 |
 
-#### Forward to Part 2
+### Forward to Part 2
 
 | Module | Token Pattern | Application |
 |--------|--------------|-------------|

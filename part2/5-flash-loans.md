@@ -598,7 +598,7 @@ After this section, you should be able to:
 ## 💡 Security, Anti-Patterns, and the Bigger Picture
 
 <a id="flash-security"></a>
-#### ⚠️ Flash Loan Security for Protocol Builders
+### ⚠️ Flash Loan Security for Protocol Builders
 
 Flash loans don't create vulnerabilities — they *democratize access to capital* for exploiting existing vulnerabilities. But as a protocol builder, you need to design for a world where any attacker has access to unlimited capital within a single transaction.
 
@@ -614,7 +614,7 @@ Flash loans don't create vulnerabilities — they *democratize access to capital
 
 **Rule 4: Use reentrancy guards on functions that manipulate critical state.** Flash loans involve external calls (the callback). If your protocol interacts with flash-loaned funds, ensure reentrant calls can't exploit intermediate states.
 
-#### 🔍 Deep Dive: The bZx Attacks (February 2020) — Flash Loans' Debut
+### 🔍 Deep Dive: The bZx Attacks (February 2020) — Flash Loans' Debut
 
 The bZx attacks were the first major flash loan exploits, demonstrating what "unlimited capital in one tx" means for protocol security:
 
@@ -641,7 +641,7 @@ Cost to attacker: gas only (~$8). Profit: $350,000.
 > **📖 Study tip — Tracing real exploits:** Use [Tenderly](https://dashboard.tenderly.co/tx/mainnet/) or [Phalcon by BlockSec](https://app.blocksec.com/explorer) to trace historical exploit transactions step-by-step. Paste the tx hash and you'll see every internal call, state change, and token transfer in order. For the bZx attack, trace [this tx](https://etherscan.io/tx/0xb5c8bd9430b6cc87a0e2fe110ece6bf527fa4f170a4bc8cd032f768fc5219838) — you'll see the flash borrow from dYdX, the Compound interactions, the Uniswap price manipulation, and the profitable unwind all in a single call tree. This is the fastest way to internalize how flash loan compositions work in production.
 
 <a id="receiver-security"></a>
-#### ⚠️ Flash Loan Receiver Security
+### ⚠️ Flash Loan Receiver Security
 
 When building flash loan receivers (your callback contracts), guard against:
 
@@ -753,7 +753,7 @@ Key difference:
 
 ---
 
-## 📋 Key Takeaways: Flash Loan Security
+## 📋 Key Takeaways: Security, Anti-Patterns, and the Bigger Picture
 
 After this section, you should be able to:
 
@@ -761,26 +761,6 @@ After this section, you should be able to:
 - Implement the 3 critical receiver security checks: validate `msg.sender` is the lending pool, validate `initiator` is your own contract, and never store funds in the receiver between transactions
 - Explain why flash accounting (V4, Balancer V3) is replacing traditional flash loans: delta tracking + end-of-transaction settlement is more gas efficient and composable
 - Describe a governance flash loan attack (borrow governance tokens → vote → return) and the defenses: snapshot voting power at proposal creation block, timelocks
-
-#### 💼 Job Market Context — Module-Level Interview Prep
-
-**What DeFi teams expect you to know:**
-
-1. **"How should your protocol defend against flash loan attacks?"**
-   - Good answer: Use TWAP oracles instead of spot prices
-   - Great answer: Flash loans don't create vulnerabilities — they eliminate capital barriers for exploiting existing ones. The defense framework: (1) never rely on values that can be manipulated within a single tx (spot prices, balanceOf, share ratios), (2) use values established in previous blocks (TWAPs, snapshots), (3) for governance, snapshot voting power at proposal creation block, (4) for vaults, use virtual shares/assets offset to prevent donation-based share inflation. Design assuming every user has infinite temporary capital.
-
-2. **"Walk through a flash loan liquidation end to end"**
-   - Good answer: Borrow the debt asset, repay the position, receive collateral, sell it, repay the loan
-   - Great answer: Flash borrow USDC from Balancer (0 fee). Call `Pool.liquidationCall(collateral, debt, user, debtToCover, receiveAToken=false)` — this repays the user's debt and sends you the collateral at the liquidation bonus discount. Swap collateral → USDC via Uniswap V3 exact input. Repay Balancer. Profit = `collateral × price × (1 + bonus) - debtRepaid - swapFees`. The key insight: you choose Balancer over Aave to save 5 bps, and you set `receiveAToken=false` to get the underlying directly for the swap.
-
-**Interview Red Flags:**
-- 🚩 Thinking flash loans are only useful for arbitrage (most production uses are liquidation and collateral management)
-- 🚩 Not knowing that flash accounting (V4/Balancer V3) is replacing dedicated flash loan functions
-- 🚩 Building a protocol without considering flash-loan-amplified attack vectors in the threat model
-- 🚩 Storing funds in a flash loan receiver contract (griefing vector)
-
-**Pro tip:** If asked to design a liquidation system in an interview, mention that flash loan compatibility is a feature, not a bug. MakerDAO Liquidation 2.0 was explicitly designed to be flash-loan compatible — Dutch auctions with instant settlement let liquidators use flash loans, which means more competition, better prices, and less bad debt. A protocol that's "flash loan resistant" for liquidations is actually worse off.
 
 ---
 
@@ -867,6 +847,28 @@ Aave uses `transferFrom` to pull the repayment *after* your callback returns. Ba
 **Mistake 4: Using flash loans for operations that don't need atomicity**
 
 Flash loans add complexity (callback architecture, approval management, extra gas). If you already have the capital and don't need atomicity, a simple multi-step transaction or even multiple transactions may be simpler and cheaper. Flash loans shine when: (1) you don't have the capital, or (2) you need the entire operation to succeed or fail atomically (e.g., you don't want to repay debt and then fail on the swap, leaving you exposed).
+
+---
+
+## 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How should your protocol defend against flash loan attacks?"**
+   - Good answer: Use TWAP oracles instead of spot prices
+   - Great answer: Flash loans don't create vulnerabilities — they eliminate capital barriers for exploiting existing ones. The defense framework: (1) never rely on values that can be manipulated within a single tx (spot prices, balanceOf, share ratios), (2) use values established in previous blocks (TWAPs, snapshots), (3) for governance, snapshot voting power at proposal creation block, (4) for vaults, use virtual shares/assets offset to prevent donation-based share inflation. Design assuming every user has infinite temporary capital.
+
+2. **"Walk through a flash loan liquidation end to end"**
+   - Good answer: Borrow the debt asset, repay the position, receive collateral, sell it, repay the loan
+   - Great answer: Flash borrow USDC from Balancer (0 fee). Call `Pool.liquidationCall(collateral, debt, user, debtToCover, receiveAToken=false)` — this repays the user's debt and sends you the collateral at the liquidation bonus discount. Swap collateral → USDC via Uniswap V3 exact input. Repay Balancer. Profit = `collateral × price × (1 + bonus) - debtRepaid - swapFees`. The key insight: you choose Balancer over Aave to save 5 bps, and you set `receiveAToken=false` to get the underlying directly for the swap.
+
+**Interview Red Flags:**
+- 🚩 Thinking flash loans are only useful for arbitrage (most production uses are liquidation and collateral management)
+- 🚩 Not knowing that flash accounting (V4/Balancer V3) is replacing dedicated flash loan functions
+- 🚩 Building a protocol without considering flash-loan-amplified attack vectors in the threat model
+- 🚩 Storing funds in a flash loan receiver contract (griefing vector)
+
+**Pro tip:** If asked to design a liquidation system in an interview, mention that flash loan compatibility is a feature, not a bug. MakerDAO Liquidation 2.0 was explicitly designed to be flash-loan compatible — Dutch auctions with instant settlement let liquidators use flash loans, which means more competition, better prices, and less bad debt. A protocol that's "flash loan resistant" for liquidations is actually worse off.
 
 ---
 

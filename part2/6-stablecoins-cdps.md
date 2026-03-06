@@ -232,21 +232,6 @@ The dss codebase is one of DeFi's most important — and one of the hardest to r
 
 **Don't get stuck on:** The formal verification annotations in comments. The dss codebase was designed for formal verification (which is why the naming is so terse — it maps to mathematical specifications). You can ignore the verification proofs and focus on the logic.
 
-<a id="day1-exercises"></a>
-## 🎯 Build Exercise: CDP Model and MakerDAO
-
-**Workspace:** [`workspace/src/part2/module6/`](../workspace/src/part2/module6/) — starter files: [`SimpleVat.sol`](../workspace/src/part2/module6/exercise1-simple-vat/SimpleVat.sol), [`SimpleJug.sol`](../workspace/src/part2/module6/exercise2-simple-jug/SimpleJug.sol), tests: [`SimpleVat.t.sol`](../workspace/test/part2/module6/exercise1-simple-vat/SimpleVat.t.sol), [`SimpleJug.t.sol`](../workspace/test/part2/module6/exercise2-simple-jug/SimpleJug.t.sol) | Shared: [`VatMath.sol`](../workspace/src/part2/module6/shared/VatMath.sol), [`SimpleStablecoin.sol`](../workspace/src/part2/module6/shared/SimpleStablecoin.sol), [`SimpleGemJoin.sol`](../workspace/src/part2/module6/shared/SimpleGemJoin.sol), [`SimpleDaiJoin.sol`](../workspace/src/part2/module6/shared/SimpleDaiJoin.sol)
-
-**Exercise 1:** On a mainnet fork, trace a complete Vault lifecycle:
-- Join WETH as collateral via GemJoin
-- Open a Vault via CdpManager, lock collateral, generate DAI via frob
-- Read the Vault state from the Vat (ink, art)
-- Compute actual debt: `art × rate` (fetch rate from `Vat.ilks(ilk)`)
-- Exit DAI via DaiJoin
-- Verify you hold the expected DAI ERC-20 balance
-
-**Exercise 2:** Read the Jug contract. Calculate the per-second rate for a 5% annual stability fee. Call `Jug.drip()` on a mainnet fork and verify the rate accumulator updates correctly. Compute how much more DAI a Vault owes after 1 year of accrued fees.
-
 #### 🔍 Deep Dive: Stability Fee Per-Second Rate
 
 A 5% annual fee needs to be converted to a per-second compound rate:
@@ -319,6 +304,21 @@ function rpow(uint256 x, uint256 n, uint256 base) internal pure returns (uint256
 **Where you'll see this:** Every protocol that compounds per-second rates uses this pattern or a variation. Aave's `MathUtils.calculateCompoundedInterest()` uses a 3-term Taylor approximation instead (see Module 4) — faster but less precise for large exponents.
 
 ---
+
+<a id="day1-exercises"></a>
+## 🎯 Build Exercise: CDP Model and MakerDAO
+
+**Workspace:** [`workspace/src/part2/module6/`](../workspace/src/part2/module6/) — starter files: [`SimpleVat.sol`](../workspace/src/part2/module6/exercise1-simple-vat/SimpleVat.sol), [`SimpleJug.sol`](../workspace/src/part2/module6/exercise2-simple-jug/SimpleJug.sol), tests: [`SimpleVat.t.sol`](../workspace/test/part2/module6/exercise1-simple-vat/SimpleVat.t.sol), [`SimpleJug.t.sol`](../workspace/test/part2/module6/exercise2-simple-jug/SimpleJug.t.sol) | Shared: [`VatMath.sol`](../workspace/src/part2/module6/shared/VatMath.sol), [`SimpleStablecoin.sol`](../workspace/src/part2/module6/shared/SimpleStablecoin.sol), [`SimpleGemJoin.sol`](../workspace/src/part2/module6/shared/SimpleGemJoin.sol), [`SimpleDaiJoin.sol`](../workspace/src/part2/module6/shared/SimpleDaiJoin.sol)
+
+**Exercise 1:** On a mainnet fork, trace a complete Vault lifecycle:
+- Join WETH as collateral via GemJoin
+- Open a Vault via CdpManager, lock collateral, generate DAI via frob
+- Read the Vault state from the Vat (ink, art)
+- Compute actual debt: `art × rate` (fetch rate from `Vat.ilks(ilk)`)
+- Exit DAI via DaiJoin
+- Verify you hold the expected DAI ERC-20 balance
+
+**Exercise 2:** Read the Jug contract. Calculate the per-second rate for a 5% annual stability fee. Call `Jug.drip()` on a mainnet fork and verify the rate accumulator updates correctly. Compute how much more DAI a Vault owes after 1 year of accrued fees.
 
 ## 📋 Key Takeaways: CDP Model and MakerDAO
 
@@ -518,6 +518,36 @@ Step 4: Liquidator calls Clipper.take() at t=1800s (price = $1,767)
 
 **Key insight:** The liquidator doesn't need to wait for the absolute best price — they just need `auction_price < market_price - swap_fees - gas`. The competition between liquidators (and MEV searchers) pushes the buy time earlier, reducing the vault owner's penalty. More competition = better outcomes for everyone except the liquidator margins.
 
+<a id="read-dog-clipper"></a>
+#### 📖 Read: Dog.sol and Clipper.sol
+
+**Source:** `dss/src/dog.sol` and `dss/src/clip.sol`
+
+In `Dog.bark()`, trace:
+- How the Vault is validated as unsafe
+- The `grab` call that seizes collateral
+- How the `tab` (debt + liquidation penalty) is calculated
+- The circuit breaker checks (`Hole`/`hole`, `Dirt`/`dirt`)
+
+In `Clipper.kick()`, trace:
+- How the starting price is set (oracle price × buf)
+- The auction state struct
+- How `take()` works: price calculation via Abacus, partial fills, refunds
+
+#### 📖 How to Study MakerDAO Liquidation 2.0
+
+1. **Start with `Dog.bark()`** — This is the entry point. Trace: how does it verify the vault is unsafe? (Calls `Vat.urns()` and `Vat.ilks()`, checks `ink × spot < art × rate`.) How does it call `Vat.grab()` to seize collateral? How does it compute the `tab` (total debt including penalty)?
+
+2. **Read `Clipper.kick()`** — After `bark()` seizes collateral, `kick()` starts the auction. Focus on: how `top` (starting price) is computed as `oracle_price × buf`, how the auction struct stores the state, and how the keeper incentive (`tip` + `chip`) is calculated and paid.
+
+3. **Understand the Abacus price functions** — Read `LinearDecrease` first (simpler: price drops linearly over time). Then read `StairstepExponentialDecrease` (price drops in discrete steps). The key question: given a `tab` (debt to cover) and the current auction price, how much collateral does the `take()` caller receive?
+
+4. **Trace a complete `take()` call** — This is where collateral is actually sold. Follow: price lookup via Abacus → compute collateral amount for the DAI offered → handle partial fills (buyer wants less than the full lot) → refund excess collateral to the vault owner → cancel `sin` via `Vat.heal()`.
+
+5. **Study the circuit breakers** — `tail` (max auction duration), `cusp` (min price before reset), `Hole`/`hole` (max simultaneous DAI in auctions). These exist because of Black Thursday — without caps, a cascade of liquidations can overwhelm the system.
+
+**Don't get stuck on:** The `redo()` function initially — it's for restarting stale auctions. Understand `bark()` → `kick()` → `take()` first, then come back to `redo()` and the edge cases.
+
 <a id="psm"></a>
 ### 💡 Concept: Peg Stability Module (PSM)
 
@@ -550,50 +580,6 @@ In September 2024, MakerDAO rebranded to Sky Protocol. Key changes:
 
 The underlying protocol mechanics (Vat, Dog, Clipper, etc.) remain the same. For this module, we'll use the original MakerDAO naming since that's what the codebase uses.
 
-<a id="read-dog-clipper"></a>
-#### 📖 Read: Dog.sol and Clipper.sol
-
-**Source:** `dss/src/dog.sol` and `dss/src/clip.sol`
-
-In `Dog.bark()`, trace:
-- How the Vault is validated as unsafe
-- The `grab` call that seizes collateral
-- How the `tab` (debt + liquidation penalty) is calculated
-- The circuit breaker checks (`Hole`/`hole`, `Dirt`/`dirt`)
-
-In `Clipper.kick()`, trace:
-- How the starting price is set (oracle price × buf)
-- The auction state struct
-- How `take()` works: price calculation via Abacus, partial fills, refunds
-
-#### 📖 How to Study MakerDAO Liquidation 2.0
-
-1. **Start with `Dog.bark()`** — This is the entry point. Trace: how does it verify the vault is unsafe? (Calls `Vat.urns()` and `Vat.ilks()`, checks `ink × spot < art × rate`.) How does it call `Vat.grab()` to seize collateral? How does it compute the `tab` (total debt including penalty)?
-
-2. **Read `Clipper.kick()`** — After `bark()` seizes collateral, `kick()` starts the auction. Focus on: how `top` (starting price) is computed as `oracle_price × buf`, how the auction struct stores the state, and how the keeper incentive (`tip` + `chip`) is calculated and paid.
-
-3. **Understand the Abacus price functions** — Read `LinearDecrease` first (simpler: price drops linearly over time). Then read `StairstepExponentialDecrease` (price drops in discrete steps). The key question: given a `tab` (debt to cover) and the current auction price, how much collateral does the `take()` caller receive?
-
-4. **Trace a complete `take()` call** — This is where collateral is actually sold. Follow: price lookup via Abacus → compute collateral amount for the DAI offered → handle partial fills (buyer wants less than the full lot) → refund excess collateral to the vault owner → cancel `sin` via `Vat.heal()`.
-
-5. **Study the circuit breakers** — `tail` (max auction duration), `cusp` (min price before reset), `Hole`/`hole` (max simultaneous DAI in auctions). These exist because of Black Thursday — without caps, a cascade of liquidations can overwhelm the system.
-
-**Don't get stuck on:** The `redo()` function initially — it's for restarting stale auctions. Understand `bark()` → `kick()` → `take()` first, then come back to `redo()` and the edge cases.
-
-<a id="day2-exercises"></a>
-## 🎯 Build Exercise: Liquidations and PSM
-
-**Workspace:** [`workspace/src/part2/module6/exercise3-simple-dog/`](../workspace/src/part2/module6/exercise3-simple-dog/) — starter file: [`SimpleDog.sol`](../workspace/src/part2/module6/exercise3-simple-dog/SimpleDog.sol), tests: [`SimpleDog.t.sol`](../workspace/test/part2/module6/exercise3-simple-dog/SimpleDog.t.sol) | Also: [`SimplePSM.sol`](../workspace/src/part2/module6/exercise4-simple-psm/SimplePSM.sol), tests: [`SimplePSM.t.sol`](../workspace/test/part2/module6/exercise4-simple-psm/SimplePSM.t.sol)
-
-**Exercise 1:** On a mainnet fork, simulate a liquidation:
-- Open a Vault with ETH collateral near the liquidation ratio
-- Mock the oracle to drop the price below the liquidation threshold
-- Call `Dog.bark()` to start the auction
-- Call `Clipper.take()` to buy the collateral at the current auction price
-- Verify: correct amount of DAI paid, correct collateral received, debt cleared
-
-**Exercise 2:** Read the PSM contract. Execute a USDC → DAI swap through the PSM on a mainnet fork. Verify the 1:1 conversion and fee application.
-
 #### 💼 Job Market Context
 
 **What DeFi teams expect you to know:**
@@ -613,7 +599,19 @@ In `Clipper.kick()`, trace:
 
 **Pro tip:** If you can trace a `frob()` call through the Vat's safety checks and explain each parameter, you demonstrate deeper protocol knowledge than 95% of DeFi developers. MakerDAO's architecture shows up directly in interview questions at top DeFi teams.
 
----
+<a id="day2-exercises"></a>
+## 🎯 Build Exercise: Liquidations and PSM
+
+**Workspace:** [`workspace/src/part2/module6/exercise3-simple-dog/`](../workspace/src/part2/module6/exercise3-simple-dog/) — starter file: [`SimpleDog.sol`](../workspace/src/part2/module6/exercise3-simple-dog/SimpleDog.sol), tests: [`SimpleDog.t.sol`](../workspace/test/part2/module6/exercise3-simple-dog/SimpleDog.t.sol) | Also: [`SimplePSM.sol`](../workspace/src/part2/module6/exercise4-simple-psm/SimplePSM.sol), tests: [`SimplePSM.t.sol`](../workspace/test/part2/module6/exercise4-simple-psm/SimplePSM.t.sol)
+
+**Exercise 1:** On a mainnet fork, simulate a liquidation:
+- Open a Vault with ETH collateral near the liquidation ratio
+- Mock the oracle to drop the price below the liquidation threshold
+- Call `Dog.bark()` to start the auction
+- Call `Clipper.take()` to buy the collateral at the current auction price
+- Verify: correct amount of DAI paid, correct collateral received, debt cleared
+
+**Exercise 2:** Read the PSM contract. Execute a USDC → DAI swap through the PSM on a mainnet fork. Verify the 1:1 conversion and fee application.
 
 ## 📋 Key Takeaways: Liquidations, PSM, and DSR
 
@@ -720,7 +718,7 @@ Step 4: Arbitrageur P&L
 **The peg guarantee:** Redemptions create a hard floor at ~$1.00 (minus the fee). If LUSD trades at $0.97, anyone can profit by redeeming. This arbitrage force pushes the price back up. The ceiling is softer — at ~$1.10 (the minimum CR), it becomes attractive to open new Troves and sell LUSD.
 
 <a id="algo-failure"></a>
-#### ⚠️ The Algorithmic Stablecoin Failure Pattern
+### ⚠️ The Algorithmic Stablecoin Failure Pattern
 
 UST/LUNA (Terra, May 2022) is the canonical example. The mechanism:
 - UST was pegged to $1 via an arbitrage loop with LUNA
@@ -891,33 +889,7 @@ Speed of peg restoration:
 
 Map out the feedback loops. This is how decentralized monetary policy works.
 
-#### 💼 Job Market Context — Module-Level Interview Prep
-
-**What DeFi teams expect you to know:**
-
-1. **"Explain the stablecoin trilemma and where DAI sits"**
-   - Good answer: DAI trades off capital efficiency for decentralization and stability
-   - Great answer: DAI started decentralized (ETH-only collateral) but the PSM made it USDC-dependent for better stability. The Sky rebrand pushed further toward centralization with USDS's freeze function. Liquity V1 sits at the opposite extreme — fully decentralized and immutable, but less capital-efficient and narrower collateral. No design achieves all three.
-
-2. **"How does crvUSD's LLAMMA differ from traditional liquidation?"**
-   - Good answer: It gradually converts collateral instead of a sudden liquidation event
-   - Great answer: LLAMMA is essentially an AMM where your collateral IS the liquidity. As price drops, the AMM sells your collateral for crvUSD automatically. If price recovers, it buys back. This eliminates the discrete liquidation penalty but introduces AMM-like impermanent loss during soft liquidation. It's a fundamentally different paradigm — continuous adjustment vs threshold-triggered liquidation.
-
-3. **"What's the main risk with Ethena's USDe?"**
-   - Good answer: Funding rates can go negative
-   - Great answer: Three correlated risks: (1) prolonged negative funding drains the insurance fund and erodes backing, (2) centralized exchange counterparty risk — positions are on Binance/Bybit/Deribit via custodians, (3) during a black swan, all three risks compound simultaneously (funding reversal + exchange stress + basis blowout). The model works great in bull markets with positive funding but hasn't been tested through a severe extended downturn with the current AUM.
-
-**Interview Red Flags:**
-- 🚩 Thinking algorithmic stablecoins without external collateral can work (Terra killed this thesis)
-- 🚩 Not knowing the difference between a CDP and a lending protocol
-- 🚩 Inability to explain how stability fees act as monetary policy
-- 🚩 Not recognizing that MakerDAO's terse naming convention exists (demonstrates you haven't read the code)
-
-**Pro tip:** The stablecoin landscape is one of the most interview-relevant DeFi topics because it touches everything — oracles, liquidation, governance, monetary policy, risk management. Being able to compare MakerDAO vs Liquity vs Ethena design trade-offs demonstrates systems-level thinking that teams value highly.
-
----
-
-## 📋 Key Takeaways: Stablecoin Landscape
+## 📋 Key Takeaways: Stablecoin Landscape and Design Trade-offs
 
 After this section, you should be able to:
 
@@ -992,6 +964,32 @@ vat.frob(ilk, ..., 0, -int256(5000e18));  // Leaves 5,000 DAI ≥ dust
 ```
 
 The `dust` parameter prevents tiny vaults whose gas costs for liquidation would exceed the recovered value. When a vault has debt, it must be either 0 or ≥ `dust`. This catches developers who try to partially repay without checking.
+
+---
+
+## 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"Explain the stablecoin trilemma and where DAI sits"**
+   - Good answer: DAI trades off capital efficiency for decentralization and stability
+   - Great answer: DAI started decentralized (ETH-only collateral) but the PSM made it USDC-dependent for better stability. The Sky rebrand pushed further toward centralization with USDS's freeze function. Liquity V1 sits at the opposite extreme — fully decentralized and immutable, but less capital-efficient and narrower collateral. No design achieves all three.
+
+2. **"How does crvUSD's LLAMMA differ from traditional liquidation?"**
+   - Good answer: It gradually converts collateral instead of a sudden liquidation event
+   - Great answer: LLAMMA is essentially an AMM where your collateral IS the liquidity. As price drops, the AMM sells your collateral for crvUSD automatically. If price recovers, it buys back. This eliminates the discrete liquidation penalty but introduces AMM-like impermanent loss during soft liquidation. It's a fundamentally different paradigm — continuous adjustment vs threshold-triggered liquidation.
+
+3. **"What's the main risk with Ethena's USDe?"**
+   - Good answer: Funding rates can go negative
+   - Great answer: Three correlated risks: (1) prolonged negative funding drains the insurance fund and erodes backing, (2) centralized exchange counterparty risk — positions are on Binance/Bybit/Deribit via custodians, (3) during a black swan, all three risks compound simultaneously (funding reversal + exchange stress + basis blowout). The model works great in bull markets with positive funding but hasn't been tested through a severe extended downturn with the current AUM.
+
+**Interview Red Flags:**
+- 🚩 Thinking algorithmic stablecoins without external collateral can work (Terra killed this thesis)
+- 🚩 Not knowing the difference between a CDP and a lending protocol
+- 🚩 Inability to explain how stability fees act as monetary policy
+- 🚩 Not recognizing that MakerDAO's terse naming convention exists (demonstrates you haven't read the code)
+
+**Pro tip:** The stablecoin landscape is one of the most interview-relevant DeFi topics because it touches everything — oracles, liquidation, governance, monetary policy, risk management. Being able to compare MakerDAO vs Liquity vs Ethena design trade-offs demonstrates systems-level thinking that teams value highly.
 
 ---
 

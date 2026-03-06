@@ -1257,6 +1257,32 @@ function afterSwap(...) external returns (...) {
 
 > **Common pitfall:** Not considering upgradability. If your hook needs to be upgradable, you must use a proxy pattern from the start. After pool initialization, you can't change the hook address, but you can change the hook's implementation if it's behind a proxy.
 
+#### 🔗 DeFi Pattern Connection
+
+**Where V4 hooks are being used in production:**
+
+1. **MEV protection:** [Sorella's Angstrom](https://www.sorella.xyz/) uses hooks to batch-settle swaps at uniform clearing prices, eliminating sandwich attacks
+2. **Lending integration:** Hooks that auto-deposit idle LP assets into lending protocols between swaps — earning additional yield on liquidity
+3. **Custom oracles:** [GeomeanOracle hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/GeomeanOracle.sol) provides TWAP with better properties than V2/V3's built-in oracle
+4. **LP management:** [Bunni](https://bunni.pro/) uses hooks for native concentrated liquidity management without external vaults
+
+**The pattern:** V4 hooks are the composability layer for AMM innovation. Instead of forking an AMM (fragmenting liquidity), you plug into shared liquidity with custom logic.
+
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How do V4 hooks work and what are the security considerations?"**
+   - Good answer: "Hooks are external contracts called at specific points during pool operations. The hook address encodes which callbacks are enabled through specific address bits."
+   - Great answer: "Hooks intercept 10 lifecycle points: before/after initialize, swap, add/remove liquidity, and donate. The hook address itself determines which callbacks are active — specific bits in the address are checked by the PoolManager (gas optimization: bit checks vs external calls). Critical security: hooks MUST verify `msg.sender == poolManager` (Cork Protocol lost $400k from missing this check), avoid unbounded loops (gas griefing), and handle reentrancy carefully. Once a pool is initialized with a hook, it's permanent — bugs mean abandoning the pool."
+
+**Interview Red Flags:**
+- 🚩 Not knowing that hooks are immutably linked to pools at initialization
+- 🚩 Thinking hooks can modify the pool's core math (they intercept at lifecycle points, not replace the invariant)
+- 🚩 Not mentioning access control (`msg.sender == poolManager`) as a critical security pattern
+
+**Pro tip:** Mention a specific production hook you've studied (Clanker, Bunni, or GeomeanOracle) — it shows you've gone beyond docs into actual codebases.
+
 ---
 
 <a id="build-hook"></a>
@@ -1303,32 +1329,6 @@ contract VolatilityHook is BaseHook {
 **Exercise 3: Read an existing production hook.** Pick one from the [awesome-uniswap-hooks list](https://github.com/fewwwww/awesome-uniswap-hooks) (Clanker, EulerSwap, or the [Full Range hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/FullRange.sol) from Uniswap themselves). Read the source, understand what lifecycle points it hooks into and why.
 
 > **Deep dive:** [Hook development guide](https://docs.uniswap.org/contracts/v4/guides/create-a-hook), [Hook security best practices](https://www.trustlook.com/blog/uniswap-v4-hooks-security/)
-
-#### 🔗 DeFi Pattern Connection
-
-**Where V4 hooks are being used in production:**
-
-1. **MEV protection:** [Sorella's Angstrom](https://www.sorella.xyz/) uses hooks to batch-settle swaps at uniform clearing prices, eliminating sandwich attacks
-2. **Lending integration:** Hooks that auto-deposit idle LP assets into lending protocols between swaps — earning additional yield on liquidity
-3. **Custom oracles:** [GeomeanOracle hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/GeomeanOracle.sol) provides TWAP with better properties than V2/V3's built-in oracle
-4. **LP management:** [Bunni](https://bunni.pro/) uses hooks for native concentrated liquidity management without external vaults
-
-**The pattern:** V4 hooks are the composability layer for AMM innovation. Instead of forking an AMM (fragmenting liquidity), you plug into shared liquidity with custom logic.
-
-#### 💼 Job Market Context
-
-**What DeFi teams expect you to know:**
-
-1. **"How do V4 hooks work and what are the security considerations?"**
-   - Good answer: "Hooks are external contracts called at specific points during pool operations. The hook address encodes which callbacks are enabled through specific address bits."
-   - Great answer: "Hooks intercept 10 lifecycle points: before/after initialize, swap, add/remove liquidity, and donate. The hook address itself determines which callbacks are active — specific bits in the address are checked by the PoolManager (gas optimization: bit checks vs external calls). Critical security: hooks MUST verify `msg.sender == poolManager` (Cork Protocol lost $400k from missing this check), avoid unbounded loops (gas griefing), and handle reentrancy carefully. Once a pool is initialized with a hook, it's permanent — bugs mean abandoning the pool."
-
-**Interview Red Flags:**
-- 🚩 Not knowing that hooks are immutably linked to pools at initialization
-- 🚩 Thinking hooks can modify the pool's core math (they intercept at lifecycle points, not replace the invariant)
-- 🚩 Not mentioning access control (`msg.sender == poolManager`) as a critical security pattern
-
-**Pro tip:** Mention a specific production hook you've studied (Clanker, Bunni, or GeomeanOracle) — it shows you've gone beyond docs into actual codebases.
 
 ## 📋 Key Takeaways: V4 Hooks
 
