@@ -1460,7 +1460,7 @@ After this section, you should be able to:
 ## 💡 Synthesis and Advanced Patterns
 
 <a id="arch-comparison"></a>
-### Architectural Comparison: Aave V3 vs Compound V3
+#### 📋 Architectural Comparison: Aave V3 vs Compound V3
 
 | Dimension | Aave V3 | Compound V3 |
 |-----------|---------|-------------|

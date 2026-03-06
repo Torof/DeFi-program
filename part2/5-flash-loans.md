@@ -598,7 +598,7 @@ After this section, you should be able to:
 ## 💡 Security, Anti-Patterns, and the Bigger Picture
 
 <a id="flash-security"></a>
-### ⚠️ Flash Loan Security for Protocol Builders
+#### ⚠️ Flash Loan Security for Protocol Builders
 
 Flash loans don't create vulnerabilities — they *democratize access to capital* for exploiting existing vulnerabilities. But as a protocol builder, you need to design for a world where any attacker has access to unlimited capital within a single transaction.
 
@@ -614,7 +614,7 @@ Flash loans don't create vulnerabilities — they *democratize access to capital
 
 **Rule 4: Use reentrancy guards on functions that manipulate critical state.** Flash loans involve external calls (the callback). If your protocol interacts with flash-loaned funds, ensure reentrant calls can't exploit intermediate states.
 
-### 🔍 Deep Dive: The bZx Attacks (February 2020) — Flash Loans' Debut
+#### 🔍 Deep Dive: The bZx Attacks (February 2020) — Flash Loans' Debut
 
 The bZx attacks were the first major flash loan exploits, demonstrating what "unlimited capital in one tx" means for protocol security:
 
@@ -641,7 +641,7 @@ Cost to attacker: gas only (~$8). Profit: $350,000.
 > **📖 Study tip — Tracing real exploits:** Use [Tenderly](https://dashboard.tenderly.co/tx/mainnet/) or [Phalcon by BlockSec](https://app.blocksec.com/explorer) to trace historical exploit transactions step-by-step. Paste the tx hash and you'll see every internal call, state change, and token transfer in order. For the bZx attack, trace [this tx](https://etherscan.io/tx/0xb5c8bd9430b6cc87a0e2fe110ece6bf527fa4f170a4bc8cd032f768fc5219838) — you'll see the flash borrow from dYdX, the Compound interactions, the Uniswap price manipulation, and the profitable unwind all in a single call tree. This is the fastest way to internalize how flash loan compositions work in production.
 
 <a id="receiver-security"></a>
-### ⚠️ Flash Loan Receiver Security
+#### ⚠️ Flash Loan Receiver Security
 
 When building flash loan receivers (your callback contracts), guard against:
 

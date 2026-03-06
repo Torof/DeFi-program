@@ -224,6 +224,25 @@ Request flow:
 - During extreme demand (mass exits), the queue lengthens and the peg can weaken — arbitrageurs must lock capital longer, reducing their incentive.
 - Post-Shapella, stETH has traded very close to 1:1 with ETH. The June 2022 de-peg (0.93 ETH) happened pre-Shapella when no withdrawal mechanism existed.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How would you integrate wstETH as collateral in a lending protocol?"**
+   - Good answer: "Use the exchange rate to convert wstETH to ETH, then Chainlink for ETH/USD."
+   - Great answer: "Two-step pricing: `getStETHByWstETH()` for the exchange rate, then Chainlink ETH/USD. But I'd also use a Chainlink stETH/ETH market feed as a second oracle, taking the minimum — the dual oracle pattern. During a de-peg (like June 2022), the exchange rate says 1:1 but the market says 0.93. Without the dual oracle, positions appear healthier than they really are, and liquidations don't fire when they should."
+
+2. **"Explain the difference between stETH and wstETH and when you'd use each."**
+   - Good answer: "stETH rebases, wstETH doesn't."
+   - Great answer: "Both represent the same underlying staked ETH. stETH uses rebasing — your balance grows daily as oracle reports update `totalPooledEther`. Internally, stETH tracks shares, and `balanceOf()` returns `shares × totalPooledEther / totalShares`. wstETH is a wrapper that exposes those shares directly as a standard ERC-20 — your balance is fixed, and the exchange rate `stEthPerToken` grows instead. You'd use wstETH for any DeFi integration — lending, vaults, AMMs — because rebasing breaks contracts that cache balances."
+
+**Interview Red Flags:**
+- 🚩 Saying "stETH is always worth 1 ETH" without qualifying that this is the protocol exchange rate, not the market rate
+- 🚩 Not knowing why DeFi protocols prefer wstETH over stETH (rebasing breaks balance caching)
+- 🚩 Treating the exchange rate as a simple constant rather than understanding it's derived from `totalPooledEther / totalShares`
+
+**Pro tip:** When discussing LSTs in interviews, lead with the two-model distinction (rebasing vs non-rebasing) and immediately connect it to DeFi composability. Saying "wstETH exists because rebasing breaks DeFi" shows you understand the real engineering constraint, not just the token names.
+
 ---
 
 <a id="exercise1"></a>
@@ -256,25 +275,6 @@ Build a `WstETHOracle` contract that correctly prices wstETH in USD using a two-
 **🎯 Goal:** Internalize the two-step LST pricing pipeline and the dual oracle safety pattern. This is the exact oracle design used by Aave, Morpho, and every lending protocol that accepts wstETH.
 
 ---
-
-#### 💼 Job Market Context
-
-**What DeFi teams expect you to know:**
-
-1. **"How would you integrate wstETH as collateral in a lending protocol?"**
-   - Good answer: "Use the exchange rate to convert wstETH to ETH, then Chainlink for ETH/USD."
-   - Great answer: "Two-step pricing: `getStETHByWstETH()` for the exchange rate, then Chainlink ETH/USD. But I'd also use a Chainlink stETH/ETH market feed as a second oracle, taking the minimum — the dual oracle pattern. During a de-peg (like June 2022), the exchange rate says 1:1 but the market says 0.93. Without the dual oracle, positions appear healthier than they really are, and liquidations don't fire when they should."
-
-2. **"Explain the difference between stETH and wstETH and when you'd use each."**
-   - Good answer: "stETH rebases, wstETH doesn't."
-   - Great answer: "Both represent the same underlying staked ETH. stETH uses rebasing — your balance grows daily as oracle reports update `totalPooledEther`. Internally, stETH tracks shares, and `balanceOf()` returns `shares × totalPooledEther / totalShares`. wstETH is a wrapper that exposes those shares directly as a standard ERC-20 — your balance is fixed, and the exchange rate `stEthPerToken` grows instead. You'd use wstETH for any DeFi integration — lending, vaults, AMMs — because rebasing breaks contracts that cache balances."
-
-**Interview Red Flags:**
-- 🚩 Saying "stETH is always worth 1 ETH" without qualifying that this is the protocol exchange rate, not the market rate
-- 🚩 Not knowing why DeFi protocols prefer wstETH over stETH (rebasing breaks balance caching)
-- 🚩 Treating the exchange rate as a simple constant rather than understanding it's derived from `totalPooledEther / totalShares`
-
-**Pro tip:** When discussing LSTs in interviews, lead with the two-model distinction (rebasing vs non-rebasing) and immediately connect it to DeFi composability. Saying "wstETH exists because rebasing breaks DeFi" shows you understand the real engineering constraint, not just the token names.
 
 ## 📋 Key Takeaways: Liquid Staking Fundamentals
 
@@ -564,7 +564,7 @@ The rate is updated by Rocket Pool's Oracle DAO (a set of trusted nodes) rather 
 
 > **Repos:** [Lido](https://github.com/lidofinance/lido-dao) | [Rocket Pool](https://github.com/rocket-pool/rocketpool)
 
-#### 💼 Job Market Context
+##### 💼 Job Market Context
 
 **What DeFi teams expect you to know:**
 
@@ -771,7 +771,7 @@ This is not theoretical — Aave, Morpho, and every lending protocol that lists 
 
 **The systemic risk:** If many AVSes use the same operator set, and that operator set gets slashed on one AVS, the collateral damage cascades — all LRTs backed by those operators lose value simultaneously. This correlated slashing risk is the restaking-specific systemic concern.
 
-#### 💼 Job Market Context
+##### 💼 Job Market Context
 
 **What DeFi teams expect you to know:**
 
@@ -1075,6 +1075,21 @@ borrows ETH, and loops the leverage:
 | **P3M3** | Yield tokenization | Pendle splits LST yield into PT/YT — LSTs are the primary input |
 | **P3M9** | Capstone (perp exchange) | LSTs as margin collateral — pricing and liquidation mechanics carry over |
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What happened during the June 2022 stETH de-peg and what did it teach us?"**
+   - Good answer: "stETH traded below 1 ETH. It was caused by selling pressure."
+   - Great answer: "3AC and Celsius faced insolvency and had to liquidate stETH positions. Pre-Shapella, there was no withdrawal queue — the only exit was selling on DEX. Massive sell pressure pushed stETH/ETH to 0.93. This wasn't a protocol failure — Lido's backing was fine. It was a liquidity/market failure. The lesson: exchange rate and market price can diverge, so lending protocols need dual oracle pricing. Post-Shapella (April 2023), the withdrawal queue creates an arbitrage floor that prevents deep de-pegs."
+
+**Interview Red Flags:**
+- 🚩 Saying "just use the exchange rate" for collateral pricing without mentioning de-peg risk and the need for a market price check
+- 🚩 Not knowing the difference between pre-Shapella and post-Shapella withdrawal mechanics
+- 🚩 Treating the June 2022 de-peg as a protocol bug rather than a market/liquidity event
+
+**Pro tip:** In interviews, when discussing LST integration, always mention the de-peg scenario unprompted. Saying "we'd use a dual oracle pattern because of the June 2022 de-peg risk" signals real-world awareness, not just textbook knowledge. Protocol teams remember June 2022 — it shaped how every subsequent LST integration was designed.
+
 ---
 
 <a id="exercise2"></a>
@@ -1111,21 +1126,6 @@ Build a simplified lending pool that accepts wstETH as collateral, using the ora
 **🎯 Goal:** Practice building a lending integration that correctly handles LST-specific concerns — two-step pricing, de-peg risk, and E-Mode for correlated assets. These are production patterns used by every major lending protocol.
 
 ---
-
-#### 💼 Job Market Context
-
-**What DeFi teams expect you to know:**
-
-1. **"What happened during the June 2022 stETH de-peg and what did it teach us?"**
-   - Good answer: "stETH traded below 1 ETH. It was caused by selling pressure."
-   - Great answer: "3AC and Celsius faced insolvency and had to liquidate stETH positions. Pre-Shapella, there was no withdrawal queue — the only exit was selling on DEX. Massive sell pressure pushed stETH/ETH to 0.93. This wasn't a protocol failure — Lido's backing was fine. It was a liquidity/market failure. The lesson: exchange rate and market price can diverge, so lending protocols need dual oracle pricing. Post-Shapella (April 2023), the withdrawal queue creates an arbitrage floor that prevents deep de-pegs."
-
-**Interview Red Flags:**
-- 🚩 Saying "just use the exchange rate" for collateral pricing without mentioning de-peg risk and the need for a market price check
-- 🚩 Not knowing the difference between pre-Shapella and post-Shapella withdrawal mechanics
-- 🚩 Treating the June 2022 de-peg as a protocol bug rather than a market/liquidity event
-
-**Pro tip:** In interviews, when discussing LST integration, always mention the de-peg scenario unprompted. Saying "we'd use a dual oracle pattern because of the June 2022 de-peg risk" signals real-world awareness, not just textbook knowledge. Protocol teams remember June 2022 — it shaped how every subsequent LST integration was designed.
 
 ## 📋 Key Takeaways: LST Integration Patterns
 

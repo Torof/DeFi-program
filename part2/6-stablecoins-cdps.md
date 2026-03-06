@@ -718,7 +718,7 @@ Step 4: Arbitrageur P&L
 **The peg guarantee:** Redemptions create a hard floor at ~$1.00 (minus the fee). If LUSD trades at $0.97, anyone can profit by redeeming. This arbitrage force pushes the price back up. The ceiling is softer — at ~$1.10 (the minimum CR), it becomes attractive to open new Troves and sell LUSD.
 
 <a id="algo-failure"></a>
-### ⚠️ The Algorithmic Stablecoin Failure Pattern
+#### ⚠️ The Algorithmic Stablecoin Failure Pattern
 
 UST/LUNA (Terra, May 2022) is the canonical example. The mechanism:
 - UST was pegged to $1 via an arbitrage loop with LUNA

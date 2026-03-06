@@ -177,7 +177,7 @@ Your Protocol → Uniswap (swap) → token transfer → receiver fallback → Yo
 **Defense:** Apply `nonReentrant` globally (not per-function) when your protocol makes external calls that could trigger callbacks. For protocols that interact with many external contracts, a single transient storage lock covering all entry points is the cleanest approach.
 
 <a id="price-manipulation"></a>
-### 📋 Price Manipulation Taxonomy
+#### 📋 Price Manipulation Taxonomy
 
 This consolidates oracle attacks from Module 3 with flash loan amplification from Module 5:
 
@@ -464,7 +464,7 @@ DeFi's composability means your protocol interacts with others in ways you can't
 - Use interface types (not concrete contracts) and validate return values
 - Implement circuit breakers that pause the protocol if unexpected conditions are detected
 
-### 💼 Job Market Context
+#### 💼 Job Market Context
 
 **What DeFi teams expect you to know about attack patterns:**
 
@@ -784,7 +784,7 @@ function withdraw(uint256 shares) external returns (uint256 amount) {
 This is exactly the kind of ordering bug that unit tests miss — you'd have to think of the exact multi-user interleaving. Invariant tests find it automatically by exploring random call sequences.
 
 <a id="invariant-catalog"></a>
-### 📋 What Invariants to Test for Each DeFi Primitive
+#### 📋 What Invariants to Test for Each DeFi Primitive
 
 **For a vault/ERC-4626:**
 - Total assets ≥ sum of all shares × share price (no phantom assets)
@@ -810,7 +810,7 @@ This is exactly the kind of ordering bug that unit tests miss — you'd have to 
 - Total stablecoin supply = sum of all vault debt
 - Stability fee index only increases
 
-### 🔍 Deep Dive: Writing Good Invariants — A Mental Model
+#### 🔍 Deep Dive: Writing Good Invariants — A Mental Model
 
 Coming up with invariants can feel abstract. Here's a systematic approach:
 
@@ -1141,7 +1141,7 @@ The security mindset isn't a checklist — it's a way of thinking about code:
 
 **Simplify.** The most secure protocol is the simplest one that achieves the goal. Every line of code is a potential vulnerability. MakerDAO's Vat is ~300 lines. Uniswap V2 core is ~400 lines. Compound V3's Comet is ~4,300 lines. Complexity is the enemy of security.
 
-### 💼 Job Market Context
+#### 💼 Job Market Context
 
 **What DeFi teams expect you to know about security tooling and process:**
 

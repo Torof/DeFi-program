@@ -362,7 +362,7 @@ function seizeCollateral(address user, bytes32 collateralType, uint256 collatera
 > **🔗 Connection:** Compare this interface to M6's SimpleVat. `depositCollateral` + `mintStablecoin` together are `frob()` with positive `dink` and `dart`. `seizeCollateral` is `grab()`. Same patterns, cleaner API.
 
 <a id="health-factor"></a>
-#### 🔍 Deep Dive: Health Factor with Multi-Decimal Normalization
+##### 🔍 Deep Dive: Health Factor with Multi-Decimal Normalization
 
 Health factor is the core solvency check. You implemented it in M4 (LendingPool) and saw it in M6 (Vat's safety check: `ink × spot ≥ art × rate`). The new challenge here: your protocol has **two collateral types with different pricing paths and different decimals**, and the health factor must handle both correctly.
 
@@ -564,7 +564,7 @@ After this section, you should be able to:
 ## 💡 Vault Share Collateral Pricing
 
 <a id="pricing-challenge"></a>
-### 🔍 Deep Dive: The Pricing Challenge
+#### 🔍 Deep Dive: The Pricing Challenge
 
 ETH is straightforward to price: one Chainlink lookup, done. ERC-4626 vault shares are fundamentally different — their value changes continuously as the vault earns yield.
 
@@ -739,7 +739,7 @@ You built a Dutch auction liquidator in M6's SimpleDog exercise — `bark()` to 
 ```
 
 <a id="decay-function"></a>
-#### 🔍 Deep Dive: Choosing a Decay Function
+##### 🔍 Deep Dive: Choosing a Decay Function
 
 The decay function determines how the auction price decreases over time. This directly affects MEV resistance and liquidation efficiency.
 
@@ -839,7 +839,7 @@ Bad debt: 3,000 stablecoin exists in circulation with no backing.
 Your protocol must track this: `totalBadDebt += uncoveredTab`. This bad debt represents stablecoin in circulation that isn't backed by collateral — a protocol-level liability. In MakerDAO, this is the `sin` (system debt) in the Vat. Stability fee revenue (`surplus`) can offset it over time: `surplus > sin → system is solvent despite past bad debt`.
 
 <a id="liquidation-walkthrough"></a>
-#### 🔍 Deep Dive: Full Liquidation Flow Walkthrough
+##### 🔍 Deep Dive: Full Liquidation Flow Walkthrough
 
 End-to-end with concrete numbers, including the rate accumulator update that's easy to forget.
 
@@ -923,7 +923,7 @@ After this section, you should be able to:
 ## 💡 Flash Mint
 
 <a id="flash-mint-vs-loan"></a>
-### 🔍 Deep Dive: Flash Mint vs Flash Loan
+#### 🔍 Deep Dive: Flash Mint vs Flash Loan
 
 Flash loans (M5) borrow existing tokens from a liquidity pool. Flash mint creates tokens from thin air. This is a fundamental difference:
 
@@ -1027,7 +1027,7 @@ After this section, you should be able to:
 ## 💡 Testing & Hardening
 
 <a id="critical-invariants"></a>
-### 🔍 Deep Dive: The 5 Critical Invariants
+#### 🔍 Deep Dive: The 5 Critical Invariants
 
 Invariant testing (M8) is where you prove your protocol works under arbitrary sequences of operations. These 5 invariants are your protocol's correctness properties.
 

@@ -819,7 +819,7 @@ Is your protocol permissionless or curated?
 
 > **Pro tip:** When listing a new token in a curated protocol, write a Foundry fork test that interacts with the real deployed token on mainnet. This catches behaviors that documentation misses.
 
-### 📖 How to Study Token Integration in Production
+#### 📖 How to Study Token Integration in Production
 
 1. **Start with the token interface** — Look for `using SafeERC20 for IERC20` or custom token interfaces
 2. **Follow the money** — Trace every `safeTransfer`, `safeTransferFrom` call. Map who sends tokens where

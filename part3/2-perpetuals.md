@@ -454,6 +454,25 @@ The table makes it visceral: at 50x, a 1% move liquidates you; at 100x, the posi
 
 **Funding payments shift liquidation price:** The formulas above assume no funding. In practice, accumulated funding payments reduce (or increase) remaining margin, which shifts the effective liquidation price over time. This is why long-duration highly-leveraged positions are particularly dangerous — even if price stays flat, funding can slowly drain your margin.
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"How does a funding rate work and why is it necessary?"**
+   - Good answer: Explains the mechanism (longs pay shorts when mark > index) and that it keeps the perp price tracking spot.
+   - Great answer: Explains the accumulator pattern, why continuous funding is more gas-efficient than periodic, how skew-based funding differs from mark-vs-index, and connects to delta-neutral yield strategies (Ethena).
+
+2. **"Explain the funding rate accumulator pattern and where else it appears in DeFi."**
+   - Good answer: Global counter, per-position snapshot, O(1) settlement.
+   - Great answer: Connects to Compound's borrowIndex, Aave's liquidityIndex, ERC-4626 share pricing, and Synthetix's debtRatio. Explains that it's the same mathematical technique (proportional claim on a growing/shrinking pool) applied in different contexts. Can sketch the Solidity implementation from memory.
+
+**Interview Red Flags:**
+- 🚩 Not being able to explain why the funding rate accumulator is O(1) — this is the core insight, not the formula
+- 🚩 Describing funding as a fixed periodic payment rather than a continuous rate accrued via accumulator
+- 🚩 Confusing mark price and index price, or not knowing which one drives the funding rate calculation
+
+**Pro tip:** When asked about funding rates, draw the connection to Compound's borrowIndex and Aave's liquidityIndex unprompted. Teams love seeing you recognize that the accumulator pattern is universal across DeFi, not specific to perps.
+
 ---
 
 <a id="exercise1"></a>
@@ -476,25 +495,6 @@ Build the core funding rate accumulator pattern:
 **Run:** `forge test --match-contract FundingRateEngineTest -vvv`
 
 ---
-
-#### 💼 Job Market Context
-
-**What DeFi teams expect you to know:**
-
-1. **"How does a funding rate work and why is it necessary?"**
-   - Good answer: Explains the mechanism (longs pay shorts when mark > index) and that it keeps the perp price tracking spot.
-   - Great answer: Explains the accumulator pattern, why continuous funding is more gas-efficient than periodic, how skew-based funding differs from mark-vs-index, and connects to delta-neutral yield strategies (Ethena).
-
-2. **"Explain the funding rate accumulator pattern and where else it appears in DeFi."**
-   - Good answer: Global counter, per-position snapshot, O(1) settlement.
-   - Great answer: Connects to Compound's borrowIndex, Aave's liquidityIndex, ERC-4626 share pricing, and Synthetix's debtRatio. Explains that it's the same mathematical technique (proportional claim on a growing/shrinking pool) applied in different contexts. Can sketch the Solidity implementation from memory.
-
-**Interview Red Flags:**
-- 🚩 Not being able to explain why the funding rate accumulator is O(1) — this is the core insight, not the formula
-- 🚩 Describing funding as a fixed periodic payment rather than a continuous rate accrued via accumulator
-- 🚩 Confusing mark price and index price, or not knowing which one drives the funding rate calculation
-
-**Pro tip:** When asked about funding rates, draw the connection to Compound's borrowIndex and Aave's liquidityIndex unprompted. Teams love seeing you recognize that the accumulator pattern is universal across DeFi, not specific to perps.
 
 ## 📋 Key Takeaways: Perpetual Futures Fundamentals
 
@@ -971,7 +971,7 @@ Hyperliquid is a purpose-built L1 for perpetuals with sub-second finality:
 
 ---
 
-#### 💼 Job Market Context
+##### 💼 Job Market Context
 
 **What DeFi teams expect you to know:**
 
@@ -1243,6 +1243,25 @@ Cascading liquidation is the perp equivalent of bank runs and is closely related
 - **Oracle manipulation attacks (P2M8):** If an attacker can manipulate the oracle, they can trigger artificial cascades
 - **Flash crash exploitation (P3M5 MEV):** MEV bots can profit from cascade dynamics by positioning ahead of liquidation waves
 
+#### 💼 Job Market Context
+
+**What DeFi teams expect you to know:**
+
+1. **"What happens when the insurance fund is depleted?"**
+   - Good answer: ADL kicks in and profitable positions are forcefully closed.
+   - Great answer: Explains the full cascade — insurance fund depletion, ADL ranking by profit-to-collateral ratio, trust implications for traders, how protocols size insurance funds, and mitigation strategies (OI caps, dynamic fees, position limits). Mentions that in Synthetix, the debt pool itself absorbs bad debt (no separate insurance fund), and how this is socialized across all stakers.
+
+2. **"How would you design a liquidation engine that minimizes cascading risk?"**
+   - Good answer: Open interest caps, position size limits, insurance fund.
+   - Great answer: Multi-layer defense — (1) prevention via dynamic fees and OI caps, (2) gradual liquidation (partial rather than full position close), (3) price impact fees on liquidation execution, (4) insurance fund sizing based on VaR modeling, (5) ADL as absolute last resort with clear ordering. Mentions that oracle-based systems have different cascade dynamics than order book systems.
+
+**Interview Red Flags:**
+- 🚩 Describing ADL without understanding why it's controversial — it breaks trust with profitable traders
+- 🚩 Not distinguishing between partial and full liquidation and when each is appropriate
+- 🚩 Designing a liquidation system without mentioning cascading risk mitigation (OI caps, dynamic fees)
+
+**Pro tip:** Perp protocol development is one of the hottest DeFi hiring areas. If you can explain the funding rate accumulator, implement a basic perp exchange, and discuss the trade-offs between pool-based and order book models with nuance, you'll stand out from most candidates. Understanding MEV implications (P3M5) of perp designs is an additional differentiator.
+
 ---
 
 <a id="exercise2"></a>
@@ -1268,26 +1287,7 @@ Build a simplified perpetual exchange combining all concepts:
 
 ---
 
-#### 💼 Job Market Context
-
-**What DeFi teams expect you to know:**
-
-1. **"What happens when the insurance fund is depleted?"**
-   - Good answer: ADL kicks in and profitable positions are forcefully closed.
-   - Great answer: Explains the full cascade — insurance fund depletion, ADL ranking by profit-to-collateral ratio, trust implications for traders, how protocols size insurance funds, and mitigation strategies (OI caps, dynamic fees, position limits). Mentions that in Synthetix, the debt pool itself absorbs bad debt (no separate insurance fund), and how this is socialized across all stakers.
-
-2. **"How would you design a liquidation engine that minimizes cascading risk?"**
-   - Good answer: Open interest caps, position size limits, insurance fund.
-   - Great answer: Multi-layer defense — (1) prevention via dynamic fees and OI caps, (2) gradual liquidation (partial rather than full position close), (3) price impact fees on liquidation execution, (4) insurance fund sizing based on VaR modeling, (5) ADL as absolute last resort with clear ordering. Mentions that oracle-based systems have different cascade dynamics than order book systems.
-
-**Interview Red Flags:**
-- 🚩 Describing ADL without understanding why it's controversial — it breaks trust with profitable traders
-- 🚩 Not distinguishing between partial and full liquidation and when each is appropriate
-- 🚩 Designing a liquidation system without mentioning cascading risk mitigation (OI caps, dynamic fees)
-
-**Pro tip:** Perp protocol development is one of the hottest DeFi hiring areas. If you can explain the funding rate accumulator, implement a basic perp exchange, and discuss the trade-offs between pool-based and order book models with nuance, you'll stand out from most candidates. Understanding MEV implications (P3M5) of perp designs is an additional differentiator.
-
-## 📋 Key Takeaways: Liquidation & Position Lifecycle
+## 📋 Key Takeaways: Liquidation in Perpetuals
 
 After this section, you should be able to:
 
