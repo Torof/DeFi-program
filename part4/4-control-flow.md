@@ -544,6 +544,17 @@ Look for the JUMPI instructions in the output. Count them — you should see exa
 
 ---
 
+## 📋 Key Takeaways: Control Flow in Yul
+
+After this section, you should be able to:
+
+- Write guard clauses with `if condition { }` and explain that Yul has no `else` — use `switch` or `iszero()` for negation
+- Implement multi-branch logic with `switch val case X { } default { }` and explain why there's no fall-through
+- Write gas-efficient `for` loops with explicit init/condition/post blocks, using `add(i, 1)` and `lt` instead of Solidity's `++` and `<=`
+- Use `leave` for early exits from Yul functions and explain that all control flow compiles to JUMP/JUMPI/JUMPDEST sequences
+
+---
+
 ## 💡 Yul Functions (Internal)
 
 Yul functions are how you organize assembly code. Without them, complex assembly becomes an unreadable wall of opcodes. They reduce stack pressure (each function scope has its own variable space), enable code reuse, and make assembly readable enough to audit.
@@ -849,6 +860,16 @@ Practice Yul functions and loop patterns. Each function has a Solidity signature
 ```bash
 FOUNDRY_PROFILE=part4 forge test --match-path "test/part4/module4/exercise2-loop-and-functions/*"
 ```
+
+---
+
+## 📋 Key Takeaways: Yul Functions
+
+After this section, you should be able to:
+
+- Define Yul functions with `function name(a, b) -> result { }` and use multiple return values
+- Explain when the optimizer inlines a function (small body → zero overhead) vs generates a JUMP call (~20 gas overhead)
+- Diagnose stack-too-deep errors in Yul and resolve them by decomposing large functions or reducing live variables
 
 ---
 
@@ -1347,6 +1368,23 @@ Explore the full patterns at [github.com/Vectorized/solady](https://github.com/V
 
 **Pro tip:** Be able to decode the 45 bytes from memory — it's a common interview exercise for L2/infrastructure roles. Practice by reading the EIP-1167 spec and hand-annotating the bytecode
 
+<a id="how-to-study"></a>
+#### 📖 How to Study Dispatch-Heavy Contracts
+
+1. **Start with `cast disassemble` or `forge inspect`** to see the dispatch table. Count the JUMPI instructions in the opening section — each one is a selector comparison.
+
+2. **Count the selectors.** More than ~4? The compiler probably used binary search. Fewer? Linear if-chain. In hand-written assembly (Huff, Yul), it's always linear unless the author implemented something custom.
+
+3. **Trace one function call end-to-end:** Extract selector from calldata → match in dispatch table → decode arguments from calldata → execute (storage reads/writes) → encode return value → RETURN. This is the complete lifecycle.
+
+4. **Compare hand-written vs Solidity-generated dispatch.** Compile a simple ERC-20 in Solidity and inspect its bytecode. Then look at Solady's ERC-20 or a Huff ERC-20. Note the differences: hand-written code often has fewer safety checks and more optimized selector ordering.
+
+5. **Good contracts to study:**
+   - [Solady ERC20](https://github.com/Vectorized/solady/blob/main/src/tokens/ERC20.sol) — full assembly ERC-20 with Yul dispatch
+   - [Huff ERC20](https://github.com/huff-language/huff-examples/tree/main/erc20) — ERC-20 in raw opcodes
+   - [OpenZeppelin Proxy.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Proxy.sol) — assembly dispatch for proxy forwarding
+   - [EIP-1167 reference](https://eips.ethereum.org/EIPS/eip-1167) — the minimal proxy bytecode
+
 ---
 
 <a id="exercise1"></a>
@@ -1378,6 +1416,17 @@ Build a mini ERC-20 entirely in Yul. The contract has a single `fallback()` func
 ```bash
 FOUNDRY_PROFILE=part4 forge test --match-path "test/part4/module4/exercise1-yul-dispatcher/*"
 ```
+
+---
+
+## 📋 Key Takeaways: Function Selector Dispatch
+
+After this section, you should be able to:
+
+- Extract a function selector from calldata: `shr(224, calldataload(0))` and route to handlers using `switch` or `if` chains
+- Compare if-chain and switch-based dispatch (both linear O(n), same gas) with Solidity's binary search (O(log n) for >4 functions)
+- Implement fallback and receive handlers in assembly: `calldatasize() == 0` check before dispatch, `default` branch for unknown selectors
+- Describe the EIP-1167 minimal proxy at the bytecode level and explain how 45 bytes handles all dispatch via DELEGATECALL
 
 ---
 
@@ -1451,58 +1500,13 @@ assembly {
 
 ---
 
-## 💡 How to Study
+## 📋 Key Takeaways: Error Handling Patterns
 
-<a id="how-to-study"></a>
-#### 📖 How to Study Dispatch-Heavy Contracts
+After this section, you should be able to:
 
-1. **Start with `cast disassemble` or `forge inspect`** to see the dispatch table. Count the JUMPI instructions in the opening section — each one is a selector comparison.
-
-2. **Count the selectors.** More than ~4? The compiler probably used binary search. Fewer? Linear if-chain. In hand-written assembly (Huff, Yul), it's always linear unless the author implemented something custom.
-
-3. **Trace one function call end-to-end:** Extract selector from calldata → match in dispatch table → decode arguments from calldata → execute (storage reads/writes) → encode return value → RETURN. This is the complete lifecycle.
-
-4. **Compare hand-written vs Solidity-generated dispatch.** Compile a simple ERC-20 in Solidity and inspect its bytecode. Then look at Solady's ERC-20 or a Huff ERC-20. Note the differences: hand-written code often has fewer safety checks and more optimized selector ordering.
-
-5. **Good contracts to study:**
-   - [Solady ERC20](https://github.com/Vectorized/solady/blob/main/src/tokens/ERC20.sol) — full assembly ERC-20 with Yul dispatch
-   - [Huff ERC20](https://github.com/huff-language/huff-examples/tree/main/erc20) — ERC-20 in raw opcodes
-   - [OpenZeppelin Proxy.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Proxy.sol) — assembly dispatch for proxy forwarding
-   - [EIP-1167 reference](https://eips.ethereum.org/EIPS/eip-1167) — the minimal proxy bytecode
-
----
-
-<a id="summary"></a>
-## 📋 Key Takeaways: Control Flow & Functions
-
-**Control Flow:**
-- `if condition { }` — guard clauses; any nonzero value is true; use `iszero()` for negation; no `else`
-- `switch val case X { } default { }` — multi-branch; no fall-through; the "else" replacement: `switch cond case 0 { else } default { if }`
-- `for { init } cond { post } { body }` — explicit C-like loop; no `++`, use `add(i, 1)`; cache lengths; use `lt` (no `le` opcode)
-- `leave` — early exit from Yul functions (not top-level assembly); compiles to JUMP
-- All control flow compiles to JUMP/JUMPI/JUMPDEST sequences — no special opcodes
-
-**Yul Functions:**
-- `function name(a, b) -> result { }` — scoped variables, reduce stack pressure
-- Multiple returns: `function f(a) -> x, y { }`
-- Small functions are inlined by the optimizer; larger ones become JUMP targets (~20 gas call overhead)
-- Stack depth limit of 16 (DUP16/SWAP16 max) — decompose into focused functions to stay under
-
-**Function Dispatch:**
-- Extract selector: `shr(224, calldataload(0))`
-- if-chain or switch-based dispatch for hand-written contracts (both linear scan, same gas)
-- Solidity uses binary search for >4 functions (O(log n) vs O(n))
-- Fallback: `default` branch of switch; Receive: check `calldatasize() == 0` before dispatch
-- Minimal proxy (EIP-1167): ~45 bytes, pure DELEGATECALL forwarding, no selector routing
-
-**Key numbers:**
-- JUMP: 8 gas | JUMPI: 10 gas | JUMPDEST: 1 gas
-- Selector comparison: EQ(3) + JUMPI(10) = 13 gas per check
-- Loop overhead: ~31 gas per iteration (excluding body)
-- Stack depth limit: 16 reachable slots (DUP16/SWAP16 max)
-- Inlined function call: 0 gas overhead | JUMP-based call: ~20 gas overhead
-
-**Next:** [Module 5 — External Calls](5-external-calls.md) — `call`, `staticcall`, `delegatecall` in assembly, returndata handling, and error propagation across contracts.
+- Encode custom errors with selector and parameters in assembly using `shl(224, selector)` + `mstore` and explain the two offset patterns (0x00 with shl vs 0x1c without)
+- Define reusable `_revertXxx()` Yul functions that centralize error encoding in dispatch contracts
+- Explain why `revert(0, 0)` should be avoided in favor of selector-encoded errors for debuggability
 
 ---
 

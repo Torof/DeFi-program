@@ -10,18 +10,18 @@
 
 **The Storage Model**
 - [The 2^256 Key-Value Store](#kv-store)
-- [Verkle Trees: What's Changing](#verkle)
+- [Verkle Trees — What's Changing](#verkle)
 
 **SLOAD & SSTORE — The Full Picture**
 - [SLOAD & SSTORE in Yul](#sload-sstore-yul)
 
 **Slot Computation — From Variables to Tries**
-- [State Variables: Sequential Assignment](#sequential-slots)
-- [Why keccak256: Collision Resistance in 2^256 Space](#why-keccak)
+- [State Variables — Sequential Assignment](#sequential-slots)
+- [Why keccak256 — Collision Resistance in 2^256 Space](#why-keccak)
 - [Mapping Slot Computation](#mapping-slots)
 - [Dynamic Array Slot Computation](#array-slots)
-- [Nested Structures: Mappings of Mappings, Mappings of Structs](#nested-slots)
-- [The -1 Trick: Preimage Attack Prevention](#minus-one)
+- [Nested Structures — Mappings of Mappings, Mappings of Structs](#nested-slots)
+- [The -1 Trick — Preimage Attack Prevention](#minus-one)
 - [Build Exercise: SlotExplorer](#exercise1)
 
 **Storage Packing in Assembly**
@@ -35,7 +35,7 @@
 **Production Storage Patterns**
 - [ERC-1967 Proxy Slots in Assembly](#erc-1967-assembly)
 - [ERC-7201 Namespaced Storage](#erc-7201)
-- [SSTORE2: Bytecode as Immutable Storage](#sstore2)
+- [SSTORE2 — Bytecode as Immutable Storage](#sstore2)
 - [Storage Proofs and Reading Any Contract's Storage](#storage-proofs)
 
 ---
@@ -170,6 +170,16 @@ Ethereum plans to migrate from Merkle Patricia Tries to **Verkle Trees** ([EIP-6
 - `sload`/`sstore` opcodes work identically.
 
 **Bottom line:** Verkle trees change the infrastructure under your contract, not the contract itself. But understanding that the trie exists — and that it's being actively redesigned — is part of having complete EVM knowledge.
+
+---
+
+## 📋 Key Takeaways: The Storage Model
+
+After this section, you should be able to:
+
+- Describe the EVM's storage as a 2^256 sparse key-value store backed by a Merkle Patricia Trie, where every slot defaults to zero
+- Explain the cold/warm access cost difference (2,100 vs 100 gas) in terms of trie node loading: cold access traverses the trie from disk, warm reads from the transaction's access cache
+- Describe what Verkle trees will change (proof structure, witness sizes) and what stays the same (slot addressing, keccak256 computation, your Solidity/assembly code)
 
 ---
 
@@ -335,6 +345,16 @@ function liquidate(address user) external {
 - **Writing to slot 0 when you meant a mapping** — `sstore(0, value)` overwrites slot 0 directly. If slot 0 is the base slot for a mapping, you've just corrupted the length/sentinel. Always compute the derived slot with `keccak256`
 - **Not checking the return value of `sload`** — `sload` returns 0 for uninitialized slots AND for slots explicitly set to 0. You can't distinguish "never written" from "set to zero" without additional bookkeeping
 - **Forgetting SSTORE gas depends on current value** — Writing the same value that's already stored still costs gas (warm access: 100 gas). But writing a new value to a slot that's already non-zero costs 2,900 (not 20,000). Understanding the state machine saves significant gas
+
+---
+
+## 📋 Key Takeaways: SLOAD & SSTORE
+
+After this section, you should be able to:
+
+- Write `sload(slot)` and `sstore(slot, value)` in Yul and explain that these operate on raw 256-bit words with no type information
+- Trace the SSTORE cost state machine through a practical sequence (zero → non-zero → different non-zero → zero) and calculate the gas cost at each step
+- Apply the "batch reads before writes" pattern and explain why it improves both gas efficiency and code clarity
 
 ---
 
@@ -671,6 +691,37 @@ ERC-7201 uses the same principle (see [below](#erc-7201)) with an additional has
 
 ---
 
+<a id="exercise1"></a>
+## 🎯 Build Exercise: SlotExplorer
+
+**Workspace:** [`src/part4/module3/exercise1-slot-explorer/SlotExplorer.sol`](../workspace/src/part4/module3/exercise1-slot-explorer/SlotExplorer.sol) | [`test/.../SlotExplorer.t.sol`](../workspace/test/part4/module3/exercise1-slot-explorer/SlotExplorer.t.sol)
+
+Compute and read storage slots for variables, mappings, arrays, and nested mappings using inline assembly. The contract has pre-populated state — your assembly must find and read the correct slots.
+
+**What you'll implement:**
+1. `readSimpleSlot()` — read a uint256 state variable at slot 0 via `sload`
+2. `readMappingSlot(address)` — compute a mapping slot with `keccak256` in scratch space and `sload`
+3. `readArraySlot(uint256)` — compute a dynamic array element slot and `sload`
+4. `readNestedMappingSlot(address, uint256)` — chain two `keccak256` computations for a nested mapping
+5. `writeToMappingSlot(address, uint256)` — compute a mapping slot and `sstore`, verifiable via the Solidity getter
+
+**🎯 Goal:** Internalize the slot computation formulas so deeply that you can read any contract's storage layout.
+
+Run: `FOUNDRY_PROFILE=part4 forge test --match-contract SlotExplorerTest -vvv`
+
+---
+
+## 📋 Key Takeaways: Slot Computation
+
+After this section, you should be able to:
+
+- Compute a mapping slot by hand: `keccak256(abi.encode(key, baseSlot))` — 64 bytes concatenated and hashed
+- Compute a dynamic array element slot: length stored at `baseSlot`, elements at `keccak256(abi.encode(baseSlot)) + index`
+- Chain the hash formulas for nested structures: mapping-of-mapping, mapping-of-struct, and explain how struct fields use sequential offsets from the computed base
+- Explain the -1 trick (ERC-1967, ERC-7201) and why subtracting 1 from a keccak256 hash prevents preimage attacks on storage slots
+
+---
+
 ## 💡 Storage Packing in Assembly
 
 You know Solidity auto-packs small variables ([sequential slots](#sequential-slots) above). Now you'll do it by hand in assembly — the same patterns used by Aave V3's bitmap configuration, Uniswap V3's Slot0, and every gas-optimized protocol.
@@ -860,6 +911,37 @@ assembly {
 
 ---
 
+<a id="exercise2"></a>
+## 🎯 Build Exercise: StoragePacker
+
+**Workspace:** [`src/part4/module3/exercise2-storage-packer/StoragePacker.sol`](../workspace/src/part4/module3/exercise2-storage-packer/StoragePacker.sol) | [`test/.../StoragePacker.t.sol`](../workspace/test/part4/module3/exercise2-storage-packer/StoragePacker.t.sol)
+
+Pack, unpack, and update fields within packed storage slots using bit operations in assembly. Practice the read-modify-write pattern that production protocols use for gas-efficient configuration storage.
+
+**What you'll implement:**
+1. `packTwo(uint128, uint128)` — pack two uint128 values into one slot using `shl`/`or`
+2. `readLow()` / `readHigh()` — extract individual fields using `and`/`shr`
+3. `updateLow(uint128)` / `updateHigh(uint128)` — update one field without corrupting the other (read-modify-write)
+4. `packMixed(address, uint96)` / `readAddr()` / `readUint96()` — address + uint96 packing
+5. `initTriple(...)` / `incrementCounter()` — increment a packed uint64 counter without corrupting adjacent fields
+
+**🎯 Goal:** Build the muscle memory for bit-level storage manipulation that Aave V3, Uniswap V3, and every gas-optimized protocol uses.
+
+Run: `FOUNDRY_PROFILE=part4 forge test --match-contract StoragePackerTest -vvv`
+
+---
+
+## 📋 Key Takeaways: Storage Packing in Assembly
+
+After this section, you should be able to:
+
+- Pack multiple sub-32-byte values into a single storage slot using `shl` + `or` and explain the gas benefit (one SLOAD instead of many)
+- Unpack individual fields using `shr` + `and` with the correct bit masks
+- Implement the read-modify-write pattern: load → clear target bits with inverted mask → shift new value → OR → store
+- Read Aave V3's `ReserveConfiguration` bitmap and extract specific fields using the bit positions from their constants
+
+---
+
 ## 💡 Transient Storage in Assembly
 
 You learned TLOAD/TSTORE conceptually in [Part 1](../part1/1-solidity-modern.md) and used the `transient` keyword. Now the assembly patterns — and why the flat 100 gas cost changes everything.
@@ -958,6 +1040,16 @@ Transient storage use cases in production DeFi:
 🚩 **Red flag:** Confusing transient storage with memory, or not knowing it persists across internal calls
 
 **Pro tip:** Uniswap V4's flash accounting (TSTORE deltas that must net to zero) is the canonical interview example — be ready to trace the flow
+
+---
+
+## 📋 Key Takeaways: Transient Storage in Assembly
+
+After this section, you should be able to:
+
+- Compare `tload`/`tstore` with `sload`/`sstore`: always 100 gas, no warm/cold distinction, no refund mechanics, auto-cleared after each transaction
+- Implement a transient storage reentrancy guard and explain why it's ~29x cheaper than a storage-based guard
+- Describe the flash accounting pattern where transient storage tracks per-transaction deltas that must net to zero
 
 ---
 
@@ -1177,89 +1269,14 @@ forge inspect <Contract> storageLayout
 
 ---
 
-<a id="exercise1"></a>
-## 🎯 Build Exercise: SlotExplorer
+## 📋 Key Takeaways: Production Storage Patterns
 
-**Workspace:** [`src/part4/module3/exercise1-slot-explorer/SlotExplorer.sol`](../workspace/src/part4/module3/exercise1-slot-explorer/SlotExplorer.sol) | [`test/.../SlotExplorer.t.sol`](../workspace/test/part4/module3/exercise1-slot-explorer/SlotExplorer.t.sol)
+After this section, you should be able to:
 
-Compute and read storage slots for variables, mappings, arrays, and nested mappings using inline assembly. The contract has pre-populated state — your assembly must find and read the correct slots.
-
-**What you'll implement:**
-1. `readSimpleSlot()` — read a uint256 state variable at slot 0 via `sload`
-2. `readMappingSlot(address)` — compute a mapping slot with `keccak256` in scratch space and `sload`
-3. `readArraySlot(uint256)` — compute a dynamic array element slot and `sload`
-4. `readNestedMappingSlot(address, uint256)` — chain two `keccak256` computations for a nested mapping
-5. `writeToMappingSlot(address, uint256)` — compute a mapping slot and `sstore`, verifiable via the Solidity getter
-
-**🎯 Goal:** Internalize the slot computation formulas so deeply that you can read any contract's storage layout.
-
-Run: `FOUNDRY_PROFILE=part4 forge test --match-contract SlotExplorerTest -vvv`
-
----
-
-<a id="exercise2"></a>
-## 🎯 Build Exercise: StoragePacker
-
-**Workspace:** [`src/part4/module3/exercise2-storage-packer/StoragePacker.sol`](../workspace/src/part4/module3/exercise2-storage-packer/StoragePacker.sol) | [`test/.../StoragePacker.t.sol`](../workspace/test/part4/module3/exercise2-storage-packer/StoragePacker.t.sol)
-
-Pack, unpack, and update fields within packed storage slots using bit operations in assembly. Practice the read-modify-write pattern that production protocols use for gas-efficient configuration storage.
-
-**What you'll implement:**
-1. `packTwo(uint128, uint128)` — pack two uint128 values into one slot using `shl`/`or`
-2. `readLow()` / `readHigh()` — extract individual fields using `and`/`shr`
-3. `updateLow(uint128)` / `updateHigh(uint128)` — update one field without corrupting the other (read-modify-write)
-4. `packMixed(address, uint96)` / `readAddr()` / `readUint96()` — address + uint96 packing
-5. `initTriple(...)` / `incrementCounter()` — increment a packed uint64 counter without corrupting adjacent fields
-
-**🎯 Goal:** Build the muscle memory for bit-level storage manipulation that Aave V3, Uniswap V3, and every gas-optimized protocol uses.
-
-Run: `FOUNDRY_PROFILE=part4 forge test --match-contract StoragePackerTest -vvv`
-
----
-
-<a id="summary"></a>
-## 📋 Key Takeaways: Storage Deep Dive
-
-**✓ The Storage Model:**
-- Each contract has a 2^256 sparse key-value store backed by a Merkle Patricia Trie
-- Cold access (2100 gas) = trie traversal from disk; warm access (100 gas) = cached in RAM
-- Verkle trees will change the trie structure but not slot computation
-
-**✓ SLOAD & SSTORE:**
-- `sload(slot)` reads, `sstore(slot, value)` writes — raw 256-bit operations
-- SSTORE cost depends on original/current/new value state machine (EIP-2200)
-- Refund cap: max 1/5 of gas used (EIP-3529)
-- Batch reads before writes for clarity and gas efficiency
-
-**✓ Slot Computation:**
-- State variables: sequential from slot 0 (with packing for sub-32-byte types)
-- Mappings: `keccak256(abi.encode(key, baseSlot))` — 64 bytes hashed
-- Dynamic arrays: length at `baseSlot`, elements at `keccak256(abi.encode(baseSlot)) + index`
-- Nested: chain the hash formulas; structs use sequential offsets from the computed base
-- The `-1` trick prevents preimage attacks on proxy storage slots
-
-**✓ Storage Packing:**
-- Pack: `shl` + `or` to combine fields into one slot
-- Unpack: `shr` + `and` to extract individual fields
-- Read-modify-write: load -> clear with inverted mask -> shift new value -> or -> store
-- Pack read-heavy data (config, parameters); keep write-heavy data in separate slots
-
-**✓ Transient Storage:**
-- `tload`/`tstore`: always 100 gas, no warm/cold, no refunds, cleared per transaction
-- 29x cheaper reentrancy guards; enables flash accounting patterns
-
-**✓ Production Patterns:**
-- ERC-1967: constant proxy slots accessed via `sload`/`sstore`
-- ERC-7201: namespaced storage eliminates `__gap` fragility
-- SSTORE2: immutable data stored as bytecode — 25x cheaper reads for large data
-- Storage proofs: `eth_getProof` enables trustless cross-chain state verification
-
-**Key formulas to remember:**
-- Mapping: `keccak256(abi.encode(key, baseSlot))`
-- Array element: `keccak256(abi.encode(baseSlot)) + index`
-- ERC-7201: `keccak256(abi.encode(uint256(keccak256("ns")) - 1)) & ~bytes32(uint256(0xff))`
-
-**Next:** [Module 4 — Control Flow & Functions](4-control-flow.md) — if/switch/for in Yul, function dispatch, and Yul functions.
+- Read and write ERC-1967 proxy slots in assembly using their constant slot values
+- Explain ERC-7201 namespaced storage: how the formula eliminates `__gap` fragility for upgradeable contracts, and compute a namespace slot
+- Describe SSTORE2: storing immutable data as contract bytecode for ~25x cheaper reads on large datasets, and identify when it's appropriate
+- Explain storage proofs (`eth_getProof`) and how they enable trustless cross-chain state verification
 
 ---
 

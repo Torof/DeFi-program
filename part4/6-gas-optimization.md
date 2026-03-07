@@ -22,8 +22,8 @@
 - [Build Exercise: SoladyTricks](#exercise2)
 
 **Dispatch Optimization**
-- [Recap: From Linear to Binary](#dispatch-recap)
-- [Jump Table Dispatch: O(1)](#jump-table)
+- [Recap — From Linear to Binary](#dispatch-recap)
+- [Jump Table Dispatch — O(1)](#jump-table)
 - [Function Selector Ordering](#selector-ordering)
 - [Build Exercise: JumpDispatcher](#exercise3)
 
@@ -285,12 +285,11 @@ diff gas_default.txt gas_high_runs.txt
 
 ---
 
+<a id="exercise1"></a>
 ## 🎯 Build Exercise: GasBenchmark
 
-<a id="exercise1"></a>
-
-**Workspace:** `workspace/src/part4/module6/exercise1-gas-benchmark/GasBenchmark.sol`
-**Tests:** `workspace/test/part4/module6/exercise1-gas-benchmark/GasBenchmark.t.sol`
+**Workspace:** [`GasBenchmark.sol`](../workspace/src/part4/module6/exercise1-gas-benchmark/GasBenchmark.sol)
+**Tests:** [`GasBenchmark.t.sol`](../workspace/test/part4/module6/exercise1-gas-benchmark/GasBenchmark.t.sol)
 
 Practice gas measurement techniques. You'll use assembly `gas()` to measure specific operations and compare implementations.
 
@@ -305,10 +304,12 @@ Practice gas measurement techniques. You'll use assembly `gas()` to measure spec
 
 ## 📋 Key Takeaways: Measuring Before Optimizing
 
-- **Measure first:** `forge test --gas-report` shows where gas actually goes. `forge snapshot --diff` tracks changes across commits. `gasleft()` measures specific operations.
-- **Read compiler output:** `forge inspect ContractName ir-optimized` shows what the optimizer generates. Only write assembly where it produces tighter code than the compiler.
-- **Tune settings before writing assembly:** Increasing `optimizer_runs` or enabling `via_ir` can save more gas than hand-written assembly — with zero code risk.
-- **Focus on hot paths:** The gas report's call count tells you what matters. Optimizing a function called 1M times saves 1,000x more than optimizing one called 1,000 times.
+After this section, you should be able to:
+
+- Run `forge test --gas-report` to identify hot functions and use `forge snapshot --diff` to track gas changes across commits
+- Read compiler output with `forge inspect ContractName ir-optimized` and identify wasteful patterns the optimizer missed
+- Choose optimizer settings based on contract usage: low `runs` for factory-deployed clones, high `runs` for frequently-called routers, and explain what `via_ir` enables
+- Apply the hot-path rule: focus optimization effort on functions called millions of times, not setup or admin functions
 
 ---
 
@@ -516,6 +517,7 @@ This is also why Solady's `FixedPointMathLib.mulDiv` uses branchless patterns fo
 
 **Pro tip:** In an interview, if you can trace through the branchless min on a whiteboard with concrete numbers, it demonstrates deep understanding. This is one of the most impressive things you can show.
 
+<a id="how-to-study"></a>
 #### 📖 How to Study Solady's FixedPointMathLib
 
 1. **Start with `min()` and `max()`** — these are the simplest branchless patterns (the ones above). Trace them with 2-3 number pairs.
@@ -737,12 +739,11 @@ Call both with the same input. The results are identical, but `mulBy8_shift` use
 
 ---
 
+<a id="exercise2"></a>
 ## 🎯 Build Exercise: SoladyTricks
 
-<a id="exercise2"></a>
-
-**Workspace:** `workspace/src/part4/module6/exercise2-solady-tricks/SoladyTricks.sol`
-**Tests:** `workspace/test/part4/module6/exercise2-solady-tricks/SoladyTricks.t.sol`
+**Workspace:** [`SoladyTricks.sol`](../workspace/src/part4/module6/exercise2-solady-tricks/SoladyTricks.sol)
+**Tests:** [`SoladyTricks.t.sol`](../workspace/test/part4/module6/exercise2-solady-tricks/SoladyTricks.t.sol)
 
 Implement the Solady opcode tricks from Topic Block 2. Each function must use inline assembly — no Solidity control flow.
 
@@ -756,13 +757,15 @@ Implement the Solady opcode tricks from Topic Block 2. Each function must use in
 
 ---
 
-## 📋 Key Takeaways: The Solady Playbook
+## 📋 Key Takeaways: The Solady Playbook — Opcode Tricks
 
-- **Free zero:** PUSH0 (EIP-3855) saves 1 gas + 1 byte per zero push. `returndatasize()` does the same on pre-Shanghai chains, but only before any external call.
-- **Branchless patterns:** `xor(b, mul(xor(a,b), lt(a,b)))` for min, same with `gt` for max. Saves ~6 gas per call and provides constant gas cost. The general meta-pattern: `select(a, b, cond) = xor(b, mul(xor(a,b), cond))`.
-- **Dirty memory:** Skip FMP updates when no Solidity memory allocation follows the assembly block. Saves ~9 gas. Only safe in self-contained functions that return/revert immediately.
-- **BALANCE trick:** Skip pre-checking ETH balance before CALL — CALL itself fails on insufficient balance. Handle the failure instead of preventing it. Saves ~18 gas on the happy path.
-- **Arithmetic shortcuts:** SHL/SHR for power-of-2 multiply/divide (2 gas saved). AND for power-of-2 modulo (2 gas saved). XOR or SUB for inequality (3 gas saved). These compound in tight loops.
+After this section, you should be able to:
+
+- Explain PUSH0 (EIP-3855) and `returndatasize()` as zero-push alternatives: when each applies, the gas and bytecode savings
+- Implement branchless min/max using the XOR-multiply pattern `xor(b, mul(xor(a,b), lt(a,b)))` and trace it step by step with concrete numbers
+- Describe the dirty memory pattern (writing past FMP) and identify when it's safe (self-contained functions that return/revert immediately)
+- Apply the BALANCE opcode trick for ETH transfers: skip the pre-check, handle CALL failure instead, saving ~18 gas on the happy path
+- Use arithmetic shortcuts in assembly: SHL/SHR for power-of-2 multiply/divide, AND for power-of-2 modulo, XOR/SUB for inequality checks
 
 ---
 
@@ -1007,12 +1010,11 @@ In a linear if-chain, `transfer` is found on the first comparison. In the compil
 
 ---
 
+<a id="exercise3"></a>
 ## 🎯 Build Exercise: JumpDispatcher
 
-<a id="exercise3"></a>
-
-**Workspace:** `workspace/src/part4/module6/exercise3-jump-dispatcher/JumpDispatcher.sol`
-**Tests:** `workspace/test/part4/module6/exercise3-jump-dispatcher/JumpDispatcher.t.sol`
+**Workspace:** [`JumpDispatcher.sol`](../workspace/src/part4/module6/exercise3-jump-dispatcher/JumpDispatcher.sol)
+**Tests:** [`JumpDispatcher.t.sol`](../workspace/test/part4/module6/exercise3-jump-dispatcher/JumpDispatcher.t.sol)
 
 Implement an optimized dispatcher for a contract with 8 functions. The selectors are pre-computed — you implement the dispatch logic.
 
@@ -1026,11 +1028,12 @@ Implement an optimized dispatcher for a contract with 8 functions. The selectors
 
 ## 📋 Key Takeaways: Dispatch Optimization
 
-- **Jump tables provide O(1) dispatch** by computing a jump destination from the selector via `(selector >> SHIFT) & MASK`. Finding collision-free SHIFT/MASK values requires brute-force search over your selector set.
-- **Yul limitation:** True computed JUMPs aren't available in inline assembly — `switch` compiles to sequential comparisons. O(1) dispatch requires Huff or pure Yul (M8).
-- **Jump tables aren't always faster:** Below ~128 functions, binary search is cheaper. Jump tables shine for very large function counts or when constant-cost dispatch is required.
-- **Selector mining:** Leading-zero selectors save calldata gas (12 gas per zero byte). Primarily valuable on L2 where calldata cost dominates.
-- **Manual dispatch ordering:** For hand-written if-chains, put hot functions first. For binary search (Solidity default), you can't control the order.
+After this section, you should be able to:
+
+- Explain jump table dispatch: how `(selector >> SHIFT) & MASK` computes a unique index for O(1) function routing, and why finding collision-free constants requires brute-force search
+- Compare dispatch strategies by gas cost: linear if-chain O(n), binary search O(log n), jump table O(1), and identify the crossover points (~128 functions)
+- Describe the Yul limitation for jump tables (no computed JUMPs in inline assembly) and when to use Huff or pure Yul (M8) instead
+- Explain selector mining: renaming functions to get leading-zero selectors saves calldata gas (12 gas per zero byte), primarily valuable on L2
 
 ---
 
@@ -1270,12 +1273,12 @@ Deployed contracts cannot exceed 24,576 bytes (EIP-170). Large contracts must sp
 
 ## 📋 Key Takeaways: The Optimization Decision Framework
 
-- **Architecture > Algorithm > Opcodes:** Uniswap V4's singleton saves 200,000+ gas per multi-hop swap. No opcode trick comes close.
-- **The Solady philosophy:** Optimize ecosystem primitives (libraries), write applications in Solidity. This maximizes ROI.
-- **Measure the ROI:** Gas saved × calls × price vs engineering + audit cost. Most admin functions aren't worth optimizing.
-- **L2 changes the game:** On L2, calldata cost dominates. Packed encoding and zero-byte awareness matter more than storage optimization.
-- **Access lists are free money:** Pre-warming storage slots saves 200 gas per slot with zero code changes.
-- **Deployment tricks:** Payable constructors, PUSH0 proxies, metadata removal — small but add up in factory patterns.
+After this section, you should be able to:
+
+- Apply the optimization hierarchy — architecture > algorithm > opcode tricks — and give examples where each level dominates (Uniswap V4 singleton saves 200,000+ gas, no opcode trick comes close)
+- Evaluate whether assembly optimization is worth it for a given function: gas saved x expected calls vs engineering + audit cost
+- Describe architectural gas wins: singleton pattern, flash accounting (net settlement), access lists (EIP-2930), and L2 calldata optimization
+- Explain the Solady philosophy: optimize ecosystem primitives in assembly, write applications in clean Solidity — maximizing ROI while minimizing audit risk
 
 ---
 

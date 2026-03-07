@@ -9,13 +9,13 @@
 ## 📚 Table of Contents
 
 **Memory**
-- [Memory Layout: The Reserved Regions](#memory-layout)
+- [Memory Layout — The Reserved Regions](#memory-layout)
 - [The Free Memory Pointer](#free-memory-pointer)
 - [Memory-Safe Assembly](#memory-safe)
 - [Build Exercise: MemoryLab](#exercise1)
 
 **Calldata**
-- [Calldata Layout: Static & Dynamic Types](#calldata-layout)
+- [Calldata Layout — Static & Dynamic Types](#calldata-layout)
 - [ABI Encoding at the Byte Level](#abi-encoding)
 - [Build Exercise: CalldataDecoder](#exercise2)
 
@@ -327,7 +327,9 @@ function safeExample() external pure returns (bytes32) {
 - Write to memory beyond the FMP without bumping it first
 - Decrease the FMP
 
-🏗️ **Real usage:** [Solady's SafeTransferLib](https://github.com/vectorized/solady/blob/main/src/utils/SafeTransferLib.sol) annotates almost every assembly block as memory-safe because all operations use scratch space for encoding call data.
+🏗️ **Real usage:**
+
+[Solady's SafeTransferLib](https://github.com/vectorized/solady/blob/main/src/utils/SafeTransferLib.sol) annotates almost every assembly block as memory-safe because all operations use scratch space for encoding call data.
 
 #### 💼 Job Market Context
 
@@ -343,6 +345,39 @@ function safeExample() external pure returns (bytes32) {
    - When you're not writing to the zero slot or beyond the FMP
 
 **Pro tip:** If you're auditing code that uses `memory-safe` annotations, verify the claim. A false `memory-safe` annotation can cause the optimizer to generate incorrect code — a subtle, critical bug.
+
+---
+
+<a id="exercise1"></a>
+## 🎯 Build Exercise: MemoryLab
+
+**Workspace:** [`src/part4/module2/exercise1-memory-lab/MemoryLab.sol`](../workspace/src/part4/module2/exercise1-memory-lab/MemoryLab.sol) | [`test/.../MemoryLab.t.sol`](../workspace/test/part4/module2/exercise1-memory-lab/MemoryLab.t.sol)
+
+Work with memory layout, the free memory pointer, and scratch space. All functions are implemented in `assembly { }` blocks.
+
+**What you'll implement:**
+1. `readFreeMemPtr()` — Read and return the free memory pointer
+2. `allocate(uint256 size)` — Allocate `size` bytes: read FMP, bump it, return the old value
+3. `writeAndRead(uint256 value)` — Write a value to memory at 0x80, read it back
+4. `buildUint256Bytes(uint256 val)` — Build a `bytes memory` containing a uint256: store length (32), store data, bump FMP
+5. `readZeroSlot()` — Read the zero slot (0x60) and verify it's zero
+6. `hashPair(bytes32 a, bytes32 b)` — Hash two values using scratch space (0x00-0x3f) with keccak256
+
+**🎯 Goal:** Internalize the memory layout and FMP management pattern. After this exercise, `mload(0x40)` and `mstore(0x40, ...)` will feel natural.
+
+Run: `FOUNDRY_PROFILE=part4 forge test --match-contract MemoryLabTest -vvv`
+
+---
+
+## 📋 Key Takeaways: Memory
+
+After this section, you should be able to:
+
+- Draw the EVM memory layout from memory: scratch space (0x00-0x3f), free memory pointer (0x40), zero slot (0x60), and first allocatable byte (0x80)
+- Read and update the free memory pointer to allocate memory in assembly, and explain what `6080604052` in every contract's init code does
+- Use `mload`/`mstore` to read and write 32-byte words and explain their big-endian, right-aligned behavior
+- Explain when scratch space (0x00-0x3f) is safe to use versus when FMP-allocated memory is required
+- Describe `memory-safe` assembly annotations and what guarantees they provide to the Solidity optimizer
 
 ---
 
@@ -455,7 +490,9 @@ Tail region (dynamic data, pointed to by offsets):
 
 > **Why DeFi cares:** Flash loan callbacks receive `bytes calldata data` containing user-defined payloads. Understanding the head/tail layout is essential for decoding this data in assembly, which protocols like Permit2 do for gas efficiency.
 
-🏗️ **Real usage:** [Permit2's SignatureTransfer.sol](https://github.com/Uniswap/permit2/blob/main/src/SignatureTransfer.sol) parses calldata in assembly for gas-efficient signature verification. [Uniswap V4's PoolManager](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) decodes callback calldata for unlock patterns.
+🏗️ **Real usage:**
+
+[Permit2's SignatureTransfer.sol](https://github.com/Uniswap/permit2/blob/main/src/SignatureTransfer.sol) parses calldata in assembly for gas-efficient signature verification. [Uniswap V4's PoolManager](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol) decodes callback calldata for unlock patterns.
 
 **In Yul with `bytes calldata` parameters:**
 
@@ -669,6 +706,37 @@ Total: 2 bytes
 
 ---
 
+<a id="exercise2"></a>
+## 🎯 Build Exercise: CalldataDecoder
+
+**Workspace:** [`src/part4/module2/exercise2-calldata-decoder/CalldataDecoder.sol`](../workspace/src/part4/module2/exercise2-calldata-decoder/CalldataDecoder.sol) | [`test/.../CalldataDecoder.t.sol`](../workspace/test/part4/module2/exercise2-calldata-decoder/CalldataDecoder.t.sol)
+
+Parse calldata and encode errors in assembly. Mix of calldata reading and memory writing.
+
+**What you'll implement:**
+1. `extractUint(bytes calldata data, uint256 index)` — Read the uint256 at position `index` (the Nth 32-byte word)
+2. `extractAddress(bytes calldata data)` — Read an address from the first parameter (mask to 20 bytes)
+3. `extractDynamicBytes(bytes calldata data)` — Follow an ABI offset pointer to decode a dynamic `bytes` value
+4. `encodeRevert(uint256 code)` — Encode `CustomError(uint256)` in memory and revert
+5. `forwardCalldata()` — Copy all calldata to memory and return it as `bytes`
+
+**🎯 Goal:** Be able to parse calldata by hand and encode errors the way production code does. After this exercise, you can read Permit2's calldata parsing and Solady's error encoding.
+
+Run: `FOUNDRY_PROFILE=part4 forge test --match-contract CalldataDecoderTest -vvv`
+
+---
+
+## 📋 Key Takeaways: Calldata
+
+After this section, you should be able to:
+
+- Decode calldata layout by hand: 4-byte selector followed by 32-byte ABI-encoded parameter slots
+- Explain static vs dynamic type encoding in calldata: static types inline at `4 + 32*n`, dynamic types use offset pointers to length-prefixed tail data
+- Use `calldataload(offset)` to extract function arguments in assembly and explain why calldata is cheaper than memory (3 gas, no expansion cost, read-only)
+- Access `bytes calldata` parameters in Yul using the `.offset` and `.length` accessors
+
+---
+
 ## 💡 Return Data & Errors
 
 <a id="return-errors"></a>
@@ -825,7 +893,9 @@ The assembly pattern above does this:
 
 **Gas savings: ~200 gas** per revert, because we skip the FMP read, write, and bump. In a protocol that reverts in many code paths (access control, slippage checks, deadline validation), this adds up.
 
-🏗️ **Real usage:** [Solady's Ownable](https://github.com/vectorized/solady/blob/main/src/auth/Ownable.sol) reverts with custom errors using scratch space encoding throughout. After this module, you can read that code fluently.
+🏗️ **Real usage:**
+
+[Solady's Ownable](https://github.com/vectorized/solady/blob/main/src/auth/Ownable.sol) reverts with custom errors using scratch space encoding throughout. After this module, you can read that code fluently.
 
 #### 💼 Job Market Context
 
@@ -847,6 +917,17 @@ The assembly pattern above does this:
 🚩 **Red flag:** Thinking `require(condition, "message")` and custom errors are fundamentally different mechanisms
 
 **Pro tip:** Know the Solady pattern of encoding errors in assembly with `mstore(0x00, selector)` — it saves ~100 gas per revert by skipping ABI encoding overhead
+
+---
+
+## 📋 Key Takeaways: Return Data & Errors
+
+After this section, you should be able to:
+
+- Encode and return values from assembly using `mstore` + `return(offset, size)` for both single values and multi-value tuples
+- Encode custom error selectors in assembly: `mstore(0x00, selector)` + `revert(0x1c, 0x04)` and explain why the selector lands at byte 28 (32 - 4)
+- Encode errors with parameters: selector at 0x1c, arguments at 0x04 + 0x20 offsets, and calculate the total revert data size
+- Explain why assembly error encoding saves ~200 gas over Solidity's `revert CustomError()` (scratch space vs FMP allocation)
 
 ---
 
@@ -884,7 +965,9 @@ The equivalent `keccak256(abi.encodePacked(a, b))` in Solidity:
 
 The assembly version skips steps 1-3 entirely.
 
-🏗️ **Real usage:** This pattern appears in [Solady's MerkleProofLib](https://github.com/vectorized/solady/blob/main/src/utils/MerkleProofLib.sol), [OpenZeppelin's MerkleProof](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/MerkleProof.sol), and virtually every library that computes hash pairs for Merkle trees.
+🏗️ **Real usage:**
+
+This pattern appears in [Solady's MerkleProofLib](https://github.com/vectorized/solady/blob/main/src/utils/MerkleProofLib.sol), [OpenZeppelin's MerkleProof](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/MerkleProof.sol), and virtually every library that computes hash pairs for Merkle trees.
 
 #### 🔗 DeFi Pattern Connection
 
@@ -928,7 +1011,9 @@ assembly {
 
 > **Note:** This pattern starts writing at offset 0, overwriting scratch space, the FMP at 0x40, and potentially the zero slot at 0x60 if calldata exceeds 96 bytes. This is safe because the function either returns or reverts immediately — no subsequent Solidity code will read the corrupted FMP or zero slot. Module 5 covers when this is safe and when you need to use the FMP.
 
-🏗️ **Real usage:** [OpenZeppelin's Proxy.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Proxy.sol) — the production implementation that every upgradeable contract uses.
+🏗️ **Real usage:**
+
+[OpenZeppelin's Proxy.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Proxy.sol) — the production implementation that every upgradeable contract uses.
 
 ---
 
@@ -981,88 +1066,13 @@ When you encounter assembly that manipulates memory extensively (common in Solad
 
 ---
 
-<a id="exercise1"></a>
-## 🎯 Build Exercise: MemoryLab
+## 📋 Key Takeaways: Practical Patterns
 
-**Workspace:** [`src/part4/module2/exercise1-memory-lab/MemoryLab.sol`](../workspace/src/part4/module2/exercise1-memory-lab/MemoryLab.sol) | [`test/.../MemoryLab.t.sol`](../workspace/test/part4/module2/exercise1-memory-lab/MemoryLab.t.sol)
+After this section, you should be able to:
 
-Work with memory layout, the free memory pointer, and scratch space. All functions are implemented in `assembly { }` blocks.
-
-**What you'll implement:**
-1. `readFreeMemPtr()` — Read and return the free memory pointer
-2. `allocate(uint256 size)` — Allocate `size` bytes: read FMP, bump it, return the old value
-3. `writeAndRead(uint256 value)` — Write a value to memory at 0x80, read it back
-4. `buildUint256Bytes(uint256 val)` — Build a `bytes memory` containing a uint256: store length (32), store data, bump FMP
-5. `readZeroSlot()` — Read the zero slot (0x60) and verify it's zero
-6. `hashPair(bytes32 a, bytes32 b)` — Hash two values using scratch space (0x00-0x3f) with keccak256
-
-**🎯 Goal:** Internalize the memory layout and FMP management pattern. After this exercise, `mload(0x40)` and `mstore(0x40, ...)` will feel natural.
-
-Run: `FOUNDRY_PROFILE=part4 forge test --match-contract MemoryLabTest -vvv`
-
----
-
-<a id="exercise2"></a>
-## 🎯 Build Exercise: CalldataDecoder
-
-**Workspace:** [`src/part4/module2/exercise2-calldata-decoder/CalldataDecoder.sol`](../workspace/src/part4/module2/exercise2-calldata-decoder/CalldataDecoder.sol) | [`test/.../CalldataDecoder.t.sol`](../workspace/test/part4/module2/exercise2-calldata-decoder/CalldataDecoder.t.sol)
-
-Parse calldata and encode errors in assembly. Mix of calldata reading and memory writing.
-
-**What you'll implement:**
-1. `extractUint(bytes calldata data, uint256 index)` — Read the uint256 at position `index` (the Nth 32-byte word)
-2. `extractAddress(bytes calldata data)` — Read an address from the first parameter (mask to 20 bytes)
-3. `extractDynamicBytes(bytes calldata data)` — Follow an ABI offset pointer to decode a dynamic `bytes` value
-4. `encodeRevert(uint256 code)` — Encode `CustomError(uint256)` in memory and revert
-5. `forwardCalldata()` — Copy all calldata to memory and return it as `bytes`
-
-**🎯 Goal:** Be able to parse calldata by hand and encode errors the way production code does. After this exercise, you can read Permit2's calldata parsing and Solady's error encoding.
-
-Run: `FOUNDRY_PROFILE=part4 forge test --match-contract CalldataDecoderTest -vvv`
-
----
-
-<a id="summary"></a>
-## 📋 Key Takeaways: Memory & Calldata
-
-**✓ Memory:**
-- EVM memory is a byte-addressable linear array, initialized to zero
-- Reserved regions: scratch space (0x00-0x3f), FMP (0x40-0x5f), zero slot (0x60-0x7f)
-- Allocatable memory starts at 0x80 (that's what `6080604052` sets up)
-- The free memory pointer at 0x40 must be read and bumped for proper allocations
-- `mload`/`mstore` always operate on 32-byte words (big-endian, right-aligned values)
-- `KECCAK256(offset, size)` reads from memory — you must store data in memory before hashing
-- `LOG` topics are stack values, but log **data** is read from memory (`LOG1(offset, size, topic)`)
-- Scratch space is safe for temporary operations (hashing, error encoding)
-- `memory-safe-assembly` tells the compiler your assembly respects the FMP
-
-**✓ Calldata:**
-- Read-only, cheaper than memory (3 gas per `CALLDATALOAD`, no expansion)
-- Layout: 4-byte selector + 32-byte slots for each parameter
-- Static types: value inline at `4 + 32*n`
-- Dynamic types: offset pointer in head → length + data in tail
-- `bytes calldata` gives Yul accessors `.offset` and `.length`
-
-**✓ ABI Encoding:**
-- `abi.encode`: every value padded to 32 bytes, dynamic types use offset+length+data
-- `abi.encodePacked`: minimum bytes per type, no padding, NOT ABI-compliant
-- Packed encoding is for hashing, not for external calls
-
-**✓ Return Data & Errors:**
-- `RETURN(offset, size)` / `REVERT(offset, size)` read from memory
-- Error selector encoding: `mstore(0x00, selector)` places selector at byte 0x1c (28 = 32 - 4)
-- `revert(0x1c, 0x04)` for zero-arg errors, `revert(0x1c, 0x24)` for one-arg errors
-- Assembly error encoding saves ~200 gas by using scratch space instead of allocating memory
-
-**Key numbers to remember:**
-- `0x00-0x3f` — scratch space (64 bytes, 2 words)
-- `0x40` — free memory pointer location
-- `0x60` — zero slot
-- `0x80` — first allocatable byte
-- `0x1c` (28) — offset for reading a selector from `mstore(0x00, selector)`
-- `0x20` (32) — word size (one `mstore`/`mload` unit)
-
-**Next:** [Module 3 — Storage Deep Dive](3-storage.md) explores the persistent data layer: slot computation, mapping and array layouts, and storage packing patterns.
+- Implement the scratch space hashing pattern: store two values at 0x00 and 0x20, call `keccak256(0x00, 0x40)` — the standard pattern for mapping slot computation
+- Describe the proxy forwarding pattern: `calldatacopy` → `delegatecall` → `returndatacopy` → `return`/`revert`, and explain why starting at offset 0 is safe
+- Explain zero-copy calldata patterns: passing `calldataload` results directly to opcodes without copying to memory first
 
 ---
 

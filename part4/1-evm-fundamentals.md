@@ -10,11 +10,11 @@
 
 **What the EVM Actually Is**
 - [The State Transition Function](#state-transition)
-- [Accounts: The Data Model](#accounts)
+- [Accounts — The Data Model](#accounts)
 - [Transactions and Gas Pricing](#transactions)
 
 **The Machine**
-- [The Stack Machine](#stack-machine)
+- [The EVM is a Stack Machine](#stack-machine)
 - [Opcode Categories](#opcode-categories)
 
 **Cost & Context**
@@ -23,7 +23,7 @@
 
 **Writing Assembly**
 - [Your First Yul](#first-yul)
-- [Contract Bytecode: Creation vs Runtime](#bytecode)
+- [Contract Bytecode — Creation vs Runtime](#bytecode)
 - [Build Exercise: YulBasics](#exercise1)
 - [Build Exercise: GasExplorer](#exercise2)
 
@@ -172,6 +172,17 @@ Each block has a **gas limit** (~30 million gas as of 2025, adjustable by valida
 - This is why gas optimization matters: cheaper operations → more transactions per block → lower fees for everyone
 
 > **Connection to everything else:** When you see that SSTORE costs 20,000 gas and a block fits ~30M gas, you can calculate: a block can do at most ~1,500 fresh storage writes. That's the physical constraint that drives every storage optimization pattern in DeFi.
+
+---
+
+## 📋 Key Takeaways: What the EVM Actually Is
+
+After this section, you should be able to:
+
+- Describe the EVM as a state transition function and explain what changes after a transaction (account nonces, balances, storage, deployed code)
+- Distinguish EOAs from contract accounts and list the fields that define each (nonce, balance, storageRoot, codeHash)
+- Walk through transaction validation and execution end-to-end: signature verification → nonce check → gas reservation → execution → refund unused gas
+- Explain the economic purpose of gas (halting problem prevention, DoS resistance) and how EIP-1559 separates base fee from priority fee
 
 ---
 
@@ -605,6 +616,17 @@ Go to [evm.codes](https://www.evm.codes/) and look up the `ADD` opcode. Notice:
 - It wraps on overflow (no revert!) — this is why Solidity 0.8+ adds overflow checks
 
 Now look up `SSTORE`. Compare the gas cost (20,000 for a fresh write!) to `ADD` (3). This ratio — storage is ~6,600x more expensive than arithmetic — drives almost every gas optimization pattern in DeFi.
+
+---
+
+## 📋 Key Takeaways: The Machine
+
+After this section, you should be able to:
+
+- Explain why the EVM uses a stack machine with 256-bit words (matching keccak-256 output and secp256k1 elements) and why the stack depth limit is 1024
+- Trace a simple computation through the stack (push, arithmetic, result) and explain why DUP/SWAP are limited to 16 (single-byte opcode encoding: 0x80-0x8F, 0x90-0x9F)
+- Categorize EVM opcodes by function (arithmetic, comparison, bitwise, memory, storage, flow, system, environment) and use evm.codes as a reference
+- Explain how control flow works at the bytecode level: JUMP/JUMPI/JUMPDEST, the program counter, and why JUMPDEST is required (bytecode injection prevention)
 
 ---
 
@@ -1147,6 +1169,18 @@ Notice: the assembly version does exactly what `msg.sender`, `msg.value`, `block
 
 ---
 
+## 📋 Key Takeaways: Cost & Context
+
+After this section, you should be able to:
+
+- Explain the gas cost tiers from 2 gas (context reads) to 20,000 gas (new storage write) and articulate the reasoning behind each tier
+- Describe the SSTORE cost state machine: how the original, current, and new values determine the cost across 4 branches, and why refunds are capped at 1/5 of total gas (EIP-3529)
+- Explain EIP-2929 warm/cold access: why the first touch costs 2,100 gas (trie traversal) and subsequent touches cost 100 gas (cached), and how this shapes contract design
+- Map Solidity globals (`msg.sender`, `block.timestamp`, `tx.origin`) to their underlying opcodes and explain why execution context reads are cheap (2-3 gas)
+- Describe how execution frames isolate CALL contexts: fresh stack and memory, shared storage and transient storage, and the 63/64 gas forwarding rule
+
+---
+
 ## 💡 Writing Assembly
 
 <a id="first-yul"></a>
@@ -1498,35 +1532,14 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract GasExplorerTest -vvv`
 
 ---
 
-<a id="summary"></a>
-## 📋 Key Takeaways: EVM Fundamentals
+## 📋 Key Takeaways: Writing Assembly
 
-**✓ Covered:**
-- The EVM is a stack machine — 256-bit words (matching keccak-256 and secp256k1), LIFO, max depth 1024 (32 KB)
-- Why DUP/SWAP limited to 16 — single-byte opcode encoding (0x80-0x8F, 0x90-0x9F)
-- Opcodes organized by category — arithmetic, comparison, bitwise, memory, storage, flow, system, environment
-- Control flow — JUMP/JUMPI/JUMPDEST, program counter, why JUMPDEST exists (bytecode injection prevention)
-- CREATE/CREATE2 — nonce-dependent vs deterministic addresses, code deposit cost (200 gas/byte)
-- Gas model — tiers from 2 gas (context opcodes) to 20,000 gas (new storage write), with "why" for each tier
-- SSTORE cost state machine — 4 branches based on original→current→new values, gas refunds capped at 1/5
-- EIP-2929 warm/cold access — first access loads trie nodes (expensive), subsequent cached (cheap)
-- Quadratic memory expansion — DoS prevention via non-linear cost
-- The 63/64 rule — external calls retain 1/64 gas at each depth
-- Execution context — every Solidity global maps to a 2-3 gas opcode
-- Execution frames — each CALL gets fresh stack + memory, shares storage + transient storage
-- Calldata layout — selector (4 bytes) + ABI-encoded arguments
-- Contract bytecode — creation code (constructor + CODECOPY + RETURN) vs runtime code, immutables baked into bytecode
-- PUSH0, MCOPY, SELFBALANCE, STATICCALL restrictions, verbatim
-- Precompiled contracts — 0x01-0x0a, gas computed per-call based on input
-- Yul basics — `let`, `if`, `switch`, `for`, named variables mapped to stack by the compiler
+After this section, you should be able to:
 
-**Key numbers to remember:**
-- ADD/SUB: 3 gas | MUL/DIV: 5 gas | SLOAD cold: 2100 gas | SSTORE new: 20,000 gas
-- TLOAD/TSTORE: 100 gas | KECCAK256: 30 + 6/word | CALL cold: 2600 gas | CALL warm: 100 gas
-- LOG2 (typical Transfer): ~1,893 gas | CREATE: 32,000+ gas | Code deposit: 200 gas/byte
-- SSTORE update: 2,900 gas | SSTORE refund (clear): 4,800 gas | Max refund: 1/5 of total gas
-
-**Next:** [Module 2 — Memory & Calldata](2-memory-calldata.md) — deep dive into mload/mstore, the free memory pointer, ABI encoding by hand, and returndata handling.
+- Write basic Yul inside an `assembly {}` block: declare variables with `let`, use arithmetic opcodes, and read/write memory
+- Distinguish creation code from runtime code and explain the deploy sequence: constructor logic → CODECOPY runtime to memory → RETURN
+- Explain how immutable variables are embedded into runtime bytecode at deploy time, avoiding storage reads entirely
+- Describe the precompiled contracts at addresses 0x01-0x0a and how to call them (fixed gas costs, input-dependent computation)
 
 ---
 

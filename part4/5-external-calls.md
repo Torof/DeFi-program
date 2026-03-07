@@ -23,7 +23,7 @@
 
 **Production Call Patterns**
 - [DELEGATECALL in Depth](#delegatecall-depth)
-- [Precompile Calls: ecrecover in Assembly](#precompile-calls)
+- [Precompile Calls — ecrecover in Assembly](#precompile-calls)
 - [The Multicall Pattern](#multicall)
 - [Build Exercise: AssemblyRouter](#exercise3)
 
@@ -724,6 +724,7 @@ contract NoReturnToken {
 
 Try calling `NoReturnToken.transfer()` through a normal Solidity interface (`IERC20(token).transfer(...)`) — it reverts. Then call it using the SafeERC20 assembly pattern — it succeeds.
 
+<a id="how-to-study"></a>
 #### 📖 How to Study Solady SafeTransferLib
 
 1. **Start with `safeTransfer`** — it's the simplest function. Find the `and(success, or(...))` pattern.
@@ -1434,20 +1435,6 @@ After this section, you should be able to:
 - Explain EIP-1967 storage slots and why they use `keccak256(...) - 1`
 - Call the ecrecover precompile in assembly (write 128 bytes to memory, STATICCALL to 0x01, check for address(0))
 - Explain the multicall pattern: DELEGATECALL to self preserves `msg.sender`, and `msg.value` persistence is a footgun that requires explicit ETH accounting
-
----
-
-## 🔢 Key Numbers
-
-| Value | Meaning |
-|-------|---------|
-| 100 gas | CALL / STATICCALL / DELEGATECALL base cost (warm address, post-EIP-2929) |
-| 2,600 gas | CALL / STATICCALL / DELEGATECALL to a cold address (first touch in transaction) |
-| 9,000 gas | Additional CALL cost when transferring non-zero ETH value |
-| 2,300 gas | Historical gas stipend for ETH transfers (often insufficient now) |
-| 63/64 | Gas forwarding ratio — caller retains 1/64, callee gets 63/64 (EIP-150) |
-| 3 + 3×words | RETURNDATACOPY cost: 3 base + 3 per 32-byte word copied |
-| 3,000 gas | ecrecover precompile cost (fixed) |
 
 ---
 
