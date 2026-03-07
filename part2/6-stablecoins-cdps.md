@@ -10,25 +10,21 @@
 
 **The CDP Model and MakerDAO/Sky Architecture**
 - [How CDPs Work](#how-cdps-work)
-- [MakerDAO Contract Architecture](#maker-architecture)
 - [The Full Flow: Opening a Vault](#opening-vault-flow)
-- [Read: Vat.sol](#read-vat)
 - [Exercises](#day1-exercises)
 
 **Liquidations, PSM, and DAI Savings Rate**
 - [Liquidation 2.0: Dutch Auctions](#liquidation-auctions)
 - [Peg Stability Module (PSM)](#psm)
 - [Dai Savings Rate (DSR)](#dsr)
-- [Read: Dog.sol and Clipper.sol](#read-dog-clipper)
 - [Exercises](#day2-exercises)
 - [Build Exercise: Simplified CDP Engine](#simple-cdp)
 
 **Stablecoin Landscape and Design Trade-offs**
 - [Taxonomy of Stablecoins](#stablecoin-taxonomy)
 - [Liquity: A Different CDP Design](#liquity)
-- [The Algorithmic Stablecoin Failure Pattern](#algo-failure)
 - [Ethena (USDe): The Delta-Neutral Model](#ethena)
-- [crvUSD: Curve's Soft-Liquidation Model](#crvusd)
+- [crvUSD: Curve's Soft-Liquidation Model (LLAMMA)](#crvusd)
 - [The Fundamental Trilemma](#stablecoin-trilemma)
 - [Exercises](#day4-exercises)
 

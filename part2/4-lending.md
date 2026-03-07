@@ -19,36 +19,27 @@
 - [Contract Architecture Overview](#aave-architecture)
 - [aTokens: Interest-Bearing Receipts](#atokens)
 - [Debt Tokens: Tracking What's Owed](#debt-tokens)
-- [Read: Supply Flow](#read-supply-flow)
-- [Read: Borrow Flow](#read-borrow-flow)
 - [Exercise: Fork and Interact](#fork-interact)
 
 **Aave V3 — Risk Modes and Advanced Features**
 - [Efficiency Mode (E-Mode)](#e-mode)
 - [Isolation Mode](#isolation-mode)
 - [Supply and Borrow Caps](#supply-borrow-caps)
-- [Read: Configuration Bitmap](#config-bitmap)
 
 **Compound V3 (Comet) — A Different Architecture**
 - [The Single-Asset Model](#single-asset-model)
 - [Comet Contract Architecture](#comet-architecture)
 - [Principal and Index Accounting](#principal-index)
-- [Read: Comet.sol Core Functions](#read-comet)
 
 **Liquidation Mechanics**
 - [Why Liquidation Exists](#why-liquidation)
 - [The Liquidation Flow](#liquidation-flow)
-- [Aave V3 Liquidation](#aave-liquidation)
-- [Compound V3 Liquidation ("Absorb")](#compound-liquidation)
 - [Liquidation Bot Economics](#liquidation-economics)
 - [Build Exercise: Simplified Lending Protocol](#simple-lending-pool)
 
 **Synthesis and Advanced Patterns**
-- [Architectural Comparison: Aave V3 vs Compound V3](#arch-comparison)
 - [Bad Debt and Protocol Solvency](#bad-debt)
-- [The Liquidation Cascade Problem](#liquidation-cascade)
-- [Emerging Patterns (Morpho Blue, Euler V2)](#emerging-patterns)
-- [Aave V3.1 / V3.2 / V3.3 Updates](#aave-updates)
+- [Emerging Patterns](#emerging-patterns)
 
 ---
 

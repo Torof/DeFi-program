@@ -11,14 +11,10 @@
 **ERC-20 Core Patterns & Weird Tokens**
 - [The Approval Model](#approval-model)
 - [Decimal Handling — The Silent Bug Factory](#decimal-handling)
-- [Read: OpenZeppelin ERC20 and SafeERC20](#read-oz-erc20)
-- [Read: The Weird ERC-20 Catalog](#read-weird-erc20)
 
 **Advanced Token Behaviors & Protocol Design**
 - [Advanced Token Behaviors That Break Protocols](#advanced-token-behaviors)
-- [Read: WETH](#read-weth)
-- [Token Listing Patterns](#token-listing-patterns)
-- [Token Evaluation Checklist](#token-evaluation-checklist)
+- [Token Listing Patterns — Permissionless vs Curated](#token-listing-patterns)
 - [Build Exercises: Token Interaction Patterns](#build-token-test-suite)
 
 ---

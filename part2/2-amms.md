@@ -13,36 +13,28 @@
 - [Build: Minimal Constant Product Pool](#build-cpp)
 
 **Reading Uniswap V2**
-- [Read: UniswapV2Pair.sol](#read-v2-pair)
-- [Read: UniswapV2Factory.sol](#read-v2-factory)
-- [Read: UniswapV2Router02.sol](#read-v2-router)
 - [V2 Exercises](#v2-exercises)
 
-**Concentrated Liquidity (V3)**
+**Concentrated Liquidity (Uniswap V3 Concepts)**
 - [The Problem V3 Solves](#v3-problem)
 - [Core V3 Concepts](#v3-concepts)
-- [Read: Key V3 Contracts](#read-v3-contracts)
 - [V3 Exercises](#v3-exercises)
 - [Build Exercise: Simplified Concentrated Liquidity Pool](#build-v3-pool)
 
-**V4 — Singleton Architecture and Flash Accounting**
-- [Read: Key V4 Contracts](#read-v4-contracts)
+**Uniswap V4 — Singleton Architecture and Flash Accounting**
 - [V4 Exercises](#v4-exercises)
 
-**V4 Hooks**
+**Uniswap V4 Hooks**
 - [The 10 Hook Functions](#hook-functions)
 - [Hook Capabilities](#hook-capabilities)
-- [Read: Hook Examples](#read-hook-examples)
-- [Hook Security Considerations](#hook-security)
 - [Build: A Simple Hook](#build-hook)
 
 **Beyond Uniswap and Advanced AMM Topics**
 - [AMMs vs Order Books (CLOBs)](#amms-vs-clobs)
 - [Curve StableSwap](#curve-stableswap)
 - [Balancer Weighted Pools](#balancer-weighted)
-- [Trader Joe Liquidity Book](#trader-joe-lb)
+- [Trader Joe Liquidity Book (Bins vs Ticks)](#trader-joe-lb)
 - [ve(3,3) DEXes (Velodrome / Aerodrome)](#ve33-dexes)
-- [MEV & Sandwich Attacks](#mev-sandwich)
 - [JIT (Just-In-Time) Liquidity](#jit-liquidity)
 - [AMM Aggregators & Routing](#amm-aggregators-routing)
 - [LP Management Strategies](#lp-management)

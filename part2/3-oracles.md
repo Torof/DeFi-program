@@ -11,26 +11,16 @@
 **Oracle Fundamentals and Chainlink Architecture**
 - [The Oracle Problem](#oracle-problem)
 - [Types of Price Oracles](#oracle-types)
-- [Chainlink Architecture](#chainlink-architecture)
-- [Alternative Oracle Networks](#alternative-oracles)
-- [Push vs Pull Oracle Architecture](#push-vs-pull)
-- [LST Oracle Challenges](#lst-oracle)
-- [Read: AggregatorV3Interface](#read-aggregator-v3)
+- [Chainlink Architecture Deep Dive](#chainlink-architecture)
+- [Alternative Oracle Networks (Awareness)](#alternative-oracles)
 - [Build: Safe Chainlink Consumer](#build-chainlink-consumer)
 
 **TWAP Oracles and On-Chain Price Sources**
 - [TWAP: Time-Weighted Average Price](#twap)
-- [UQ112.112 Fixed-Point Encoding](#uq112)
-- [When to Use TWAP vs Chainlink](#twap-vs-chainlink)
 - [Build: TWAP Oracle](#build-twap)
 
 **Oracle Manipulation Attacks**
-- [The Attack Surface](#attack-surface)
-- [Spot Price Manipulation via Flash Loan](#spot-manipulation)
-- [TWAP Manipulation (Multi-Block)](#twap-manipulation)
-- [Stale Oracle Exploitation](#stale-oracle)
-- [Donation/Direct Balance Manipulation](#donation-manipulation)
-- [Oracle Extractable Value (OEV)](#oev)
+- [Oracle Extractable Value (OEV) — Awareness](#oev)
 - [Defense Patterns](#defense-patterns)
 - [Build: Oracle Manipulation Lab](#build-oracle-lab)
 

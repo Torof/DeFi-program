@@ -11,22 +11,17 @@
 **Flash Loan Mechanics**
 - [The Atomic Guarantee](#atomic-guarantee)
 - [Flash Loan Providers](#flash-loan-providers)
-- [Read: Aave FlashLoanLogic.sol](#read-aave-flash)
-- [Read: Balancer FlashLoans](#read-balancer-flash)
 - [Exercises](#day1-exercises)
 
 **Composing Flash Loan Strategies**
 - [Strategy 1: DEX Arbitrage](#dex-arbitrage)
 - [Strategy 2: Flash Loan Liquidation](#flash-liquidation)
 - [Strategy 3: Collateral Swap](#collateral-swap)
-- [Strategy 4: Leverage/Deleverage](#leverage-deleverage)
+- [Strategy 4: Leverage/Deleverage in One Transaction](#leverage-deleverage)
 - [Exercises](#day2-exercises)
 
 **Security, Anti-Patterns, and the Bigger Picture**
-- [Flash Loan Security for Protocol Builders](#flash-security)
-- [Flash Loan Receiver Security](#receiver-security)
-- [Flash Loans vs Flash Accounting](#flash-vs-accounting)
-- [Governance Attacks via Flash Loans](#governance-attacks)
+- [Flash Loans vs Flash Accounting: The Evolution](#flash-vs-accounting)
 - [Exercises](#day3-exercises)
 
 ---

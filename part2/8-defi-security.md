@@ -10,10 +10,7 @@
 
 **DeFi-Specific Attack Patterns**
 - [Read-Only Reentrancy](#read-only-reentrancy)
-- [Read-Only Reentrancy — Numeric Walkthrough](#read-only-reentrancy-walkthrough)
-- [Cross-Contract Reentrancy](#cross-contract-reentrancy)
-- [Price Manipulation Taxonomy](#price-manipulation)
-- [Flash Loan Attack P&L Walkthrough](#flash-loan-walkthrough)
+- [Cross-Contract Reentrancy in DeFi Compositions](#cross-contract-reentrancy)
 - [Frontrunning and MEV](#frontrunning-mev)
 - [Precision Loss and Rounding Exploits](#precision-loss)
 - [Access Control Vulnerabilities](#access-control-attacks)
@@ -22,22 +19,14 @@
 **Invariant Testing with Foundry**
 - [Why Invariant Testing Is the Most Powerful DeFi Testing Tool](#why-invariant-testing)
 - [Foundry Invariant Testing Setup](#invariant-setup)
-- [Handler Contracts](#handler-contracts)
-- [Quick Try: Invariant Testing Catches a Bug](#invariant-quick-try)
-- [What Invariants to Test for Each DeFi Primitive](#invariant-catalog)
+- [Handler Contracts: The Key to Effective Invariant Testing](#handler-contracts)
 
 **Reading Audit Reports**
-- [How to Read an Audit Report](#how-read-audit)
-- [Report 1: Aave V3 Core](#report-aave)
-- [Report 2: A Smaller Protocol](#report-smaller)
-- [Report 3: Immunefi Bug Bounty Writeup](#report-immunefi)
 - [Exercise: Self-Audit](#self-audit)
 
 **Security Tooling & Audit Preparation**
 - [Static Analysis Tools](#static-analysis)
-- [Formal Verification (Awareness)](#formal-verification)
 - [The Security Checklist](#security-checklist)
-- [Audit Preparation](#audit-preparation)
 - [Building Security-First](#security-first)
 
 ---

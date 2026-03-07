@@ -10,33 +10,24 @@
 
 **ERC-4626 — The Tokenized Vault Standard**
 - [The Core Abstraction](#core-abstraction)
-- [The Interface](#vault-interface)
 - [The Share Math](#share-math)
-- [Read: OpenZeppelin ERC4626.sol](#read-oz-erc4626)
 - [Exercise](#day1-exercise)
 
 **The Inflation Attack and Defenses**
-- [The Attack](#inflation-attack)
-- [Quick Try: Inflation Attack in Foundry](#inflation-quick-try)
-- [Defense 1: Virtual Shares and Assets](#defense-virtual-shares)
-- [Defense 2: Dead Shares](#defense-dead-shares)
-- [Defense 3: Internal Accounting](#defense-internal-accounting)
-- [When Vaults Are Used as Collateral](#vaults-as-collateral)
+- [Defense 1: Virtual Shares and Assets (OpenZeppelin approach)](#defense-virtual-shares)
+- [Defense 2: Dead Shares (Uniswap V2 approach)](#defense-dead-shares)
+- [Defense 3: Internal Accounting (Aave V3 approach)](#defense-internal-accounting)
 
 **Yield Aggregation — Yearn V3 Architecture**
 - [The Yield Aggregation Problem](#yield-aggregation)
 - [Yearn V3: The Allocator Vault Pattern](#yearn-allocator)
 - [Allocator Vault Mechanics](#allocator-mechanics)
 - [The Curator Model](#curator-model)
-- [Read: Yearn V3 Source](#read-yearn-v3)
-- [Job Market: Yield Aggregation](#yield-aggregation-jobs)
 
 **Composable Yield Patterns and Security**
-- [Yield Strategy Comparison](#yield-strategies)
 - [Pattern 1: Auto-Compounding](#auto-compounding)
-- [Pattern 2: Leveraged Yield](#leveraged-yield)
+- [Pattern 2: Leveraged Yield (Recursive Borrowing)](#leveraged-yield)
 - [Pattern 3: LP + Staking](#lp-staking)
-- [Security Considerations for Vault Builders](#vault-security)
 
 ---
 
