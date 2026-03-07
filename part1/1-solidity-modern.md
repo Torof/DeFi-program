@@ -6,7 +6,7 @@
 
 ## 📚 Table of Contents
 
-**Language-Level Changes**
+**Language-Level Changes That Matter for DeFi**
 - [Checked Arithmetic (0.8.0)](#checked-arithmetic)
 - [Custom Errors (0.8.4+)](#custom-errors)
 - [User-Defined Value Types (0.8.8+)](#user-defined-value-types)
@@ -14,10 +14,10 @@
 - [Other Notable Changes](#other-notable-changes)
 - [Build Exercise: ShareMath](#day1-exercise)
 
-**The Bleeding Edge**
-- [Transient Storage (0.8.24+)](#transient-storage)
-- [Pectra/Prague EVM (0.8.30+)](#pectra-prague-evm)
-- [Solidity 0.9.0 Deprecations](#solidity-09-deprecations)
+**Solidity 0.8.24+ — The Bleeding Edge**
+- [Transient Storage Support (0.8.24+)](#transient-storage)
+- [Pectra/Prague EVM Target (0.8.30+)](#pectra-prague-evm)
+- [What's Coming — Solidity 0.9.0 Deprecations](#solidity-09-deprecations)
 - [Build Exercise: TransientGuard](#day2-exercise)
 
 ---

@@ -8,7 +8,7 @@
 
 **ERC-4337 Architecture**
 - [The Problem Account Abstraction Solves](#problem-aa-solves)
-- [ERC-4337 Components](#erc-4337-components)
+- [The ERC-4337 Components](#erc-4337-components)
 - [The Flow](#the-flow)
 - [Build Exercise: SimpleSmartAccount](#day8-exercise)
 

@@ -6,8 +6,9 @@
 
 ## 📚 Table of Contents
 
+**Why Proxies Matter for DeFi**
+
 **Proxy Fundamentals**
-- [Why Proxies Matter for DeFi](#why-proxies-matter)
 - [How Proxies Work](#how-proxies-work)
 - [Transparent Proxy Pattern](#transparent-proxy)
 - [UUPS Pattern (ERC-1822)](#uups-pattern)

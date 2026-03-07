@@ -6,11 +6,11 @@
 
 ## 📚 Table of Contents
 
-**Foundry Essentials**
+**Foundry Essentials for DeFi Development**
 - [Why Foundry](#why-foundry)
 - [Setup](#setup)
-- [Core Cheatcodes for DeFi Testing](#core-cheatcodes)
-- [Configuration](#configuration)
+- [Core Foundry Cheatcodes for DeFi Testing](#core-cheatcodes)
+- [Configuration (foundry.toml)](#configuration)
 - [Build Exercise: Cheatcodes and Fork Tests](#day11-exercise)
 
 **Fuzz Testing and Invariant Testing**

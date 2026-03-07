@@ -6,20 +6,19 @@
 
 ## 📚 Table of Contents
 
-**The Approval Problem**
+**The Approval Problem and EIP-2612**
 - [Why Traditional Approvals Are Broken](#traditional-approvals-broken)
 - [EIP-2612 — Permit](#eip-2612-permit)
 - [Build Exercise: PermitVault](#day5-exercise)
 
-**Permit2**
+**Permit2 — Universal Approval Infrastructure**
 - [How Permit2 Works](#how-permit2-works)
 - [SignatureTransfer vs AllowanceTransfer](#signature-vs-allowance-transfer)
 - [Permit2 Design Details](#permit2-design-details)
 - [Build Exercise: Permit2Vault](#day6-exercise)
 
-**Security**
-- [Permit Attack Vectors](#permit-attack-vectors)
-- [Safe Permit Patterns](#safe-permit-patterns)
+**Security Considerations and Edge Cases**
+- [Permit/Permit2 Attack Vectors](#permit-attack-vectors)
 - [Build Exercise: SafePermit](#day7-exercise)
 
 ---

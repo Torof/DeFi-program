@@ -7,24 +7,23 @@
 ## 📚 Table of Contents
 
 **Foundational EVM Concepts**
-- [EIP-2929: Cold/Warm Access Model](#eip-2929)
-- [EIP-1559: Base Fee Market](#eip-1559)
-- [EIP-3529: Gas Refund Changes & Death of Gas Tokens](#eip-3529)
+- [EIP-2929 — Cold/Warm Access Model](#eip-2929)
+- [EIP-1559 — Base Fee Market](#eip-1559)
+- [EIP-3529 — Gas Refund Changes](#eip-3529)
 - [Contract Size Limits (EIP-170)](#eip-170)
 - [CREATE vs CREATE2 vs CREATE3](#create2)
 - [Precompile Landscape](#precompiles)
 
-**Dencun Upgrade (March 2024)**
+**Dencun Upgrade — EIP-1153 & EIP-4844**
 - [Transient Storage Deep Dive (EIP-1153)](#transient-storage-deep-dive)
 - [Proto-Danksharding (EIP-4844)](#proto-danksharding)
-- [PUSH0 & MCOPY](#push0-mcopy)
-- [SELFDESTRUCT Changes](#selfdestruct-changes)
+- [PUSH0 (EIP-3855, Shanghai) and MCOPY (EIP-5656, Cancun)](#push0-mcopy)
+- [SELFDESTRUCT Changes (EIP-6780)](#selfdestruct-changes)
 - [Build Exercise: FlashAccounting](#day3-exercise)
 
-**Pectra Upgrade (May 2025)**
+**Pectra Upgrade — EIP-7702 and Beyond**
 - [EIP-7702 — EOA Code Delegation](#eip-7702)
-- [EIP-7623 — Increased Calldata Cost](#eip-7623)
-- [EIP-2537 — BLS12-381 Precompile](#eip-2537)
+- [Other Pectra EIPs](#other-pectra-eips)
 - [Build Exercise: EIP7702Delegate](#day4-exercise)
 
 **Looking Ahead**
