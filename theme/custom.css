@@ -627,3 +627,110 @@
     padding: 0.8em 1em;
   }
 }
+
+/* --- Bit Layout Diagrams --- */
+.bit-layout {
+  margin: 1.8em 0;
+  font-family: var(--font-code);
+  font-size: 0.82rem;
+  overflow-x: auto;
+}
+
+.bit-layout-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.5em;
+  opacity: 0.7;
+}
+
+/* Bit position ruler */
+.bit-ruler {
+  display: flex;
+  margin-bottom: 2px;
+  font-size: 0.72rem;
+  opacity: 0.55;
+}
+
+.bit-ruler span {
+  text-align: left;
+  padding-left: 4px;
+}
+
+/* Field row */
+.bit-fields {
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.bit-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6em 0.4em;
+  min-height: 48px;
+  border-right: 1px solid rgba(128, 128, 128, 0.3);
+  text-align: center;
+  line-height: 1.3;
+}
+
+.bit-field:last-child {
+  border-right: none;
+}
+
+.bit-field-name {
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.bit-field-width {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+/* Field colors — use as .bit-field.bf-blue, .bit-field.bf-amber, etc. */
+.bf-blue    { background: rgba(59, 130, 246, 0.18); }
+.bf-amber   { background: rgba(245, 158, 11, 0.18); }
+.bf-orange  { background: rgba(249, 115, 22, 0.18); }
+.bf-red     { background: rgba(239, 68, 68, 0.18); }
+.bf-green   { background: rgba(34, 197, 94, 0.18); }
+.bf-purple  { background: rgba(139, 92, 246, 0.18); }
+.bf-cyan    { background: rgba(6, 182, 212, 0.18); }
+.bf-gray    { background: rgba(128, 128, 128, 0.10); }
+
+/* Light theme — slightly more saturated */
+.light .bf-blue    { background: rgba(59, 130, 246, 0.12); }
+.light .bf-amber   { background: rgba(245, 158, 11, 0.12); }
+.light .bf-orange  { background: rgba(249, 115, 22, 0.12); }
+.light .bf-red     { background: rgba(239, 68, 68, 0.12); }
+.light .bf-green   { background: rgba(34, 197, 94, 0.12); }
+.light .bf-purple  { background: rgba(139, 92, 246, 0.12); }
+.light .bf-cyan    { background: rgba(6, 182, 212, 0.12); }
+.light .bf-gray    { background: rgba(128, 128, 128, 0.06); }
+
+/* Legend */
+.bit-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8em;
+  margin-top: 0.6em;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.bit-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.bit-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+}

@@ -13,4 +13,4 @@ search.enable = true
 default-theme = "navy"
 preferred-dark-theme = "navy"
 additional-css = ["theme/custom.css"]
-additional-js = ["theme/solidity-highlight.js", "theme/callouts.js"]
+additional-js = ["theme/solidity-highlight.js", "theme/callouts.js", "theme/mermaid-init.js"]
