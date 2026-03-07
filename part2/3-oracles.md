@@ -2,7 +2,7 @@
 
 > **Difficulty:** Intermediate
 >
-> **Estimated reading time:** ~35 minutes | **Exercises:** ~3-4 hours
+> **Estimated reading time:** ~45 minutes | **Exercises:** ~3 hours
 
 ---
 

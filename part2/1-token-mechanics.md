@@ -2,7 +2,7 @@
 
 > **Difficulty:** Beginner
 >
-> **Estimated reading time:** ~30 minutes | **Exercises:** ~2 hours
+> **Estimated reading time:** ~35 minutes | **Exercises:** ~1.5 hours
 
 ---
 

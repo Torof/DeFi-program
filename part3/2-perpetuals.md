@@ -2,7 +2,7 @@
 
 > **Difficulty:** Advanced
 >
-> **Estimated reading time:** ~45 minutes | **Exercises:** ~3-4 hours
+> **Estimated reading time:** ~45 minutes | **Exercises:** ~2 hours
 
 ---
 

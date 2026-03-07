@@ -2,7 +2,7 @@
 
 > **Difficulty:** Beginner
 >
-> **Estimated reading time:** ~25 minutes
+> **Estimated reading time:** ~20 minutes
 
 ## 📚 Table of Contents
 
