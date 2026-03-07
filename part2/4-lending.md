@@ -41,9 +41,7 @@
 - [Aave V3 Liquidation](#aave-liquidation)
 - [Compound V3 Liquidation ("Absorb")](#compound-liquidation)
 - [Liquidation Bot Economics](#liquidation-economics)
-
-**Build Exercise: Simplified Lending Protocol**
-- [SimpleLendingPool.sol](#simple-lending-pool)
+- [Build Exercise: Simplified Lending Protocol](#simple-lending-pool)
 
 **Synthesis and Advanced Patterns**
 - [Architectural Comparison: Aave V3 vs Compound V3](#arch-comparison)

@@ -21,9 +21,7 @@
 - [Dai Savings Rate (DSR)](#dsr)
 - [Read: Dog.sol and Clipper.sol](#read-dog-clipper)
 - [Exercises](#day2-exercises)
-
-**Build Exercise: Simplified CDP Engine**
-- [SimpleCDP.sol](#simple-cdp)
+- [Build Exercise: Simplified CDP Engine](#simple-cdp)
 
 **Stablecoin Landscape and Design Trade-offs**
 - [Taxonomy of Stablecoins](#stablecoin-taxonomy)
@@ -32,7 +30,6 @@
 - [Ethena (USDe): The Delta-Neutral Model](#ethena)
 - [crvUSD: Curve's Soft-Liquidation Model](#crvusd)
 - [The Fundamental Trilemma](#stablecoin-trilemma)
-- [Common Mistakes](#common-mistakes)
 - [Exercises](#day4-exercises)
 
 ---

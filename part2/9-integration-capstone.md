@@ -12,45 +12,36 @@
 - [Why a Stablecoin Capstone](#why-capstone)
 - [The Stablecoin Landscape](#stablecoin-landscape)
 - [Design Principles: Immutable, Permissionless, Crypto-Native](#design-principles)
-- [Cross-Module Prerequisite Map](#prerequisite-map)
 
 **Architecture Design**
 - [Contract Structure: The 4 Core Contracts](#contract-structure)
 - [Core Data Structures](#data-structures)
 - [Design Decisions You'll Make](#design-decisions)
+- [Deployment & Authorization](#deployment-authorization)
+- [Storage Layout Considerations](#storage-layout)
 
 **Core CDP Engine**
 - [The StablecoinEngine Contract](#engine-contract)
-- [Health Factor with Multi-Decimal Normalization](#health-factor)
 - [Stability Fee Accrual via Rate Accumulator](#stability-fees)
 - [The Vault Lifecycle](#vault-lifecycle)
 
 **Vault Share Collateral Pricing**
-- [The Pricing Challenge: Dynamic Exchange Rates](#pricing-challenge)
 - [The Pricing Pipeline](#pricing-pipeline)
-- [Manipulation Risk and Protection Strategies](#manipulation-risk)
 
 **Dutch Auction Liquidation**
 - [Designing Your Liquidation System](#liquidation-design)
-- [Choosing a Decay Function](#decay-function)
 - [Partial Fills and Bad Debt](#partial-fills)
-- [Full Liquidation Flow Walkthrough](#liquidation-walkthrough)
+- [Liquidation Economics: DEX Interaction](#liquidation-economics)
 
 **Flash Mint**
-- [Flash Mint vs Flash Loan](#flash-mint-vs-loan)
 - [ERC-3156 Adapted for Minting](#flash-mint-erc3156)
-- [Security Considerations](#flash-mint-security)
 - [Use Cases: Peg Stability and Beyond](#flash-mint-uses)
 
 **Testing & Hardening**
-- [The 5 Critical Invariants](#critical-invariants)
 - [Fuzz and Fork Testing](#fuzz-fork)
-- [Edge Cases to Explore](#edge-cases)
 
 **Building & Wrap Up**
 - [Suggested Build Order](#build-order)
-- [⚠️ Common Mistakes](#common-mistakes)
-- [Portfolio & Interview Positioning](#portfolio)
 - [Self-Assessment Checklist](#self-assessment)
 
 ---
@@ -294,6 +285,7 @@ When a Dutch auction expires without fully covering the debt, someone must eat t
 
 > Think through these before writing code. Your answers shape the entire architecture. Write them down — they become your Architecture Decision Record for the portfolio.
 
+<a id="deployment-authorization"></a>
 ### 💡 Concept: Deployment & Authorization
 
 Your 4 contracts have mutual dependencies. Think about deployment order and how contracts authorize each other:
@@ -307,6 +299,7 @@ Since the protocol is immutable (no setters), these addresses must be set at dep
 
 This is a real production concern — MakerDAO's deployment scripts handle complex interdependencies across 10+ contracts. Your 4-contract system is simpler, but the authorization wiring still needs to be correct.
 
+<a id="storage-layout"></a>
 ### 💡 Concept: Storage Layout Considerations
 
 For gas optimization on the hot path (health factor checks happen on every mint/withdraw), think about how `CollateralConfig` fields pack into storage slots:
@@ -975,6 +968,7 @@ Setup:
   NOT simply burned. Design this carefully — it mirrors the flash mint fee issue.
 ```
 
+<a id="liquidation-economics"></a>
 ### 💡 Concept: Liquidation Economics: DEX Interaction
 
 After a bidder receives collateral from the auction, they typically need to sell it on a DEX (AMM) to realize profit. This creates a connection to M2 that affects your protocol's design:

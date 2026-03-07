@@ -23,8 +23,7 @@
 - [Core V3 Concepts](#v3-concepts)
 - [Read: Key V3 Contracts](#read-v3-contracts)
 - [V3 Exercises](#v3-exercises)
-
-**Build Exercise: Simplified Concentrated Liquidity Pool**
+- [Build Exercise: Simplified Concentrated Liquidity Pool](#build-v3-pool)
 
 **V4 — Singleton Architecture and Flash Accounting**
 - [Read: Key V4 Contracts](#read-v4-contracts)
@@ -901,6 +900,7 @@ After this section, you should be able to:
 
 ---
 
+<a id="build-v3-pool"></a>
 ## 🎯 Build Exercise: Simplified Concentrated Liquidity Pool
 
 ### What to Build

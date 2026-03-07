@@ -12,21 +12,19 @@
 - [Encoding Calldata for External Calls](#encoding-calldata)
 - [The Call Lifecycle: Encode, Call, Check, Decode](#call-lifecycle)
 - [Decoding Return Data](#decoding-returndata)
+- [Build Exercise: CallEncoder](#exercise1)
 
 **Error Handling & Safety Patterns**
 - [Error Propagation: Bubbling Revert Data](#error-propagation)
 - [The SafeERC20 Pattern](#safe-erc20)
 - [The Returnbomb Attack](#returnbomb)
 - [Gas Forwarding in Practice](#gas-forwarding)
+- [Build Exercise: SafeCaller](#exercise2)
 
 **Production Call Patterns**
 - [DELEGATECALL in Depth](#delegatecall-depth)
 - [Precompile Calls: ecrecover in Assembly](#precompile-calls)
 - [The Multicall Pattern](#multicall)
-
-**Exercises**
-- [Build Exercise: CallEncoder](#exercise1)
-- [Build Exercise: SafeCaller](#exercise2)
 - [Build Exercise: AssemblyRouter](#exercise3)
 
 ---

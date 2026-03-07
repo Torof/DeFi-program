@@ -9,14 +9,12 @@
 **The Approval Problem**
 - [Why Traditional Approvals Are Broken](#traditional-approvals-broken)
 - [EIP-2612 — Permit](#eip-2612-permit)
-- [OpenZeppelin ERC20Permit](#openzeppelin-erc20permit)
 - [Build Exercise: PermitVault](#day5-exercise)
 
 **Permit2**
 - [How Permit2 Works](#how-permit2-works)
 - [SignatureTransfer vs AllowanceTransfer](#signature-vs-allowance-transfer)
 - [Permit2 Design Details](#permit2-design-details)
-- [Reading Permit2 Source Code](#permit2-source-code)
 - [Build Exercise: Permit2Vault](#day6-exercise)
 
 **Security**

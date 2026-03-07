@@ -18,19 +18,16 @@
 - [Defining and Calling Yul Functions](#yul-functions)
 - [Inlining Behavior — When Functions Become JUMPs](#inlining)
 - [Stack Depth and Yul Functions](#stack-depth)
+- [Build Exercise: LoopAndFunctions](#exercise2)
 
 **Function Selector Dispatch**
 - [The Dispatch Problem](#dispatch-problem)
 - [if-Chain Dispatch](#if-chain)
 - [switch-Based Dispatch](#switch-dispatch)
 - [Fallback and Receive in Assembly](#fallback-receive)
+- [Build Exercise: YulDispatcher](#exercise1)
 
 **Error Handling Patterns in Yul**
-- [Error Handling in the Dispatch Context](#error-patterns)
-
-**Exercises**
-- [Build Exercise: YulDispatcher](#exercise1)
-- [Build Exercise: LoopAndFunctions](#exercise2)
 
 ---
 
@@ -824,6 +821,37 @@ let saved := mload(0x00)             // restore when needed
 
 ---
 
+<a id="exercise2"></a>
+## 🎯 Build Exercise: LoopAndFunctions
+
+**Workspace:**
+- Implementation: [`workspace/src/part4/module4/exercise2-loop-and-functions/LoopAndFunctions.sol`](../workspace/src/part4/module4/exercise2-loop-and-functions/LoopAndFunctions.sol)
+- Tests: [`workspace/test/part4/module4/exercise2-loop-and-functions/LoopAndFunctions.t.sol`](../workspace/test/part4/module4/exercise2-loop-and-functions/LoopAndFunctions.t.sol)
+
+Practice Yul functions and loop patterns. Each function has a Solidity signature with an `assembly { }` body — you write the internals. This exercise focuses on control flow and iteration, not dispatch.
+
+**What's provided:**
+- Function signatures with parameter names
+- Return types for each function
+- Hints in comments pointing to relevant module sections
+
+**5 TODOs:**
+
+1. **`requireWithError(bool condition, bytes4 selector)`** — If condition is false, revert with the given 4-byte error selector. This is your reusable guard function.
+2. **`min(uint256,uint256)` + `max(uint256,uint256)`** — Implement both using Yul functions. The Solidity wrappers call the Yul functions internally. Use the `if lt(a, b)` pattern.
+3. **`sumArray(uint256[] calldata)`** — Loop through a calldata array and return the sum. You'll need to decode the array offset, read the length, and iterate through elements using `calldataload` with computed offsets.
+4. **`findMax(uint256[] calldata)`** — Loop through a calldata array and return the maximum element. Combine the loop pattern from TODO 3 with the `max` Yul function from TODO 2.
+5. **`batchTransfer(address[] calldata recipients, uint256[] calldata amounts)`** — Loop through two parallel calldata arrays, performing storage writes for each pair. Validate that both arrays have the same length. This combines loops, storage (from Module 3), and error handling.
+
+**🎯 Goal:** Practice Yul function definition, gas-efficient loops, and calldata array decoding in a controlled environment. Each TODO builds on the previous one.
+
+**Run:**
+```bash
+FOUNDRY_PROFILE=part4 forge test --match-path "test/part4/module4/exercise2-loop-and-functions/*"
+```
+
+---
+
 ## 💡 Function Selector Dispatch
 
 The dispatch table is the entry point of every Solidity contract. When you call `transfer()`, the EVM doesn't know what "functions" are — it sees raw bytes. The dispatcher examines the first 4 bytes of calldata and routes execution to the right code. Every Solidity contract has this logic auto-generated. Now you'll build one by hand.
@@ -1321,6 +1349,38 @@ Explore the full patterns at [github.com/Vectorized/solady](https://github.com/V
 
 ---
 
+<a id="exercise1"></a>
+## 🎯 Build Exercise: YulDispatcher
+
+**Workspace:**
+- Implementation: [`workspace/src/part4/module4/exercise1-yul-dispatcher/YulDispatcher.sol`](../workspace/src/part4/module4/exercise1-yul-dispatcher/YulDispatcher.sol)
+- Tests: [`workspace/test/part4/module4/exercise1-yul-dispatcher/YulDispatcher.t.sol`](../workspace/test/part4/module4/exercise1-yul-dispatcher/YulDispatcher.t.sol)
+
+Build a mini ERC-20 entirely in Yul. The contract has a single `fallback()` function containing your dispatch logic. Storage layout, error selectors, and function selectors are provided as constants — you write all the assembly.
+
+**What's provided:**
+- Storage slot constants (`TOTAL_SUPPLY_SLOT`, `BALANCES_SLOT`, `OWNER_SLOT`)
+- Error selectors (`Unauthorized()`, `InsufficientBalance(uint256,uint256)`, `ZeroAddress()`)
+- Function selectors for the 5 functions you'll implement
+- The constructor (sets owner and mints initial supply)
+
+**5 TODOs:**
+
+1. **Selector dispatch** — Extract the selector from calldata and implement a `switch` statement routing to 5 function selectors. Revert with empty data on unknown selectors.
+2. **`totalSupply()`** — Load total supply from storage slot 0, ABI-encode it, and return. The simplest function — one `sload`, one `mstore`, one `return`.
+3. **`balanceOf(address)`** — Decode the address argument from calldata, compute the mapping slot using the [Module 3 formula](3-storage.md#mapping-slots) (`keccak256(key . baseSlot)`), load the balance, and return.
+4. **`transfer(address,uint256)`** — Decode both arguments, validate the sender has sufficient balance (revert with `InsufficientBalance` if not), validate the recipient is not zero address, update both balances in storage, and return `true` (ABI-encoded as `uint256(1)`).
+5. **`mint(address,uint256)`** — Check that the caller is the owner (revert with `Unauthorized` if not), validate the recipient is not zero address, increment the recipient's balance and the total supply.
+
+**🎯 Goal:** Combine calldata decoding ([Module 2](2-memory-calldata.md#calldata-layout)), storage operations ([Module 3](3-storage.md#sload-sstore-yul)), and selector dispatch (this module) into a working contract. All 5 function calls should work identically to a standard Solidity ERC-20.
+
+**Run:**
+```bash
+FOUNDRY_PROFILE=part4 forge test --match-path "test/part4/module4/exercise1-yul-dispatcher/*"
+```
+
+---
+
 ## 💡 Error Handling Patterns in Yul
 
 <a id="error-patterns"></a>
@@ -1409,69 +1469,6 @@ assembly {
    - [Huff ERC20](https://github.com/huff-language/huff-examples/tree/main/erc20) — ERC-20 in raw opcodes
    - [OpenZeppelin Proxy.sol](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Proxy.sol) — assembly dispatch for proxy forwarding
    - [EIP-1167 reference](https://eips.ethereum.org/EIPS/eip-1167) — the minimal proxy bytecode
-
----
-
-<a id="exercise1"></a>
-## 🎯 Build Exercise: YulDispatcher
-
-**Workspace:**
-- Implementation: [`workspace/src/part4/module4/exercise1-yul-dispatcher/YulDispatcher.sol`](../workspace/src/part4/module4/exercise1-yul-dispatcher/YulDispatcher.sol)
-- Tests: [`workspace/test/part4/module4/exercise1-yul-dispatcher/YulDispatcher.t.sol`](../workspace/test/part4/module4/exercise1-yul-dispatcher/YulDispatcher.t.sol)
-
-Build a mini ERC-20 entirely in Yul. The contract has a single `fallback()` function containing your dispatch logic. Storage layout, error selectors, and function selectors are provided as constants — you write all the assembly.
-
-**What's provided:**
-- Storage slot constants (`TOTAL_SUPPLY_SLOT`, `BALANCES_SLOT`, `OWNER_SLOT`)
-- Error selectors (`Unauthorized()`, `InsufficientBalance(uint256,uint256)`, `ZeroAddress()`)
-- Function selectors for the 5 functions you'll implement
-- The constructor (sets owner and mints initial supply)
-
-**5 TODOs:**
-
-1. **Selector dispatch** — Extract the selector from calldata and implement a `switch` statement routing to 5 function selectors. Revert with empty data on unknown selectors.
-2. **`totalSupply()`** — Load total supply from storage slot 0, ABI-encode it, and return. The simplest function — one `sload`, one `mstore`, one `return`.
-3. **`balanceOf(address)`** — Decode the address argument from calldata, compute the mapping slot using the [Module 3 formula](3-storage.md#mapping-slots) (`keccak256(key . baseSlot)`), load the balance, and return.
-4. **`transfer(address,uint256)`** — Decode both arguments, validate the sender has sufficient balance (revert with `InsufficientBalance` if not), validate the recipient is not zero address, update both balances in storage, and return `true` (ABI-encoded as `uint256(1)`).
-5. **`mint(address,uint256)`** — Check that the caller is the owner (revert with `Unauthorized` if not), validate the recipient is not zero address, increment the recipient's balance and the total supply.
-
-**🎯 Goal:** Combine calldata decoding ([Module 2](2-memory-calldata.md#calldata-layout)), storage operations ([Module 3](3-storage.md#sload-sstore-yul)), and selector dispatch (this module) into a working contract. All 5 function calls should work identically to a standard Solidity ERC-20.
-
-**Run:**
-```bash
-FOUNDRY_PROFILE=part4 forge test --match-path "test/part4/module4/exercise1-yul-dispatcher/*"
-```
-
----
-
-<a id="exercise2"></a>
-## 🎯 Build Exercise: LoopAndFunctions
-
-**Workspace:**
-- Implementation: [`workspace/src/part4/module4/exercise2-loop-and-functions/LoopAndFunctions.sol`](../workspace/src/part4/module4/exercise2-loop-and-functions/LoopAndFunctions.sol)
-- Tests: [`workspace/test/part4/module4/exercise2-loop-and-functions/LoopAndFunctions.t.sol`](../workspace/test/part4/module4/exercise2-loop-and-functions/LoopAndFunctions.t.sol)
-
-Practice Yul functions and loop patterns. Each function has a Solidity signature with an `assembly { }` body — you write the internals. This exercise focuses on control flow and iteration, not dispatch.
-
-**What's provided:**
-- Function signatures with parameter names
-- Return types for each function
-- Hints in comments pointing to relevant module sections
-
-**5 TODOs:**
-
-1. **`requireWithError(bool condition, bytes4 selector)`** — If condition is false, revert with the given 4-byte error selector. This is your reusable guard function.
-2. **`min(uint256,uint256)` + `max(uint256,uint256)`** — Implement both using Yul functions. The Solidity wrappers call the Yul functions internally. Use the `if lt(a, b)` pattern.
-3. **`sumArray(uint256[] calldata)`** — Loop through a calldata array and return the sum. You'll need to decode the array offset, read the length, and iterate through elements using `calldataload` with computed offsets.
-4. **`findMax(uint256[] calldata)`** — Loop through a calldata array and return the maximum element. Combine the loop pattern from TODO 3 with the `max` Yul function from TODO 2.
-5. **`batchTransfer(address[] calldata recipients, uint256[] calldata amounts)`** — Loop through two parallel calldata arrays, performing storage writes for each pair. Validate that both arrays have the same length. This combines loops, storage (from Module 3), and error handling.
-
-**🎯 Goal:** Practice Yul function definition, gas-efficient loops, and calldata array decoding in a controlled environment. Each TODO builds on the previous one.
-
-**Run:**
-```bash
-FOUNDRY_PROFILE=part4 forge test --match-path "test/part4/module4/exercise2-loop-and-functions/*"
-```
 
 ---
 

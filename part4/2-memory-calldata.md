@@ -11,10 +11,13 @@
 **Memory**
 - [Memory Layout: The Reserved Regions](#memory-layout)
 - [The Free Memory Pointer](#free-memory-pointer)
+- [Memory-Safe Assembly](#memory-safe)
+- [Build Exercise: MemoryLab](#exercise1)
 
 **Calldata**
 - [Calldata Layout: Static & Dynamic Types](#calldata-layout)
 - [ABI Encoding at the Byte Level](#abi-encoding)
+- [Build Exercise: CalldataDecoder](#exercise2)
 
 **Return Data & Errors**
 - [Return Values & Error Encoding in Assembly](#return-errors)
@@ -23,10 +26,6 @@
 - [Scratch Space for Hashing](#scratch-hashing)
 - [Proxy Forwarding (Preview)](#proxy-preview)
 - [Zero-Copy Calldata](#zero-copy)
-
-**Exercises**
-- [Build Exercise: MemoryLab](#exercise1)
-- [Build Exercise: CalldataDecoder](#exercise2)
 
 ---
 

@@ -33,7 +33,6 @@
 - [Oracle Extractable Value (OEV)](#oev)
 - [Defense Patterns](#defense-patterns)
 - [Build: Oracle Manipulation Lab](#build-oracle-lab)
-- [Common Mistakes](#common-mistakes)
 
 ---
 

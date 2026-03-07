@@ -24,10 +24,8 @@
 - [What is Restaking?](#what-is-restaking)
 - [EigenLayer Architecture](#eigenlayer-architecture)
 - [Liquid Restaking Tokens (LRTs)](#lrts)
-- [The Risk Landscape](#risk-landscape)
 
 **LST Integration Patterns**
-- [De-Peg Scenarios and the Dual Oracle Pattern](#depeg-dual-oracle)
 - [LSTs as Collateral in Lending](#lst-collateral)
 - [LSTs in AMMs](#lst-amms)
 - [LSTs in Vaults](#lst-vaults)

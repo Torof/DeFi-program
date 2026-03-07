@@ -12,50 +12,41 @@
 - [Why a Perpetual Exchange Capstone](#why-capstone)
 - [The Perp Exchange Landscape](#perp-landscape)
 - [Design Principles: Oracle-Based, L2-Native, Bounded Governance](#design-principles)
-- [Cross-Module Prerequisite Map](#prerequisite-map)
 
 **Architecture Design**
 - [Contract Structure: The 5 Core Contracts](#contract-structure)
 - [Core Data Structures](#data-structures)
 - [Design Decisions You'll Make](#design-decisions)
+- [Deployment & Authorization](#deployment-authorization)
+- [Storage Layout Considerations](#storage-layout)
 
 **PerpEngine & Position Lifecycle**
 - [The PerpEngine Contract](#engine-contract)
-- [Margin Math with Multi-Collateral Pricing](#margin-math)
 - [Multi-Collateral Margin: ETH and wstETH](#multi-collateral-margin)
 - [The Position Lifecycle](#position-lifecycle)
 
 **LiquidityPool & LP Economics**
 - [The LiquidityPool Contract](#lp-pool)
-- [LP Deposit & Withdrawal Math](#lp-deposit-withdrawal)
 - [PnL Settlement Between Traders and the Pool](#pnl-settlement)
 - [Utilization & Open Interest Tracking](#utilization)
 
 **Oracle, Sequencer & Risk Management**
 - [The PriceFeed Contract](#price-feed)
-- [Sequencer Awareness for L2 Deployment](#sequencer-awareness)
 - [Operational States](#operational-states)
 - [Risk Management Parameters](#risk-params)
 - [Parameter Governance](#parameter-governance)
 
 **Liquidation Design**
 - [Designing Your Liquidation System](#liquidation-design)
-- [Partial vs Full Liquidation](#partial-liquidation)
 - [Keeper Incentive Sizing & MEV](#keeper-incentives)
 - [Insurance Fund Design](#insurance-fund-design)
 - [MEV-Aware Liquidation Flow](#mev-aware-liquidation)
-- [Full Liquidation Walkthrough](#liquidation-walkthrough)
 
 **Testing & Hardening**
-- [The 6 Critical Invariants](#critical-invariants)
 - [Fuzz and Fork Testing](#fuzz-fork)
-- [Edge Cases to Explore](#edge-cases)
 
 **Building & Wrap Up**
 - [Suggested Build Order](#build-order)
-- [⚠️ Common Mistakes](#common-mistakes)
-- [📖 How to Study GMX V2](#study-gmx)
-- [Portfolio & Interview Positioning](#portfolio)
 - [Self-Assessment Checklist](#self-assessment)
 
 ---
@@ -349,6 +340,7 @@ These are real architectural choices with trade-offs. Think through each one bef
 
 > Think through these before writing code. Your answers shape the entire architecture. Write them down — they become your Architecture Decision Record for the portfolio.
 
+<a id="deployment-authorization"></a>
 ### 💡 Concept: Deployment & Authorization
 
 Your 5 contracts have mutual dependencies. Think about deployment order and how contracts authorize each other:
@@ -363,6 +355,7 @@ Deployment order: PriceFeed → FundingRate → LiquidityPool → PerpEngine (wi
 
 This is simpler than the P2 capstone's deployment (which needed CREATE2 for circular dependencies between Engine and Stablecoin). Here the dependency graph is acyclic — each contract only references contracts deployed before it.
 
+<a id="storage-layout"></a>
 ### 💡 Concept: Storage Layout Considerations
 
 For gas optimization on the hot path (margin checks happen on every position change), think about how your structs pack into storage slots:

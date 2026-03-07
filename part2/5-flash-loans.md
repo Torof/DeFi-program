@@ -27,7 +27,6 @@
 - [Flash Loan Receiver Security](#receiver-security)
 - [Flash Loans vs Flash Accounting](#flash-vs-accounting)
 - [Governance Attacks via Flash Loans](#governance-attacks)
-- [Common Mistakes](#common-mistakes)
 - [Exercises](#day3-exercises)
 
 ---

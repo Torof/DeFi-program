@@ -6,16 +6,24 @@
 
 ## 📚 Table of Contents
 
-**Understanding MEV**
-- [The Invisible Tax](#invisible-tax)
-- [Sandwich Attacks: Anatomy & Math](#sandwich-attacks)
-- [Build Exercise: Sandwich Attack Simulation](#exercise1-sandwich-simulation)
-- [Arbitrage & Liquidation MEV](#good-mev)
-- [The Post-Merge MEV Supply Chain](#supply-chain)
+**The Invisible Tax**
+- [What is MEV?](#what-is-mev)
 
-**Defense & Protocol Design**
-- [MEV Protection Mechanisms](#protection)
-- [MEV-Aware Protocol Design](#mev-aware-design)
+**Sandwich Attacks: Anatomy & Math**
+- [How a Sandwich Attack Works](#how-sandwich-works)
+- [Build Exercise: Sandwich Attack Simulation](#exercise1-sandwich-simulation)
+
+**Arbitrage & Liquidation MEV**
+- [The "Good" MEV](#the-good-mev)
+
+**The Post-Merge MEV Supply Chain**
+- [Proposer-Builder Separation (PBS)](#pbs)
+
+**MEV Protection Mechanisms**
+- [Defending Against the Invisible Tax](#defending-mev)
+
+**MEV-Aware Protocol Design**
+- [Building Protocols That Resist Extraction](#resist-extraction)
 - [Build Exercise: MEV-Aware Dynamic Fee Hook](#exercise2-mev-fee-hook)
 
 ---
@@ -33,6 +41,7 @@ Understanding MEV is essential for both sides: as a **protocol designer** (minim
 - The solver/searcher space is one of the hottest hiring areas in DeFi right now
 - Module 4's intent paradigm was designed specifically to combat MEV — this module explains what it's combating
 
+<a id="what-is-mev"></a>
 ### 💡 Concept: What is MEV?
 
 Originally "Miner Extractable Value" (pre-Merge), now **Maximal Extractable Value** — the total value that can be extracted by anyone who controls transaction ordering within a block.
@@ -70,6 +79,7 @@ BENIGN ────────────────────────�
 <a id="sandwich-attacks"></a>
 ## 💡 Sandwich Attacks: Anatomy & Math
 
+<a id="how-sandwich-works"></a>
 ### 💡 Concept: How a Sandwich Attack Works
 
 This is the most important MEV attack to understand — it directly costs users money on every unprotected swap.
@@ -278,6 +288,7 @@ After this section, you should be able to:
 <a id="good-mev"></a>
 ## 💡 Arbitrage & Liquidation MEV
 
+<a id="the-good-mev"></a>
 ### 💡 Concept: The "Good" MEV
 
 Not all MEV harms users. Arbitrage and liquidation MEV serve essential functions in DeFi.
@@ -359,6 +370,7 @@ The gas auction is "wasteful" (bots overpay for gas), but the underlying liquida
 <a id="supply-chain"></a>
 ## 💡 The Post-Merge MEV Supply Chain
 
+<a id="pbs"></a>
 ### 💡 Concept: Proposer-Builder Separation (PBS)
 
 Before the Merge, miners both built and proposed blocks — they could extract MEV directly. Post-Merge, **Proposer-Builder Separation** splits these roles:
@@ -482,6 +494,7 @@ This is the most debated topic in Ethereum governance:
 <a id="protection"></a>
 ## 💡 MEV Protection Mechanisms
 
+<a id="defending-mev"></a>
 ### 💡 Concept: Defending Against the Invisible Tax
 
 Protection operates at four levels: transaction privacy, order flow auctions, application design, and cryptographic schemes.
@@ -630,6 +643,7 @@ function reveal(uint256 amount, bytes32 salt) external {
 <a id="mev-aware-design"></a>
 ## 💡 MEV-Aware Protocol Design
 
+<a id="resist-extraction"></a>
 ### 💡 Concept: Building Protocols That Resist Extraction
 
 Four design principles that every DeFi protocol should follow:

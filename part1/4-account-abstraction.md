@@ -10,7 +10,6 @@
 - [The Problem Account Abstraction Solves](#problem-aa-solves)
 - [ERC-4337 Components](#erc-4337-components)
 - [The Flow](#the-flow)
-- [Reading SimpleAccount and BaseAccount](#read-simpleaccount)
 - [Build Exercise: SimpleSmartAccount](#day8-exercise)
 
 **EIP-7702 and DeFi Implications**
@@ -22,7 +21,6 @@
 **Paymasters and Gas Abstraction**
 - [Paymaster Design Patterns](#paymaster-patterns)
 - [Paymaster Flow in Detail](#paymaster-flow)
-- [Reading Paymaster Implementations](#read-paymasters)
 - [Build Exercise: Paymasters](#day10-exercise)
 
 ---

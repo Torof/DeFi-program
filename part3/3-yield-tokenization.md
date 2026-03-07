@@ -10,7 +10,6 @@
 
 **The Fixed-Rate Problem**
 - [Why Yield Tokenization?](#why-yield-tokenization)
-- [The Zero-Coupon Bond Analogy](#zero-coupon-bond)
 
 **Core Mechanism: The PT/YT Split**
 - [How Splitting Works](#how-splitting-works)
@@ -18,18 +17,13 @@
 
 **ERC-5115: Standardized Yield**
 - [SY vs ERC-4626](#sy-vs-erc4626)
-- [Exchange Rate Mechanics](#exchange-rate-mechanics)
 
 **Pendle Architecture**
 - [System Overview](#pendle-system-overview)
-- [YieldContractFactory: Minting PT + YT](#yield-contract-factory)
-- [PendleYieldToken: Yield Tracking](#pendle-yield-token)
-- [PendlePrincipalToken: Maturity Redemption](#pendle-principal-token)
 
 **The Pendle AMM**
 - [Why Constant Product Fails for PT](#why-xy-k-fails)
 - [Rate-Space Trading: The Key Insight](#rate-space-trading)
-- [LP Considerations](#lp-considerations)
 - [Build Exercise: PT Rate Oracle](#exercise-pt-rate-oracle)
 
 **Strategies & Composability**
@@ -37,7 +31,6 @@
 - [Yield Speculation: Buy YT](#strategy-buy-yt)
 - [LP in Pendle Pool](#strategy-lp)
 - [PT as Collateral](#pt-as-collateral)
-- [The LST + Pendle Pipeline](#lst-pendle-pipeline)
 
 ---
 

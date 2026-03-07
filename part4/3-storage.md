@@ -22,10 +22,12 @@
 - [Dynamic Array Slot Computation](#array-slots)
 - [Nested Structures: Mappings of Mappings, Mappings of Structs](#nested-slots)
 - [The -1 Trick: Preimage Attack Prevention](#minus-one)
+- [Build Exercise: SlotExplorer](#exercise1)
 
 **Storage Packing in Assembly**
 - [Manual Pack/Unpack with Bit Operations](#manual-packing)
 - [Aave V3 ReserveConfiguration Case Study](#aave-case-study)
+- [Build Exercise: StoragePacker](#exercise2)
 
 **Transient Storage in Assembly**
 - [TLOAD & TSTORE Yul Patterns](#tload-tstore)
@@ -35,10 +37,6 @@
 - [ERC-7201 Namespaced Storage](#erc-7201)
 - [SSTORE2: Bytecode as Immutable Storage](#sstore2)
 - [Storage Proofs and Reading Any Contract's Storage](#storage-proofs)
-
-**Exercises**
-- [Build Exercise: SlotExplorer](#exercise1)
-- [Build Exercise: StoragePacker](#exercise2)
 
 ---
 
