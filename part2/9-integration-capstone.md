@@ -1452,4 +1452,4 @@ MakerDAO's codebase uses terse, domain-specific naming that can be disorienting.
 
 ---
 
-**Navigation:** [← Module 8: DeFi Security](8-defi-security.md) | End of Part 2
+**Navigation:** [← Module 8: DeFi Security](8-defi-security.md) | [Part 3: Advanced DeFi Patterns →](../part3/1-liquid-staking.md)

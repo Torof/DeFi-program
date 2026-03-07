@@ -1506,7 +1506,6 @@ assembly {
 
 ---
 
-<a id="resources"></a>
 ## 📚 Resources
 
 **Essential References:**
@@ -1531,4 +1530,4 @@ assembly {
 
 ---
 
-**Navigation:** [Previous: Module 3 — Storage Deep Dive](3-storage.md) | [Next: Module 5 — External Calls](5-external-calls.md)
+**Navigation:** [← Module 3: Storage Deep Dive](3-storage.md) | [Module 5: External Calls →](5-external-calls.md)

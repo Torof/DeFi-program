@@ -1031,7 +1031,6 @@ After this section, you should be able to:
 
 ---
 
-<a id="resources"></a>
 ## 📚 Resources
 
 **Production Code:**
@@ -1054,4 +1053,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** [← Module 2: Perpetuals & Derivatives](2-perpetuals.md) | [Next: Module 4 — DEX Aggregation & Intents →](4-dex-aggregation.md)
+**Navigation:** [← Module 2: Perpetuals & Derivatives](2-perpetuals.md) | [Module 4: DEX Aggregation & Intents →](4-dex-aggregation.md)

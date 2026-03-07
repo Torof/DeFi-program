@@ -971,7 +971,7 @@ Hyperliquid is a purpose-built L1 for perpetuals with sub-second finality:
 
 ---
 
-##### 💼 Job Market Context
+#### 💼 Job Market Context
 
 **What DeFi teams expect you to know:**
 
@@ -1299,7 +1299,6 @@ After this section, you should be able to:
 
 ---
 
-<a id="resources"></a>
 ## 📚 Resources
 
 **Production Code:**
@@ -1321,4 +1320,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** [← Module 1: Liquid Staking](1-liquid-staking.md) | [Next: Module 3 — Yield Tokenization →](3-yield-tokenization.md)
+**Navigation:** [← Module 1: Liquid Staking](1-liquid-staking.md) | [Module 3: Yield Tokenization →](3-yield-tokenization.md)

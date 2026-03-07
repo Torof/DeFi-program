@@ -10,4 +10,4 @@
 
 ---
 
-**Navigation:** [Previous: Module 8 — Pure Yul Contracts](8-pure-yul.md)
+**Navigation:** [← Module 8: Pure Yul Contracts](8-pure-yul.md) | End of Part 4

@@ -904,7 +904,6 @@ After this section, you should be able to:
 
 ---
 
-<a id="resources"></a>
 ## 📚 Resources
 
 **Production Code:**
@@ -928,4 +927,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** [← Module 5: MEV Deep Dive](5-mev.md) | [Next: Module 7 — L2-Specific DeFi →](7-l2-defi.md)
+**Navigation:** [← Module 5: MEV Deep Dive](5-mev.md) | [Module 7: L2-Specific DeFi →](7-l2-defi.md)

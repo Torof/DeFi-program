@@ -1263,7 +1263,6 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract StoragePackerTest -vvv`
 
 ---
 
-<a id="resources"></a>
 ## 📚 Resources
 
 **Essential References:**
@@ -1296,4 +1295,4 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract StoragePackerTest -vvv`
 
 ---
 
-**Navigation:** [Previous: Module 2 — Memory & Calldata](2-memory-calldata.md) | [Next: Module 4 — Control Flow & Functions](4-control-flow.md)
+**Navigation:** [← Module 2: Memory & Calldata](2-memory-calldata.md) | [Module 4: Control Flow & Functions →](4-control-flow.md)

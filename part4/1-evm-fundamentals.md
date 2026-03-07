@@ -1530,7 +1530,6 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract GasExplorerTest -vvv`
 
 ---
 
-<a id="resources"></a>
 ## 📚 Resources
 
 **Essential References:**
@@ -1571,4 +1570,4 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract GasExplorerTest -vvv`
 
 ---
 
-**Navigation:** [Next: Module 2 — Memory & Calldata](2-memory-calldata.md)
+**Navigation:** [← Part 3 Module 9: Capstone](../part3/9-capstone.md) | [Module 2: Memory & Calldata →](2-memory-calldata.md)

@@ -1082,7 +1082,6 @@ After this section, you should be able to:
 
 ---
 
-<a id="resources"></a>
 ## 📚 Resources
 
 **Production Code:**
@@ -1102,4 +1101,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** [← Module 3: Yield Tokenization](3-yield-tokenization.md) | [Next: Module 5 — MEV Deep Dive →](5-mev.md)
+**Navigation:** [← Module 3: Yield Tokenization](3-yield-tokenization.md) | [Module 5: MEV Deep Dive →](5-mev.md)

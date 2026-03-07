@@ -1066,7 +1066,6 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract CalldataDecoderTest -vvv
 
 ---
 
-<a id="resources"></a>
 ## 📚 Resources
 
 **Essential References:**
@@ -1099,4 +1098,4 @@ Run: `FOUNDRY_PROFILE=part4 forge test --match-contract CalldataDecoderTest -vvv
 
 ---
 
-**Navigation:** [Previous: Module 1 — EVM Fundamentals](1-evm-fundamentals.md) | [Next: Module 3 — Storage Deep Dive](3-storage.md)
+**Navigation:** [← Module 1: EVM Fundamentals](1-evm-fundamentals.md) | [Module 3: Storage Deep Dive →](3-storage.md)

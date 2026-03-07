@@ -562,7 +562,7 @@ The rate is updated by Rocket Pool's Oracle DAO (a set of trusted nodes) rather 
 
 > **Repos:** [Lido](https://github.com/lidofinance/lido-dao) | [Rocket Pool](https://github.com/rocket-pool/rocketpool)
 
-##### 💼 Job Market Context
+#### 💼 Job Market Context
 
 **What DeFi teams expect you to know:**
 
@@ -769,7 +769,7 @@ This is not theoretical — Aave, Morpho, and every lending protocol that lists 
 
 **The systemic risk:** If many AVSes use the same operator set, and that operator set gets slashed on one AVS, the collateral damage cascades — all LRTs backed by those operators lose value simultaneously. This correlated slashing risk is the restaking-specific systemic concern.
 
-##### 💼 Job Market Context
+#### 💼 Job Market Context
 
 **What DeFi teams expect you to know:**
 
@@ -1136,7 +1136,6 @@ After this section, you should be able to:
 
 ---
 
-<a id="resources"></a>
 ## 📚 Resources
 
 **Production Code:**
@@ -1158,4 +1157,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** [Next: Module 2 — Perpetuals & Derivatives →](2-perpetuals.md)
+**Navigation:** [← Part 2 Module 9: Integration Capstone](../part2/9-integration-capstone.md) | [Module 2: Perpetuals & Derivatives →](2-perpetuals.md)

@@ -799,7 +799,6 @@ After this section, you should be able to:
 
 ---
 
-<a id="resources"></a>
 ## 📚 Resources
 
 **Production Code:**
@@ -823,4 +822,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** [← Module 6: Cross-Chain & Bridges](6-cross-chain.md) | [Next: Module 8 — Governance & DAOs →](8-governance.md)
+**Navigation:** [← Module 6: Cross-Chain & Bridges](6-cross-chain.md) | [Module 8: Governance & DAOs →](8-governance.md)

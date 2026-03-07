@@ -1894,4 +1894,4 @@ GMX V2's codebase (`gmx-io/gmx-synthetics`) is large (~50+ contracts), but it fo
 
 ---
 
-**Navigation:** [← Module 8: Governance & DAOs](8-governance.md)
+**Navigation:** [← Module 8: Governance & DAOs](8-governance.md) | [Part 4: EVM Deep Dive →](../part4/1-evm-fundamentals.md)

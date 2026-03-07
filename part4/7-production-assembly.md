@@ -10,4 +10,4 @@
 
 ---
 
-**Navigation:** [Previous: Module 6 — Gas Optimization Patterns](6-gas-optimization.md) | [Next: Module 8 — Pure Yul Contracts](8-pure-yul.md)
+**Navigation:** [← Module 6: Gas Optimization Patterns](6-gas-optimization.md) | [Module 8: Pure Yul Contracts →](8-pure-yul.md)

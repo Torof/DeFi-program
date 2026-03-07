@@ -1695,4 +1695,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** Start of Part 1 | [Next: Module 2 - EVM Changes →](2-evm-changes.md)
+**Navigation:** Start of Part 1 | [Module 2: EVM Changes →](2-evm-changes.md)

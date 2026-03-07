@@ -816,7 +816,6 @@ After this section, you should be able to:
 
 ---
 
-<a id="resources"></a>
 ## 📚 Resources
 
 **Production Code:**
@@ -839,4 +838,4 @@ After this section, you should be able to:
 
 ---
 
-**Navigation:** [← Module 4: DEX Aggregation](4-dex-aggregation.md) | [Next: Module 6 — Cross-Chain & Bridges →](6-cross-chain.md)
+**Navigation:** [← Module 4: DEX Aggregation](4-dex-aggregation.md) | [Module 6: Cross-Chain & Bridges →](6-cross-chain.md)
