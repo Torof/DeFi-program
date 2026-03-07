@@ -27,9 +27,9 @@
 - [Build Exercise: PT Rate Oracle](#exercise-pt-rate-oracle)
 
 **Strategies & Composability**
-- [Fixed Income: Buy PT](#strategy-buy-pt)
-- [Yield Speculation: Buy YT](#strategy-buy-yt)
-- [LP in Pendle Pool](#strategy-lp)
+- [Strategy 1: Fixed Income — Buy PT](#strategy-buy-pt)
+- [Strategy 2: Yield Speculation — Buy YT](#strategy-buy-yt)
+- [Strategy 3: LP in Pendle Pool](#strategy-lp)
 - [PT as Collateral](#pt-as-collateral)
 
 ---

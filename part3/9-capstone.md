@@ -45,9 +45,9 @@
 **Testing & Hardening**
 - [Fuzz and Fork Testing](#fuzz-fork)
 
-**Building & Wrap Up**
-- [Suggested Build Order](#build-order)
-- [Self-Assessment Checklist](#self-assessment)
+**Suggested Build Order**
+
+**Self-Assessment Checklist**
 
 ---
 

@@ -7,17 +7,21 @@
 ## 📚 Table of Contents
 
 **On-Chain Governance**
-- [On-Chain Governance](#on-chain-governance)
-- [OpenZeppelin Governor in Practice](#oz-governor)
+- [Why Governance Exists](#why-governance-exists)
+
+**OpenZeppelin Governor in Practice**
+- [The Standard Governance Stack](#standard-governance-stack)
 - [Build Exercise: Governor + Timelock System](#exercise-governor)
 
-**ve-Tokenomics**
-- [ve-Tokenomics & the Curve Wars](#ve-tokenomics)
+**ve-Tokenomics & the Curve Wars**
+- [Vote-Escrow: Locking for Influence](#vote-escrow)
 - [Build Exercise: Vote-Escrow Token](#exercise-vote-escrow)
 
-**Security & Design**
-- [Governance Security](#governance-security)
-- [Governance Minimization](#governance-minimization)
+**Governance Security**
+- [When Governance Itself Is the Attack Surface](#governance-attack-surface)
+
+**Governance Minimization**
+- [Less Governance Can Be Better](#less-governance)
 
 ---
 
@@ -34,6 +38,7 @@ Every major DeFi protocol needs a mechanism for parameter updates, upgrades, and
 - Connection to Module 7: cross-chain governance (vote on L1, execute on L2) is the multi-chain standard
 - Connection to Part 2 Module 9: your capstone's immutable design was itself a governance choice
 
+<a id="why-governance-exists"></a>
 ### 💡 Concept: Why Governance Exists
 
 Protocols need to change after deployment:
@@ -79,6 +84,7 @@ Total: 5-14 days from proposal to execution
 <a id="oz-governor"></a>
 ## 💡 OpenZeppelin Governor in Practice
 
+<a id="standard-governance-stack"></a>
 ### 💡 Concept: The Standard Governance Stack
 
 OpenZeppelin Governor is the industry standard — used by most new DeFi protocols. Understanding its code is essential.
@@ -321,6 +327,7 @@ After this section, you should be able to:
 <a id="ve-tokenomics"></a>
 ## 💡 ve-Tokenomics & the Curve Wars
 
+<a id="vote-escrow"></a>
 ### 💡 Concept: Vote-Escrow: Locking for Influence
 
 The ve (vote-escrow) model is one of DeFi's most influential innovations. It transforms a governance token from a speculative asset into an incentive-alignment tool.
@@ -572,6 +579,7 @@ After this section, you should be able to:
 <a id="governance-security"></a>
 ## 💡 Governance Security
 
+<a id="governance-attack-surface"></a>
 ### 💡 Concept: When Governance Itself Is the Attack Surface
 
 ### The Beanstalk Attack ($182M, April 2022)
@@ -728,6 +736,7 @@ Compound:
 <a id="governance-minimization"></a>
 ## 💡 Governance Minimization
 
+<a id="less-governance"></a>
 ### 💡 Concept: Less Governance Can Be Better
 
 Every governable parameter is an attack surface. The more things governance can change, the more ways the protocol can be exploited or manipulated.

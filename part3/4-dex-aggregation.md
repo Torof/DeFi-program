@@ -6,22 +6,34 @@
 
 ## 📚 Table of Contents
 
-**Aggregation**
-- [The Routing Problem](#routing-problem)
-- [Split Order Math](#split-order-math)
-- [Aggregator On-Chain Patterns](#aggregator-patterns)
+**The Routing Problem**
+- [Why Aggregation Exists](#why-aggregation-exists)
+
+**Split Order Math**
+- [When Does Splitting Beat a Single Pool?](#when-splitting-beats)
+
+**Aggregator On-Chain Patterns**
+- [The Multi-Call Executor Pattern](#multi-call-executor)
 - [Build Exercise: Split Router](#exercise-split-router)
 
-**Intents & Solvers**
-- [The Intent Paradigm](#intent-paradigm)
-- [EIP-712 Order Structures](#eip712-orders)
-- [Dutch Auction Price Decay](#dutch-auction)
+**The Intent Paradigm**
+- [From Transactions to Intents](#from-transactions-to-intents)
+
+**EIP-712 Order Structures**
+- [How Intent Orders Are Signed](#how-intent-orders-signed)
+
+**Dutch Auction Price Decay**
+- [How Price Discovery Works in Intents](#price-discovery-intents)
 - [Build Exercise: Intent Settlement](#exercise-intent-settlement)
 
-**Production Architecture**
-- [Settlement Contract Architecture](#settlement-architecture)
-- [Solvers & the Filler Ecosystem](#solvers)
-- [CoW Protocol: Batch Auctions](#cow-protocol)
+**Settlement Contract Architecture**
+- [The UniswapX Reactor Pattern](#uniswapx-reactor)
+
+**Solvers & the Filler Ecosystem**
+- [What Solvers Actually Do](#what-solvers-do)
+
+**CoW Protocol: Batch Auctions**
+- [A Different Approach to Intents](#different-approach-intents)
 
 ---
 
@@ -32,6 +44,7 @@ In practice, no single DEX has the best price for every trade. DEX aggregators s
 
 This module covers both models — from traditional split-routing to the intent/solver paradigm that's reshaping DeFi execution. The emphasis is on intents: that's where the ecosystem is heading and where the job opportunities are.
 
+<a id="why-aggregation-exists"></a>
 ### 💡 Concept: Why Aggregation Exists
 
 **The problem:** No single DEX has the best price for every trade.
@@ -66,6 +79,7 @@ This module covers all three, with emphasis on the intent model — that's where
 <a id="split-order-math"></a>
 ## 💡 Split Order Math
 
+<a id="when-splitting-beats"></a>
 ### 💡 Concept: When Does Splitting Beat a Single Pool?
 
 This connects directly to your AMM math from Part 2 Module 2. Recall the constant product formula:
@@ -191,6 +205,7 @@ The math is the same as Part 2 Module 2's AMM analysis, applied to optimization 
 <a id="aggregator-patterns"></a>
 ## 💡 Aggregator On-Chain Patterns
 
+<a id="multi-call-executor"></a>
 ### 💡 Concept: The Multi-Call Executor Pattern
 
 Every aggregator — 1inch, Paraswap, 0x, CowSwap — uses the same on-chain pattern. The off-chain router determines the optimal path; the on-chain executor just follows instructions:
@@ -346,6 +361,7 @@ After this section, you should be able to:
 <a id="intent-paradigm"></a>
 ## 💡 The Intent Paradigm
 
+<a id="from-transactions-to-intents"></a>
 ### 💡 Concept: From Transactions to Intents
 
 This is arguably the most important paradigm shift in DeFi since AMMs:
@@ -424,6 +440,7 @@ Solver: "I'll give you 1920 USDC — routing through V3 + Curve,
 <a id="eip712-orders"></a>
 ## 💡 EIP-712 Order Structures
 
+<a id="how-intent-orders-signed"></a>
 ### 💡 Concept: How Intent Orders Are Signed
 
 EIP-712 enables typed, structured data signing — the user sees exactly what they're signing in their wallet, not just a hex blob. This is the foundation of every intent protocol.
@@ -532,6 +549,7 @@ This is exactly how your Exercise 2 tests will work.
 <a id="dutch-auction"></a>
 ## 💡 Dutch Auction Price Decay
 
+<a id="price-discovery-intents"></a>
 ### 💡 Concept: How Price Discovery Works in Intents
 
 In traditional limit orders, the user sets a fixed price. In intent-based trading, a **Dutch auction** finds the market price through time decay. The output the solver must provide starts high and decreases over time:
@@ -700,6 +718,7 @@ After this section, you should be able to:
 <a id="settlement-architecture"></a>
 ## 💡 Settlement Contract Architecture
 
+<a id="uniswapx-reactor"></a>
 ### 💡 Concept: The UniswapX Reactor Pattern
 
 The **Reactor** is UniswapX's on-chain settlement engine. It's where the trust guarantee lives — no matter what the solver does off-chain, the on-chain contract enforces that the user gets what they signed for.
@@ -802,6 +821,7 @@ This is powerful — the solver can flash-swap from Uniswap, arbitrage across po
 <a id="solvers"></a>
 ## 💡 Solvers & the Filler Ecosystem
 
+<a id="what-solvers-do"></a>
 ### 💡 Concept: What Solvers Actually Do
 
 A solver (or "filler") is a service that fills intent orders profitably. This is one of the hottest areas in DeFi right now — teams are actively hiring solver engineers.
@@ -922,6 +942,7 @@ contract MySolver is IReactorCallback {
 <a id="cow-protocol"></a>
 ## 💡 CoW Protocol: Batch Auctions
 
+<a id="different-approach-intents"></a>
 ### 💡 Concept: A Different Approach to Intents
 
 While UniswapX uses Dutch auctions for individual orders, CoW Protocol collects orders into **batches** and finds optimal execution for the entire batch at once.

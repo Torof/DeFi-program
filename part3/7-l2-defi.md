@@ -6,19 +6,25 @@
 
 ## 📚 Table of Contents
 
-**L2 Fundamentals**
-- [L2 Architecture for DeFi Developers](#l2-architecture)
-- [The L2 Gas Model](#gas-model)
+**L2 Architecture for DeFi Developers**
+- [Rollup Types](#rollup-types)
+
+**The L2 Gas Model**
+- [Two Components of L2 Cost](#two-components-l2-cost)
 - [Build Exercise: L2 Gas Estimator](#exercise-gas-estimator)
 
-**Sequencer & MEV**
-- [Sequencer Uptime & Oracle Safety](#sequencer-uptime)
+**Sequencer Uptime & Oracle Safety**
+- [The Sequencer Downtime Problem](#sequencer-downtime-problem)
 - [Build Exercise: L2-Aware Oracle Consumer](#exercise-oracle-consumer)
-- [Transaction Ordering & MEV on L2](#l2-mev)
 
-**L2 Protocol Design**
-- [L2-Native Protocol Design](#l2-native)
-- [Multi-Chain Deployment Patterns](#multi-chain)
+**Transaction Ordering & MEV on L2**
+- [A Different MEV Landscape](#different-mev-landscape)
+
+**L2-Native Protocol Design**
+- [What Cheap Gas Enables](#cheap-gas-enables)
+
+**Multi-Chain Deployment Patterns**
+- [Same Protocol, Different Parameters](#same-protocol-different-params)
 
 
 ---
@@ -36,6 +42,7 @@ Most DeFi activity has migrated to L2s — Arbitrum, Base, and Optimism collecti
 - Connection to Module 5 (MEV): L2 sequencer ordering creates an entirely different MEV landscape
 - Connection to Module 6 (Bridges): canonical rollup bridges are L2's trust anchor to L1
 
+<a id="rollup-types"></a>
 ### 💡 Concept: Rollup Types
 
 You don't need to understand rollup internals deeply, but you need to know how the two types affect your DeFi code:
@@ -136,6 +143,7 @@ block.basefee    // L2 base fee — much lower than L1
 <a id="gas-model"></a>
 ## 💡 The L2 Gas Model
 
+<a id="two-components-l2-cost"></a>
 ### 💡 Concept: Two Components of L2 Cost
 
 This is the most important L2 concept for DeFi developers. Every L2 transaction pays for two things:
@@ -338,6 +346,7 @@ After this section, you should be able to:
 <a id="sequencer-uptime"></a>
 ## 💡 Sequencer Uptime & Oracle Safety
 
+<a id="sequencer-downtime-problem"></a>
 ### 💡 Concept: The Sequencer Downtime Problem
 
 This is the most critical L2-specific DeFi issue. Real money has been lost because of it.
@@ -510,6 +519,7 @@ After this section, you should be able to:
 <a id="l2-mev"></a>
 ## 💡 Transaction Ordering & MEV on L2
 
+<a id="different-mev-landscape"></a>
 ### 💡 Concept: A Different MEV Landscape
 
 Module 5 covered L1 MEV in depth. L2 MEV is fundamentally different because the sequencer controls ordering:
@@ -589,6 +599,7 @@ Shared sequencing: multiple L2s share a sequencer
 <a id="l2-native"></a>
 ## 💡 L2-Native Protocol Design
 
+<a id="cheap-gas-enables"></a>
 ### 💡 Concept: What Cheap Gas Enables
 
 L2's low gas costs don't just make existing patterns cheaper — they enable entirely new protocol designs that wouldn't be viable on L1.
@@ -700,6 +711,7 @@ The numbers are modest per user, but for large vaults the compounding frequency 
 <a id="multi-chain"></a>
 ## 💡 Multi-Chain Deployment Patterns
 
+<a id="same-protocol-different-params"></a>
 ### 💡 Concept: Same Protocol, Different Parameters
 
 When deploying a protocol across chains, you need chain-specific configuration:
