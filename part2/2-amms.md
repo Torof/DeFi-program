@@ -13,12 +13,12 @@
 - [Build: Minimal Constant Product Pool](#build-cpp)
 
 **Reading Uniswap V2**
-- [V2 Exercises](#v2-exercises)
+- [Build Exercise: V2 Extensions](#v2-exercises)
 
 **Concentrated Liquidity (Uniswap V3 Concepts)**
 - [The Problem V3 Solves](#v3-problem)
 - [Core V3 Concepts](#v3-concepts)
-- [V3 Exercises](#v3-exercises)
+- [Build Exercise: V3 Position Calculator](#v3-exercises)
 - [Build Exercise: Simplified Concentrated Liquidity Pool](#build-v3-pool)
 
 **Uniswap V4 — Singleton Architecture and Flash Accounting**
@@ -493,9 +493,17 @@ This is the user-facing contract. Note how it:
 ---
 
 <a id="v2-exercises"></a>
-### Exercises
+## 🎯 Build Exercise: V2 Extensions
 
-**Workspace:** [`workspace/test/part2/module2/exercise1b-v2-extensions/`](../workspace/test/part2/module2/exercise1b-v2-extensions/) — test-only exercise: [`V2Extensions.t.sol`](../workspace/test/part2/module2/exercise1b-v2-extensions/V2Extensions.t.sol) (implements `FlashSwapConsumer` and `SimpleRouter` inline, then runs tests for flash swaps, multi-hop routing, and TWAP)
+**Workspace:**
+- Tests: [`V2Extensions.t.sol`](../workspace/test/part2/module2/exercise1b-v2-extensions/V2Extensions.t.sol) (test-only exercise — implements `FlashSwapConsumer` and `SimpleRouter` inline)
+
+**The challenge:** Three exercises covering V2's advanced patterns — flash swaps, multi-hop routing, and TWAP oracles.
+
+**What you'll practice:**
+- Flash swap callback implementation and fee repayment
+- Multi-hop routing through multiple pools
+- TWAP oracle mechanics and price accumulator math
 
 **Exercise 1: Flash swap.** Using your own pool or a V2 fork, implement a flash swap consumer contract. Borrow tokens, "use" them (e.g., check arbitrage conditions), then return them with fee. Write tests verifying the flash swap callback works and that failing to return tokens reverts.
 
@@ -521,6 +529,15 @@ contract FlashSwapConsumer is IUniswapV2Callee {
 **Exercise 3: TWAP oracle consumer.** Deploy a pool, execute swaps at known prices, advance time with `vm.warp()`, and read the TWAP. Verify the oracle returns the time-weighted average.
 
 > **Common pitfall:** Not accounting for price accumulator overflow. V2 uses uint256 for cumulative prices which can overflow. You must compute the difference modulo 2^256. [Example implementation](https://github.com/Uniswap/v2-periphery/blob/master/contracts/examples/ExampleOracleSimple.sol).
+
+**🎯 Goal:** Internalize the three V2 patterns that appear everywhere in DeFi: flash swaps (the foundation for flash loans and arbitrage), multi-hop routing (every aggregator does this), and TWAP oracles (the precursor to V3's improved oracle design).
+
+**Run:**
+```bash
+forge test --match-path "test/part2/module2/exercise1b-v2-extensions/*"
+```
+
+---
 
 #### 📖 How to Study Uniswap V2:
 
@@ -816,9 +833,18 @@ Fees in V3 are tracked per unit of liquidity within active ranges using `feeGrow
 ---
 
 <a id="v3-exercises"></a>
-### Exercises
+## 🎯 Build Exercise: V3 Position Calculator
 
-**Workspace:** [`workspace/src/part2/module2/exercise2-v3-position/`](../workspace/src/part2/module2/exercise2-v3-position/) — starter file: [`V3PositionCalculator.sol`](../workspace/src/part2/module2/exercise2-v3-position/V3PositionCalculator.sol), tests: [`V3PositionCalculator.t.sol`](../workspace/test/part2/module2/exercise2-v3-position/V3PositionCalculator.t.sol)
+**Workspace:**
+- Implementation: [`V3PositionCalculator.sol`](../workspace/src/part2/module2/exercise2-v3-position/V3PositionCalculator.sol)
+- Tests: [`V3PositionCalculator.t.sol`](../workspace/test/part2/module2/exercise2-v3-position/V3PositionCalculator.t.sol)
+
+**The challenge:** Three exercises covering V3's core math — tick conversions, position value calculations, and cross-tick swap simulation.
+
+**What you'll practice:**
+- Converting between ticks, prices, and sqrtPriceX96
+- Computing position amounts for the three cases (below, within, above range)
+- Tracing how liquidity changes when swaps cross tick boundaries
 
 **Exercise 1: Tick math implementation.** Write Solidity functions that convert between ticks, prices, and sqrtPriceX96. Verify against [TickMath.sol](https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/TickMath.sol) outputs using Foundry tests. This will cement the relationship between these representations.
 
@@ -855,6 +881,15 @@ function getPositionAmounts(
 Write tests that verify all three cases and check that amounts change continuously as price moves through the range boundaries.
 
 **Exercise 3: Simulate a swap across ticks.** On paper or in a test, set up a pool with three positions at different ranges. Execute a large swap that crosses two tick boundaries. Trace the liquidity changes and verify the total output matches what V3 would produce.
+
+**🎯 Goal:** Build working V3 math from scratch. If you can compute position values and trace cross-tick swaps, you can read Uniswap V3's actual SqrtPriceMath and SwapMath libraries fluently.
+
+**Run:**
+```bash
+forge test --match-path "test/part2/module2/exercise2-v3-position/*"
+```
+
+---
 
 #### 💼 Job Market Context
 
@@ -1089,8 +1124,6 @@ Focus on:
 <a id="v4-exercises"></a>
 ### Exercises
 
-**Workspace:** [`workspace/src/part2/module2/exercise3-dynamic-fee/`](../workspace/src/part2/module2/exercise3-dynamic-fee/) — starter file: [`DynamicFeeHook.sol`](../workspace/src/part2/module2/exercise3-dynamic-fee/DynamicFeeHook.sol), tests: [`DynamicFeeHook.t.sol`](../workspace/test/part2/module2/exercise3-dynamic-fee/DynamicFeeHook.t.sol)
-
 **Exercise 1: Study the unlock pattern.** Trace through a simple swap: how does the caller interact with PoolManager? What's the sequence of `unlock()` → callback → `swap()` → `settle()` / `take()`? Draw the flow.
 
 **Exercise 2: Multi-hop with flash accounting.** On paper, trace a three-pool multi-hop swap (A→B→C→D). Show how deltas accumulate and net to zero for intermediate tokens. Compare the token transfer count to V2/V3 equivalents.
@@ -1280,6 +1313,17 @@ function afterSwap(...) external returns (...) {
 <a id="build-hook"></a>
 ## 🎯 Build Exercise: A Simple Hook
 
+**Workspace:**
+- Implementation: [`DynamicFeeHook.sol`](../workspace/src/part2/module2/exercise3-dynamic-fee/DynamicFeeHook.sol)
+- Tests: [`DynamicFeeHook.t.sol`](../workspace/test/part2/module2/exercise3-dynamic-fee/DynamicFeeHook.t.sol)
+
+**The challenge:** Build V4 hooks from scratch — a dynamic fee hook based on volatility, a minimal swap counter, and study a production hook.
+
+**What you'll practice:**
+- Extending BaseHook and configuring hook permissions
+- Mining hook addresses with correct flag bits
+- Implementing beforeSwap for dynamic fee adjustment
+
 **Exercise 1: Dynamic fee hook.** Build a hook that adjusts the swap fee based on recent volatility. Track the last N swap prices, compute a simple volatility metric, and return a higher fee when volatility is elevated. This teaches you the full hook development cycle:
 
 - Extend [`BaseHook`](https://github.com/Uniswap/v4-hooks-public/blob/main/src/base/BaseHook.sol) from v4-periphery
@@ -1321,6 +1365,15 @@ contract VolatilityHook is BaseHook {
 **Exercise 3: Read an existing production hook.** Pick one from the [awesome-uniswap-hooks list](https://github.com/fewwwww/awesome-uniswap-hooks) (Clanker, EulerSwap, or the [Full Range hook](https://github.com/Uniswap/v4-periphery/blob/example-contracts/contracts/hooks/examples/FullRange.sol) from Uniswap themselves). Read the source, understand what lifecycle points it hooks into and why.
 
 > **Deep dive:** [Hook development guide](https://docs.uniswap.org/contracts/v4/guides/create-a-hook), [Hook security best practices](https://www.trustlook.com/blog/uniswap-v4-hooks-security/)
+
+**🎯 Goal:** Complete the full hook development cycle — from extending BaseHook to deploying with the right address bits. After this exercise, you can build and test any V4 hook.
+
+**Run:**
+```bash
+forge test --match-path "test/part2/module2/exercise3-dynamic-fee/*"
+```
+
+---
 
 ## 📋 Key Takeaways: V4 Hooks
 
