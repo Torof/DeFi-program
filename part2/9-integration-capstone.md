@@ -64,7 +64,7 @@ You've spent 8 modules building DeFi primitives in isolation — an AMM here, a 
 
 Module 6's key takeaway said it: "Stablecoins are the ultimate integration test." This capstone is that test.
 
-**This is not a guided exercise.** You built scaffolded exercises in M1-M8. This is different — you'll design the architecture, make trade-offs, and own every decision. The curriculum provides architectural guidance, design considerations, and deep dives on new concepts. The implementation is yours.
+**This is not a guided exercise.** You built scaffolded exercises in M1-M8. This is different — you'll design the architecture, make trade-offs, and own every decision. The module provides architectural guidance, design considerations, and deep dives on new concepts. The implementation is yours.
 
 <a id="stablecoin-landscape"></a>
 ### 💡 Concept: The Stablecoin Landscape: Where Your Protocol Sits

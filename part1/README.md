@@ -8,9 +8,9 @@
 
 ## Why Part 1 Exists
 
-You know Solidity. You've written contracts, deployed them, tested them. But the language, the EVM, and the tooling have all evolved significantly since mid-2022. Solidity 0.8.x introduced features that change how production DeFi code is written. The EVM gained new opcodes that protocols like Uniswap V4 depend on. Token approval patterns shifted from raw `approve` toward signature-based flows. Account abstraction went from theory to 40+ million deployed smart accounts. And Foundry replaced Hardhat as the default for serious protocol work.
+Solidity 0.8.x introduced features that change how production DeFi code is written. The EVM gained new opcodes that protocols like Uniswap V4 depend on. Token approval patterns shifted from raw `approve` toward signature-based flows. Account abstraction went from theory to 40+ million deployed smart accounts. And Foundry replaced Hardhat as the default for serious protocol work.
 
-This part gets you current. Everything here feeds directly into Part 2 — you'll encounter every one of these concepts when reading Uniswap, Aave, and MakerDAO source code.
+This part covers the modern Solidity and EVM landscape. Everything here feeds directly into Part 2 — these concepts appear throughout Uniswap, Aave, and MakerDAO source code.
 
 ---
 
@@ -55,4 +55,4 @@ Before moving to Part 2, verify you can:
 - [ ] Explain why `initializer` and `_disableInitializers()` are critical for proxy security
 - [ ] Write a deployment script that deploys, initializes, and verifies a contract
 
-Once you're confident on all of these, you're ready for Part 2 — and you'll find that every single concept here shows up in the production DeFi code you'll be reading.
+These concepts show up repeatedly in the production DeFi code covered in Part 2.

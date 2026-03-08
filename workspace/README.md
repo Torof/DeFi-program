@@ -1,6 +1,6 @@
 # DeFi Protocol Engineering — Workspace
 
-Unified Foundry project for all curriculum exercises (Part 1, Part 2, Part 3, Part 4).
+Unified Foundry project for all exercises (Part 1, Part 2, Part 3, Part 4).
 
 ## Structure
 
@@ -51,7 +51,7 @@ Each exercise has two files:
 | `test/partN/moduleN/exerciseN-name/Exercise.t.sol` | **Tests** — pre-written, complete. They verify your implementation is correct. |
 
 **Workflow:**
-1. Read the scaffold file and the corresponding curriculum section
+1. Read the scaffold file and the corresponding module section
 2. Fill in each `// TODO` block
 3. Run `forge test` — when all tests pass, the exercise is complete
 

@@ -505,7 +505,7 @@ Velodrome's fix:
 
 #### 🔗 DeFi Pattern Connection
 
-**Governance tokenomics across the curriculum:**
+**Governance tokenomics across the program:**
 
 | Pattern | Where It Appears | Module |
 |---|---|---|

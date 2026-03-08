@@ -607,7 +607,7 @@ function reveal(uint256 amount, bytes32 salt) external {
 
 #### 🔗 DeFi Pattern Connection
 
-**MEV protection across the curriculum:**
+**MEV protection across the program:**
 
 | Protection | Where It Appears | Module |
 |---|---|---|

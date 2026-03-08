@@ -69,7 +69,7 @@ Your capstone integrates concepts from across Part 3:
 
 In Module 2's Exercise 2, you built a `SimplePerpExchange` — a single contract handling positions, liquidation, funding, and LP pool in one file. That was a learning exercise. This capstone decomposes the same system into 5 contracts with clear boundaries, explicit design decisions, and production-level concerns that a single-contract prototype glosses over.
 
-**This is not a guided exercise.** You built scaffolded exercises in M1-M8. This is different — you'll design the architecture, make trade-offs, and own every decision. The curriculum provides architectural guidance, design considerations, and deep dives on new concepts. The implementation is yours.
+**This is not a guided exercise.** You built scaffolded exercises in M1-M8. This is different — you'll design the architecture, make trade-offs, and own every decision. The module provides architectural guidance, design considerations, and deep dives on new concepts. The implementation is yours.
 
 **Connection to Part 2 Capstone:** Your P2 stablecoin could serve as the settlement asset for this exchange — a stablecoin backed by ETH and vault shares, settling perpetual contracts denominated in that same stablecoin. The two capstones together form a complete DeFi stack.
 

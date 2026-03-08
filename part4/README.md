@@ -46,4 +46,4 @@ You will be able to:
 
 ---
 
-**Navigation:** [Previous: Part 3](../part3/README.md)
+**Previous:** [Part 3 — Modern DeFi Stack & Advanced Verticals](../part3/)

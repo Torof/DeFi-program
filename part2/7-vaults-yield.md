@@ -299,7 +299,7 @@ Tests verify:
 - `withdraw` burns the correct shares (uses `Ceil` rounding)
 - `redeem` returns assets including earned yield
 - Rounding always favors the vault (deposit rounds down, withdraw rounds up)
-- Full multi-user cycle matches the curriculum walkthrough (Alice, Bob, yield, Carol, withdrawal)
+- Full multi-user cycle matches the module walkthrough (Alice, Bob, yield, Carol, withdrawal)
 
 ## 📋 Key Takeaways: ERC-4626 — The Tokenized Vault Standard
 

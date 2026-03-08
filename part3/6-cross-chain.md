@@ -387,7 +387,7 @@ When evaluating a bridge for protocol integration:
 
 #### 🔗 DeFi Pattern Connection
 
-**Bridge security connects across the curriculum:**
+**Bridge security connects across the program:**
 - **Part 2 Module 8 (DeFi Security):** Bridge exploits are the #1 loss category, bigger than all oracle and reentrancy exploits combined
 - **Part 3 Module 5 (MEV):** Cross-domain MEV exploits the timing gaps between chains — related to bridge finality
 - **Part 2 Module 9 (Capstone):** Your stablecoin must consider what happens if a collateral token's bridge is compromised

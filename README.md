@@ -3,81 +3,79 @@
 [![Read the Book](https://img.shields.io/badge/Read_the_Book-torof.github.io-blue?style=for-the-badge)](https://torof.github.io/DeFi-program/)
 [![Open in GitHub Codespaces](https://img.shields.io/badge/Open_in-Codespaces-black?style=for-the-badge&logo=github)](https://codespaces.new/Torof/DeFi-program?quickstart=1)
 
-A structured, hands-on curriculum for going from experienced Solidity developer to DeFi protocol designer — covering the math, architecture, and security of production DeFi from first principles.
+A structured, hands-on program for going from experienced Solidity developer to DeFi protocol designer — covering the math, architecture, and security of production DeFi from first principles.
 
 ## About
-
-This repo documents a self-directed learning path built around one goal: **designing and building original DeFi protocols**. It's written from the perspective of an experienced EVM/Solidity developer returning to DeFi after a ~2-year absence, with strong smart contract fundamentals but limited protocol-level building experience.
 
 The approach throughout is **read production code, then rebuild**. Every module studies real deployed protocols (Uniswap, Aave, Compound, MakerDAO, etc.), breaks down their architecture, then builds simplified versions from scratch using Foundry. The focus is always on *why* things are designed the way they are — not just *how* they work.
 
 ## Structure
 
-The curriculum is split into four parts, progressing from foundational mechanics to advanced protocol design and EVM mastery.
+Four parts, progressing from foundational mechanics to advanced protocol design and EVM mastery.
 
 ### Part 1 — Solidity, EVM & Modern Tooling (~2.5-3 weeks)
 
-Catching up on Solidity 0.8.x language changes, EVM-level upgrades (Dencun, Pectra), modern token approval patterns, account abstraction, Foundry testing workflows, proxy patterns, and deployment operations.
+Solidity 0.8.x language changes, EVM-level upgrades (Dencun, Pectra), modern token approval patterns, account abstraction, Foundry testing workflows, proxy patterns, and deployment operations.
 
-| # | Module | Duration | Status |
-|---|---------|----------|--------|
-| 1 | Solidity 0.8.x Modern Features | ~2 days | ⬜ |
-| 2 | EVM-Level Changes (EIP-1153, EIP-4844, EIP-7702) | ~2 days | ⬜ |
-| 3 | Modern Token Approvals (EIP-2612, Permit2) | ~3 days | ⬜ |
-| 4 | Account Abstraction (ERC-4337, EIP-7702, Paymasters) | ~3 days | ⬜ |
-| 5 | Foundry Workflow & Testing (Fuzz, Invariant, Fork) | ~2-3 days | ⬜ |
-| 6 | Proxy Patterns & Upgradeability | ~1.5-2 days | ⬜ |
-| 7 | Deployment & Operations | ~0.5 day | ⬜ |
+| # | Module | Duration |
+|---|---------|----------|
+| 1 | Solidity 0.8.x Modern Features | ~2 days |
+| 2 | EVM-Level Changes (EIP-1153, EIP-4844, EIP-7702) | ~2 days |
+| 3 | Modern Token Approvals (EIP-2612, Permit2) | ~3 days |
+| 4 | Account Abstraction (ERC-4337, EIP-7702, Paymasters) | ~3 days |
+| 5 | Foundry Workflow & Testing (Fuzz, Invariant, Fork) | ~2-3 days |
+| 6 | Proxy Patterns & Upgradeability | ~1.5-2 days |
+| 7 | Deployment & Operations | ~0.5 day |
 
 ### Part 2 — DeFi Foundations (~6-7 weeks)
 
 The core primitives of decentralized finance. Each module follows a consistent pattern: concept → math → read production code → build → test → extend.
 
-| # | Module | Duration | Status |
-|---|--------|----------|--------|
-| 1 | Token Mechanics | ~1 day | ⬜ |
-| 2 | AMMs from First Principles | ~10 days | ⬜ |
-| 3 | Oracles | ~3 days | ⬜ |
-| 4 | Lending & Borrowing | ~7 days | ⬜ |
-| 5 | Flash Loans | ~3 days | ⬜ |
-| 6 | Stablecoins & CDPs | ~4 days | ⬜ |
-| 7 | Vaults & Yield | ~4 days | ⬜ |
-| 8 | DeFi Security | ~4 days | ⬜ |
-| 9 | Capstone: Decentralized Stablecoin | ~5-7 days | ⬜ |
+| # | Module | Duration |
+|---|--------|----------|
+| 1 | Token Mechanics | ~1 day |
+| 2 | AMMs from First Principles | ~10 days |
+| 3 | Oracles | ~3 days |
+| 4 | Lending & Borrowing | ~7 days |
+| 5 | Flash Loans | ~3 days |
+| 6 | Stablecoins & CDPs | ~4 days |
+| 7 | Vaults & Yield | ~4 days |
+| 8 | DeFi Security | ~4 days |
+| 9 | Capstone: Decentralized Stablecoin | ~5-7 days |
 
 ### Part 3 — Modern DeFi Stack & Advanced Verticals (~6-7 weeks)
 
 DeFi verticals (liquid staking, perpetuals, yield tokenization), trading infrastructure (aggregation, MEV), multi-chain reality (bridges, L2), governance, and a capstone project integrating advanced concepts into a portfolio-ready protocol.
 
-| # | Module | Duration | Status |
-|---|--------|----------|--------|
-| 1 | Liquid Staking & Restaking | ~4 days | ⬜ |
-| 2 | Perpetuals & Derivatives | ~5 days | ⬜ |
-| 3 | Yield Tokenization | ~3 days | ⬜ |
-| 4 | DEX Aggregation & Intents | ~4 days | ⬜ |
-| 5 | MEV Deep Dive | ~4 days | ⬜ |
-| 6 | Cross-Chain & Bridges | ~4 days | ⬜ |
-| 7 | L2-Specific DeFi | ~3 days | ⬜ |
-| 8 | Governance & DAOs | ~3 days | ⬜ |
-| 9 | Capstone: Perpetual Exchange | ~5-7 days | ⬜ |
+| # | Module | Duration |
+|---|--------|----------|
+| 1 | Liquid Staking & Restaking | ~4 days |
+| 2 | Perpetuals & Derivatives | ~5 days |
+| 3 | Yield Tokenization | ~3 days |
+| 4 | DEX Aggregation & Intents | ~4 days |
+| 5 | MEV Deep Dive | ~4 days |
+| 6 | Cross-Chain & Bridges | ~4 days |
+| 7 | L2-Specific DeFi | ~3 days |
+| 8 | Governance & DAOs | ~3 days |
+| 9 | Capstone: Perpetual Exchange | ~5-7 days |
 
 ### Part 4 — EVM Mastery: Yul & Assembly (~6-7 weeks)
 
 Go from reading assembly snippets to writing production-grade Yul. Understand the machine underneath every DeFi protocol — the single biggest differentiator for senior roles.
 
-| # | Module | Duration | Status |
-|---|--------|----------|--------|
-| 1 | EVM Fundamentals | ~3 days | ⬜ |
-| 2 | Memory & Calldata | ~3 days | ⬜ |
-| 3 | Storage Deep Dive | ~3 days | ⬜ |
-| 4 | Control Flow & Functions | ~3 days | ⬜ |
-| 5 | External Calls | ~3 days | ⬜ |
-| 6 | Gas Optimization Patterns | ~3 days | ⬜ |
-| 7 | Reading Production Assembly | ~3 days | ⬜ |
-| 8 | Pure Yul Contracts | ~4 days | ⬜ |
-| 9 | Capstone: DeFi Primitive in Yul | ~5-7 days | ⬜ |
+| # | Module | Duration |
+|---|--------|----------|
+| 1 | EVM Fundamentals | ~3 days |
+| 2 | Memory & Calldata | ~3 days |
+| 3 | Storage Deep Dive | ~3 days |
+| 4 | Control Flow & Functions | ~3 days |
+| 5 | External Calls | ~3 days |
+| 6 | Gas Optimization Patterns | ~3 days |
+| 7 | Reading Production Assembly | ~3 days |
+| 8 | Pure Yul Contracts | ~4 days |
+| 9 | Capstone: DeFi Primitive in Yul | ~5-7 days |
 
-## Learning Approach
+## Approach
 
 Each module typically includes:
 
@@ -87,8 +85,6 @@ Each module typically includes:
 - **Test** — Comprehensive Foundry test suites including fuzz and invariant testing
 - **Extend** — Exercises that push beyond the basics (attack simulations, gas optimization, mainnet fork testing)
 
-Time estimates assume 3-4 hours per day with no hard deadline.
-
 ## Tech Stack
 
 - **Foundry** — Forge for testing, Anvil for local/fork testing, Cast for on-chain interaction
@@ -97,20 +93,20 @@ Time estimates assume 3-4 hours per day with no hard deadline.
 - **Chainlink** — Price feed integration and oracle patterns
 - **Mainnet fork testing** — Real protocol interaction via `forge test --fork-url`
 
-## Key Protocols Studied
+## Protocols Covered
 
 Uniswap (V2, V3, V4) · Aave V3 · Compound V3 · MakerDAO · Balancer · Chainlink · Permit2 · ERC-4626 · UniswapX · ERC-4337 · Lido · Rocket Pool · EigenLayer · GMX · Synthetix · Pendle · 1inch · CoW Protocol · Flashbots · LayerZero · Chainlink CCIP · Curve · Velodrome
 
 ## Project Structure
 
-### Curriculum docs
+### Module docs
 
-Each part's learning material is organized as flat module files:
+Each part's material is organized as flat module files:
 
 ```
 defi-auto-program/
 ├── README.md                         # This file
-├── part1/                            # Curriculum docs for Part 1
+├── part1/                            # Part 1: Solidity, EVM & Modern Tooling
 │   ├── README.md                     # Overview, module table, checklist
 │   ├── 1-solidity-modern.md          # Solidity 0.8.x features
 │   ├── 2-evm-changes.md              # EIP-1153, EIP-4844, EIP-7702
@@ -119,7 +115,7 @@ defi-auto-program/
 │   ├── 5-foundry.md                  # Fuzz, invariant, fork testing
 │   ├── 6-proxy-patterns.md           # UUPS, transparent, beacon
 │   └── 7-deployment.md               # Scripts, verification, multisig
-├── part2/                            # Curriculum docs for Part 2
+├── part2/                            # Part 2: DeFi Foundations
 │   ├── README.md                     # Overview, module table, checklist
 │   ├── 1-token-mechanics.md          # ERC-20 edge cases, SafeERC20
 │   ├── 2-amms.md                     # Uniswap V2, V3, V4
@@ -130,7 +126,7 @@ defi-auto-program/
 │   ├── 7-vaults-yield.md             # ERC-4626, yield aggregation
 │   ├── 8-defi-security.md            # Reentrancy, oracle manipulation
 │   └── 9-integration-capstone.md     # Decentralized stablecoin capstone
-├── part3/                            # Curriculum docs for Part 3
+├── part3/                            # Part 3: Modern DeFi Stack
 │   ├── README.md                     # Overview, module table, checklist
 │   ├── 1-liquid-staking.md           # Lido, Rocket Pool, EigenLayer
 │   ├── 2-perpetuals.md               # GMX, Synthetix, dYdX
@@ -141,7 +137,7 @@ defi-auto-program/
 │   ├── 7-l2-defi.md                  # Arbitrum, Base, Optimism
 │   ├── 8-governance.md               # OZ Governor, Curve, Velodrome
 │   └── 9-capstone.md                 # Perpetual exchange capstone
-└── part4/                            # Curriculum docs for Part 4
+└── part4/                            # Part 4: EVM Mastery — Yul & Assembly
     ├── README.md                     # Overview, learning arc
     ├── 1-evm-fundamentals.md         # Stack machine, opcodes, gas model
     ├── 2-memory-calldata.md          # mload/mstore, free memory pointer
@@ -154,11 +150,9 @@ defi-auto-program/
     └── 9-capstone.md                 # DeFi primitive in Yul
 ```
 
-Each module file contains the full content for that topic.
-
 ### Code workspace
 
-Single unified Foundry project for all exercises. This structure allows sharing dependencies and referencing earlier code:
+Single unified Foundry project for all exercises. Shares dependencies across parts and allows referencing earlier code:
 
 ```
 workspace/                        # Unified Foundry project
@@ -190,7 +184,7 @@ workspace/                        # Unified Foundry project
 │   │   ├── module6/              # Cross-chain handler, rate-limited token
 │   │   ├── module7/              # L2 oracle consumer, gas estimator
 │   │   └── module8/              # Governor system, vote escrow
-│   └── part4/                    # EVM Mastery: Yul & Assembly (TBD)
+│   └── part4/                    # EVM Mastery: Yul & Assembly
 └── test/
     ├── part1/
     ├── part2/
@@ -198,21 +192,6 @@ workspace/                        # Unified Foundry project
     └── part4/
 ```
 
-## Review Cadence
-
-Dedicate the last hour of every 5th or 6th learning day to review. This isn't a separate "review day" — it's a wind-down session woven into a normal learning day:
-
-- Re-read production code you studied that week
-- Revisit exercises that felt shaky
-- Write brief notes on what clicked and what didn't
-- Check if earlier module concepts connect to what you just learned
-
-This keeps retention high without losing learning momentum.
-
 ## Practice Challenges
 
-[Damn Vulnerable DeFi](https://www.damnvulnerabledefi.xyz/) and [Ethernaut](https://ethernaut.openzeppelin.com/) challenges are integrated throughout the modules at relevant points. Each module's "Practice Challenges" section recommends specific challenges that test the concepts covered. These are optional but strongly recommended — they force you to think like an attacker, which makes you a better builder.
-
-## Status
-
-This is a living repo. Modules are expanded with exercises, tests, and code as they're worked through. The outline and priorities evolve based on what comes up during the builds.
+[Damn Vulnerable DeFi](https://www.damnvulnerabledefi.xyz/) and [Ethernaut](https://ethernaut.openzeppelin.com/) challenges are integrated throughout the modules at relevant points. Each module's "Practice Challenges" section recommends specific challenges that test the concepts covered.
