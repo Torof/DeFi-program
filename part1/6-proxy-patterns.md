@@ -42,15 +42,19 @@ In Part 2, you'll encounter: Aave V3 (transparent proxy + libraries), Compound V
 
 A proxy contract delegates all calls to a separate implementation contract using `DELEGATECALL`. The proxy holds the storage; the implementation holds the logic. Upgrading means pointing the proxy to a new implementation—storage persists, logic changes.
 
-```
-User → Proxy (storage lives here)
-         ↓ DELEGATECALL
-       Implementation V1 (logic only, no storage)
+```mermaid
+flowchart TD
+    U[User] --> P[Proxy<br/>storage lives here]
 
-After upgrade:
-User → Proxy (same storage, same address)
-         ↓ DELEGATECALL
-       Implementation V2 (new logic, reads same storage)
+    subgraph Before Upgrade
+        P -->|DELEGATECALL| V1[Implementation V1<br/>logic only, no storage]
+    end
+
+    U2[User] --> P2[Proxy<br/>same storage, same address]
+
+    subgraph After Upgrade
+        P2 -->|DELEGATECALL| V2[Implementation V2<br/>new logic, reads same storage]
+    end
 ```
 
 **⚠️ The critical constraint:** **Storage layout must be compatible across versions.** If V1 stores `uint256 totalSupply` at slot 0 and V2 stores `address owner` at slot 0, the upgrade corrupts all data. This is the #1 source of proxy-related exploits.

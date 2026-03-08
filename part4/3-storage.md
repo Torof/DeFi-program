@@ -381,14 +381,28 @@ contract Example {
 
 **Packing rules:** Variables smaller than 32 bytes share a slot if they fit. In the example above, `owner` (20 bytes) and `paused` (1 byte) together use 21 bytes, which fits in one 32-byte slot. Variables are **right-aligned** within the slot and packed in declaration order.
 
-```
-Slot 2 layout:
-Byte 31            12 11           0
-┌────────────────────┬──────────────┐
-│  unused (11 bytes) │ paused │ owner (20 bytes)  │
-│  0x000000000000...  │  0x01  │ 0xAbCd...1234     │
-└────────────────────┴──────────────┘
-```
+<div class="bit-layout">
+  <div class="bit-layout-title">Slot 2 layout</div>
+  <div class="bit-ruler">
+    <span style="flex:11">Byte 31</span>
+    <span style="flex:1">12</span>
+    <span style="flex:20; text-align:right; padding-right:4px">0</span>
+  </div>
+  <div class="bit-fields">
+    <div class="bit-field bf-gray" style="flex:11">
+      <span class="bit-field-name">unused</span>
+      <span class="bit-field-width">11 bytes</span>
+    </div>
+    <div class="bit-field bf-amber" style="flex:1">
+      <span class="bit-field-name">paused</span>
+      <span class="bit-field-width">1 byte</span>
+    </div>
+    <div class="bit-field bf-blue" style="flex:20">
+      <span class="bit-field-name">owner</span>
+      <span class="bit-field-width">address · 20 bytes</span>
+    </div>
+  </div>
+</div>
 
 > **Note:** `bool` takes 1 byte, `address` takes 20 bytes. Together they fit in one 32-byte slot. A `uint256` after them starts a new slot because 32 + 21 > 32.
 
@@ -761,12 +775,24 @@ assembly {
 
 **Packing address (20 bytes) + uint96 into one slot:**
 
-```
-Bit 255         96 95              0
-┌──────────────────┬──────────────────┐
-│  address (160b)  │   uint96 (96b)   │
-└──────────────────┴──────────────────┘
-```
+<div class="bit-layout">
+  <div class="bit-layout-title">address (20 bytes) + uint96 packing</div>
+  <div class="bit-ruler">
+    <span style="flex:160">255</span>
+    <span style="flex:96; text-align:center">96 95</span>
+    <span style="flex:1; text-align:right; padding-right:4px">0</span>
+  </div>
+  <div class="bit-fields">
+    <div class="bit-field bf-blue" style="flex:160">
+      <span class="bit-field-name">address</span>
+      <span class="bit-field-width">160 bits</span>
+    </div>
+    <div class="bit-field bf-green" style="flex:96">
+      <span class="bit-field-name">uint96</span>
+      <span class="bit-field-width">96 bits</span>
+    </div>
+  </div>
+</div>
 
 ```solidity
 assembly {
@@ -842,13 +868,33 @@ assembly {
 
 Aave V3 packs an entire reserve's configuration into a **single uint256 bitmap**:
 
-```
-Aave V3 ReserveConfigurationMap (first 64 bits shown)
-Bit 63                48 47                32 31                16 15                 0
-┌─────────────────────┬─────────────────────┬─────────────────────┬─────────────────────┐
-│  liq. bonus (16b)   │  liq. threshold(16b)│   decimals + flags  │      LTV (16b)      │
-└─────────────────────┴─────────────────────┴─────────────────────┴─────────────────────┘
-```
+<div class="bit-layout">
+  <div class="bit-layout-title">Aave V3 ReserveConfigurationMap (first 64 bits)</div>
+  <div class="bit-ruler">
+    <span style="flex:16">63</span>
+    <span style="flex:16">47</span>
+    <span style="flex:16">31</span>
+    <span style="flex:16">15 &nbsp; 0</span>
+  </div>
+  <div class="bit-fields">
+    <div class="bit-field bf-red" style="flex:16">
+      <span class="bit-field-name">liq. bonus</span>
+      <span class="bit-field-width">16 bits</span>
+    </div>
+    <div class="bit-field bf-orange" style="flex:16">
+      <span class="bit-field-name">liq. threshold</span>
+      <span class="bit-field-width">16 bits</span>
+    </div>
+    <div class="bit-field bf-amber" style="flex:16">
+      <span class="bit-field-name">decimals + flags</span>
+      <span class="bit-field-width">16 bits</span>
+    </div>
+    <div class="bit-field bf-blue" style="flex:16">
+      <span class="bit-field-name">LTV</span>
+      <span class="bit-field-width">16 bits</span>
+    </div>
+  </div>
+</div>
 
 The full 256-bit word contains: LTV, liquidation threshold, liquidation bonus, decimals, active flag, frozen flag, borrowable flag, stable rate flag, reserve factor, borrowing cap, supply cap, and more — all in one slot.
 

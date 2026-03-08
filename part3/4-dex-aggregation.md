@@ -62,14 +62,21 @@ This is the same insight that drives order routing in traditional finance — NB
 
 Before diving into math, understand the evolution:
 
-```
-Traditional Swap     →    Aggregated Swap      →    Intent-Based Swap
-──────────────────────────────────────────────────────────────────────
-User picks one pool  →  Router finds best path  →  User signs what they want
-User submits tx      →  Router submits tx        →  Solver fills the order
-User takes slippage  →  Less slippage via splits →  Solver absorbs MEV risk
-100% on-chain        →  Off-chain routing,       →  Off-chain solver,
-                        on-chain execution          on-chain settlement
+```mermaid
+flowchart LR
+    subgraph Traditional Swap
+        T1[User picks one pool<br/>User submits tx<br/>User takes slippage<br/>100% on-chain]
+    end
+
+    subgraph Aggregated Swap
+        T2[Router finds best path<br/>Router submits tx<br/>Less slippage via splits<br/>Off-chain routing, on-chain execution]
+    end
+
+    subgraph Intent-Based Swap
+        T3[User signs what they want<br/>Solver fills the order<br/>Solver absorbs MEV risk<br/>Off-chain solver, on-chain settlement]
+    end
+
+    T1 --> T2 --> T3
 ```
 
 This module covers all three, with emphasis on the intent model — that's where the ecosystem is heading.

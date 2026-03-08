@@ -567,27 +567,23 @@ In plain English: "take the raw error bytes exactly as received from the sub-cal
 
 In DeFi, calls are often 3-4 levels deep: User → Router → Pool → Callback. Understanding how errors flow through this chain is critical:
 
-```
-User → Router.swap()
-         │
-         └→ try Pool.swap()
-                   │
-                   └→ Callback.uniswapV3SwapCallback()
-                              │
-                              └─ reverts: InsufficientBalance(100, 200)
-                                  │
-                   ┌───────────────┘
-                   │ Pool doesn't catch — error propagates UP automatically
-                   │ (Solidity's default: uncaught reverts bubble up)
-         ┌─────────┘
-         │ Router's catch receives: reason = 0xf4d678b8...0064...00c8
-         │   (that's InsufficientBalance.selector + abi.encode(100, 200))
-         │
-         │ Router can now:
-         │   1. Decode it → know exactly what went wrong
-         │   2. Re-throw it → user sees the original error
-         │   3. Try fallback pool → graceful degradation
-         │   4. Wrap it → revert RouterSwapFailed(primaryPool, reason)
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant R as Router
+    participant P as Pool
+    participant C as Callback
+
+    U->>R: swap()
+    R->>P: try Pool.swap()
+    P->>C: uniswapV3SwapCallback()
+    C--xP: revert InsufficientBalance(100, 200)
+
+    Note over P: Pool doesn't catch —<br/>error propagates UP automatically
+
+    P--xR: reason = 0xf4d678b8...0064...00c8<br/>(selector + abi.encode(100, 200))
+
+    Note over R: Router's catch block can:<br/>1. Decode → know what went wrong<br/>2. Re-throw → user sees original error<br/>3. Try fallback pool → graceful degradation<br/>4. Wrap → RouterSwapFailed(pool, reason)
 ```
 
 **Without the re-throw pattern**, each layer wraps or loses the original error. The caller sees "Swap failed" instead of "InsufficientBalance(100, 200)." For debugging, for frontends, and for MEV searchers — the original error data is invaluable.
@@ -774,13 +770,24 @@ Uniswap V4 needs to track balance changes for two tokens in a pool. Storing them
 
 **The solution - pack two int128 values into one int256:**
 
-```
-Visual memory layout:
-┌─────────────────────────────┬─────────────────────────────┐
-│      amount0 (128 bits)     │      amount1 (128 bits)     │
-└─────────────────────────────┴─────────────────────────────┘
-                    int256 (256 bits total)
-```
+<div class="bit-layout">
+  <div class="bit-layout-title">BalanceDelta — int256 (256 bits)</div>
+  <div class="bit-ruler">
+    <span style="flex:1">255</span>
+    <span style="flex:1">128 127</span>
+    <span style="flex:1; text-align:right; padding-right:4px">0</span>
+  </div>
+  <div class="bit-fields">
+    <div class="bit-field bf-blue" style="flex:128">
+      <span class="bit-field-name">amount0</span>
+      <span class="bit-field-width">int128 · high 128 bits</span>
+    </div>
+    <div class="bit-field bf-green" style="flex:128">
+      <span class="bit-field-name">amount1</span>
+      <span class="bit-field-width">int128 · low 128 bits</span>
+    </div>
+  </div>
+</div>
 
 **Step-by-step packing:**
 

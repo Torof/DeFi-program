@@ -54,16 +54,21 @@ Protocols need to change after deployment:
 
 Every on-chain governance system follows the same flow:
 
-```
- PROPOSE        DELAY          VOTE          QUEUE         EXECUTE
-───────── → ─────────── → ─────────── → ─────────── → ───────────
- Proposer     Community      Token         Timelock       Anyone
- submits      reviews        holders       enforces       triggers
- on-chain     proposal       vote          delay          execution
-             (1-2 days)    (3-7 days)    (24-48h)
+```mermaid
+stateDiagram-v2
+    [*] --> Propose: Proposer submits on-chain
+    Propose --> Delay: 1-2 days
+    Delay --> Vote: Community reviews, then 3-7 day vote
+    Vote --> Defeated: Below quorum / majority against
+    Vote --> Queue: Majority for + quorum met
+    Queue --> Execute: 24-48h timelock
+    Execute --> [*]
 
-Total: 5-14 days from proposal to execution
+    note right of Delay: Community reviews proposal
+    note right of Queue: Users who disagree can exit
 ```
+
+Total: 5-14 days from proposal to execution.
 
 **Why each step exists:**
 - **Delay** — prevents surprise proposals; community can review before voting starts

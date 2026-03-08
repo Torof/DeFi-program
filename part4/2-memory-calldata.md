@@ -46,20 +46,27 @@ EVM memory is a **byte-addressable array** that starts at zero and grows upward.
 
 But Solidity doesn't use memory starting from byte 0. It **reserves** the first 128 bytes (0x00–0x7f) for special purposes:
 
-```
-EVM Memory Layout (Solidity Convention)
-┌────────────┬─────────────────────────────────────────────────────┐
-│ 0x00-0x1f  │  Scratch space (word 1)                            │
-│ 0x20-0x3f  │  Scratch space (word 2)                            │ ← hashing, temp ops
-├────────────┼─────────────────────────────────────────────────────┤
-│ 0x40-0x5f  │  Free memory pointer                               │ ← tracks next free byte
-├────────────┼─────────────────────────────────────────────────────┤
-│ 0x60-0x7f  │  Zero slot (always 0x00)                           │ ← empty dynamic arrays
-├────────────┼─────────────────────────────────────────────────────┤
-│ 0x80+      │  Allocatable memory                                │
-│            │  ↓ grows toward higher addresses ↓                  │
-└────────────┴─────────────────────────────────────────────────────┘
-```
+<div class="bit-layout">
+  <div class="bit-layout-title">EVM Memory Layout (Solidity Convention)</div>
+  <div style="display:flex; flex-direction:column; border:1px solid rgba(128,128,128,0.3); border-radius:6px; overflow:hidden; font-family:var(--font-code); font-size:0.82rem;">
+    <div style="display:flex; background:rgba(239,68,68,0.15); border-bottom:1px solid rgba(128,128,128,0.3);">
+      <span style="width:90px; padding:0.5em 0.6em; font-weight:600; border-right:1px solid rgba(128,128,128,0.3); white-space:nowrap;">0x00–0x3f</span>
+      <span style="flex:1; padding:0.5em 0.6em;">Scratch space (2 words) — hashing, temp ops</span>
+    </div>
+    <div style="display:flex; background:rgba(59,130,246,0.15); border-bottom:1px solid rgba(128,128,128,0.3);">
+      <span style="width:90px; padding:0.5em 0.6em; font-weight:600; border-right:1px solid rgba(128,128,128,0.3); white-space:nowrap;">0x40–0x5f</span>
+      <span style="flex:1; padding:0.5em 0.6em;">Free memory pointer — tracks next free byte</span>
+    </div>
+    <div style="display:flex; background:rgba(128,128,128,0.10); border-bottom:1px solid rgba(128,128,128,0.3);">
+      <span style="width:90px; padding:0.5em 0.6em; font-weight:600; border-right:1px solid rgba(128,128,128,0.3); white-space:nowrap;">0x60–0x7f</span>
+      <span style="flex:1; padding:0.5em 0.6em;">Zero slot (always 0x00) — empty dynamic arrays</span>
+    </div>
+    <div style="display:flex; background:rgba(34,197,94,0.15);">
+      <span style="width:90px; padding:0.5em 0.6em; font-weight:600; border-right:1px solid rgba(128,128,128,0.3); white-space:nowrap;">0x80+</span>
+      <span style="flex:1; padding:0.5em 0.6em;">Allocatable memory — grows toward higher addresses</span>
+    </div>
+  </div>
+</div>
 
 **The four regions:**
 
@@ -411,14 +418,28 @@ Calldata is the **read-only input** to a contract call. Every external function 
 
 For a function like `transfer(address to, uint256 amount)`:
 
-```
-Offset:  0x00            0x04                         0x24
-         ┌──────────────┬────────────────────────────┬────────────────────────────┐
-         │  selector    │  to (address, left-padded)  │  amount (uint256)          │
-         │  a9059cbb    │  000...dead                 │  000...0064                │
-         │  (4 bytes)   │  (32 bytes)                 │  (32 bytes)                │
-         └──────────────┴────────────────────────────┴────────────────────────────┘
-```
+<div class="bit-layout">
+  <div class="bit-layout-title">Calldata layout: transfer(address, uint256)</div>
+  <div class="bit-ruler">
+    <span style="flex:4">0x00</span>
+    <span style="flex:32">0x04</span>
+    <span style="flex:32">0x24</span>
+  </div>
+  <div class="bit-fields">
+    <div class="bit-field bf-purple" style="flex:4">
+      <span class="bit-field-name">selector</span>
+      <span class="bit-field-width">a9059cbb · 4 bytes</span>
+    </div>
+    <div class="bit-field bf-blue" style="flex:32">
+      <span class="bit-field-name">to (address)</span>
+      <span class="bit-field-width">left-padded · 32 bytes</span>
+    </div>
+    <div class="bit-field bf-green" style="flex:32">
+      <span class="bit-field-name">amount (uint256)</span>
+      <span class="bit-field-width">32 bytes</span>
+    </div>
+  </div>
+</div>
 
 Each static parameter occupies exactly 32 bytes, starting at offset `4 + 32*n`:
 - Parameter 0: `calldataload(4)` → `to`

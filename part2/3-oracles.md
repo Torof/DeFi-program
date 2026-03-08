@@ -117,45 +117,19 @@ An oracle is any mechanism that feeds external data into a smart contract. The c
 
 #### 🔍 Deep Dive: Chainlink Architecture — End to End
 
-```
-Off-chain                                     On-chain
-─────────                                     ────────
+```mermaid
+flowchart TD
+    subgraph Off-chain
+        DS[Data Sources<br/>CoinGecko, Kaiko, Amberdata,<br/>exchange APIs] -->|fetch| CN[Chainlink Nodes<br/>15-31 independent operators<br/>each produces own observation]
+    end
 
-┌──────────────┐
-│ Data Sources │   CoinGecko, Kaiko, Amberdata, exchange APIs
-│ (many)       │   Each provides raw price data
-└──────┬───────┘
-       │ fetch
-       ▼
-┌──────────────┐
-│ Chainlink    │   15-31 independent node operators
-│ Nodes (many) │   Each produces its own price observation
-└──────┬───────┘
-       │ OCR: nodes agree off-chain,
-       │ submit ONE aggregated report
-       ▼
-┌──────────────┐
-│ Aggregator   │   AccessControlledOffchainAggregator
-│ (on-chain)   │   Computes MEDIAN of all observations
-└──────┬───────┘   (resistant to minority of compromised nodes)
-       │
-       ▼
-┌──────────────┐
-│ Proxy        │   EACAggregatorProxy
-│ (on-chain)   │   Stable address — allows Aggregator upgrades
-└──────┬───────┘   ← YOUR PROTOCOL POINTS HERE
-       │
-       ▼
-┌──────────────┐
-│ Your Oracle  │   OracleConsumer.sol / AaveOracle.sol
-│ Wrapper      │   Staleness checks, decimal normalization,
-└──────┬───────┘   fallback logic, sanity bounds
-       │
-       ▼
-┌──────────────┐
-│ Your Core    │   Lending, CDP, vault, derivatives...
-│ Protocol     │   Uses price for collateral valuation,
-└──────────────┘   liquidation, settlement
+    CN -->|OCR: nodes agree off-chain,<br/>submit ONE aggregated report| AG
+
+    subgraph On-chain
+        AG[Aggregator<br/>AccessControlledOffchainAggregator<br/>computes MEDIAN of all observations] --> PX[Proxy<br/>EACAggregatorProxy<br/>stable address — allows upgrades]
+        PX -->|YOUR PROTOCOL POINTS HERE| OW[Your Oracle Wrapper<br/>staleness checks, decimal normalization,<br/>fallback logic, sanity bounds]
+        OW --> CP[Your Core Protocol<br/>lending, CDP, vault, derivatives<br/>collateral valuation, liquidation]
+    end
 ```
 
 **Key trust assumptions:** You trust that (1) >50% of Chainlink nodes are honest (median protects against minority), (2) data sources provide accurate prices (nodes cross-reference multiple sources), (3) the Proxy points to a legitimate Aggregator (Chainlink governance controls this).

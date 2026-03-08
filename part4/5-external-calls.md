@@ -328,19 +328,31 @@ assembly {
 
 **Memory layout after a 5-value return:**
 
-```
-0x00: ┌──────────────┐
-      │   roundId    │  (bytes 0-31)
-0x20: ├──────────────┤
-      │   answer     │  (bytes 32-63)   ← the price
-0x40: ├──────────────┤
-      │  startedAt   │  (bytes 64-95)
-0x60: ├──────────────┤
-      │  updatedAt   │  (bytes 96-127)  ← staleness check
-0x80: ├──────────────┤
-      │ answeredInRnd│  (bytes 128-159)
-0xa0: └──────────────┘
-```
+<div class="bit-layout">
+  <div class="bit-layout-title">Chainlink latestRoundData() — memory layout</div>
+  <div style="display:flex; flex-direction:column; border:1px solid rgba(128,128,128,0.3); border-radius:6px; overflow:hidden; font-family:var(--font-code); font-size:0.82rem;">
+    <div style="display:flex; background:rgba(128,128,128,0.08); border-bottom:1px solid rgba(128,128,128,0.3);">
+      <span style="width:50px; padding:0.5em 0.6em; font-weight:600; border-right:1px solid rgba(128,128,128,0.3);">0x00</span>
+      <span style="flex:1; padding:0.5em 0.6em;">roundId (bytes 0-31)</span>
+    </div>
+    <div style="display:flex; background:rgba(59,130,246,0.15); border-bottom:1px solid rgba(128,128,128,0.3);">
+      <span style="width:50px; padding:0.5em 0.6em; font-weight:600; border-right:1px solid rgba(128,128,128,0.3);">0x20</span>
+      <span style="flex:1; padding:0.5em 0.6em;"><strong>answer</strong> (bytes 32-63) — the price</span>
+    </div>
+    <div style="display:flex; background:rgba(128,128,128,0.08); border-bottom:1px solid rgba(128,128,128,0.3);">
+      <span style="width:50px; padding:0.5em 0.6em; font-weight:600; border-right:1px solid rgba(128,128,128,0.3);">0x40</span>
+      <span style="flex:1; padding:0.5em 0.6em;">startedAt (bytes 64-95)</span>
+    </div>
+    <div style="display:flex; background:rgba(245,158,11,0.15); border-bottom:1px solid rgba(128,128,128,0.3);">
+      <span style="width:50px; padding:0.5em 0.6em; font-weight:600; border-right:1px solid rgba(128,128,128,0.3);">0x60</span>
+      <span style="flex:1; padding:0.5em 0.6em;"><strong>updatedAt</strong> (bytes 96-127) — staleness check</span>
+    </div>
+    <div style="display:flex; background:rgba(128,128,128,0.08);">
+      <span style="width:50px; padding:0.5em 0.6em; font-weight:600; border-right:1px solid rgba(128,128,128,0.3);">0x80</span>
+      <span style="flex:1; padding:0.5em 0.6em;">answeredInRound (bytes 128-159)</span>
+    </div>
+  </div>
+</div>
 
 You only `mload` the offsets you need. Skipping unused values costs nothing — the data is already in memory from the `staticcall`.
 
@@ -986,40 +998,15 @@ The first two sections taught you how to make calls and handle what comes back. 
 
 Understanding the difference between CALL and DELEGATECALL comes down to one question: *whose storage, whose `msg.sender`, whose `address(this)`?*
 
-```
-CALL to Contract B:
-┌──────────────────────────────────┐
-│ Caller (Contract A)              │
-│                                  │
-│  msg.sender = EOA                │
-│  address(this) = A               │
-│  storage: A's storage            │
-│                                  │
-│  call(gas, B, ...)  ─────────────┼──→  ┌─────────────────────────────┐
-│                                  │     │ Callee (Contract B)         │
-│                                  │     │                             │
-│                                  │     │  msg.sender = A             │
-│                                  │     │  address(this) = B          │
-│                                  │     │  storage: B's storage       │
-│                                  │     └─────────────────────────────┘
-└──────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph CALL["CALL to Contract B"]
+        A1["Contract A<br/>msg.sender = EOA<br/>address(this) = A<br/>storage: A's"] -->|call| B1["Contract B<br/>msg.sender = A<br/>address(this) = B<br/>storage: B's"]
+    end
 
-DELEGATECALL to Contract B:
-┌──────────────────────────────────┐
-│ Caller (Contract A)              │
-│                                  │
-│  msg.sender = EOA                │
-│  address(this) = A               │
-│  storage: A's storage            │
-│                                  │
-│  delegatecall(gas, B, ...)  ─────┼──→  ┌─────────────────────────────┐
-│                                  │     │ B's CODE runs, but:         │
-│                                  │     │                             │
-│                                  │     │  msg.sender = EOA  (kept!)  │
-│                                  │     │  address(this) = A (kept!)  │
-│                                  │     │  storage: A's storage       │
-│                                  │     └─────────────────────────────┘
-└──────────────────────────────────┘
+    subgraph DELEGATE["DELEGATECALL to Contract B"]
+        A2["Contract A<br/>msg.sender = EOA<br/>address(this) = A<br/>storage: A's"] -->|delegatecall| B2["B's CODE runs, but:<br/>msg.sender = EOA ✓ kept<br/>address(this) = A ✓ kept<br/>storage: A's ✓ kept"]
+    end
 ```
 
 With DELEGATECALL, Contract B's **code** executes but in **Contract A's context**. Every `sload` and `sstore` touches A's storage. Every `msg.sender` reference sees the original caller, not A. Every `address(this)` returns A's address, not B's.

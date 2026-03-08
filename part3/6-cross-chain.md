@@ -49,20 +49,20 @@ DeFi liquidity is fragmented across Ethereum, Arbitrum, Base, Optimism, Polygon,
 
 The oldest and simplest model. Lock on source chain, mint a wrapped representation on destination.
 
-```
-Source Chain (Ethereum)          Destination Chain (Arbitrum)
-┌──────────────────────┐        ┌──────────────────────┐
-│  User sends 10 ETH   │        │                      │
-│  to Bridge Contract   │───────→│  Bridge mints 10     │
-│                       │  verify │  wETH to user        │
-│  10 ETH locked in    │        │                      │
-│  bridge vault         │        │  wETH is an IOU for  │
-│                       │        │  the locked ETH      │
-└──────────────────────┘        └──────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Source Chain — Ethereum
+        U1[User sends 10 ETH<br/>to Bridge Contract] --> L1[10 ETH locked<br/>in bridge vault]
+    end
 
-To return:
-  User burns 10 wETH on Arbitrum → Bridge unlocks 10 ETH on Ethereum
+    L1 -->|verify| M1
+
+    subgraph Destination Chain — Arbitrum
+        M1[Bridge mints 10 wETH<br/>to user] --> IOU[wETH is an IOU<br/>for the locked ETH]
+    end
 ```
+
+To return: User burns 10 wETH on Arbitrum → Bridge unlocks 10 ETH on Ethereum.
 
 **Trust model:** Everything depends on who verifies the lock event — a custodian (WBTC), a multisig (early bridges), or a validator set (Wormhole guardians).
 
@@ -72,14 +72,17 @@ To return:
 
 Token issuer controls minting on all chains. Burn on source, mint canonical tokens on destination.
 
-```
-Source Chain                     Destination Chain
-┌──────────────────────┐        ┌──────────────────────┐
-│  User burns 1000     │        │                      │
-│  USDC                │───────→│  Circle mints 1000   │
-│                       │  attest │  USDC (canonical)    │
-│  USDC supply: -1000  │        │  USDC supply: +1000  │
-└──────────────────────┘        └──────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Source Chain
+        B1[User burns 1000 USDC<br/>USDC supply: -1000]
+    end
+
+    B1 -->|attest| M2
+
+    subgraph Destination Chain
+        M2[Circle mints 1000 USDC<br/>canonical — USDC supply: +1000]
+    end
 ```
 
 **Examples:** USDC CCTP (Circle Cross-Chain Transfer Protocol), native token bridges.
@@ -90,15 +93,17 @@ Source Chain                     Destination Chain
 
 No locking, no minting — real assets on each chain, moved via liquidity providers.
 
-```
-Source Chain                     Destination Chain
-┌──────────────────────┐        ┌──────────────────────┐
-│  User deposits 1 ETH │        │  LP releases 1 ETH   │
-│  to bridge pool       │───────→│  to user (native!)    │
-│                       │  verify │                      │
-│  LP is repaid from   │        │  LP fronted the      │
-│  user's deposit + fee│        │  destination ETH     │
-└──────────────────────┘        └──────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Source Chain
+        D1[User deposits 1 ETH<br/>to bridge pool] --> R1[LP is repaid from<br/>user's deposit + fee]
+    end
+
+    D1 -->|verify| LP1
+
+    subgraph Destination Chain
+        LP1[LP releases 1 ETH<br/>to user — native!] --> N1[LP fronted the<br/>destination ETH]
+    end
 ```
 
 **Examples:** Across Protocol, Stargate (LayerZero), Hop Protocol.

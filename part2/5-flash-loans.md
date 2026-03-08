@@ -65,39 +65,29 @@ The key insight: from the blockchain's perspective, if repayment fails, the loan
 
 #### 🔍 Deep Dive: The Flash Loan Callback Flow
 
-```
-                     Single Ethereum Transaction
-┌─────────────────────────────────────────────────────────────┐
-│                                                             │
-│  Your Contract              Flash Loan Provider             │
-│  ────────────              ───────────────────              │
-│       │                           │                         │
-│  ①    │──── flashLoan(amount) ───→│                         │
-│       │                           │                         │
-│       │    ② Provider transfers   │                         │
-│       │←──── amount tokens ───────│                         │
-│       │                           │                         │
-│       │    ③ Provider calls       │                         │
-│       │←── your callback() ───────│                         │
-│       │                           │                         │
-│  ④    │  ┌─────────────────────┐  │                         │
-│       │  │ YOUR LOGIC HERE:    │  │                         │
-│       │  │ • Swap on DEX       │  │                         │
-│       │  │ • Liquidate on Aave │  │                         │
-│       │  │ • Collateral swap   │  │                         │
-│       │  │ • Anything atomic   │  │                         │
-│       │  └─────────────────────┘  │                         │
-│       │                           │                         │
-│  ⑤    │── approve(amount + fee) ─→│                         │
-│       │                           │                         │
-│       │    ⑥ Provider pulls       │                         │
-│       │    amount + fee           │                         │
-│       │    ✓ Repaid → tx succeeds │                         │
-│       │    ✗ Short → ENTIRE TX    │                         │
-│       │      REVERTS (steps 1-5   │                         │
-│       │      never happened)      │                         │
-│       │                           │                         │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant YC as Your Contract
+    participant FLP as Flash Loan Provider
+
+    rect rgb(230, 240, 255)
+    Note over YC, FLP: Single Ethereum Transaction
+
+    YC->>FLP: ① flashLoan(amount)
+    FLP->>YC: ② Transfer amount tokens
+    FLP->>YC: ③ Call your callback()
+
+    Note over YC: ④ YOUR LOGIC HERE<br/>• Swap on DEX<br/>• Liquidate on Aave<br/>• Collateral swap<br/>• Anything atomic
+
+    YC->>FLP: ⑤ approve(amount + fee)
+
+    alt Repaid
+        FLP->>FLP: ⑥ Pull amount + fee → tx succeeds
+    else Short
+        FLP--xFLP: ⑥ ENTIRE TX REVERTS<br/>(steps 1-5 never happened)
+    end
+
+    end
 ```
 
 **The critical property:** Steps ②-⑤ all happen within a single EVM call stack. The provider checks repayment at ⑥ — if it fails, the EVM unwinds everything. This is why flash loans are "risk-free" for the provider: they either get repaid or the loan never existed.
