@@ -702,6 +702,10 @@ function sub(Fixed18 a, Fixed18 b) pure returns (Fixed18) {
 // Now you can use: result = a + b - c
 ```
 
+**Why opt-in?** Not all types should support arithmetic. `type Timestamp is uint256` — what would `Timestamp + Timestamp` even mean? By requiring you to explicitly bind operators, Solidity lets you decide which operations are meaningful for each type. The friction is the feature.
+
+Besides `+` and `-`, you can bind `*`, `/`, `%`, and all comparison operators (`==`, `!=`, `<`, `>`, `<=`, `>=`) — each maps to a free function you define. The Quick Try below shows `==`:
+
 💻 **Quick Try:**
 
 Build a simple UDVT with an operator in Remix:
