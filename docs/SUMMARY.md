@@ -59,3 +59,10 @@
 - [Module 7: Reading Production Assembly](part4/7-production-assembly.md)
 - [Module 8: Pure Yul Contracts](part4/8-pure-yul.md)
 - [Module 9: Capstone — DeFi Primitive in Yul](part4/9-capstone.md)
+
+---
+
+# Deep Dives
+
+- [Overview](deep-dives/README.md)
+- [Errors](deep-dives/errors.md)
