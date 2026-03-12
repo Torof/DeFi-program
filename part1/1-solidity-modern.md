@@ -1321,6 +1321,9 @@ token.transfer(user, amountOut);
 Every swap = 2 token transfers = expensive!
 
 **V4's flash accounting** (using transient storage):
+
+A delta here is just a running balance of what's owed: a signed integer tracking the net debt between the user and the pool during a transaction. Negative means the pool is owed tokens, positive means the pool owes tokens. Instead of transferring immediately, you just update this number, then settle everything at the end.
+
 ```solidity
 // Record debt in transient storage
 int256 transient delta0;  // How much pool owes/is owed for token0
