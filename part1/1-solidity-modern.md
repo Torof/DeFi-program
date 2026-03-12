@@ -921,7 +921,9 @@ Shares total = a + b;
 <a id="abi-encodecall"></a>
 ### 💡 Concept: abi.encodeCall (0.8.11+)
 
-**Why this matters:** Low-level calls are everywhere in DeFi — delegate calls in proxies, calls through routers, flash loan callbacks. Type-safe encoding prevents silent bugs where you pass the wrong argument types.
+**Why this matters:** When you call `token.transfer(to, amount)`, the compiler silently builds the calldata — a 4-byte function selector followed by the ABI-encoded arguments. But sometimes you can't make a direct call: you're going through a proxy (`delegatecall`), routing through a generic contract (`address.call(data)`), batching multiple operations, or encoding data for a cross-chain message. In those cases, you build the calldata yourself and pass it as raw `bytes`.
+
+That's what `abi.encodeCall` does: it constructs that same bytes payload, but with **compile-time type checking** on the arguments — catching bugs that `abi.encodeWithSelector` silently lets through.
 
 > Introduced in [Solidity 0.8.11](https://www.soliditylang.org/blog/2021/12/20/solidity-0.8.11-release-announcement/) (December 2021)
 
