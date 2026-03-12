@@ -1186,7 +1186,7 @@ Build a **vault share calculator** — the exact math that underpins every ERC-4
 
 After this section, you should be able to:
 - Explain why `unchecked` is safe in a Uniswap V2 swap (bounded inputs) but dangerous in a user-facing deposit (arbitrary inputs), and why vault math uses `mulDiv` instead
-- Trace a `mulDiv` call through the 512-bit intermediate and explain why phantom overflow doesn't cause data loss
+- Explain why `mulDiv` uses a 512-bit intermediate for `a * b / c` and how this prevents phantom overflow (the product is too large for 256 bits, but the final result isn't)
 - Decode a multi-hop try/catch error propagation chain and explain how custom error selectors flow through aggregators
 - Read a UDVT definition like Uniswap V4's `Currency` and explain the type safety it provides over a raw `address`
 - Look at an `abi.encodeCall` invocation and explain what compile-time check it provides that `abi.encodeWithSelector` doesn't
