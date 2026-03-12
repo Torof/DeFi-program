@@ -769,149 +769,41 @@ Understanding UDVTs is essential for reading V4 code. They use them extensively:
 - [`BalanceDelta.sol`](https://github.com/Uniswap/v4-core/blob/d153b048868a60c2403a3ef5b2301bb247884d46/src/types/BalanceDelta.sol) — `type BalanceDelta is int256`, packs two `int128` values using bit manipulation with custom `+`, `-`, `==`, `!=` operators
 
 <a id="balance-delta"></a>
-#### 🔍 Deep Dive: Understanding `BalanceDelta` Bit-Packing
+#### 🔍 Deep Dive: `BalanceDelta` — UDVTs on Packed Data
 
-This is the advanced pattern you'll see in production DeFi. Let's break it down step-by-step.
-
-**The problem:**
-Uniswap V4 needs to track balance changes for two tokens in a pool. Storing them separately costs 2 storage slots (40,000 gas). Packing them into one slot saves 20,000 gas per swap.
-
-**The solution - pack two int128 values into one int256:**
+UDVTs aren't just wrappers around simple values. Uniswap V4's `BalanceDelta` wraps an `int256` that *packs two int128 values* — the balance change for each token in a pair. One storage slot instead of two saves 20,000 gas per swap.
 
 ```
-Visual memory layout:
 ┌─────────────────────────────┬─────────────────────────────┐
 │      amount0 (128 bits)     │      amount1 (128 bits)     │
 └─────────────────────────────┴─────────────────────────────┘
                     int256 (256 bits total)
 ```
 
-**Step-by-step packing:**
+The UDVT lesson here isn't the packing itself — it's that you can define **custom operators on packed data**:
 
 ```solidity
-// Input: two separate int128 values
-int128 amount0 = -100;  // Token 0 balance change
-int128 amount1 = 200;   // Token 1 balance change
-
-// Step 1: Cast amount0 to int256 and shift left 128 bits
-int256 packed = int256(amount0) << 128;
-
-// After shift (binary):
-// [amount0 in high 128 bits][empty 128 bits with zeros]
-
-// Step 2: OR with amount1 (fills the low 128 bits)
-// ⚠️ Must mask to 128 bits via the triple-cast chain:
-//    int128 → uint128: reinterprets sign bit as data (e.g., -1 → 0xFF..FF)
-//    uint128 → uint256: zero-extends (fills high bits with 0, not sign)
-//    uint256 → int256: safe reinterpret (value fits, high bits are 0)
-// Without this: int256(negative_int128) sign-extends to 256 bits,
-// corrupting the high 128 bits (amount0) when ORed.
-packed = packed | int256(uint256(uint128(amount1)));
-
-// Final result (binary):
-// [amount0 in bits 128-255][amount1 in bits 0-127]
-
-// Wrap it in the UDVT
-BalanceDelta delta = BalanceDelta.wrap(packed);
-```
-
-**The actual Uniswap V4 code — assembly version:**
-
-In production, Uniswap V4 packs with assembly for gas savings. Here's their `toBalanceDelta`:
-
-```solidity
-// From Uniswap V4 — src/types/BalanceDelta.sol
-function toBalanceDelta(int128 _amount0, int128 _amount1)
-    pure returns (BalanceDelta balanceDelta)
-{
-    assembly {
-        // shl(128, _amount0) — shift amount0 left by 128 bits (same as << 128)
-        // and(_amount1, 0x00..00ffffffffffffffffffffffffffffffff) — mask to 128 bits
-        //   (the mask is 16 bytes of 0xFF = the low 128 bits)
-        //   This does the same job as the triple-cast chain: prevents sign-extension
-        // or(..., ...) — combine both halves into one 256-bit value
-        balanceDelta := or(
-            shl(128, _amount0),
-            and(_amount1, 0x00000000000000000000000000000000ffffffffffffffffffffffffffffffff)
-        )
-    }
-}
-```
-
-Same concept as the Solidity version above — shift left, mask, OR. The assembly version saves gas by avoiding the intermediate casts and doing the masking with a single `and` opcode. Functionally identical.
-
-**Step-by-step unpacking:**
-
-```solidity
-// Extract amount0 (high 128 bits)
-int256 unwrapped = BalanceDelta.unwrap(delta);
-int128 amount0 = int128(unwrapped >> 128);  // Shift right 128 bits
-
-// Extract amount1 (low 128 bits)
-int128 amount1 = int128(unwrapped);  // Just truncate (keeps low 128)
-```
-
-**Why the casts work:**
-- `int256 >> 128`: Arithmetic right shift preserves sign (negative stays negative)
-- `int128(int256 value)`: Truncates to low 128 bits
-- The sign bit of each int128 is preserved in its respective half
-
-**Testing your understanding:**
-```solidity
-// What does this pack?
-int128 a = -50;
-int128 b = 100;
-int256 packed = (int256(a) << 128) | int256(uint256(uint128(b)));
-
-// Visual representation:
-// High 128 bits: -50 (sign-extended, then shifted — safe)
-// Low 128 bits:  100 (masked to 128 bits before OR — safe)
-// Total: one int256 storing both values
-```
-
-**Custom operators on packed data:**
-
-```solidity
-// Add two BalanceDelta values
+// Simplified from Uniswap V4's BalanceDelta.sol
 function add(BalanceDelta a, BalanceDelta b) pure returns (BalanceDelta) {
-    // Extract both amounts from 'a'
-    int256 aUnwrapped = BalanceDelta.unwrap(a);
-    int128 a0 = int128(aUnwrapped >> 128);
-    int128 a1 = int128(aUnwrapped);
+    // Unpack both
+    int256 aRaw = BalanceDelta.unwrap(a);
+    int256 bRaw = BalanceDelta.unwrap(b);
 
-    // Extract both amounts from 'b'
-    int256 bUnwrapped = BalanceDelta.unwrap(b);
-    int128 b0 = int128(bUnwrapped >> 128);
-    int128 b1 = int128(bUnwrapped);
+    // Add each half separately, repack
+    int128 sum0 = int128(aRaw >> 128) + int128(bRaw >> 128);
+    int128 sum1 = int128(aRaw) + int128(bRaw);
 
-    // Add them
-    int128 sum0 = a0 + b0;
-    int128 sum1 = a1 + b1;
-
-    // Pack the result (mask sum1 to prevent sign-extension corruption)
     int256 packed = (int256(sum0) << 128) | int256(uint256(uint128(sum1)));
     return BalanceDelta.wrap(packed);
 }
 
 using { add as + } for BalanceDelta global;
 
-// Now you can: result = deltaA + deltaB  (both amounts add component-wise)
+// Callers just write: result = deltaA + deltaB
+// The packing details are hidden behind the operator.
 ```
 
-**When you'll see this pattern:**
-- AMMs tracking token pair balances (Uniswap V4)
-- Packing timestamp + value in one slot
-- Any time you need two related values accessed together
-
-**📖 How to Study `BalanceDelta.sol`:**
-
-1. **Start with tests** - See how it's constructed and used
-2. **Draw the bit layout** - Literally draw boxes showing which bits are what
-3. **Trace one operation** - Pick `+`, trace through pack/unpack/repack
-4. **Verify with examples** - Test with small numbers in Remix to see the bits
-5. **Read comments** - Uniswap's code comments explain the "why"
-
-**Don't get stuck on:** Assembly optimizations in the Uniswap code. Understand the concept first (pure Solidity), then see how they optimize it.
+This is the real power of UDVTs with operators: **complex internal representation, clean external API**. The caller never thinks about bit shifts — they use `+` and the type system ensures they can't accidentally add a `BalanceDelta` to a plain `int256`.
 
 #### 🔗 DeFi Pattern Connection
 
