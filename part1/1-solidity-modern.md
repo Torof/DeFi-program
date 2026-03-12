@@ -1301,19 +1301,6 @@ Transient Storage (TSTORE/TLOAD):
 3. **No refunds**: Unlike SSTORE, no refund mechanism needed (simpler gas accounting)
 4. **Same slot addressing**: Uses storage slots like regular storage
 
-**When to use assembly vs keyword:**
-
-```solidity
-// Use the keyword (0.8.28+) for simple cases:
-bool transient locked;  // Clear, readable
-
-// Use assembly for dynamic slot calculation:
-assembly {
-    let slot := keccak256(add(key, someOffset))
-    tstore(slot, value)  // Dynamic slot access
-}
-```
-
 🏗️ **Real usage:**
 
 [OpenZeppelin's `ReentrancyGuardTransient.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/ReentrancyGuardTransient.sol) — their production implementation using the `transient` keyword. Compare it to the classic storage-based [`ReentrancyGuard.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/ReentrancyGuard.sol) to see the difference.
