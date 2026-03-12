@@ -1198,7 +1198,9 @@ After this section, you should be able to:
 <a id="transient-storage"></a>
 ### 💡 Concept: Transient Storage Support (0.8.24+)
 
-**Why this matters:** Reentrancy guards cost 5,000-20,000 gas to write to storage. Transient storage costs ~100 gas for the same protection. That's a 50-200x gas savings. Beyond guards, transient storage enables new patterns like [Uniswap V4's flash accounting system](https://blog.uniswap.org/uniswap-v4).
+**What it is:** Transient storage is a new EVM data location — like storage, but **automatically cleared at the end of every transaction**. It persists across internal calls within a transaction (unlike memory, which is per call frame), but doesn't survive between transactions (unlike storage). It's the proper home for transaction-scoped data like reentrancy locks, callback flags, and intermediate balances.
+
+**Why this matters:** Before EIP-1153, that kind of temporary data had to live in regular storage at 5,000-20,000 gas per write. Transient storage does the same job for ~100 gas — a 50-200x savings. Beyond guards, it enables new patterns like [Uniswap V4's flash accounting system](https://blog.uniswap.org/uniswap-v4).
 
 > Based on [EIP-1153](https://eips.ethereum.org/EIPS/eip-1153), supported since [Solidity 0.8.24](https://www.soliditylang.org/blog/2024/01/26/transient-storage/)
 
