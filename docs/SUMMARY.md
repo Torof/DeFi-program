@@ -66,3 +66,4 @@
 
 - [Overview](deep-dives/README.md)
 - [Errors](deep-dives/errors.md)
+- [Bit Manipulation](deep-dives/bit-manipulation.md)
