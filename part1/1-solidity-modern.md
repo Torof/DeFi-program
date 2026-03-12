@@ -682,6 +682,8 @@ function execute(Price price, Quantity qty) external {
 }
 ```
 
+UDVTs are erased at compile time. The EVM only sees the underlying primitive (`uint128`, `address`, etc.) — no extra opcodes, no wrapping cost. The type safety is purely a compiler check, making UDVTs a true zero-cost abstraction.
+
 **Custom operators (0.8.19+):**
 
 Since [Solidity 0.8.19](https://www.soliditylang.org/blog/2023/02/22/solidity-0.8.19-release-announcement/), you can define operators on UDVTs to avoid manual unwrap/wrap:
