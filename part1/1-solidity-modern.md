@@ -954,6 +954,8 @@ The compiler knows `IERC20.transfer` expects `(address, uint256)` and will rejec
 - Encoding data for cross-chain messages
 - Anywhere you previously used `abi.encodeWithSelector`
 
+**What about the others?** `abi.encodeCall` doesn't replace everything. Use `abi.encodeWithSelector` when the target interface isn't known at compile time (e.g., generic proxy forwarding). Use `abi.encodeWithSignature` when you only have a string signature. Use `abi.encode` when you're not encoding a function call at all (e.g., hashing data with `keccak256`).
+
 💻 **Quick Try:**
 
 Test the type-safety difference in Remix or Foundry:

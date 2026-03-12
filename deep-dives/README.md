@@ -8,3 +8,9 @@ Standalone deep dives into specific EVM and Solidity topics. Each deep dive goes
 |-------|-------|----------|
 | [Errors](errors.md) | REVERT mechanics, error ABI encoding, assembly bubbling, multicall strategies, decoding raw revert data | ErrorHandler (5 TODOs) |
 | [Bit Manipulation](bit-manipulation.md) | Bitwise foundations, two's complement, masking patterns, bitmap sets, LSB/MSB isolation, power-of-2 tricks, branchless idioms | BitToolkit (9 TODOs) |
+
+## Planned Deep Dives
+
+| Topic | Focus |
+|-------|-------|
+| [ABI Encoding](abi-encoding.md) | Calldata layout, the `abi.encode*` family, selector computation, decoding, common pitfalls |
