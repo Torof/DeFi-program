@@ -1191,6 +1191,19 @@ After this section, you should be able to:
 - Read a UDVT definition like Uniswap V4's `Currency` and explain the type safety it provides over a raw `address`
 - Look at an `abi.encodeCall` invocation and explain what compile-time check it provides that `abi.encodeWithSelector` doesn't
 
+<details>
+<summary>Check your understanding</summary>
+
+1. **unchecked & mulDiv:** In Uniswap V2's swap, inputs are bounded by pool reserves — overflow is mathematically impossible, so `unchecked` is safe. A user-facing deposit takes arbitrary `uint256` input that could overflow. Vault math uses `mulDiv` because `shares = (deposit * totalShares) / totalAssets` can have `deposit * totalShares` exceed 256 bits even when the final result fits — `mulDiv` holds the intermediate in 512 bits so the division can bring it back without data loss.
+
+2. **try/catch & custom errors:** `try/catch` wraps an external call and lets you handle failure without reverting the whole transaction. Custom errors (e.g., `error InsufficientBalance(uint256 available, uint256 required)`) encode a 4-byte selector + ABI-encoded arguments — callers can match on the selector to identify the exact error, which is cheaper and more precise than parsing revert strings.
+
+3. **UDVTs:** `type Currency is address` creates a distinct type that the compiler treats as incompatible with raw `address`. You can't pass a `Currency` where an `address` is expected (or vice versa) without explicitly wrapping/unwrapping. Zero runtime cost — the EVM only sees `address`, the type check is purely at compile time.
+
+4. **abi.encodeCall:** It builds the same calldata bytes as `abi.encodeWithSelector`, but the compiler verifies that the argument types match the function signature. If you swap `(address, uint256)` to `(uint256, address)`, `encodeCall` gives a compile error; `encodeWithSelector` silently produces wrong calldata.
+
+</details>
+
 ---
 
 ## 💡 Solidity 0.8.24+ — The Bleeding Edge
@@ -1542,6 +1555,17 @@ After this section, you should be able to:
 - Explain why transient storage is dramatically cheaper than regular storage and what makes it unsuitable for cross-transaction state
 - Describe Uniswap V4's flash accounting pattern: how delta tracking with transient storage replaces per-swap token transfers
 - Compare `tstore`/`tload` assembly syntax (0.8.24) with the `transient` keyword (0.8.28) and know when each is appropriate
+
+<details>
+<summary>Check your understanding</summary>
+
+1. **Transient storage cost:** Regular storage writes cost 5,000-20,000 gas because data must be persisted to disk across all future transactions. Transient storage costs ~100 gas because the EVM only keeps it in memory for the current transaction and discards it at the end — no disk write needed. It's unsuitable for any state that must survive between transactions (balances, ownership, configuration).
+
+2. **Flash accounting:** Instead of transferring tokens on every swap (2 transfers per swap), V4 tracks a signed delta per token in transient storage — a running balance of what's owed between user and pool. Multiple swaps just update the delta (~100 gas each). At the end, one settlement transfers the net amounts. Three swaps go from 6 transfers to 2.
+
+3. **Assembly vs keyword:** Before 0.8.28, transient storage required `tstore`/`tload` in inline assembly blocks. Since 0.8.28, `bool transient locked;` declares a transient variable directly — the compiler handles the opcodes. Use the keyword for straightforward cases; the assembly syntax still exists for older codebases.
+
+</details>
 
 ---
 

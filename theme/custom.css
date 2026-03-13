@@ -595,6 +595,30 @@
   font-size: 0.95rem;
 }
 
+/* --- Collapsible spoilers (details/summary) --- */
+details {
+  margin: 1rem 0;
+  padding: 0.5rem 1rem;
+  border-left: 3px solid #6366f1;
+  border-radius: 4px;
+}
+.light details { background: rgba(99, 102, 241, 0.04); }
+.navy details, .coal details, .ayu details { background: rgba(99, 102, 241, 0.06); }
+
+details summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.25rem 0;
+  transition: color 0.15s ease;
+}
+details summary:hover {
+  color: #6366f1;
+}
+
+details[open] summary {
+  margin-bottom: 0.5rem;
+}
+
 /* --- Print styles --- */
 @media print {
   .callout {
