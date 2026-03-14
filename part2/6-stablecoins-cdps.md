@@ -376,6 +376,16 @@ After this section, you should be able to:
 - Verify a vault's safety by computing `ink × spot ≥ art × rate` with real numbers, converting between WAD (18), RAY (27), and RAD (45) precision scales
 - Explain the normalized debt and rate accumulator pattern and connect it to Module 4's lending index pattern (same mathematical structure, different domain)
 
+<details>
+<summary>Check your understanding</summary>
+
+- **CDPs vs lending pools**: CDPs mint new stablecoins against locked collateral (the protocol is the central bank), while lending pools lend out existing deposited assets. CDPs create supply; lending pools redistribute it.
+- **MakerDAO architecture**: Vat holds all accounting (ink/art per vault, rate per ilk), Jug accumulates stability fees via `drip()` updating the rate accumulator, Join adapters convert between ERC-20 tokens and internal Vat balances, and CDP Manager provides a user-friendly wrapper with indexed vault ownership.
+- **Vault safety check**: A vault is safe when `ink * spot >= art * rate`, where ink is collateral amount (WAD), spot is price-with-safety-margin (RAY), art is normalized debt (WAD), and rate is the fee accumulator (RAY). The product is in RAD (45 decimals).
+- **Normalized debt pattern**: Instead of updating every vault's debt when fees accrue, store `normalizedDebt` per vault and a global `rateAccumulator` per collateral type. Actual debt = normalizedDebt * rate. This is mathematically identical to Aave's liquidity index pattern from M4.
+
+</details>
+
 ---
 
 ## 💡 Liquidations, PSM, and DAI Savings Rate
@@ -668,6 +678,15 @@ After this section, you should be able to:
 - Describe the PSM mechanism (1:1 swap with tin/tout fees) and articulate the centralization trade-off it introduces (USDC backing)
 - Explain how DSR/SSR acts as a demand-side lever for peg maintenance: higher rate → more DAI locked → reduced supply → upward peg pressure
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Dutch auctions over English auctions**: English auctions lock capital for the duration and failed catastrophically on Black Thursday when network congestion blocked bids (attackers won auctions for $0). Dutch auctions start high and decay, allowing instant settlement with no capital lockup. The Dog triggers liquidation and the Clipper runs the declining-price auction.
+- **PSM mechanism and trade-off**: The Peg Stability Module swaps USDC for DAI 1:1 (minus tin/tout fees), providing a hard price floor/ceiling. The trade-off is centralization risk: DAI becomes partially backed by USDC, inheriting its custodial and regulatory risks.
+- **DSR as monetary policy**: Raising the DAI Savings Rate incentivizes holders to lock DAI in the DSR contract, reducing circulating supply and pushing the peg upward. Lowering it releases supply. This is demand-side control, complementing the supply-side control of stability fees.
+
+</details>
+
 ---
 
 ## 🎯 Build Exercise: Simplified CDP Engine
@@ -687,6 +706,14 @@ After this section, you should be able to:
 
 - Implement a simplified CDP engine (Vat + Jug + Dog + PSM) with the vault safety check, per-second stability fee accumulator, and Dutch auction liquidation trigger
 - Write tests covering the full CDP lifecycle: open vault → draw debt → accrue fees → liquidate undercollateralized → verify debt ceiling and dust constraints
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Simplified CDP engine**: The SimpleVat manages collateral and normalized debt via `frob()`, the SimpleJug applies `rpow`-based per-second fee compounding via `drip()`, the SimpleDog triggers liquidation when `ink * spot < art * rate` and runs a Dutch auction, and the SimplePSM provides 1:1 stablecoin swaps with configurable fees.
+- **CDP lifecycle testing**: Tests should cover the full path from vault creation through debt generation, fee accrual over time (using `vm.warp`), liquidation trigger when price drops, auction execution, and verification that system invariants like debt ceilings and dust minimums are enforced at every step.
+
+</details>
 
 ---
 
@@ -964,6 +991,16 @@ After this section, you should be able to:
 - Compare MakerDAO vs Liquity: governance vs immutability, Dutch auction vs Stability Pool liquidation, and explain why each design made its trade-offs
 - Explain Ethena USDe's delta-neutral mechanism (collateral + short perp = hedged position) and identify the risks: negative funding rates, exchange counterparty, centralization
 - Use the Terra collapse ($40B) as the definitive case study for why uncollateralized algorithmic stablecoins fail: reflexive death spiral when confidence breaks
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Stablecoin taxonomy and trilemma**: Fiat-backed (USDC — centralized but capital-efficient and stable), overcollateralized (DAI — more decentralized but capital-inefficient), algorithmic (UST — capital-efficient but fragile), delta-neutral (USDe — hedged spot+short position). No design achieves all three of decentralization, capital efficiency, and stability simultaneously.
+- **MakerDAO vs Liquity**: MakerDAO uses governance to adjust parameters (fees, collateral types, debt ceilings) with Dutch auction liquidations. Liquity is fully immutable with no governance, using a Stability Pool for instant liquidations. Maker chose adaptability; Liquity chose credible neutrality.
+- **Ethena USDe**: Holds collateral (e.g., stETH) and opens a matching short perpetual position, so ETH price movements cancel out. Risks include negative funding rates (which erode yield), exchange counterparty risk (centralized exchanges hold the position), and operational centralization.
+- **Terra collapse**: UST relied on reflexive arbitrage with LUNA — when confidence broke, UST depegged, LUNA was minted to absorb redemptions, hyperinflating LUNA and deepening the depeg in a death spiral. This proves that purely algorithmic designs without real collateral backing are inherently fragile.
+
+</details>
 
 ---
 

@@ -147,6 +147,15 @@ After this section, you should be able to:
 - Position your protocol in the stablecoin landscape vs DAI, LUSD, GHO, crvUSD and articulate the design trade-off: maximizing decentralization (immutable, permissionless, crypto-native) at the cost of adaptability
 - Map 13 specific prerequisite concepts from 7 modules to the stablecoin components where they'll be applied
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Why a stablecoin capstone**: A multi-collateral stablecoin system integrates nearly every DeFi primitive studied in Part 2 — token mechanics (ERC-20 + flash), oracle integration, lending-style health factor math, liquidation auctions, flash loan patterns, vault share pricing, and security invariants — into a single cohesive protocol.
+- **Design positioning**: Compared to DAI (governance-controlled, adaptable) and LUSD (immutable, ETH-only), your protocol targets maximum decentralization and immutability (no governance, no PSM) while supporting multiple collateral types including ERC-4626 vault shares.
+- **Prerequisite mapping**: Each capstone component draws on specific module knowledge — e.g., the Engine uses M4's rate accumulator pattern, the PriceFeed uses M3's Chainlink integration with staleness checks, the Liquidator uses M6's Dutch auction pattern, and the Stablecoin uses M5's flash loan callback pattern adapted for minting.
+
+</details>
+
 ---
 
 ## 💡 Architecture Design
@@ -316,6 +325,15 @@ After this section, you should be able to:
 - Sketch the 4-contract architecture from memory (StablecoinEngine, PriceFeed, DutchAuctionLiquidator, Stablecoin) with clear responsibilities and data flow between them
 - Define the core data structures (Vault per-position, CollateralConfig per-type) and explain storage layout choices for gas-efficient health factor checks
 - Articulate a position on each of the 6 design decisions with trade-off reasoning, and explain the deployment order with cross-contract authorization
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Four-contract architecture**: StablecoinEngine (core accounting, vault lifecycle, health factor checks), PriceFeed (Chainlink integration + vault share pricing with rate cap), DutchAuctionLiquidator (separate contract calling Engine's `seizeCollateral()`), Stablecoin (ERC-20 with authorized mint/burn and ERC-3156 flash mint).
+- **Data structures and storage**: Vault struct holds per-position state (collateral amount, normalized debt). CollateralConfig holds per-type parameters (rate accumulator, thresholds, debt ceiling). Pack BPS values as uint16 to reduce SLOADs on the health factor hot path — same optimization pattern as Aave V3's reserve configuration bitmap.
+- **Design decisions and deployment**: Each decision (e.g., immutable vs upgradeable, fixed vs adjustable parameters) has trade-offs that should be justified. Deployment order matters because contracts need cross-references: deploy PriceFeed first (no dependencies), pre-compute Engine's address via CREATE2, deploy Stablecoin with the pre-computed Engine address (so only Engine can mint/burn), then deploy Engine and Liquidator with all addresses known.
+
+</details>
 
 > **🧭 Checkpoint — Before Moving On:**
 > Can you sketch the 4-contract architecture from memory? Can you name the 6 design decisions and articulate a preference (with rationale) for each? If you can't, re-read the Architecture Design material above — the architecture IS the project, and changing it mid-build is expensive.
@@ -614,6 +632,15 @@ After this section, you should be able to:
 - Compute a health factor with multi-decimal normalization for both ETH and vault share collateral, handling different decimal scales correctly
 - Explain when `drip()` must be called (every state change where debt accuracy matters) and implement the stability fee accumulator from M6's pattern
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Engine's 10 external functions**: The vault lifecycle spans depositCollateral, withdrawCollateral, mintStablecoin, burnStablecoin, liquidate, plus supporting functions. Each state-changing function must enforce the health factor check after modification (CEI pattern) and call `drip()` before any debt calculation.
+- **Multi-decimal health factor**: ETH (18 decimals) and vault shares (variable decimals) require normalizing to a common scale before computing health factor. The formula is `(collateralValue * liquidationThreshold) / debt >= 1`, where collateralValue must account for the token's decimals, the oracle's decimals, and the precision scaling.
+- **When to call drip()**: Before every operation that reads or modifies debt — minting, burning, liquidation, health factor checks. If you skip `drip()`, the rate accumulator is stale and actual debt is underestimated, potentially allowing undercollateralized positions to appear safe. Always drip the specific collateral type being operated on, not a hardcoded type.
+
+</details>
+
 ---
 
 ## 💡 Vault Share Collateral Pricing
@@ -776,6 +803,15 @@ After this section, you should be able to:
 - Trace the two-step pricing pipeline for vault share collateral: shares → `convertToAssets()` → underlying amount → Chainlink price → USD value
 - Explain the donation attack on vault share pricing (attacker inflates exchange rate to manipulate collateral valuation) and implement the rate cap defense with a numeric example
 - Compare the 3 defense strategies (rate cap, TWAP of exchange rate, internal accounting) and justify which you'd choose for your protocol
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Two-step pricing pipeline**: First, convert shares to underlying amount via `convertToAssets()` (on-chain exchange rate). Second, price the underlying in USD via Chainlink. The final value is `shares * exchangeRate * underlyingPrice`, with appropriate decimal normalization at each step.
+- **Donation attack and rate cap**: An attacker donates assets directly to the vault, inflating `convertToAssets()` and making their collateral appear more valuable. The rate cap defense stores the last known exchange rate and limits increases to a maximum percentage per period (e.g., 10% per day). If the current rate exceeds the cap, use the capped rate instead.
+- **Three defense strategies**: Rate cap is simplest and sufficient for most cases. TWAP of the exchange rate smooths out manipulation but adds complexity and storage costs. Internal accounting (tracking assets via state, not `balanceOf`) is the most robust but requires vault cooperation. For an immutable protocol, rate cap offers the best simplicity-to-security ratio.
+
+</details>
 
 > **🧭 Checkpoint — Before Moving On:**
 > Take a piece of paper and trace a health factor calculation for vault share collateral end-to-end: shares → `convertToAssets()` → underlying amount → Chainlink price → USD value → HF formula. Include the rate cap check. If you can do this with concrete numbers (pick any), the pricing pipeline is solid. If the decimal normalization steps feel unclear, revisit the numeric walkthroughs above.
@@ -1010,6 +1046,16 @@ After this section, you should be able to:
 - Walk through a full liquidation numerically: drip → health check fails → auction starts → price decays → bidder bids → settlement, and calculate the bidder's profit
 - Explain why Dutch auctions are MEV-resistant (no single optimal bid moment) and why MakerDAO moved from English to Dutch auctions after Black Thursday
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Decay function trade-offs**: Linear decay is simplest but may overshoot fair price. Exponential step decay (MakerDAO's `StairstepExponentialDecrease`) drops in discrete steps, giving bidders predictable windows. Continuous exponential decay provides the smoothest price curve but costs more gas to compute on-chain.
+- **Partial fills and bad debt**: Bidders can buy a portion of the lot — the auction updates remaining lot and tab, and returns surplus collateral to the vault owner if tab is fully covered before lot is exhausted. If the auction expires with remaining tab, that amount becomes bad debt tracked as a protocol-level liability.
+- **Full liquidation walkthrough**: `drip()` updates the rate accumulator, revealing the vault's true debt exceeds its collateral threshold. `startAuction()` seizes collateral from the Engine and sets starting price above market. Price decays over time. A bidder calls `bid()` when price is attractive, paying stablecoins (burned) and receiving collateral. Profit = collateral market value minus stablecoins paid.
+- **MEV resistance**: In English auctions, the optimal strategy is to bid at the last moment (snipe), creating a single MEV-extractable moment. In Dutch auctions, the price continuously declines — bidding earlier means paying more, bidding later risks someone else taking the lot. There is no single optimal moment, spreading MEV across time.
+
+</details>
+
 ---
 
 ## 💡 Flash Mint
@@ -1140,6 +1186,15 @@ After this section, you should be able to:
 - Explain the difference between flash mint (mint from thin air, destroy at end) and flash loan (borrow from pool), and why flash mint is the peg mechanism for an immutable protocol without a PSM
 - Implement ERC-3156 adapted for minting and identify the security requirements: callback reentrancy protection, Engine interaction safety, fee handling
 - Compare 3 peg stability mechanisms (MakerDAO's PSM, Liquity's redemptions, your flash mint arbitrage) and articulate the trade-offs of each in an interview setting
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Flash mint vs flash loan**: Flash loans borrow existing tokens from a pool (limited by pool liquidity). Flash mint creates tokens from nothing and destroys them at the end of the transaction (effectively unlimited). For an immutable protocol with no PSM, flash mint enables permissionless peg arbitrage: if stablecoin trades above $1, arbitrageurs flash mint, sell on DEX, buy back cheaper, and repay.
+- **ERC-3156 adapted for minting**: The Stablecoin contract implements `flashLoan()` by minting tokens to the borrower, calling `onFlashLoan()` on the receiver, then burning the principal + fee via `transferFrom`. Security requirements: reentrancy guard, verify the callback return value matches the expected hash, ensure fee collection is atomic with the burn.
+- **Three peg mechanisms compared**: PSM (MakerDAO) provides a hard peg floor/ceiling via 1:1 swaps but introduces centralization (USDC backing). Redemptions (Liquity) allow anyone to redeem stablecoins for collateral at face value, creating a hard floor but penalizing the riskiest vaults. Flash mint arbitrage is fully permissionless and requires no reserves, but only works when DEX liquidity exists and the deviation is large enough to cover gas + fees.
+
+</details>
 
 ---
 
@@ -1316,6 +1371,16 @@ After this section, you should be able to:
 - Design an invariant test handler with 8 bounded operations that explores realistic action sequences across multiple actors with random price movements
 - Write fork tests against real Chainlink feeds and real ERC-4626 vaults to verify behavior under production conditions
 - Test edge cases that break naive implementations: cascading liquidations, stale oracles, sudden exchange rate drops, dust positions
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Five critical invariants**: Solvency (total collateral value >= total debt - bad debt), backing (every stablecoin in circulation is backed by vault collateral), accounting (sum of all individual vault debts equals global total debt), health (every non-liquidated vault has health factor >= 1), conservation (stablecoins are only created/destroyed through mint/burn, never from thin air).
+- **Handler design with 8 operations**: depositCollateral, withdrawCollateral, mintStablecoin, burnStablecoin, liquidate, updateOraclePrice, accrueInterest, and flashMint — each with bounded inputs and multi-actor selection. Random price movements via the oracle handler stress-test liquidation cascades and health factor boundaries.
+- **Fork testing**: Deploy your contracts on a mainnet fork with real Chainlink feeds and real ERC-4626 vaults (e.g., Yearn or Aave aToken vaults). Verify that your PriceFeed correctly handles real oracle responses, decimals, and staleness, and that vault share pricing matches actual on-chain exchange rates.
+- **Edge cases**: Cascading liquidations (one liquidation triggers others by moving the market), stale oracles (Chainlink feed not updated for hours), sudden exchange rate drops (vault hack reduces share value instantly), and dust positions (tiny vaults where gas cost exceeds liquidation incentive, leaving bad debt).
+
+</details>
 
 > **🧭 Checkpoint — Before Starting to Build:**
 > Can you list all 5 invariants from memory and explain what failure of each one would mean for the protocol? Can you describe at least 4 handler operations and how they interact with the invariants? If yes, you understand the system well enough to build it. If not, re-read the invariants — they are the specification you're implementing against.

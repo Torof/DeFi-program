@@ -475,6 +475,17 @@ After this section, you should be able to:
 - Decode single values, multi-value tuples, and dynamic `bytes` return data using the correct strategy (retSize in the call vs RETURNDATACOPY after)
 - Explain why return data doesn't persist across calls and how to handle multiple sequential calls
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Calldata encoding for calls**: Write `shl(224, selector)` at the memory offset, then arguments at +0x04, +0x24, +0x44, etc. For scratch space encoding (offset 0x00), this is safe when the call immediately follows. For FMP-allocated memory, bump the free memory pointer after allocating.
+- **Scratch space vs FMP**: Scratch space (0x00-0x3f) is cheaper (no FMP bookkeeping) and safe when the encoded calldata is consumed immediately by the next CALL opcode. Use FMP-allocated memory when you need the data to survive across multiple Solidity-level operations or when the calldata exceeds 64 bytes.
+- **4-step call lifecycle**: (1) Encode calldata in memory, (2) execute CALL/STATICCALL/DELEGATECALL, (3) check the success flag, (4) decode return data. This template applies to every external call in assembly, regardless of the target.
+- **Return data decoding**: For known-size returns, pass `retSize` in the CALL opcode and read directly from the output offset. For dynamic returns, set `retSize` to 0 and use RETURNDATACOPY after the call. RETURNDATASIZE gives the actual length.
+- **Return data buffer lifetime**: The return data buffer is overwritten by every subsequent CALL, STATICCALL, DELEGATECALL, or CREATE. If you need data from a previous call, copy it to memory with RETURNDATACOPY before making the next call.
+
+</details>
+
 ---
 
 ## 💡 Error Handling & Safety Patterns
@@ -971,6 +982,16 @@ After this section, you should be able to:
 - Defend against the returnbomb attack by bounding RETURNDATACOPY or using retSize in the CALL itself
 - Choose between `gas()` and a fixed gas limit for external calls based on whether the callee is trusted, and compute the minimum gas budget for post-call cleanup
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Error bubble-up pattern**: After a failed call (`success == 0`), use `returndatacopy(0, 0, returndatasize())` to copy the revert data to memory, then `revert(0, returndatasize())` to forward it. This preserves the original error selector and parameters so callers and debugging tools see the actual failure reason.
+- **SafeERC20 / safeTransfer**: Handles four token behaviors: (1) reverts on failure (standard), (2) returns nothing (USDT-style -- treat as success), (3) returns true (standard success), (4) returns false (non-standard failure signal). The assembly pattern checks `or(iszero(returndatasize()), and(gt(returndatasize(), 31), eq(mload(ptr), 1)))`. Solady skips the code-size check for gas savings; OpenZeppelin includes it for safety.
+- **Returnbomb defense**: A malicious callee can return megabytes of data, causing RETURNDATACOPY to consume all the caller's gas via memory expansion. Defend by passing a bounded `retSize` in the CALL opcode itself (limiting what gets written to memory) or by checking `returndatasize()` before copying.
+- **Gas budgeting for calls**: Use `gas()` (forward all available gas) for trusted callees. For untrusted callees, pass a fixed gas limit to ensure you retain enough gas for post-call cleanup (error handling, state updates). The 63/64 rule means you always keep 1/64, but complex cleanup may need more -- calculate explicitly.
+
+</details>
+
 ---
 
 ## 💡 Production Call Patterns
@@ -1435,6 +1456,17 @@ After this section, you should be able to:
 - Explain EIP-1967 storage slots and why they use `keccak256(...) - 1`
 - Call the ecrecover precompile in assembly (write 128 bytes to memory, STATICCALL to 0x01, check for address(0))
 - Explain the multicall pattern: DELEGATECALL to self preserves `msg.sender`, and `msg.value` persistence is a footgun that requires explicit ETH accounting
+
+<details>
+<summary>Check your understanding</summary>
+
+- **CALL vs DELEGATECALL context**: CALL executes the target's code in the target's context -- `msg.sender` is the caller, `address(this)` is the target, and storage belongs to the target. DELEGATECALL executes the target's code in the caller's context -- `msg.sender` stays as the original sender, `address(this)` is the caller, and storage writes go to the caller's slots.
+- **Proxy forwarding pattern**: Copy all calldata to memory at offset 0, DELEGATECALL to the implementation, copy return data to offset 0, then RETURN or REVERT based on the success flag. Starting at offset 0 is safe because the function terminates immediately -- no subsequent memory operations will be affected.
+- **EIP-1967 slots**: Standardized storage slots for proxy metadata (implementation, admin, beacon) computed as `keccak256(identifier) - 1`. The `-1` prevents preimage collision with keccak256-derived mapping/array slots. Tools like Etherscan read these slots to identify proxy contracts and their implementations.
+- **ecrecover precompile**: Write hash (0x00), v (0x20), r (0x40), s (0x60) to memory -- 128 bytes total. STATICCALL to address 0x01 with 3000 gas. Returns the recovered address (or 0x00 for invalid signatures). Always check for address(0) to reject malformed signatures.
+- **Multicall with DELEGATECALL to self**: Each sub-call in the batch uses DELEGATECALL to `address(this)`, preserving `msg.sender` so access control works correctly. However, `msg.value` is the same for every sub-call in the batch -- a user sending 1 ETH could have it counted multiple times. Production multicall must track ETH spending explicitly.
+
+</details>
 
 ---
 

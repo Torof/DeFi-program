@@ -283,6 +283,15 @@ After this section, you should be able to:
 - Trace a sandwich attack step by step: front-run to push price up → victim swaps at worse rate → back-run to capture the difference, and calculate the attacker's profit from price impact math
 - Explain why AMMs are inherently vulnerable to ordering-based extraction (deterministic price impact + public mempool) and how slippage tolerance is the primary user defense
 
+<details>
+<summary>Check your understanding</summary>
+
+- **MEV as invisible tax**: Maximal Extractable Value is profit that block producers and searchers can capture by reordering, inserting, or censoring transactions. It ranges from benign (arbitrage aligns prices, liquidations keep protocols solvent) to harmful (sandwich attacks extract value directly from users).
+- **Sandwich attack mechanics**: Attacker sees a pending swap in the mempool, front-runs with a buy to push the price up, the victim's swap executes at the inflated price, then the attacker back-runs with a sell to capture the difference. Profit comes from the price impact the victim's trade creates between the two attacker transactions.
+- **AMM vulnerability**: AMMs have deterministic price impact (the output for any input is calculable from on-chain reserves) and transactions sit in a public mempool before inclusion. This combination means anyone can simulate the exact profit from reordering. Tight slippage tolerance is the primary defense — it limits how much the price can move, capping attacker profit.
+
+</details>
+
 ---
 
 <a id="good-mev"></a>
@@ -811,6 +820,15 @@ After this section, you should be able to:
 - Map the post-Merge MEV supply chain: searchers → builders → relays → proposers (PBS), and explain how competitive bidding drives most extracted value up to validators
 - Compare MEV protection mechanisms across 4 layers: transaction privacy (Flashbots Protect), order flow auctions (MEV-Share with rebates), batch auctions (CoW Protocol), and intent-based execution (Module 4)
 - Design MEV-aware protocols: minimize information leakage, reduce ordering dependence, and internalize MEV (dynamic fee hooks that surcharge suspected sandwich transactions, priority-fee-proportional swap fees that redirect extraction to LPs)
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Post-Merge MEV supply chain (PBS)**: Searchers find MEV opportunities and submit bundles to builders. Builders assemble optimal blocks from bundles and bid for inclusion. Relays verify builder bids and pass headers to proposers. Proposers (validators) select the highest-bidding block. Competitive bidding drives most extracted value up to validators.
+- **Four layers of MEV protection**: Transaction privacy (Flashbots Protect sends txs directly to builders, bypassing public mempool). Order flow auctions (MEV-Share lets searchers bid for the right to backrun, rebating part of the MEV to users). Batch auctions (CoW Protocol batches orders at a uniform clearing price). Intent-based execution (solvers absorb MEV risk as part of their filling strategy).
+- **MEV-aware protocol design**: Minimize information leakage (commit-reveal schemes, private order flow). Reduce ordering dependence (batch processing, time-weighted execution). Internalize MEV (dynamic fee hooks that detect sandwich-like patterns via priority fee analysis and surcharge those transactions, redirecting extracted value to LPs instead of searchers).
+
+</details>
 
 ---
 

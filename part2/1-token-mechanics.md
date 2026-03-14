@@ -325,6 +325,16 @@ After this section, you should be able to:
 - Implement the balance-before-after pattern for fee-on-transfer tokens and explain why trusting the `amount` parameter directly causes accounting drift
 - Normalize token amounts across different decimal scales (USDC 6, WBTC 8, DAI 18) using dynamic `decimals()` lookups without precision loss
 
+<details>
+<summary>Check your understanding</summary>
+
+- **SafeERC20**: USDT's `transfer`/`approve` return `void` instead of `bool`, causing a revert when Solidity expects a return value. SafeERC20 wraps calls with low-level `call` and checks `returndatasize`, handling both cases. `forceApprove` resets to 0 first, solving USDT's non-zero-to-non-zero approval block that `safeApprove` cannot handle.
+- **Weird token classification**: Missing returns (SafeERC20), fee-on-transfer (balance-before-after pattern), rebasing (wrapper tokens or exclude from internal accounting), approval race (reset to 0 first), zero-transfer revert (guard with `if (amount > 0)`), multiple entry points (canonicalize address via registry or wrapper).
+- **Balance-before-after pattern**: Record `balanceOf(address(this))` before and after `transferFrom`, use the difference as the actual received amount. Trusting the `amount` parameter directly causes your internal accounting to drift higher than real balances, eventually leading to insolvency.
+- **Decimal normalization**: Multiply or divide by `10 ** (18 - token.decimals())` to bring all amounts to a common scale. Always scale up to the higher precision first to avoid truncation, and perform division last to minimize rounding loss.
+
+</details>
+
 ---
 
 ## 💡 Advanced Token Behaviors & Protocol Design
@@ -902,6 +912,16 @@ After this section, you should be able to:
 - Explain why `balanceOf` is unsafe for governance or pricing within the same block and what snapshot-based alternative (`getPastVotes`) prevents flash-mint manipulation
 - Evaluate a new token for DeFi integration using the 13-point checklist and distinguish which risks need code-level defenses vs operational monitoring
 - Compare permissionless (Uniswap), curated (Aave), and hybrid (Euler V2) token listing strategies and explain the security trade-offs of each
+
+<details>
+<summary>Check your understanding</summary>
+
+- **ERC-777 reentrancy**: The `tokensReceived` hook fires during `transfer`, giving the receiver arbitrary code execution mid-transfer. This creates reentrancy vectors on any function that calls `transfer` before finishing state updates. Reentrancy guards must protect all token transfer paths, not just ETH sends.
+- **Reward-per-token accumulator**: A global `rewardPerTokenStored` increases proportionally to time and inversely to total staked. Each user's pending reward is `(rewardPerToken - userRewardPerTokenPaid) * userBalance`. This O(1) pattern avoids iterating over all users and reappears in Uniswap V3 (`feeGrowthGlobal`) and Aave V3 (`liquidityIndex`).
+- **Flash-mint governance risk**: `balanceOf` can be inflated within a single block via flash loans or flash mints. Using current balance for governance voting lets an attacker borrow tokens, vote, and return them atomically. `getPastVotes` (ERC-5805 snapshots) reads voting power from a previous block, making same-block manipulation impossible.
+- **Token listing strategies**: Permissionless (Uniswap) maximizes coverage but exposes LPs to malicious tokens. Curated (Aave) minimizes protocol risk but limits asset availability. Hybrid (Euler V2) lets anyone create isolated markets while protecting core pools, balancing permissionlessness with risk containment.
+
+</details>
 
 ---
 

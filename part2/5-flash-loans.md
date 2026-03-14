@@ -271,6 +271,15 @@ After this section, you should be able to:
 - Compare the 4 flash loan providers (Aave V3 0.05%, Balancer V2 0%, Uniswap V2 ~0.3%, Uniswap V4 flash accounting) and explain when you'd choose each based on fee and architecture
 - Implement the correct callback interface for each provider (`executeOperation`, `receiveFlashLoan`, `uniswapV2Call`) and explain Aave's `modes[]` parameter for converting flash loans into debt positions
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Atomic guarantee**: Flash loans execute borrow, callback, and repayment within a single transaction. If the borrower fails to repay (principal + fee), the entire transaction reverts as if it never happened. This is why no collateral is needed — the EVM's atomic execution model guarantees the lender is never at risk.
+- **4 flash loan providers**: Aave V3 charges 0.05% (configurable by governance, waived for addresses with the FLASH_BORROWER role), most liquid and widely used. Balancer V2 charges 0% fees, best for pure arbitrage. Uniswap V2 flash swaps charge ~0.3% (built into the swap fee). Uniswap V4 uses flash accounting (transient storage deltas, no separate flash loan mechanism), most gas-efficient for multi-step operations.
+- **Callback interfaces**: Aave calls `executeOperation(assets[], amounts[], premiums[], initiator, params)` — you approve repayment and the pool pulls via `transferFrom`. Balancer calls `receiveFlashLoan(tokens[], amounts[], feeAmounts[], userData)` — you transfer the repayment directly (balance check, not transferFrom). Aave's `modes[]` parameter lets you convert the flash loan into a regular debt position (mode 1 = stable, mode 2 = variable) instead of repaying, useful for leveraged position building.
+
+</details>
+
 ---
 
 ## 💡 Composing Flash Loan Strategies
@@ -598,6 +607,15 @@ After this section, you should be able to:
 - Calculate profitability for a flash loan arbitrage: output from DEX2 minus flash loan amount minus fees minus gas, and explain why MEV searchers capture 90%+ of profit via builder tips
 - Design a collateral swap that atomically moves a user's Aave position from one collateral type to another without ever being undercollateralized
 
+<details>
+<summary>Check your understanding</summary>
+
+- **4 flash loan strategies**: DEX arbitrage: borrow token A, swap A->B on DEX1 at low price, swap B->A on DEX2 at high price, repay loan + fee, keep profit. Flash liquidation: borrow the debt token, call `liquidationCall()`, receive collateral at a discount, swap collateral back to debt token, repay. Collateral swap: borrow new collateral, repay existing debt, withdraw old collateral, swap old->new collateral, deposit new collateral, re-borrow to repay flash loan. Leverage: borrow asset, deposit as collateral, borrow more, deposit again (loop N times), repay flash loan.
+- **Profitability calculation**: Profit = DEX2 output - flash loan amount - flash loan fee - gas cost. In practice, MEV searchers use Flashbots bundles and tip the block builder most of the profit (often 90%+) to guarantee inclusion. The remaining ~10% must still exceed gas costs to be worthwhile.
+- **Collateral swap design**: Flash-borrow the new collateral type. Use it to repay the user's existing debt (requires credit delegation or the user pre-approving the contract). Withdraw the old collateral (user must have approved aToken transfer). Swap old collateral to the flash-borrowed asset on a DEX. Deposit the new collateral for the user. Re-borrow to cover the flash loan repayment. At no point is the user undercollateralized because the flash loan provides temporary capital.
+
+</details>
+
 ---
 
 ## 💡 Security, Anti-Patterns, and the Bigger Picture
@@ -766,6 +784,16 @@ After this section, you should be able to:
 - Implement the 3 critical receiver security checks: validate `msg.sender` is the lending pool, validate `initiator` is your own contract, and never store funds in the receiver between transactions
 - Explain why flash accounting (V4, Balancer V3) is replacing traditional flash loans: delta tracking + end-of-transaction settlement is more gas efficient and composable
 - Describe a governance flash loan attack (borrow governance tokens → vote → return) and the defenses: snapshot voting power at proposal creation block, timelocks
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Protocol builder defense framework**: Assume every user has unlimited temporary capital (flash loans). Never rely on values that can be manipulated and read in the same transaction: spot prices, `balanceOf`, share ratios, current voting power. Instead use previous-block values: TWAPs (span multiple blocks), ERC-5805 vote snapshots (read from past blocks), virtual reserves (protocol-controlled offsets).
+- **3 critical receiver security checks**: (1) Verify `msg.sender` is the expected lending pool contract — prevents attackers from calling your callback directly with fake parameters. (2) Verify `initiator` is your own contract address — prevents someone else from triggering a flash loan that calls your receiver. (3) Never hold funds in the receiver contract between transactions — any leftover tokens can be stolen by triggering a new flash loan.
+- **Flash accounting replacing flash loans**: V4 and Balancer V3 use delta tracking in transient storage instead of discrete flash loan operations. Operations accumulate credits and debits, and all deltas must net to zero by end of transaction. This is more gas-efficient (no separate borrow/repay transfers) and more composable (multiple operations compose naturally within a single unlock callback).
+- **Governance flash loan attack**: Attacker flash-borrows governance tokens, votes on a malicious proposal (or reaches quorum), and returns the tokens — all in one transaction. Defense: snapshot voting power at the block when the proposal was created (ERC-5805 `getPastVotes`), so tokens acquired after proposal creation have zero voting power. Timelocks add a delay between proposal passing and execution, allowing the community to react.
+
+</details>
 
 ---
 

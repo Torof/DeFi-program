@@ -553,6 +553,16 @@ After this section, you should be able to:
 - Write gas-efficient `for` loops with explicit init/condition/post blocks, using `add(i, 1)` and `lt` instead of Solidity's `++` and `<=`
 - Use `leave` for early exits from Yul functions and explain that all control flow compiles to JUMP/JUMPI/JUMPDEST sequences
 
+<details>
+<summary>Check your understanding</summary>
+
+- **if with no else**: Yul's `if` only has a truthy branch -- there is no `else` keyword. For "if not" logic, wrap the condition in `iszero()`. For multi-branch logic, use `switch` instead.
+- **switch statement**: `switch val case 0 { } case 1 { } default { }` with no fall-through between cases. Each case must be a literal constant (not a variable or expression). The `default` branch handles unmatched values.
+- **for loops**: `for { let i := 0 } lt(i, n) { i := add(i, 1) } { body }` with explicit init, condition, and post blocks. Use `lt` (not `le` or `<=`) because there is no `le` opcode -- `lt(i, n)` is the idiomatic bound check. `add(i, 1)` replaces `++`.
+- **leave and compilation**: `leave` exits the current Yul function immediately (like `return` in other languages but without a value -- use return variables). All Yul control flow compiles to JUMP/JUMPI/JUMPDEST sequences in bytecode, with each branch or loop iteration being a conditional or unconditional jump.
+
+</details>
+
 ---
 
 ## 💡 Yul Functions (Internal)
@@ -870,6 +880,15 @@ After this section, you should be able to:
 - Define Yul functions with `function name(a, b) -> result { }` and use multiple return values
 - Explain when the optimizer inlines a function (small body → zero overhead) vs generates a JUMP call (~20 gas overhead)
 - Diagnose stack-too-deep errors in Yul and resolve them by decomposing large functions or reducing live variables
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Yul function syntax**: `function name(a, b) -> result { result := add(a, b) }`. Multiple return values are supported: `-> (x, y)`. Variables are scoped to the function body, reducing stack pressure compared to inline code.
+- **Inlining behavior**: The Yul optimizer inlines small functions (eliminating the JUMP/JUMPI overhead entirely). Larger functions remain as calls with ~20 gas overhead per invocation (JUMP to function + JUMP back). You cannot force or prevent inlining -- the optimizer decides based on code size and call count.
+- **Stack-too-deep in Yul**: The EVM can only access the top 16 stack slots (DUP1-16, SWAP1-16). If a Yul function has too many live variables at once, the compiler cannot reach them all. Fix by splitting into smaller functions (each gets its own scope), reusing variables, or storing intermediate values in memory.
+
+</details>
 
 ---
 
@@ -1428,6 +1447,16 @@ After this section, you should be able to:
 - Implement fallback and receive handlers in assembly: `calldatasize() == 0` check before dispatch, `default` branch for unknown selectors
 - Describe the EIP-1167 minimal proxy at the bytecode level and explain how 45 bytes handles all dispatch via DELEGATECALL
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Selector extraction**: `shr(224, calldataload(0))` loads the first 32 bytes of calldata and shifts right by 224 bits (256 - 32), isolating the 4-byte selector in the low bits. Route with `switch` or `if eq(selector, 0x...)` chains.
+- **Linear vs binary dispatch**: Both `if`-chains and `switch` in Yul produce linear O(n) dispatch -- each selector is checked sequentially. Solidity's compiler uses binary search for contracts with more than ~4 external functions, achieving O(log n). For hand-written assembly, order selectors by call frequency (most-called first) to minimize average gas.
+- **Fallback and receive in assembly**: Check `calldatasize()` first -- if zero, execute receive logic (ETH transfers with no data). Otherwise, run the dispatch. The `default` branch of a `switch` (or a final `revert`) handles unknown selectors, equivalent to Solidity's `fallback()`.
+- **EIP-1167 minimal proxy**: 45 bytes of bytecode that copies all calldata to memory, DELEGATECALLs to a hardcoded implementation address, copies return data, and returns or reverts. No selector dispatch needed -- it forwards everything blindly, making it the cheapest possible proxy at ~200 gas overhead per call.
+
+</details>
+
 ---
 
 ## 💡 Error Handling Patterns in Yul
@@ -1507,6 +1536,15 @@ After this section, you should be able to:
 - Encode custom errors with selector and parameters in assembly using `shl(224, selector)` + `mstore` and explain the two offset patterns (0x00 with shl vs 0x1c without)
 - Define reusable `_revertXxx()` Yul functions that centralize error encoding in dispatch contracts
 - Explain why `revert(0, 0)` should be avoided in favor of selector-encoded errors for debuggability
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Error encoding in dispatch**: Use `mstore(0x00, shl(224, selector))` to place the 4-byte selector in high bytes, then `revert(0x00, 0x04)`. For errors with parameters, add arguments at 0x04, 0x24, etc., and increase the revert size accordingly. The alternative is `mstore(0x00, unshiftedSelector)` + `revert(0x1c, 0x04)`, reading from byte 28 where the low 4 bytes sit.
+- **Reusable _revertXxx() functions**: Define Yul helper functions like `function _revertUnauthorized() { mstore(0x00, shl(224, 0x82b42900)) revert(0x00, 0x04) }`. This centralizes error encoding, reduces code duplication across dispatch branches, and makes the assembly easier to audit.
+- **Avoiding revert(0, 0)**: An empty revert returns zero bytes of error data. Etherscan, Tenderly, and frontend libraries cannot decode the failure reason, making debugging nearly impossible. Always encode at least a 4-byte selector so tools can identify which error occurred.
+
+</details>
 
 ---
 

@@ -283,6 +283,16 @@ After this section, you should be able to:
 - Explain why DeFi protocols strongly prefer non-rebasing wrappers: same mental model as vault shares, no `balanceOf` surprises, compatible with standard ERC-20 integrations
 - Describe the post-Shapella withdrawal queue and its role in peg stabilization
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Why liquid staking exists**: Staked ETH is locked and illiquid. LSTs give you a tradable token representing your stake, so you can use it as collateral in DeFi while still earning staking rewards — capital efficiency.
+- **Rebasing vs non-rebasing**: stETH rebases (your balance changes daily as rewards accrue), while wstETH/rETH use a rising exchange rate (your balance stays constant, each token is worth more ETH over time). DeFi protocols prefer non-rebasing because it behaves like standard ERC-20.
+- **Exchange rate math**: It is the same shares/assets ratio from ERC-4626. For wstETH: `stETH_amount = wstETH_amount * stEthPerToken`. If `stEthPerToken = 1.15`, then 100 wstETH = 115 stETH.
+- **Withdrawal queue**: Post-Shapella, stakers can actually exit. The withdrawal queue creates a redemption path that anchors the LST price to its underlying value, preventing sustained de-pegs since arbitrageurs can close the gap.
+
+</details>
+
 ---
 
 ## 💡 Protocol Architecture
@@ -585,6 +595,16 @@ After this section, you should be able to:
 - Explain the oracle reporting flow: how beacon chain rewards become stETH balance changes, including the sanity checks that prevent reporting errors
 - Compare Lido (permissioned operators, rebasing + wrapper) vs Rocket Pool (permissionless minipools, non-rebasing only) and articulate the decentralization vs capital efficiency trade-offs
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Lido's 6 key contracts**: Lido (stETH, shares accounting), NodeOperatorsRegistry (curated operator set), StakingRouter (deposit routing), wstETH (non-rebasing wrapper), WithdrawalQueue (exit processing), AccountingOracle (beacon chain reporting with sanity bounds like APR cap and max balance drop).
+- **O(1) rebase via shares**: Lido tracks shares internally, not balances. When rewards arrive, only the total pooled ETH updates — every holder's balance changes via `balanceOf = shares * totalPooledEth / totalShares` without iterating over accounts.
+- **Oracle reporting flow**: Beacon chain rewards are observed off-chain by an oracle committee, reported to AccountingOracle with sanity checks, then Lido updates `totalPooledEth` which changes all stETH balances in one storage write.
+- **Lido vs Rocket Pool**: Lido is more capital efficient (no per-operator bond) but more centralized (permissioned operator set). Rocket Pool requires 8-16 ETH bond per minipool, making it permissionless but less capital efficient.
+
+</details>
+
 > **🧭 Checkpoint — Before Moving On:**
 > Can you explain the difference between stETH and wstETH in terms of how they represent staking rewards? Can you calculate a wstETH → stETH conversion given a `stEthPerToken` value? If you can, you understand the foundation that everything else in this module builds on.
 
@@ -791,6 +811,15 @@ After this section, you should be able to:
 - Explain restaking: how EigenLayer recycles economic security for additional yield, and map the 4 core components (StrategyManager, EigenPodManager, DelegationManager, AVS)
 - Trace the delegation and slashing flow: staker → operator → AVS, and explain what happens when slashing conditions are triggered
 - Analyze the risk stacking diagram: ETH staking risk → LST smart contract risk → restaking protocol risk → AVS slashing risk, and explain how each layer affects DeFi integration parameters (LTV, oracle choice, liquidation bonus)
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Restaking concept**: EigenLayer lets stakers opt in to securing additional services (AVSs) with the same staked ETH, earning extra yield in exchange for accepting additional slashing conditions. Core contracts: StrategyManager, EigenPodManager, DelegationManager, AVS.
+- **Delegation and slashing flow**: Stakers deposit into EigenLayer, delegate to operators, who register with AVSs. If an AVS detects a violation, it triggers slashing — the operator's delegated stake gets cut, affecting all stakers who delegated to that operator.
+- **Risk stacking for DeFi integration**: Each restaking layer adds risk. LRTs carry more risk than LSTs, so lending protocols must use lower LTVs, higher liquidation bonuses, stricter debt ceilings, and more conservative oracle choices. Correlated slashing is the key concern — one AVS slashing event can hit all LRTs delegated to the same operator simultaneously.
+
+</details>
 
 ---
 
@@ -1133,6 +1162,16 @@ After this section, you should be able to:
 - Analyze the June 2022 stETH de-peg: what caused it, how it impacted lending positions, and why the dual oracle pattern `min(protocol rate, market rate)` would have mitigated the damage
 - Explain how Aave V3 integrates LSTs as collateral: E-Mode parameters for correlated assets, why liquidation bonus must account for de-peg risk, and how withdrawal queue delays affect liquidator behavior
 - Design LST integrations across 3 contexts: as lending collateral (dual oracle), in AMMs (StableSwap for correlated pairs), and in vaults (nested yield stacking)
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Two-step oracle pricing**: Price wstETH by first converting to ETH via the protocol exchange rate (`getStETHByWstETH`), then pricing ETH in USD via Chainlink. This separates the on-chain conversion rate from the market price feed.
+- **Dual oracle pattern**: Use `min(protocol_exchange_rate, market_rate)` to price LST collateral. During a de-peg (like June 2022 stETH), the market rate drops below the protocol rate — using the minimum prevents the protocol from overvaluing collateral that cannot actually be redeemed at the protocol rate.
+- **E-Mode for correlated assets**: Aave V3's E-Mode allows higher LTVs for correlated pairs (e.g., wstETH/ETH) because they move together. But liquidation bonus must still account for de-peg tail risk and withdrawal queue delays that slow liquidator exit.
+- **Three integration contexts**: As lending collateral (dual oracle, conservative LTV), in AMMs (StableSwap curves for ETH/LST since they are correlated but not 1:1), and in vaults (nested yield: staking rewards + DeFi yield, but compounding risk layers).
+
+</details>
 
 ---
 

@@ -379,6 +379,17 @@ After this section, you should be able to:
 - Explain when scratch space (0x00-0x3f) is safe to use versus when FMP-allocated memory is required
 - Describe `memory-safe` assembly annotations and what guarantees they provide to the Solidity optimizer
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Memory layout**: Bytes 0x00-0x1f and 0x20-0x3f are scratch space (temporary, overwritten by Solidity operations). 0x40-0x5f holds the free memory pointer (FMP). 0x60-0x7f is the zero slot (used for empty dynamic types). First allocatable memory starts at 0x80. The init code `6080604052` stores 0x80 at offset 0x40, initializing the FMP.
+- **Free memory pointer management**: Read with `mload(0x40)`, allocate by computing new end, update with `mstore(0x40, newEnd)`. Forgetting to update the FMP causes Solidity's next allocation to overwrite your data. Always bump it after allocating.
+- **mload/mstore behavior**: Both operate on 32-byte words. `mstore(offset, val)` writes the full 32-byte big-endian representation at offset. `mload(offset)` reads 32 bytes starting at offset. Values are right-aligned (padded with leading zeros).
+- **Scratch space safety**: Safe when the data is consumed immediately (e.g., hashing two values with `keccak256(0x00, 0x40)`). Unsafe when any Solidity-level operation might execute before you read -- Solidity's compiler freely uses 0x00-0x3f for its own purposes.
+- **memory-safe annotation**: Tells the Solidity optimizer that the assembly block only accesses memory it allocated via the FMP (or scratch space for temporary use). This enables the optimizer to use stack-based optimizations. Lying about memory safety can cause silent data corruption.
+
+</details>
+
 ---
 
 ## 💡 Calldata
@@ -735,6 +746,16 @@ After this section, you should be able to:
 - Use `calldataload(offset)` to extract function arguments in assembly and explain why calldata is cheaper than memory (3 gas, no expansion cost, read-only)
 - Access `bytes calldata` parameters in Yul using the `.offset` and `.length` accessors
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Calldata layout**: First 4 bytes are the function selector (`keccak256` of the signature, truncated). Parameters follow in 32-byte slots starting at offset 4. Static types (uint256, address, bool) are encoded inline at `4 + 32*n`.
+- **Static vs dynamic encoding**: Static types occupy a fixed 32-byte slot at a predictable offset. Dynamic types (bytes, string, arrays) store an offset pointer in their slot, pointing to tail data that begins with a length prefix followed by the actual content. This is why `abi.decode` needs to know types to parse correctly.
+- **calldataload in assembly**: `calldataload(offset)` reads 32 bytes from calldata at the given byte offset for 3 gas. Unlike memory, calldata has no expansion cost and is read-only, making it the cheapest data source.
+- **Calldata accessors in Yul**: For `bytes calldata` or `string calldata` parameters, Yul exposes `.offset` (byte position in calldata) and `.length` (byte count). These let you work with dynamic calldata without copying to memory.
+
+</details>
+
 ---
 
 ## 💡 Return Data & Errors
@@ -929,6 +950,16 @@ After this section, you should be able to:
 - Encode errors with parameters: selector at 0x1c, arguments at 0x04 + 0x20 offsets, and calculate the total revert data size
 - Explain why assembly error encoding saves ~200 gas over Solidity's `revert CustomError()` (scratch space vs FMP allocation)
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Returning values from assembly**: Write the ABI-encoded value(s) to memory with `mstore`, then `return(offset, size)`. For a single uint256, `mstore(0x00, val)` + `return(0x00, 0x20)`. For tuples, lay out values at consecutive 32-byte offsets.
+- **Custom error selector encoding**: `mstore(0x00, shl(224, selector))` puts the 4-byte selector in the high bytes of the word at 0x00. Then `revert(0x00, 0x04)` returns just those 4 bytes. The `revert(0x1c, 0x04)` variant works when the selector is stored without shifting -- byte 28 is where the low 4 bytes of a right-aligned word start.
+- **Errors with parameters**: Selector at 0x00 (shifted), first argument at 0x04, second at 0x24. Total revert size = 4 + (32 * number of parameters). For the `revert(0x1c, ...)` variant, arguments go at 0x20, 0x40, etc.
+- **Gas savings**: Solidity's `revert CustomError()` allocates memory via the FMP, ABI-encodes, then reverts. Assembly writes directly to scratch space (0x00), skipping allocation and encoding overhead, saving ~200 gas per revert.
+
+</details>
+
 ---
 
 ## 💡 Practical Patterns
@@ -1073,6 +1104,15 @@ After this section, you should be able to:
 - Implement the scratch space hashing pattern: store two values at 0x00 and 0x20, call `keccak256(0x00, 0x40)` — the standard pattern for mapping slot computation
 - Describe the proxy forwarding pattern: `calldatacopy` → `delegatecall` → `returndatacopy` → `return`/`revert`, and explain why starting at offset 0 is safe
 - Explain zero-copy calldata patterns: passing `calldataload` results directly to opcodes without copying to memory first
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Scratch space hashing**: Store two 32-byte values at 0x00 and 0x20, then `keccak256(0x00, 0x40)`. This is the standard pattern for computing mapping slots (`keccak256(abi.encode(key, baseSlot))`). Safe because the hash result is consumed immediately and scratch space is temporary.
+- **Proxy forwarding pattern**: `calldatacopy(0, 0, calldatasize())` copies all calldata to memory at offset 0. `delegatecall` forwards it to the implementation. After the call, `returndatacopy(0, 0, returndatasize())` copies the result. Then either `return` or `revert` based on the success flag. Offset 0 is safe because the function immediately terminates with return/revert.
+- **Zero-copy calldata**: Instead of copying calldata to memory and then reading it, pass `calldataload(offset)` results directly as arguments to other opcodes. This avoids memory allocation and expansion costs entirely, and is common in gas-optimized dispatch and parameter forwarding.
+
+</details>
 
 ---
 

@@ -311,6 +311,16 @@ After this section, you should be able to:
 - Choose optimizer settings based on contract usage: low `runs` for factory-deployed clones, high `runs` for frequently-called routers, and explain what `via_ir` enables
 - Apply the hot-path rule: focus optimization effort on functions called millions of times, not setup or admin functions
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Gas profiling with Foundry**: `forge test --gas-report` shows per-function gas costs across all tests; `forge snapshot --diff` tracks gas changes between commits. These are the only reliable way to know where gas is actually spent — intuition is often wrong due to warm/cold access quirks and memory expansion costs.
+- **Reading compiler output**: `forge inspect ContractName ir-optimized` shows the Yul IR the optimizer produces, letting you spot patterns it missed (redundant SLOADs, unnecessary checks). This is how you find optimization targets the compiler can't fix.
+- **Optimizer settings**: Low `runs` optimizes for deployment cost (good for factory-deployed clones), high `runs` optimizes for runtime cost (good for frequently-called routers). `via_ir` enables cross-function optimization but increases compile time.
+- **Hot-path rule**: Functions called millions of times (swaps, transfers) are the only ones worth optimizing aggressively. Admin functions, constructors, and setup code are called rarely — optimizing them wastes engineering time for negligible savings.
+
+</details>
+
 ---
 
 ## 💡 The Solady Playbook — Opcode Tricks
@@ -764,8 +774,19 @@ After this section, you should be able to:
 - Explain PUSH0 (EIP-3855) and `returndatasize()` as zero-push alternatives: when each applies, the gas and bytecode savings
 - Implement branchless min/max using the XOR-multiply pattern `xor(b, mul(xor(a,b), lt(a,b)))` and trace it step by step with concrete numbers
 - Describe the dirty memory pattern (writing past FMP) and identify when it's safe (self-contained functions that return/revert immediately)
-- Apply the BALANCE opcode trick for ETH transfers: skip the pre-check, handle CALL failure instead, saving ~18 gas on the happy path
+- Apply the SELFBALANCE skip for ETH transfers: skip the pre-check, handle CALL failure instead, saving ~18 gas on the happy path
 - Use arithmetic shortcuts in assembly: SHL/SHR for power-of-2 multiply/divide, AND for power-of-2 modulo, XOR/SUB for inequality checks
+
+<details>
+<summary>Check your understanding</summary>
+
+- **PUSH0 and returndatasize-as-zero**: PUSH0 (EIP-3855, Shanghai) costs 2 gas and 1 byte, replacing `PUSH1 0x00` (3 gas, 2 bytes). Before Shanghai, `returndatasize()` returns 0 before any external call and costs the same 2 gas — Solady uses this for pre-Shanghai compatibility.
+- **Branchless min/max**: The pattern `xor(b, mul(xor(a,b), lt(a,b)))` computes min(a,b) without branching. When `lt(a,b)` is 1, it XORs b with `xor(a,b)` to produce a; when 0, it returns b unchanged. Eliminating branches avoids the JUMPI + JUMPDEST opcode costs and saves gas.
+- **Dirty memory pattern**: Writing past the free memory pointer without advancing it saves the FMP update cost. This is safe only when the function returns or reverts immediately after — if Solidity allocates memory later, it overwrites the dirty region.
+- **SELFBALANCE skip for ETH transfers**: Instead of checking `selfbalance() >= amount` before calling, skip the pre-check and handle the CALL failure. This saves ~18 gas on the happy path by avoiding the `selfbalance` (5 gas) + `lt` (3 gas) + `JUMPI` (10 gas) check sequence.
+- **Arithmetic shortcuts**: `shl(n, x)` replaces `mul(x, 2^n)`, `shr(n, x)` replaces `div(x, 2^n)`, and `and(x, 2^n - 1)` replaces `mod(x, 2^n)` — each saving 3+ gas by using cheaper opcodes.
+
+</details>
 
 ---
 
@@ -1035,6 +1056,16 @@ After this section, you should be able to:
 - Describe the Yul limitation for jump tables (no computed JUMPs in inline assembly) and when to use Huff or pure Yul (M8) instead
 - Explain selector mining: renaming functions to get leading-zero selectors saves calldata gas (12 gas per zero byte), primarily valuable on L2
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Jump table dispatch**: `(selector >> SHIFT) & MASK` maps each 4-byte selector to a unique table index in O(1) time. Finding collision-free SHIFT and MASK constants requires brute-force search over the selector set — no analytical solution exists.
+- **Dispatch strategy comparison**: Linear if-chain costs ~13 gas per function (O(n)); binary search costs ~13 gas per log2(n) comparisons (O(log n)); jump tables cost a fixed ~30 gas regardless of function count (O(1)). Jump tables only justify their complexity at ~128+ functions.
+- **Yul limitation for jump tables**: Yul does not allow computed JUMPs — all jump destinations must be known at compile time. True O(1) dispatch requires Huff or pure Yul (M8), which have direct access to JUMP with computed destinations.
+- **Selector mining**: Renaming functions (e.g., `swap_k1d4()` instead of `swap()`) to produce selectors with leading zero bytes saves 12 gas per zero byte in calldata. This matters primarily on L2 where calldata is the dominant cost.
+
+</details>
+
 ---
 
 ## 💡 The Optimization Decision Framework
@@ -1279,6 +1310,16 @@ After this section, you should be able to:
 - Evaluate whether assembly optimization is worth it for a given function: gas saved x expected calls vs engineering + audit cost
 - Describe architectural gas wins: singleton pattern, flash accounting (net settlement), access lists (EIP-2930), and L2 calldata optimization
 - Explain the Solady philosophy: optimize ecosystem primitives in assembly, write applications in clean Solidity — maximizing ROI while minimizing audit risk
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Optimization hierarchy**: Architecture changes (singleton pattern, flash accounting) save 100,000+ gas per operation. Algorithm changes (binary search, packed storage) save 10,000+ gas. Opcode tricks save 2-20 gas each. Always exhaust higher levels before micro-optimizing.
+- **ROI evaluation**: Multiply gas saved per call by expected annual calls by gas price by ETH price, then compare against engineering + audit cost. A 500-gas savings on a function called 10M times/year is worth ~$450K; the same savings on a function called 10 times/year is worth $0.45.
+- **Architectural wins**: Uniswap V4's singleton eliminates cross-contract call overhead (~200,000 gas for multi-hop swaps). Flash accounting replaces per-hop token transfers with transient storage deltas settled once at the end. Access lists (EIP-2930) pre-warm storage slots for 200 gas savings each.
+- **Solady philosophy**: Optimize ecosystem primitives (SafeTransferLib, FixedPointMathLib) in assembly because they're called billions of times across all protocols. Write application logic (deposit, withdraw, harvest) in clean Solidity because audit cost outweighs gas savings for single-protocol functions.
+
+</details>
 
 ---
 

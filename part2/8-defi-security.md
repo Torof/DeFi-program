@@ -506,6 +506,16 @@ After this section, you should be able to:
 - Identify precision loss vulnerabilities: truncation-to-zero in reward accumulators, rounding direction exploits in share-based systems, and apply the correct rounding direction fix
 - Spot access control gaps: missing initializer guards, unprotected critical functions, and explain the Wormhole-style implementation initialization attack
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Read-only reentrancy**: A `view` function reads state that is temporarily inconsistent during a callback (e.g., a Curve pool's `get_virtual_price()` mid-`remove_liquidity`). An attacker triggers the callback, calls the view function from a lending protocol that uses it for pricing, and borrows against the inflated value. The fix is reentrancy guards on view functions or checking lock state before trusting external prices.
+- **Price manipulation categories**: Spot manipulation (flash loan to move pool price), TWAP manipulation (sustained trading to shift time-weighted average), donation attacks (inflating vault exchange rates), governance manipulation (flash-borrowing governance tokens to pass proposals), and composability exploits (chaining price assumptions across protocols).
+- **Precision loss vulnerabilities**: Truncation-to-zero occurs when reward accumulators divide small rewards by large total supplies, giving 0 per unit. Rounding direction exploits repeatedly round in the user's favor across many small transactions. The fix is always rounding against the user (ceiling for amounts taken, floor for amounts given) and using sufficient precision scaling.
+- **Access control gaps**: The Wormhole attack exploited an uninitialized implementation contract behind a proxy — anyone could call `initialize()` on the implementation directly, set themselves as owner, and upgrade the proxy. Always initialize implementation contracts or use `_disableInitializers()` in the constructor.
+
+</details>
+
 ---
 
 ## 💡 Invariant Testing with Foundry
@@ -884,6 +894,16 @@ After this section, you should be able to:
 - Write invariant assertions for each protocol type: vaults (`totalAssets ≥ totalShares` scaled), lending (`totalDebt ≤ totalSupply`), AMMs (`x * y ≥ k`), CDPs (`debt ≤ ceiling`)
 - Explain why invariant testing finds bugs that unit tests miss: it explores *sequences* of actions across multiple actors, revealing multi-step exploits
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Foundry invariant setup**: Inherit `StdInvariant`, call `targetContract()` to point at your handler, and write `invariant_` prefixed functions that assert properties. The fuzzer calls random handler functions in random order for `depth` steps across `runs` iterations.
+- **Handler design**: Handlers define the realistic action space with `bound()` to constrain inputs, actor selection via `useActor` modifier for multi-user scenarios, and ghost variables (cumulative counters like totalDeposited, totalWithdrawn) that track state independently from the protocol for invariant assertions.
+- **Protocol-specific invariants**: Vaults: `totalAssets >= totalShares` (scaled by share price). Lending: `totalDebt <= totalSupply`. AMMs: `x * y >= k` (only increases, as fees accrue to reserves). CDPs: `totalDebt <= debtCeiling`. These encode the fundamental correctness properties.
+- **Why invariant testing is superior**: Unit tests verify scenarios you anticipate. Invariant tests explore random sequences of operations across multiple actors, finding multi-step exploits like "deposit, warp time, deposit again, withdraw all" that no human would think to test explicitly.
+
+</details>
+
 ---
 
 ## 💡 Reading Audit Reports
@@ -988,6 +1008,15 @@ After this section, you should be able to:
 - Read an audit report efficiently: structure, severity levels, what to focus on, and how to classify findings into your mental taxonomy of attack patterns
 - Apply the "pause and exploit" technique: after reading a vulnerability description, construct the attack yourself before reading the PoC — this builds attacker intuition
 - Conduct a self-audit using the structured methodology: threat model, trust assumption mapping, and systematic checklist
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Reading audit reports efficiently**: Focus on Critical and High findings first — these are the exploitable bugs. Read the root cause analysis, not just the description. Classify each finding into your mental taxonomy (reentrancy, oracle manipulation, access control, etc.) so you recognize the pattern in your own code.
+- **Pause and exploit technique**: After reading a vulnerability description, stop before reading the PoC. Try to construct the attack yourself: what calls, in what order, with what parameters? This builds attacker intuition and trains you to think adversarially when writing your own code.
+- **Self-audit methodology**: Start with a threat model (who are the actors, what can they do, what are their incentives). Map trust assumptions (what external contracts do you trust, what happens if they behave unexpectedly). Then systematically walk through the checklist: CEI pattern, oracle staleness checks, no `balanceOf` reliance for accounting, slippage protection, return value checks.
+
+</details>
 
 ---
 
@@ -1185,6 +1214,16 @@ After this section, you should be able to:
 - Explain when formal verification (Certora Prover, CVL rules) is worth the cost and write a simple CVL rule for a critical invariant
 - Walk through the deployment security checklist: code-level requirements (CEI, access control, oracle safety), testing requirements (unit + fuzz + invariant + fork), operational requirements (monitoring, incident response, bug bounty)
 - Prepare a codebase for audit: what to provide auditors (documentation, threat model, known issues, test suite) and what to do with the report afterward
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Slither and Aderyn**: Slither (Python, Trail of Bits) detects reentrancy, uninitialized variables, incorrect visibility, and more — run it in CI on every commit. Aderyn (Rust, Cyfrin) is faster on large codebases with different detectors. Use both as complements; triage false positives by understanding why each detector flags a pattern.
+- **Formal verification value**: Certora Prover and CVL rules are worth the cost for core invariants in high-value protocols (lending pools, bridges, vaults holding significant TVL). A simple CVL rule like "totalSupply equals sum of all balances" can catch bugs that no amount of fuzzing would find. The cost is learning CVL and longer verification times.
+- **Deployment security checklist**: Code level: CEI pattern everywhere, access control on all privileged functions, oracle staleness and zero-price checks, no `balanceOf` reliance. Testing: unit + fuzz + invariant + fork tests all passing. Operational: monitoring and alerting, incident response plan, bug bounty program, upgrade/pause mechanisms.
+- **Audit preparation**: Provide auditors with architecture documentation, threat model, known issues list, and a comprehensive test suite. After the audit, fix all Critical/High findings, document accepted risks for Medium/Low, re-verify fixes don't introduce new issues, and publish the report for transparency.
+
+</details>
 
 ---
 

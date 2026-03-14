@@ -418,6 +418,15 @@ After this section, you should be able to:
 - Analyze the 3 major bridge exploits (Nomad $190M zero-root bug, Ronin $625M key compromise, Wormhole $325M verification bypass) and identify the root cause pattern in each
 - Evaluate a bridge integration using the security framework: trust model, economic security, rate limiting, audit history, and wrapped token risk
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Bridge architectures:** Lock-and-mint locks tokens on source and mints wrapped tokens on destination. Burn-and-mint burns on source and mints canonical tokens on destination. Liquidity networks use pools on both chains for instant swaps. Canonical rollup bridges inherit L1 consensus security but have slow finality (7 days for optimistic rollups). Trust ranking: canonical rollup (L1 consensus) > liquidity network (economic security) > burn-and-mint (validator set) > lock-and-mint with multisig (N-of-M keys).
+- **Bridge exploits:** Nomad ($190M) — a faulty upgrade set the trusted root to `0x00`, making every message provable, so anyone could drain funds by copying existing transactions. Ronin ($625M) — attacker compromised 5 of 9 validator keys (including 4 held by one entity), a key management failure. Wormhole ($325M) — attacker bypassed signature verification by exploiting a deprecated Solana syscall, minting 120K wETH unbacked. Root pattern: each was a validation bypass, not a cryptographic break.
+- **Bridge security framework:** Evaluate trust model (multisig vs validator set vs L1 consensus), economic security (cost to attack vs TVL), rate limiting (per-bridge or per-token caps), audit history (multiple audits, bug bounties), and wrapped token risk (what happens to wrapped assets if the bridge is compromised — they become worthless).
+
+</details>
+
 ---
 
 <a id="messaging-protocols"></a>
@@ -792,6 +801,15 @@ After this section, you should be able to:
 - Compare LayerZero (configurable security via DVNs) with Chainlink CCIP (defense-in-depth: DON + independent Risk Management Network + rate limiting) for cross-chain messaging
 - Explain xERC20 (ERC-7281) rate-limited minting: how per-bridge minting caps using the token bucket algorithm (capacity, refill rate) bound the blast radius of any single bridge compromise
 
+<details>
+<summary>Check your understanding</summary>
+
+- **LayerZero OApp pattern:** `_lzSend()` dispatches a message to a destination endpoint ID with configurable gas options; `_lzReceive()` handles incoming messages on the destination chain. Security requires verifying the source chain and sender address against a trusted registry, plus replay protection via message nonces or IDs. DVN (Decentralized Verifier Network) configuration lets each OApp choose its own security model.
+- **LayerZero vs CCIP:** LayerZero offers configurable security — each application selects its DVN set, giving flexibility but shifting security responsibility to the deployer. CCIP uses defense-in-depth with a DON (Decentralized Oracle Network) for message execution plus an independent Risk Management Network that can halt suspicious transfers, plus per-token rate limiting. CCIP is more opinionated but harder to misconfigure.
+- **xERC20 rate limiting:** Each authorized bridge gets an independent minting cap that refills over time using a token bucket algorithm (parameters: max capacity, refill rate per second, current level). When a bridge mints, the bucket drains; it refills linearly. If a bridge is compromised, the attacker can only mint up to that bridge's remaining capacity — turning catastrophic unlimited-mint risk into bounded, recoverable damage.
+
+</details>
+
 ---
 
 <a id="cross-chain-patterns"></a>
@@ -899,6 +917,14 @@ After this section, you should be able to:
 
 - Design cross-chain DeFi patterns: cross-chain swaps (intent-based with solver networks), cross-chain governance (message passing for proposal execution on remote chains), and cross-chain state syncing
 - Choose between OFT (LayerZero-native, single canonical deployment) and xERC20 (bridge-agnostic, per-bridge rate limits) for a new cross-chain token and justify the trade-off
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Cross-chain DeFi patterns:** Cross-chain swaps have three approaches — bridge-then-swap, swap-then-bridge, and intent-based (Across model) where solvers front destination tokens for best UX. Cross-chain governance passes vote results from mainnet (deepest token liquidity) to destination chain timelocks via messaging protocols. State syncing propagates protocol state (prices, parameters) across chains.
+- **OFT vs xERC20:** OFT (Omnichain Fungible Token) is LayerZero-native — one canonical token contract across chains, simple to deploy, but you're locked into LayerZero's security model. xERC20 (ERC-7281) is bridge-agnostic — the token authorizes multiple bridges with independent rate limits, so no single bridge failure is catastrophic. Choose OFT for simplicity and speed-to-market; choose xERC20 for bridge independence and defense-in-depth, especially for tokens with significant TVL.
+
+</details>
 
 ---
 

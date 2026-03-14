@@ -505,6 +505,16 @@ After this section, you should be able to:
 - Distinguish mark price from index price and explain why protocols use mark price (not index) for margin calculations and liquidation triggers
 - Recognize the funding rate accumulator as the same O(1) pattern from Aave's interest index and ERC-4626's share price: global counter + per-position snapshot
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Funding rate mechanism**: Periodic payments flow from the heavier side (more longs or more shorts) to the lighter side. When the perp trades above index price, longs pay shorts, incentivizing shorts and pushing the price down. This continuous anchoring mechanism eliminates the need for expiry dates.
+- **Leveraged PnL and liquidation price**: For a 10x long at $1000 entry with $100 margin, PnL = `position_size * (exit - entry) / entry`. Liquidation occurs when unrealized loss approaches margin minus maintenance margin. For longs: `liquidation_price = entry * (1 - 1/leverage + maintenance_margin_ratio)`.
+- **Mark vs index price**: Index price is the spot reference (aggregated from exchanges). Mark price includes the funding rate premium/discount and is used for margin calculations and liquidation triggers — using index directly would ignore the basis that funding is trying to correct.
+- **Funding rate accumulator**: Same O(1) pattern as Compound's borrowIndex. A global `fundingAccumulator` grows each period. Each position stores a `lastFundingIndex` snapshot. Owed funding = `positionSize * (currentAccumulator - lastFundingIndex)` — no iteration over positions needed.
+
+</details>
+
 ---
 
 ## 💡 GMX Architecture
@@ -994,6 +1004,15 @@ After this section, you should be able to:
 - Describe Synthetix's debt pool model: how SNX stakers absorb system-wide PnL through socialized debt shares, and how Perps V2's skew-based funding with velocity dampening works
 - Compare 3 perp architectures (GMX pool-based, Synthetix debt pool, dYdX/Hyperliquid order book) across capital efficiency, bootstrapping difficulty, slippage, and decentralization
 
+<details>
+<summary>Check your understanding</summary>
+
+- **GMX pool-as-counterparty**: GLP/GM LPs deposit assets into a pool that takes the other side of every trade. Oracle-priced execution means zero slippage for traders, but LPs bear real directional risk — if traders profit, LPs lose. Two-step keeper execution (user submits order, keeper executes after oracle update) prevents frontrunning.
+- **Synthetix debt pool**: SNX stakers collectively absorb all system PnL through socialized debt shares. If total system debt rises (traders profit), every staker's debt increases proportionally. Perps V2 uses skew-based funding with velocity dampening — the funding rate changes gradually rather than instantly, reducing manipulation.
+- **Architecture trade-offs**: Pool models (GMX) are easiest to bootstrap (just need LP deposits) but least capital efficient. Order books (dYdX/Hyperliquid) are most capital efficient with true price discovery but hardest to bootstrap (need active market makers). Debt pools (Synthetix) sit in between — capital efficient but require a large staking base.
+
+</details>
+
 ---
 
 ## 💡 Liquidation in Perpetuals
@@ -1294,6 +1313,15 @@ After this section, you should be able to:
 - Compare perp liquidation vs lending liquidation: position-level margin vs collateral ratio, time pressure from continuous PnL, and directional risk (liquidator inherits the position)
 - Trace the full position lifecycle: open with margin → accrue funding → track PnL → close voluntarily or get liquidated when margin falls below maintenance threshold
 - Explain the insurance fund and ADL cascade: when margin is insufficient, insurance fund absorbs bad debt; when the fund is depleted, auto-deleveraging forcibly reduces profitable positions to offset losses
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Perp vs lending liquidation**: Perp liquidation is position-level (margin vs unrealized PnL) rather than collateral-ratio based. Leverage amplifies every price move, so liquidations happen in minutes/seconds at high leverage vs hours/days in lending. Oracle freshness is critical — a stale price means bad liquidations.
+- **Position lifecycle**: Open with initial margin at desired leverage → accrue funding payments each period → track unrealized PnL as mark price moves → close voluntarily (realize PnL) or get liquidated when `remaining_margin < maintenance_margin`. Liquidator receives a fee for closing the underwater position.
+- **Insurance fund and ADL**: When a position is liquidated with insufficient margin to cover losses, the insurance fund absorbs the bad debt. If the insurance fund is depleted, auto-deleveraging (ADL) kicks in — the protocol forcibly reduces the most profitable opposing positions to offset the shortfall, ranked by profit and leverage.
+
+</details>
 
 ---
 

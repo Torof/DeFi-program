@@ -184,6 +184,16 @@ After this section, you should be able to:
 - Walk through transaction validation and execution end-to-end: signature verification → nonce check → gas reservation → execution → refund unused gas
 - Explain the economic purpose of gas (halting problem prevention, DoS resistance) and how EIP-1559 separates base fee from priority fee
 
+<details>
+<summary>Check your understanding</summary>
+
+- **State transition function**: The EVM takes current world state + a transaction and produces new world state. What changes: account nonces, balances, storage tries, and deployed code. Everything else (block structure, consensus) is outside the EVM.
+- **EOA vs contract accounts**: Both have nonce and balance. Contract accounts additionally have a non-empty `codeHash` and `storageRoot` pointing into the state trie. EOAs have the empty code hash and empty storage root.
+- **Transaction lifecycle**: Signature verification proves the sender, nonce check prevents replay, gas reservation deducts `gasLimit * gasPrice` upfront, execution runs opcodes consuming gas, and any unused gas is refunded at the end. If execution reverts, state changes roll back but gas is still consumed.
+- **Gas and EIP-1559**: Gas solves the halting problem (bounded execution) and prevents DoS (every operation has a cost). EIP-1559 splits fees into a protocol-burned `baseFee` (adjusts per block based on utilization) and a `priorityFee` (tip to validators for inclusion ordering).
+
+</details>
+
 ---
 
 ## 💡 The Machine
@@ -627,6 +637,16 @@ After this section, you should be able to:
 - Trace a simple computation through the stack (push, arithmetic, result) and explain why DUP/SWAP are limited to 16 (single-byte opcode encoding: 0x80-0x8F, 0x90-0x9F)
 - Categorize EVM opcodes by function (arithmetic, comparison, bitwise, memory, storage, flow, system, environment) and use evm.codes as a reference
 - Explain how control flow works at the bytecode level: JUMP/JUMPI/JUMPDEST, the program counter, and why JUMPDEST is required (bytecode injection prevention)
+
+<details>
+<summary>Check your understanding</summary>
+
+- **256-bit stack machine**: The EVM chose 256-bit words to natively fit keccak-256 hashes and secp256k1 curve elements without multi-word arithmetic. The 1024 depth limit prevents unbounded stack growth while being deep enough for practical contract execution.
+- **Stack tracing**: Every opcode consumes inputs from and pushes results to the top of the stack. `PUSH1 0x03`, `PUSH1 0x05`, `ADD` leaves `0x08` on top. DUP1-16 and SWAP1-16 are limited to 16 because each variant is a single-byte opcode (0x80-0x8F for DUP, 0x90-0x9F for SWAP).
+- **Opcode categories**: Arithmetic (ADD, MUL, etc.), comparison (LT, GT, EQ), bitwise (AND, OR, SHL), memory (MLOAD, MSTORE), storage (SLOAD, SSTORE), flow (JUMP, JUMPI), system (CALL, CREATE), and environment (CALLER, TIMESTAMP). Use evm.codes for gas costs and stack effects.
+- **Bytecode control flow**: The program counter advances sequentially. JUMP sets it to an arbitrary destination, JUMPI conditionally. JUMPDEST marks valid jump targets -- without it, an attacker could jump into the middle of a PUSH instruction's data bytes and execute arbitrary code.
+
+</details>
 
 ---
 
@@ -1179,6 +1199,17 @@ After this section, you should be able to:
 - Map Solidity globals (`msg.sender`, `block.timestamp`, `tx.origin`) to their underlying opcodes and explain why execution context reads are cheap (2-3 gas)
 - Describe how execution frames isolate CALL contexts: fresh stack and memory, shared storage and transient storage, and the 63/64 gas forwarding rule
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Gas cost tiers**: Context reads (CALLER, TIMESTAMP) cost 2-3 gas because they read from the already-loaded execution environment. Arithmetic costs 3-5 gas (pure computation). Memory operations cost 3+ gas with quadratic expansion. Storage writes cost up to 20,000 gas because they modify the persistent state trie that every full node must store.
+- **SSTORE state machine**: The cost depends on three values: original (at transaction start), current, and new. Zero-to-nonzero costs 20,000 (creating a trie entry). Nonzero-to-different-nonzero costs 2,900. Setting back to original triggers a refund, but refunds are capped at 1/5 of total gas used (EIP-3529) to prevent gas token abuse.
+- **EIP-2929 warm/cold**: First access to any storage slot or address costs 2,100 gas because the node must traverse the Merkle Patricia Trie from disk. Subsequent accesses in the same transaction cost 100 gas because the data is cached in the transaction's access set.
+- **Solidity globals to opcodes**: `msg.sender` = CALLER (2 gas), `block.timestamp` = TIMESTAMP (2 gas), `tx.origin` = ORIGIN (2 gas). These are cheap because they read from the pre-loaded execution context, not from state.
+- **Execution frame isolation**: Each CALL creates a fresh stack and memory, but storage and transient storage are shared across the contract's address. The 63/64 rule (EIP-150) forwards at most 63/64 of available gas to the sub-call, always reserving 1/64 for the caller to handle failure.
+
+</details>
+
 ---
 
 ## 💡 Writing Assembly
@@ -1540,6 +1571,16 @@ After this section, you should be able to:
 - Distinguish creation code from runtime code and explain the deploy sequence: constructor logic → CODECOPY runtime to memory → RETURN
 - Explain how immutable variables are embedded into runtime bytecode at deploy time, avoiding storage reads entirely
 - Describe the precompiled contracts at addresses 0x01-0x0a and how to call them (fixed gas costs, input-dependent computation)
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Basic Yul**: Inside `assembly {}`, use `let x := add(a, b)` for variables, opcodes as functions (`mload`, `mstore`, `sload`, `sstore`), and no types -- everything is a raw 256-bit word. Yul gives you named variables without managing the raw stack.
+- **Creation vs runtime code**: The deploy sequence runs constructor logic, then uses CODECOPY to copy the runtime bytecode into memory and RETURN it. The EVM stores the returned bytes as the contract's code. This is why constructor code never appears in the deployed bytecode.
+- **Immutable variables**: The compiler embeds immutable values directly into the runtime bytecode during deployment. At runtime, reading an immutable is just a PUSH instruction (the value is baked into the bytecode) -- no SLOAD needed, saving 2,100+ gas on first access.
+- **Precompiled contracts**: Addresses 0x01-0x0a are native implementations of expensive operations (ecrecover, SHA-256, modexp, elliptic curve ops). You call them with STATICCALL, passing input in memory. They have fixed or input-dependent gas costs that are much cheaper than equivalent EVM bytecode would be.
+
+</details>
 
 ---
 

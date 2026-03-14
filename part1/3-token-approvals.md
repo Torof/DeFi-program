@@ -397,10 +397,20 @@ function testDepositWithPermit() public {
 ## 📋 Key Takeaways: The Approval Problem
 
 After this section, you should be able to:
-- Explain how the Euler Finance hack ($197M) exploited unlimited approvals to drain tokens beyond what users had deposited
+- Explain how unlimited approvals create blast radius risk — if a protocol contract or frontend is compromised, attackers can drain entire wallet balances via `transferFrom`
 - Describe the classic approve race condition and why production code approves to 0 before setting a new amount
 - Construct an EIP-712 permit digest from its components: domain separator, struct hash, and nonce
 - Identify which tokens support EIP-2612 `permit()` and what fallback strategy to use for tokens that don't
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Unlimited approval risk**: When users grant unlimited approvals to a protocol contract, a compromise of that contract (or its frontend) lets the attacker call `transferFrom` to drain entire wallet balances — far beyond what the user deposited. The BadgerDAO frontend compromise ($120M, December 2021) demonstrated this directly: malicious scripts injected into the frontend called `increaseAllowance`, then drained wallets via `transferFrom`. Scoped approvals (approve only what's needed per operation) limit blast radius.
+- **Approve race condition**: If Alice has approved Bob for 100 and calls `approve(Bob, 50)`, Bob can front-run: spend the original 100, then spend the new 50 — getting 150 total. Fix: `approve(Bob, 0)` first, then `approve(Bob, 50)` in a second tx (or use `increaseAllowance`/`decreaseAllowance`).
+- **EIP-712 permit digest**: `digest = keccak256(0x1901 ‖ domainSeparator ‖ structHash)`. The domain separator binds to chain + contract address (prevents cross-chain/cross-contract replay). The struct hash encodes the permit params (owner, spender, value, nonce, deadline). The nonce prevents replay of the same signature.
+- **Permit support fallback**: Not all ERC-20s implement EIP-2612. Check by calling `permit()` in a try/catch — if it reverts, fall back to standard `approve` + `transferFrom`. Permit2 solves this universally since the user only needs one standard approval to the Permit2 contract.
+
+</details>
 
 ---
 
@@ -951,6 +961,15 @@ After this section, you should be able to:
 - Describe how bitmap nonces enable parallel signature collection without requiring sequential ordering
 - Explain what witness data is and why intent-based protocols like UniswapX need it to bind extra context to permits
 
+<details>
+<summary>Check your understanding</summary>
+
+- **SignatureTransfer vs AllowanceTransfer**: SignatureTransfer is one-time — each signature is consumed on use (like a cheque). AllowanceTransfer is recurring — sets an on-chain allowance with an expiration that can be spent multiple times. Use SignatureTransfer for swaps/one-off actions; AllowanceTransfer for subscriptions/protocols needing repeated pulls.
+- **Bitmap nonces**: Traditional sequential nonces (0, 1, 2…) force signatures to be used in order. Permit2's bitmap nonces assign each signature a `(wordIndex, bitIndex)` pair in a 256-bit bitmap. Any signature can be consumed in any order — critical for protocols collecting signatures from multiple users in parallel.
+- **Witness data**: Extra application-specific data bound into the permit signature. UniswapX uses it to include order details (tokens, amounts, routes) so the filler can't repurpose the permit for a different trade. The witness hash is included in the EIP-712 struct, making it tamper-proof.
+
+</details>
+
 ---
 
 ## 💡 Security Considerations and Edge Cases
@@ -1214,6 +1233,15 @@ After this section, you should be able to:
 - Walk through a permit front-running attack step by step and explain why Permit2's `permitTransferFrom` is immune to it
 - Implement a safe permit wrapper using try/catch that gracefully handles both EIP-2612 tokens and non-permit tokens
 - Explain why permit phishing is a $300M+ annual problem and what information wallet UIs must display to prevent it
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Permit front-running**: Attacker sees a `permit()` tx in the mempool and front-runs it with their own `permit()` call using the same signature. The victim's tx then reverts (nonce already used). With Permit2's `permitTransferFrom`, the permit and transfer are atomic — there's no window to front-run because the signature is consumed and tokens move in a single call.
+- **Safe permit wrapper**: Wrap `permit()` in try/catch. If it succeeds, proceed. If it reverts, check if allowance is already sufficient (someone may have front-run the permit but the allowance is set). If allowance is insufficient, fall back to requiring a standard `approve` tx. This handles EIP-2612 tokens, non-permit tokens, and front-running gracefully.
+- **Permit phishing ($300M+/yr)**: Attackers trick users into signing permit messages that approve the attacker's address as spender. The signed message looks harmless in most wallet UIs. Wallets must display: the spender address, the token, the amount, and the deadline. Users must verify the spender is a known contract — not an arbitrary EOA.
+
+</details>
 
 ---
 

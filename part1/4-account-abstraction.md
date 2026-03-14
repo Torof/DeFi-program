@@ -390,6 +390,15 @@ After this section, you should be able to:
 - Explain why `msg.sender == tx.origin` checks break smart account compatibility and what the correct pattern is
 - Describe the validation/execution split and why the EntryPoint enforces separation between the two phases
 
+<details>
+<summary>Check your understanding</summary>
+
+- **UserOp flow**: User constructs a `UserOperation` and sends it to a bundler (not the public mempool). The bundler simulates the UserOp off-chain (calling `validateUserOp` via `eth_estimateUserOperationGas`) to filter out invalid ops without spending gas. Valid ops get batched into a single transaction calling `EntryPoint.handleOps()`. On-chain, the EntryPoint runs all validations first, then all executions — this two-phase split prevents one UserOp's execution from invalidating another UserOp's validation within the same bundle.
+- **`msg.sender == tx.origin` broken**: Smart accounts call your contract via EntryPoint → account → your contract. `msg.sender` is the smart account, `tx.origin` is the bundler. They're never equal. Use EIP-1271 `isValidSignature` to verify the caller is a legitimate account, or simply don't use this check at all.
+- **Validation/execution separation**: The EntryPoint runs all validations first (checking signatures, nonces, gas deposits), then all executions. This ensures a failing execution in one UserOp can't invalidate the validation of another UserOp in the same bundle. It also allows bundlers to simulate validation off-chain to filter out invalid ops without wasting gas.
+
+</details>
+
 ---
 
 ## 💡 EIP-7702 and DeFi Implications
@@ -786,6 +795,15 @@ After this section, you should be able to:
 - Implement EIP-1271 `isValidSignature` and explain what the magic value `0x1626ba7e` signals
 - Explain how Permit2 verifies signatures from both EOAs (via `ecrecover`) and smart contract wallets (via EIP-1271)
 
+<details>
+<summary>Check your understanding</summary>
+
+- **ERC-4337 vs EIP-7702**: ERC-4337 deploys a new smart account contract — your address changes. EIP-7702 delegates your existing EOA to a contract — your address stays the same. EIP-7702 EOAs can delegate to ERC-4337-compatible implementations, getting the best of both: familiar address + smart account features (batching, paymasters, custom validation).
+- **EIP-1271 `isValidSignature`**: A standard for smart contracts to verify signatures. Returns magic value `0x1626ba7e` if the signature is valid. EOAs use `ecrecover`; smart accounts use `isValidSignature`. Any protocol verifying signatures (Permit2, order books, governance) must support both paths.
+- **Permit2 dual verification**: Permit2 first tries `ecrecover` to recover a signer. If the recovered address doesn't match the claimed signer, it falls back to calling `isValidSignature` on the signer address. This lets Permit2 work seamlessly with both EOAs and smart contract wallets.
+
+</details>
+
 ---
 
 ## 💡 Paymasters and Gas Abstraction
@@ -1072,6 +1090,15 @@ After this section, you should be able to:
 - Describe the verifying paymaster pattern and how a dApp backend authorizes gas sponsorship via off-chain signatures
 - Trace the ERC-20 paymaster flow: `validatePaymasterUserOp` → context bytes → `postOp` → token charge
 - Explain what happens when a sponsored UserOp's execution reverts — does the paymaster still charge, and why?
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Verifying paymaster**: The dApp backend signs an authorization off-chain (e.g., "sponsor gas for this user for the next 10 minutes"). The paymaster's `validatePaymasterUserOp` checks this signature on-chain. This keeps sponsorship logic off-chain (flexible, updatable) while the paymaster contract just enforces the signature check.
+- **ERC-20 paymaster flow**: In `validatePaymasterUserOp`, the paymaster checks the user has enough tokens and encodes context (token, exchange rate, max cost). After execution, `postOp` is called with the actual gas used — the paymaster charges the user the exact token amount based on real gas consumption. The context bytes bridge data between the two phases.
+- **Paymaster on revert**: Yes, the paymaster still pays. The EntryPoint guarantees `postOp` is called even if execution reverts (using `PostOpMode.opReverted`). The paymaster can still charge the user for wasted gas in `postOp`. This prevents griefing — users can't submit ops that intentionally revert to drain paymaster funds for free.
+
+</details>
 
 ---
 

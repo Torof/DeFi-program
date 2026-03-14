@@ -1454,6 +1454,17 @@ After this section, you should be able to:
 - Distinguish CREATE2 from CREATE3 and when each is appropriate for deterministic cross-chain deployment
 - Explain why EIP-6780 killed the metamorphic contract pattern and what upgrade approach replaces it
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Warm vs cold storage**: The EVM maintains an *access set* per transaction. The first touch to an address or slot is "cold" (2,100 gas for SLOAD); every subsequent touch is "warm" (100 gas). Access lists (`accessList` in tx) let you pre-pay cold costs up front so the actual operation pays warm prices.
+- **Flash accounting + transient storage**: Instead of transferring tokens on every hop, Uniswap V4 tracks a signed delta per token in transient storage. Only the net amount moves at the end of the multicall. Transient storage is ideal because it's cheap (~100 gas) and auto-clears at transaction end.
+- **Gas tokens dead**: Gas tokens exploited `SELFDESTRUCT` refunds to monetize cheap storage clears. EIP-3529 capped refunds at 20% of transaction gas, making the mint-then-burn arbitrage unprofitable.
+- **CREATE2 vs CREATE3**: CREATE2 address depends on `deployer + salt + initCodeHash` — the address changes if the bytecode changes. CREATE3 wraps CREATE2 with a fixed proxy, so the final address depends only on `deployer + salt`, letting you deploy different bytecode to the same address across chains.
+- **EIP-6780 & metamorphic contracts**: `SELFDESTRUCT` no longer clears code/storage (except in the same transaction as creation). This kills the metamorphic pattern (destroy → redeploy different code at same address). Transparent or UUPS proxies are the standard upgrade path.
+
+</details>
+
 ---
 
 ## 💡 Pectra Upgrade — EIP-7702 and Beyond
@@ -1957,6 +1968,15 @@ After this section, you should be able to:
 - Explain why `require(msg.sender == tx.origin)` is broken by EIP-7702 and what to use instead
 - Describe how an EOA delegates to a smart contract via a Type 4 transaction and what happens to the EOA's storage
 - Explain why the BLS12-381 precompile (99% gas reduction) matters for liquid staking oracle consensus
+
+<details>
+<summary>Check your understanding</summary>
+
+- **`msg.sender == tx.origin` broken**: With EIP-7702, an EOA can delegate to a contract, so calls originating from an EOA can execute arbitrary contract logic. `msg.sender == tx.origin` no longer guarantees "caller is a simple EOA" — use EIP-7702-aware checks or account abstraction patterns instead.
+- **EOA delegation mechanics**: The EOA owner signs an authorization tuple `(chain_id, contract_address, nonce, signature)` and submits it in a Type 4 transaction. The EVM sets the EOA's code to a delegation designator (0xef0100 + address). Subsequent calls to the EOA execute the delegate's code using the EOA's storage (like `DELEGATECALL`). The owner can revoke at any time.
+- **BLS12-381 precompile**: Liquid staking protocols (Lido, EigenLayer) need to verify BLS signatures from Beacon Chain validators. Before Pectra, this required Solidity implementations costing millions of gas. The native precompile cuts this to thousands of gas, making on-chain oracle consensus and proof verification practical.
+
+</details>
 
 ---
 

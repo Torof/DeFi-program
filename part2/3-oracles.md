@@ -462,6 +462,17 @@ After this section, you should be able to:
 - Implement an L2 oracle consumer that checks the Sequencer Uptime Feed and enforces a grace period after sequencer restart
 - Design an oracle pipeline for LST collateral: chain the internal exchange rate with the market rate and explain why you use the more conservative of the two
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Chainlink architecture**: Off-chain data providers feed node operators, who aggregate via OCR (Off-Chain Reporting) to reach consensus and post a single answer on-chain through a proxy contract. The governance risk is that a multisig controls feed configuration (heartbeat, deviation threshold, node set), meaning a compromised multisig could alter price feed behavior.
+- **Safe `latestRoundData()` consumer**: Check `answer > 0` (zero/negative means feed failure), `answeredInRound >= roundId` (incomplete rounds indicate stale data), and `block.timestamp - updatedAt < staleness threshold` (feed not updated recently enough). Skipping any check can cause your protocol to operate on garbage prices.
+- **Push vs pull oracles**: Chainlink (push) updates on-chain at fixed heartbeats or deviation thresholds — the oracle pays gas, consumers read cheaply but may get stale data between updates. Pyth (pull) stores prices off-chain and consumers submit price updates with their transactions — fresher prices but added complexity and gas cost per consumer call.
+- **L2 sequencer check**: On L2s, query the Sequencer Uptime Feed before trusting Chainlink prices. If the sequencer was down, feeds may appear fresh relative to L2 time but actually be stale. After restart, enforce a grace period (e.g., 1 hour) before allowing liquidations or large borrows, preventing unfair liquidations from stale prices.
+- **LST oracle pipeline**: For LSTs like wstETH, combine the protocol's internal exchange rate (`stETH/wstETH` from the contract) with a market rate (Chainlink `ETH/USD`). Use the minimum of the internal rate and market rate as the effective price — this protects against both oracle manipulation (market rate inflated) and depeg events (internal rate doesn't reflect market reality).
+
+</details>
+
 ---
 
 ## 💡 TWAP Oracles and On-Chain Price Sources
@@ -687,6 +698,15 @@ After this section, you should be able to:
 - Compute a TWAP from two cumulative price snapshots and explain why geometric mean (V3's tick-space TWAP) is harder to manipulate than arithmetic mean (V2)
 - Compare TWAP vs Chainlink across 4 dimensions: manipulation resistance, latency, asset coverage, and centralization risk
 - Implement the dual-oracle pattern (Chainlink primary + TWAP secondary) with deviation check and fallback logic, as used by Liquity and MakerDAO's OSM
+
+<details>
+<summary>Check your understanding</summary>
+
+- **TWAP computation**: Given two cumulative price snapshots `(C1, t1)` and `(C2, t2)`, the TWAP = `(C2 - C1) / (t2 - t1)`. V3's tick-space TWAP computes a geometric mean (via tick cumulatives), which is harder to manipulate than V2's arithmetic mean because the geometric mean weights extreme values less.
+- **TWAP vs Chainlink**: TWAPs are permissionless and decentralized but have latency (they lag spot by the window length) and limited asset coverage (need liquid on-chain pools). Chainlink has broad asset coverage and faster updates but introduces centralization risk (multisig, node operator set). Best practice is to use both: Chainlink as primary, TWAP as cross-check.
+- **Dual-oracle pattern**: Read the primary oracle (Chainlink). If it succeeds, cross-check against the secondary (TWAP) within a deviation threshold (e.g., 5%). If they agree, use the primary. If they deviate beyond the threshold, fall back to the secondary. If both fail, use the last known good price. This pattern (used by Liquity) provides resilience against single oracle failure or manipulation.
+
+</details>
 
 ---
 
@@ -959,6 +979,16 @@ After this section, you should be able to:
 - Explain why `pair.getReserves()` is trivially exploitable with a flash loan and trace the attack flow: flash loan → swap to distort reserves → exploit protocol → unwind
 - List and explain the 8 defense patterns (no spot price, Chainlink, staleness checks, sanity bounds, dual oracle, circuit breakers, minimum TWAP window, virtual offsets) and match each to the attack it prevents
 - Define Oracle Extractable Value (OEV) and explain how emerging solutions (API3, Pyth Express Relay, UMA Oval) redirect this value back to the protocol
+
+<details>
+<summary>Check your understanding</summary>
+
+- **4 oracle attack patterns**: Spot price manipulation (flash loan moves DEX reserves, protocol reads `getReserves()`). TWAP manipulation (sustained capital over multiple blocks to shift the average). Stale oracle exploitation (use outdated prices during market moves). Donation/balance manipulation (send tokens directly to a contract to inflate `balanceOf`-based pricing).
+- **Why spot price is exploitable**: `reserve1 / reserve0` from a DEX pool can be moved arbitrarily with a large enough swap. Flash loans provide unlimited capital for free within a single transaction, making the cost of manipulation essentially zero. The attacker profits by exploiting a protocol that reads this manipulated ratio.
+- **8 defense patterns**: Never use spot price as oracle. Use Chainlink or other off-chain oracles. Enforce staleness checks. Apply sanity bounds (min/max price). Use dual-oracle with deviation check. Implement circuit breakers for extreme moves. Require minimum TWAP windows (30+ minutes). Use virtual offsets to dilute donation impact. Each defense maps to a specific attack vector.
+- **Oracle Extractable Value (OEV)**: The value captured by MEV searchers who act on oracle updates (e.g., liquidating a position the moment a price feed updates). API3, Pyth Express Relay, and UMA Oval auction the right to act on oracle updates, redirecting this value back to the protocol or its users instead of letting it leak to generic MEV bots.
+
+</details>
 
 ---
 

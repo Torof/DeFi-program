@@ -356,6 +356,16 @@ After this section, you should be able to:
 - Describe the multi-call executor pattern that all aggregators share: how they construct and execute multi-hop, multi-pool swap sequences in a single transaction
 - Determine when split routing is worth it: gas cost of the additional swap(s) must be less than the price impact savings
 
+<details>
+<summary>Check your understanding</summary>
+
+- **The routing problem**: DeFi liquidity is fragmented across dozens of pools and protocols. A large swap on a single pool suffers high price impact, but splitting across multiple pools reduces total impact because each pool absorbs only a fraction of the trade. Optimal split ratios depend on relative pool reserves.
+- **On-chain vs off-chain routing**: On-chain routing encodes the full path in calldata (deterministic, no trust assumptions) but is limited by gas costs and stale data. Off-chain routing can evaluate thousands of paths with fresh quotes, then encode only the optimal path on-chain — more flexible but introduces a trust/freshness tradeoff.
+- **Multi-call executor pattern**: All aggregators share a common pattern: encode a sequence of swap operations (potentially across different DEXes and pools), execute them atomically in a single transaction, and verify the final output meets the user's minimum. The executor contract holds intermediate tokens between hops.
+- **Split routing economics**: Splitting only pays off when the price impact savings from distributing across pools exceeds the additional gas cost of extra swap calls. For small trades, the gas overhead of multi-pool routing often outweighs the benefit.
+
+</details>
+
 ---
 
 <a id="intent-paradigm"></a>
@@ -712,6 +722,16 @@ After this section, you should be able to:
 - Describe Dutch auction price decay for intents: starting at a generous price and decaying over time to attract solvers at the market-clearing moment
 - Implement replay protection for off-chain orders: deadline enforcement, nonce management, and signature verification
 - Articulate the UX improvements intents enable: no gas for users, inherent MEV protection (solver absorbs MEV risk), and cross-chain potential
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Intent paradigm shift**: Instead of specifying exact execution steps (swap on Uniswap V3 0.3% pool), users sign an EIP-712 message describing what they want (swap 1 ETH for at least 2500 USDC). Solvers compete to fill the intent using any execution strategy, and settlement contracts enforce the user's guarantees on-chain.
+- **Dutch auction price decay**: Intents start with a generous output amount (above market) and decay over time toward a less favorable price. This creates a natural auction — the first solver willing to fill at the current decay level wins. The market-clearing moment reveals the fair price.
+- **Replay protection**: Off-chain orders need three defenses: deadline enforcement (order expires after a timestamp), nonce management (each nonce can only be used once, preventing replay), and EIP-712 signature verification (proves the user authorized this specific order with these exact parameters).
+- **UX improvements**: Users sign messages instead of submitting transactions (no gas needed). Solvers absorb MEV risk since they choose execution paths. Cross-chain intents become possible because the settlement contract only verifies the outcome, not the execution chain.
+
+</details>
 
 ---
 
@@ -1077,6 +1097,15 @@ After this section, you should be able to:
 - Describe UniswapX's Reactor settlement pattern: how the on-chain contract enforces user guarantees regardless of solver behavior, and what solvers must do to fill orders
 - Compare UniswapX (Dutch auction, individual fills, speed-competitive) vs CoW Protocol (batch auctions, Coincidence of Wants, surplus maximization) and explain when each model produces better execution
 - Design a basic solver strategy: monitor pending intents, calculate profitability (output amount vs routing cost vs gas), and submit fill transactions before decay makes the order unprofitable
+
+<details>
+<summary>Check your understanding</summary>
+
+- **UniswapX Reactor pattern**: The on-chain settlement contract (Reactor) is the trust anchor. It verifies the user's EIP-712 signature, checks that the solver delivered the required output tokens to the user, and enforces deadlines. Solvers can source liquidity from anywhere — the Reactor only cares about the final outcome.
+- **UniswapX vs CoW Protocol**: UniswapX uses individual Dutch auctions with speed-competitive filling (first valid fill wins, exclusive filler periods for priority). CoW Protocol batches multiple orders together, finds Coincidence of Wants (peer-to-peer matches), and maximizes total surplus across the batch. CoW is better for large/overlapping order flow; UniswapX is faster for individual trades.
+- **Solver strategy design**: Monitor intent mempools for pending orders, calculate whether filling at the current Dutch auction decay is profitable (output_required vs best_routing_cost + gas), and submit fill transactions at the optimal moment — early enough to win but late enough for the spread to be profitable.
+
+</details>
 
 ---
 

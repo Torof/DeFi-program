@@ -355,6 +355,16 @@ After this section, you should be able to:
 - Describe how the returndata buffer works, why it's overwritten by every subsequent external call, and what happens if you don't copy it in assembly before making another call
 - Explain how the 63/64 rule (EIP-150) protects the caller from losing all gas when a sub-call hits INVALID or runs out of gas
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Three failure modes**: REVERT returns unused gas and sends returndata (cheapest, most informative). INVALID consumes all forwarded gas and returns nothing. Out-of-gas also consumes all forwarded gas and returns nothing. INVALID and out-of-gas are indistinguishable to the caller — both show success=0 with empty returndata.
+- **REVERT cost and custom errors**: REVERT itself costs 0 gas; the cost comes from the memory expansion needed to write the returndata. Custom errors produce smaller returndata than string errors (4-byte selector + params vs 4-byte selector + offset + length + padded string), requiring less memory expansion.
+- **Returndata buffer**: Overwritten by every external call (including calls that return no data). In assembly, you must `returndatacopy` the bytes you need before making another call, or the data is lost. The buffer persists only until the next `call`/`staticcall`/`delegatecall`.
+- **63/64 rule (EIP-150)**: The caller retains 1/64th of available gas when making a sub-call. If the sub-call hits INVALID or runs out of gas, the caller still has its reserved 1/64th to detect the failure (success=0) and handle it — preventing complete gas exhaustion from propagating up the entire call chain.
+
+</details>
+
 ---
 
 ## 💡 Error Encoding
@@ -690,6 +700,17 @@ After this section, you should be able to:
 - Map any panic code to its trigger and identify the most common ones in DeFi contexts (0x11 overflow, 0x12 division by zero, 0x32 out of bounds)
 - Explain why custom errors are cheaper than string errors in terms of returndata size and memory expansion cost
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Identifying error format from raw hex**: Check bytes 0-3: `0x08c379a0` = `Error(string)`, `0x4e487b71` = `Panic(uint256)`, empty = bare revert/INVALID/OOG, anything else = custom error. This works because error encoding uses the same selector scheme as function calls.
+- **Error encoding = function call encoding**: Both use `keccak256(signature)[0:4]` for the selector followed by ABI-encoded parameters. This means `cast 4byte`, `abi.decode`, and the same decoding libraries work for both calldata and revert data.
+- **Decoding custom error parameters**: Extract the 4-byte selector, match it against known error signatures, then `abi.decode(data[4:], (paramTypes))` to recover the parameters. Without the error signature, you can still identify the selector via a 4byte directory lookup.
+- **Common panic codes**: 0x11 = arithmetic overflow/underflow (most common in DeFi math), 0x12 = division by zero, 0x32 = array out-of-bounds access. These are emitted by `assert` failures and checked arithmetic in Solidity 0.8+.
+- **Custom errors are cheaper**: A parameterless custom error produces just 4 bytes of returndata. `require(false, "Insufficient balance")` produces 4 + 32 + 32 + 32 + padded-string bytes. Less returndata means less memory expansion cost at the REVERT instruction.
+
+</details>
+
 ---
 
 ## 💡 Solidity Error Primitives
@@ -1024,6 +1045,17 @@ After this section, you should be able to:
 - Design a custom error hierarchy for a DeFi protocol: file-level vs contract-level scope, interface declarations for integrators, parameterized vs parameterless based on caller needs
 - Quantify the gas difference between string errors and custom errors and explain where the savings come from (bytecode size, memory expansion, returndata length)
 - Read a pre-0.8.0 contract and identify where `assert` usage means INVALID opcode behavior (all gas consumed, no returndata)
+
+<details>
+<summary>Check your understanding</summary>
+
+- **require, revert, assert bytecode**: `require` and `revert` both compile to REVERT (returns remaining gas, sends error data). Pre-0.8.0, `assert` compiled to INVALID (consumed all gas, no returndata); post-0.8.0, it compiles to REVERT with `Panic(uint256)` — same gas behavior as require, but with a panic code.
+- **require with custom errors (0.8.26+)**: `require(cond, CustomError())` produces identical bytecode to `if (!cond) revert CustomError()`. This eliminates the last advantage of the if-revert pattern over require, making custom errors work cleanly with both syntax forms.
+- **Custom error hierarchy design**: Declare errors in interfaces (for integrator access) or at file level (for shared use). Use parameters when callers need diagnostic data (e.g., `InsufficientBalance(uint256 available, uint256 required)`), omit them when the selector alone is sufficient to identify the failure.
+- **Gas difference quantified**: A `revert InsufficientBalance()` with no parameters costs ~24 gas less than `require(false, "Insufficient balance")` due to smaller bytecode (no string literal stored) and smaller returndata (4 bytes vs ~100+ bytes). The savings compound across a contract with many revert sites.
+- **Pre-0.8.0 assert behavior**: In contracts compiled before Solidity 0.8.0, every `assert` statement uses the INVALID opcode. If triggered, it consumes all forwarded gas and returns no data — making it impossible for the caller to know what went wrong. Identify these by checking the compiler version in the metadata.
+
+</details>
 
 ---
 
@@ -1475,6 +1507,17 @@ After this section, you should be able to:
 - Trace error propagation through a proxy's `delegatecall` fallback and explain why errors are transparent to the caller — they see the implementation's errors directly
 - Describe how constructor reverts differ from regular call reverts (address(0) return, CREATE2 salt implications) and handle them in factory patterns
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Automatic error bubbling**: Solidity high-level calls (e.g., `token.transfer(to, amount)`) check the return value and, on failure, automatically revert with the callee's returndata. The compiler generates `if iszero(call(...)) { returndatacopy(...); revert(...) }` — forwarding the exact error bytes.
+- **Assembly error bubbling pattern**: For low-level calls, use `revert(add(data, 0x20), mload(data))` to forward raw revert bytes. This skips decoding entirely — you pass the bytes through as-is, preserving the original error for the caller above you.
+- **No-code address trap**: A low-level call to an address with no deployed code succeeds silently (returns success=1, empty returndata). Protection requires checking `extcodesize > 0` before the call, or using SafeERC20 which includes this check.
+- **Proxy delegatecall transparency**: A proxy's fallback does `delegatecall` to the implementation, then forwards return/revert data. Errors from the implementation appear as if they came from the proxy — the caller sees the implementation's error selectors directly.
+- **Constructor revert behavior**: A reverted constructor returns address(0) from CREATE/CREATE2. With CREATE2, the salt is NOT consumed on failure — the address was never occupied, so a future deployment with the same salt and init code will succeed at the same predicted address. But if the failure goes undetected, the caller may assume a contract exists at the predicted address when it doesn't. Factory patterns must check `address != 0` after deployment.
+
+</details>
+
 ---
 
 ## 💡 Try/Catch
@@ -1881,6 +1924,17 @@ After this section, you should be able to:
 - Describe the returnbomb attack, explain why it's possible through try/catch, and name the defense (capping returndata copy size)
 - Design an oracle fallback pattern using try/catch that handles all error formats, guards against returnbomb, and ensures enough gas for the fallback path
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Four catch clauses and matching order**: `catch Error(string)` matches `Error(string)` selector. `catch Panic(uint256)` matches `Panic(uint256)` selector. `catch (bytes memory)` catches everything else including custom errors and malformed data. Bare `catch` catches everything but gives no access to the error data. Malformed encoding (e.g., truncated string) falls through to the bytes clause.
+- **Custom errors and try/catch**: Custom errors are NOT caught by `catch Error(string)` — they fall through to `catch (bytes memory)` or bare `catch`. This is a common trap: if you only have `catch Error` and `catch Panic` clauses, custom errors from the callee will cause an unhandled revert.
+- **State persistence in catch path**: State changes made BEFORE the `try` statement persist even if the catch path executes. This can cause consistency bugs: if you update a balance before the try and the call fails, the balance is still modified. Design patterns must account for this — update state after confirmed success.
+- **Returnbomb attack**: A malicious callee returns megabytes of data, forcing the caller to pay for memory expansion when `catch (bytes memory)` copies all returndata into memory. Defense: cap `returndatasize()` before copying, or use assembly-level `returndatacopy` with a bounded size.
+- **Oracle fallback pattern**: Use `try oracle.latestRoundData() returns (...)` with a `catch (bytes memory)` clause that falls back to a secondary oracle. Cap returndata size to prevent returnbomb, and use `gasleft()` checks to ensure enough gas remains for the fallback path.
+
+</details>
+
 ---
 
 ## 💡 Decoding & Detection
@@ -2219,6 +2273,17 @@ After this section, you should be able to:
 - Write Foundry tests using `vm.expectRevert` with exact custom error encoding, selector-only matching, and `stdError` constants for panic codes
 - Explain the difference between bubbling raw error bytes (assembly revert) and decoding them (abi.decode), and choose the right approach based on whether you need to inspect the error or just forward it
 - Use Foundry's `-vv` verbosity flag and `cast 4byte` to debug unknown error selectors in failed transactions
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Four-way decoding algorithm**: Check length == 0 (empty revert), length < 4 (too short for selector), then match selector against `0x08c379a0` (string error) and `0x4e487b71` (panic). Anything else is a custom error — decode parameters using the known signature or look up the selector via `cast 4byte`.
+- **Decoding custom error parameters**: Use `abi.decode(data[4:], (type1, type2))` in Solidity or `data[4:]` calldata slicing. In assembly, skip the first 4 bytes with `add(data, 0x24)` (0x20 length prefix + 0x04 selector) and read parameters from there.
+- **Foundry test patterns for errors**: `vm.expectRevert(abi.encodeWithSelector(CustomError.selector, param1))` for exact matching, `vm.expectRevert(CustomError.selector)` for selector-only matching, and `vm.expectRevert(stdError.arithmeticError)` for panic codes. These must be called immediately before the reverting call.
+- **Bubbling vs decoding**: Bubbling (`revert(add(data, 0x20), mload(data))`) forwards raw bytes without inspecting them — use when you just want to propagate the error. Decoding (`abi.decode`) extracts structured data — use when you need to inspect, log, or react differently based on the error type.
+- **Debugging with Foundry**: `-vv` shows revert reasons in test output, `-vvvv` shows full call traces with revert data. `cast 4byte <selector>` looks up the function/error signature from the 4byte directory, letting you identify unknown errors from on-chain transactions.
+
+</details>
 
 ---
 
@@ -2802,6 +2867,18 @@ After this section, you should be able to:
 - Implement error classification by selector to drive retry logic in bots: distinguish between "skip this account", "adjust parameters", and "retry next block"
 - Use view-function probes (on-chain) and `eth_call` simulation (off-chain) to check whether an operation will succeed before spending gas on the real execution, and explain why this pattern is essential for liquidation bots
 - Design batch operations that use `address(this).call(...)` to isolate failures, with smart early-exit conditions (like stale oracles) to avoid wasting gas
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Multicall error strategies**: Revert-all (strict) reverts the entire batch if any call fails — use when calls are interdependent (e.g., approve + swap). Try-each (lenient) catches individual failures and continues — use when calls are independent (e.g., batch claims). Both use low-level calls with assembly error bubbling for the revert-all case.
+- **Flash loan atomic revert guarantee**: The pool transfers tokens to the borrower, calls the borrower's callback, then checks repayment. If repayment fails, the entire transaction reverts — including the initial transfer. The pool trusts the EVM's atomicity, not the borrower's code. This is why flash loans are safe without collateral.
+- **Multi-layer error propagation**: In a chain like user -> aggregator -> router -> pool, errors bubble up through each layer. At each boundary, errors may be bubbled raw (assembly revert), wrapped in a higher-level error (adding context), or swallowed (try/catch with fallback logic). Understanding where information is lost helps debug failed transactions.
+- **Error classification for bot retry logic**: Parse the revert selector to classify errors: "skip" (InsufficientBalance — this account is done), "adjust" (SlippageExceeded — retry with different params), or "retry" (StaleOracle — try next block). This prevents bots from wasting gas retrying unrecoverable failures.
+- **Pre-flight simulation**: Use `eth_call` (off-chain) or view-function probes (on-chain) to check if an operation will succeed before submitting the real transaction. Essential for liquidation bots where failed transactions waste gas in competitive MEV environments.
+- **Batch isolation with address(this).call**: Wrapping each operation in `address(this).call(abi.encodeCall(...))` creates a sub-call that can revert independently without reverting the parent. Add early-exit conditions (e.g., check oracle freshness once before the loop) to avoid wasting gas on operations that will all fail for the same reason.
+
+</details>
 
 ---
 

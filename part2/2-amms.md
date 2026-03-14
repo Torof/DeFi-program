@@ -401,6 +401,16 @@ After this section, you should be able to:
 - Walk through an impermanent loss scenario step by step: initial deposit → price change → compare hold vs LP → calculate the IL percentage using the formula `2√r / (1+r) - 1`
 - Explain how fees grow `k` over time and why this partially offsets impermanent loss for LPs
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Swap output formula**: From `x * y = k`, after adding `dx` (minus fee): `dy = y * dx_fee / (x + dx_fee)`. The output is always less than proportional because you're buying against the curve — the further you push reserves, the worse the rate gets.
+- **Nonlinear price impact**: Small trades move the price minimally, but large trades accelerate along the hyperbolic curve. A trade using 10% of reserves gets a much worse average price than ten trades of 1%, because each unit purchased raises the marginal cost of the next unit.
+- **Impermanent loss calculation**: When the price ratio changes by factor `r`, the LP's position is worth `2*sqrt(r) / (1+r)` of what holding would be worth. For a 2x price move, IL is about 5.7%. IL is "impermanent" because it reverses if the price returns, but LVR (the realized cost to arbitrageurs) is permanent.
+- **Fees offsetting IL**: Every swap pays a fee (e.g., 0.3%) that increases `k`, growing the pool's total value. If cumulative fee revenue exceeds the impermanent loss, LPs are net profitable. High-volume, low-volatility pairs tend to be profitable; low-volume, high-volatility pairs often are not.
+
+</details>
+
 ---
 
 ## 💡 Reading Uniswap V2
@@ -583,6 +593,16 @@ After this section, you should be able to:
 - Explain the V2 flash swap mechanism: how `IUniswapV2Callee.uniswapV2Call` enables atomic arbitrage without upfront capital, and why the k-check at the end makes it safe
 - Describe how V2's TWAP oracle works: cumulative price accumulators in `_update()`, why they're manipulation-resistant over time, and how to compute a TWAP from two snapshots
 - Calculate a V2 pair address off-chain using CREATE2 (Factory address + token pair + init code hash) without querying the chain
+
+<details>
+<summary>Check your understanding</summary>
+
+- **V2 swap flow**: The pool optimistically transfers output tokens first, then reads its own balances to verify the k-invariant holds. Reading `balanceOf` instead of trusting transfer amounts makes V2 composable — you can send tokens via any mechanism (direct transfer, flash swap, router) and the pool just checks the math.
+- **Flash swaps**: V2's `swap()` sends output tokens before checking k. If you request tokens and provide a callback address, `uniswapV2Call` fires with the borrowed tokens. You must return enough tokens to satisfy `k` by the end of the callback. The k-check at the end makes this safe — revert if not repaid.
+- **V2 TWAP oracle**: Each swap updates `price0CumulativeLast += price * timeElapsed`. To compute a TWAP, read the cumulative value at two different times and divide the difference by the time interval. Because it accumulates over many blocks, a single-block manipulation has negligible effect on a 30-minute TWAP.
+- **CREATE2 pair address**: `address = keccak256(0xff, factory, keccak256(token0, token1), initCodeHash)[12:]`. Tokens are sorted so `(A,B)` and `(B,A)` produce the same address. This lets routers and aggregators compute pair addresses without any on-chain calls.
+
+</details>
 
 ---
 
@@ -925,6 +945,16 @@ After this section, you should be able to:
 - Walk through V3's swap loop: what happens when price crosses an initialized tick (active liquidity changes), and why the pool behaves like V2 between any two adjacent ticks
 - Explain V3's fee accounting: how `feeGrowthGlobal` accumulates, how per-tick `feeGrowthOutside` tracks fees above/below a tick, and how an LP's uncollected fees are computed from these values
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Ticks and sqrtPriceX96**: Each tick `i` maps to `price = 1.0001^i` (1 basis point per tick). V3 stores `sqrtPriceX96 = sqrt(price) * 2^96` because the core liquidity formulas (`L = dx * sqrt(P)` and `L = dy / sqrt(P)`) use square root of price directly, avoiding an expensive on-chain square root operation.
+- **V3 positions**: A position is defined by `(tickLower, tickUpper, liquidity)`. The token amounts required depend on where the current price sits relative to the range: below range = 100% token0, above range = 100% token1, in range = a mix of both determined by the liquidity math.
+- **V3 swap loop and tick crossing**: Between two initialized ticks, the pool behaves as a constant product pool with liquidity `L`. When price hits an initialized tick, the pool adds or removes the liquidity of positions that start/end at that tick, then continues with the updated `L`. This is why V3 swaps iterate through ticks.
+- **V3 fee accounting**: `feeGrowthGlobal` accumulates total fees per unit of liquidity. Each initialized tick stores `feeGrowthOutside`, representing fees accumulated on the "other side" of that tick. An LP's uncollected fees = `(feeGrowthInside - feeGrowthInsideLastX128) * liquidity`, where `feeGrowthInside` is derived by subtracting the outside values from the global.
+
+</details>
+
 ---
 
 <a id="build-v3-pool"></a>
@@ -1011,6 +1041,16 @@ After this section, you should be able to:
 - Explain V3's core insight in one sentence: between any two initialized ticks, the pool behaves exactly like a constant product pool with liquidity `L`
 - Implement per-position fee accrual that only accumulates while the position's range includes the current price
 - Write tests covering tick crossings, overlapping positions, and out-of-range deposits
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Simplified CLAMM implementation**: The core mechanic is a swap loop that iterates through tick boundaries. At each step, compute how much of the swap can execute within the current tick range using constant product math with the active liquidity `L`, then cross the tick and update `L` by adding/removing liquidity from positions at that boundary.
+- **V3's core insight**: Between any two initialized ticks, the pool is mathematically identical to a V2 constant product pool with liquidity `L`. The concentrated liquidity innovation is simply allowing different `L` values in different price ranges, composed by summing overlapping positions' liquidity at each tick.
+- **Per-position fee accrual**: Fees only accumulate for a position while the current price is within its `[tickLower, tickUpper]` range. Out-of-range positions earn zero fees because no swaps execute against their liquidity. This is tracked via the `feeGrowthInside` mechanism described in V3's fee accounting.
+- **Testing tick crossings**: Test swaps in both directions (price increasing and decreasing) across tick boundaries where positions start or end. Verify that liquidity changes correctly at each crossing and that fees are only attributed to in-range positions.
+
+</details>
 
 ---
 
@@ -1165,6 +1205,16 @@ After this section, you should be able to:
 - Trace the flash accounting flow: `unlock()` → callback → swap/modify operations accumulate deltas in transient storage → `settle()`/`take()` zero out all deltas before the callback returns
 - Describe how ERC-6909 claim tokens work as an alternative to ERC-20 transfers for frequent traders (keep balances inside PoolManager, avoid repeated approve/transferFrom overhead)
 - Compare V3's multi-hop cost (N+1 token transfers for N hops) vs V4's cost (always 2 transfers regardless of hops) and explain why transient storage makes this possible
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Singleton architecture**: V4 deploys all pools inside a single `PoolManager` contract. Multi-hop swaps no longer require intermediate ERC-20 transfers between separate pool contracts — instead, each hop just updates internal deltas (accounting entries), and only the net token movements at the edges require real transfers.
+- **Flash accounting flow**: `unlock()` grants callback access. Inside the callback, swap/modify operations accumulate positive and negative deltas in transient storage (EIP-1153). Before the callback returns, the caller must zero all deltas via `settle()` (pay tokens in) and `take()` (receive tokens out). If any delta is non-zero, the transaction reverts.
+- **ERC-6909 claim tokens**: Frequent traders can keep token balances inside PoolManager as ERC-6909 claims instead of settling to ERC-20 each time. This avoids repeated `approve`/`transferFrom` overhead. Claims can be used to settle deltas in future swaps, reducing gas for high-frequency users.
+- **V3 vs V4 multi-hop gas**: V3 requires N+1 ERC-20 transfers for N hops (each intermediate token physically moves between pool contracts). V4 tracks all intermediate amounts as transient storage deltas within PoolManager, so only 2 real transfers occur (input token in, output token out) regardless of hop count.
+
+</details>
 
 ---
 
@@ -1383,6 +1433,16 @@ After this section, you should be able to:
 - Design a V4 hook for a given use case (dynamic fees, TWAMM, limit orders) by choosing the right lifecycle points and implementing the callback logic
 - Identify the critical security requirements for hooks: `msg.sender == poolManager` access control, gas limits to prevent griefing, reentrancy protection, and why hook immutability matters (pool can't change its hook)
 - Analyze the Cork Protocol exploit ($400k) and explain what access control check was missing
+
+<details>
+<summary>Check your understanding</summary>
+
+- **10 hook lifecycle functions**: `before/afterInitialize`, `before/afterSwap`, `before/afterAddLiquidity`, `before/afterRemoveLiquidity`, `before/afterDonate`. The hook's address encodes active callbacks via specific bits — the PoolManager checks these bits to decide which hooks to call, saving gas versus querying the hook contract.
+- **Hook design process**: Choose lifecycle points that match your use case (e.g., `beforeSwap` for dynamic fees, `afterSwap` for TWAMM execution, `beforeAddLiquidity` for access control). Implement only the needed callbacks and set the corresponding address bits. The hook address must be mined to have the correct bit pattern.
+- **Hook security requirements**: Hooks must verify `msg.sender == address(poolManager)` to prevent direct calls. Gas limits prevent hooks from griefing swappers. Reentrancy guards protect state. Hook immutability (pool cannot change its hook after initialization) ensures users know what code governs their pool.
+- **Cork Protocol exploit**: The hook's callback function was missing the `msg.sender == poolManager` check, allowing anyone to call the hook directly and manipulate its state outside of the normal pool operation flow, resulting in $400k loss.
+
+</details>
 
 ---
 
@@ -1903,6 +1963,16 @@ After this section, you should be able to:
 - Define LVR (Loss-Versus-Rebalancing) and explain why it's a more accurate measure of LP cost than impermanent loss: LVR scales with volatility squared, never reverses, and represents the profit that arbitrageurs extract from stale pool prices
 - Describe a sandwich attack end-to-end (frontrun → victim swap → backrun) and name 3 protection mechanisms (private mempools, MEV-aware slippage, batch auctions)
 - Evaluate an LP position's profitability using key metrics: volume/TVL ratio, fee APR vs LVR, toxic flow share, and explain why active LP management (Arrakis, Gamma, Bunni) outperforms passive positions in V3
+
+<details>
+<summary>Check your understanding</summary>
+
+- **AMMs vs CLOBs**: AMMs win for long-tail assets (permissionless pools), composability (atomic on-chain swaps), and passive LPs. CLOBs win for high-volume majors (tighter spreads from professional MMs), derivatives (order precision), and low-latency L2s. The industry is converging toward intent-based hybrids like UniswapX where users sign intent off-chain and solvers compete to fill optimally.
+- **Curve StableSwap**: The amplification parameter `A` blends between constant-product (`A=0`, infinite slippage tolerance) and constant-sum (`A=infinity`, zero slippage but can deplete). High `A` values create a flat zone near the peg where swaps have near-zero slippage, ideal for correlated assets like stablecoin pairs.
+- **LVR (Loss-Versus-Rebalancing)**: LVR measures the cost LPs pay to arbitrageurs who correct stale pool prices after market moves. Unlike IL, LVR scales with volatility squared, never reverses (even if price returns), and represents real value extraction. LVR is the economically correct metric for LP cost analysis.
+- **LP profitability evaluation**: Volume/TVL ratio determines fee revenue. Fee APR must exceed LVR for profitability. Toxic flow share measures what percentage of volume is from arbitrageurs (extractive) vs organic traders (revenue-generating). Active managers (Arrakis, Gamma, Bunni) outperform passive V3 positions by dynamically rebalancing ranges to maximize fee capture while minimizing LVR exposure.
+
+</details>
 
 ---
 

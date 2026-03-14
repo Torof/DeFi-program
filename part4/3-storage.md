@@ -181,6 +181,15 @@ After this section, you should be able to:
 - Explain the cold/warm access cost difference (2,100 vs 100 gas) in terms of trie node loading: cold access traverses the trie from disk, warm reads from the transaction's access cache
 - Describe what Verkle trees will change (proof structure, witness sizes) and what stays the same (slot addressing, keccak256 computation, your Solidity/assembly code)
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Sparse key-value store**: Storage is a mapping from 256-bit keys (slots) to 256-bit values, backed by a Merkle Patricia Trie. Every slot defaults to zero -- reading an uninitialized slot returns 0, and setting a slot back to zero reclaims trie space (earning a gas refund).
+- **Cold/warm access costs**: Cold access (2,100 gas) requires traversing the trie from disk to load the slot's value into the transaction-scoped access cache. Warm access (100 gas) reads from the cache. This 21x cost difference is why access lists (EIP-2930) and read ordering matter.
+- **Verkle trees impact**: Verkle trees replace Merkle proofs with polynomial commitments, dramatically shrinking proof sizes for stateless clients. But the slot addressing model, keccak256 slot computation, and all Solidity/Yul storage code remain unchanged -- it is a consensus-layer infrastructure change, not a contract-layer one.
+
+</details>
+
 ---
 
 ## 💡 SLOAD & SSTORE — The Full Picture
@@ -355,6 +364,15 @@ After this section, you should be able to:
 - Write `sload(slot)` and `sstore(slot, value)` in Yul and explain that these operate on raw 256-bit words with no type information
 - Trace the SSTORE cost state machine through a practical sequence (zero → non-zero → different non-zero → zero) and calculate the gas cost at each step
 - Apply the "batch reads before writes" pattern and explain why it improves both gas efficiency and code clarity
+
+<details>
+<summary>Check your understanding</summary>
+
+- **sload/sstore in Yul**: `sload(slot)` reads a raw 256-bit word from the given slot. `sstore(slot, value)` writes a raw 256-bit word. There is no type information -- if a slot holds a packed struct, you get the entire 32-byte word and must extract fields with bit operations.
+- **SSTORE cost state machine**: Zero-to-nonzero costs 20,000 gas (new trie entry). Nonzero-to-different-nonzero costs 2,900 (modify existing). Nonzero-to-zero costs 2,900 but earns a 4,800 gas refund (trie cleanup). Writing the same value costs only 100 gas (warm read, no-op write). These costs apply per slot per transaction.
+- **Batch reads before writes**: Group all `sload` calls before any `sstore` calls within a function. This prevents the EVM from needing to reconcile current vs original values mid-sequence, improves readability for auditors, and avoids accidentally paying higher costs when a write changes the "current value" that a subsequent read sees.
+
+</details>
 
 ---
 
@@ -720,6 +738,16 @@ After this section, you should be able to:
 - Chain the hash formulas for nested structures: mapping-of-mapping, mapping-of-struct, and explain how struct fields use sequential offsets from the computed base
 - Explain the -1 trick (ERC-1967, ERC-7201) and why subtracting 1 from a keccak256 hash prevents preimage attacks on storage slots
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Mapping slot computation**: For `mapping(keyType => valueType)` at base slot `s`, the value for `key` lives at `keccak256(abi.encode(key, s))`. The key and base slot are concatenated as two 32-byte words (64 bytes total) and hashed. This produces a uniformly distributed slot, avoiding collisions with sequential variables.
+- **Dynamic array slot computation**: The array length is stored at `baseSlot`. Elements start at `keccak256(abi.encode(baseSlot))`, and element `i` is at that hash plus `i`. This separates the length from the data and avoids collisions with other state variables.
+- **Nested structures**: For `mapping(a => mapping(b => uint))`, compute the outer mapping slot first (`keccak256(a, baseSlot)`), then use that result as the base for the inner mapping (`keccak256(b, outerSlot)`). Struct fields within a computed slot use sequential offsets from the base (field 0 at base, field 1 at base+1, etc.).
+- **The -1 trick**: ERC-1967 computes `keccak256("eip1967.proxy.implementation") - 1`. Subtracting 1 makes it impossible for the slot to be the keccak256 of any known input (since finding a preimage of `hash + 1` is computationally infeasible). This guarantees the slot can never collide with a Solidity-assigned slot.
+
+</details>
+
 ---
 
 ## 💡 Storage Packing in Assembly
@@ -940,6 +968,16 @@ After this section, you should be able to:
 - Implement the read-modify-write pattern: load → clear target bits with inverted mask → shift new value → OR → store
 - Read Aave V3's `ReserveConfiguration` bitmap and extract specific fields using the bit positions from their constants
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Packing with shl + or**: To pack two uint128 values into one slot: `shl(128, highValue)` shifts the high value left, then `or(shifted, lowValue)` combines them. One SSTORE instead of two saves 17,100+ gas (cold) or 2,800 gas (warm).
+- **Unpacking with shr + and**: To extract the low uint128: `and(sload(slot), 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)` masks to the lower 128 bits. For the high uint128: `shr(128, sload(slot))` shifts right, dropping the low bits.
+- **Read-modify-write**: Load the full word, clear the target field's bits with an inverted mask (`and(word, not(shl(offset, mask)))`), shift the new value into position, OR it in, and store. This preserves all adjacent fields while updating only the target.
+- **Aave V3 ReserveConfiguration**: A single uint256 bitmap stores LTV, liquidation threshold, liquidation bonus, decimals, active/frozen flags, and more. Each field has named constants for bit position and mask. Extract with `(data >> POSITION) & MASK`, write with the read-modify-write pattern.
+
+</details>
+
 ---
 
 ## 💡 Transient Storage in Assembly
@@ -1050,6 +1088,15 @@ After this section, you should be able to:
 - Compare `tload`/`tstore` with `sload`/`sstore`: always 100 gas, no warm/cold distinction, no refund mechanics, auto-cleared after each transaction
 - Implement a transient storage reentrancy guard and explain why it's ~29x cheaper than a storage-based guard
 - Describe the flash accounting pattern where transient storage tracks per-transaction deltas that must net to zero
+
+<details>
+<summary>Check your understanding</summary>
+
+- **tload/tstore vs sload/sstore**: Both cost a flat 100 gas with no cold/warm distinction and no refund mechanics. Transient storage is automatically cleared at the end of each transaction. It persists across internal calls (CALL, DELEGATECALL) within the same transaction, unlike memory which is per-frame.
+- **Transient reentrancy guard**: `tload(slot)` checks the lock, `tstore(slot, 1)` sets it, function body executes, `tstore(slot, 0)` clears it. Total cost: 300 gas vs ~8,700 gas for a storage-based guard (cold SLOAD + SSTORE + SSTORE), making it roughly 29x cheaper.
+- **Flash accounting pattern**: Used by Uniswap V4 -- transient storage tracks token deltas during a transaction. Each swap/add/remove updates the delta via `tstore`. At the end, the contract verifies all deltas are zero (tokens fully settled). This replaces expensive per-operation token transfers with a single settlement step.
+
+</details>
 
 ---
 
@@ -1277,6 +1324,16 @@ After this section, you should be able to:
 - Explain ERC-7201 namespaced storage: how the formula eliminates `__gap` fragility for upgradeable contracts, and compute a namespace slot
 - Describe SSTORE2: storing immutable data as contract bytecode for ~25x cheaper reads on large datasets, and identify when it's appropriate
 - Explain storage proofs (`eth_getProof`) and how they enable trustless cross-chain state verification
+
+<details>
+<summary>Check your understanding</summary>
+
+- **ERC-1967 proxy slots in assembly**: Load the implementation address with `sload(IMPLEMENTATION_SLOT)` where the slot is a pre-computed constant. Write with `sstore(IMPLEMENTATION_SLOT, newImpl)`. The constant slots are known across the ecosystem, enabling block explorers and tools to identify proxies automatically.
+- **ERC-7201 namespaced storage**: Computes `keccak256(abi.encode(uint256(keccak256("namespace.id")) - 1)) & ~0xff` to derive a storage base. This eliminates the `__gap` array pattern for upgradeable contracts -- new fields append to the namespace without risking slot collisions. The `- 1` and `& ~0xff` ensure the base cannot collide with keccak256 outputs or Solidity-assigned slots.
+- **SSTORE2**: Stores immutable data as deployed contract bytecode using CREATE. Reading uses EXTCODECOPY, which costs ~2,600 gas for the first read regardless of data size -- roughly 25x cheaper than SLOAD per 32-byte chunk for large datasets. Appropriate for write-once data like Merkle roots, metadata, or configuration blobs.
+- **Storage proofs**: `eth_getProof` returns a Merkle proof for a specific storage slot at a specific block. A verifier contract on another chain can validate this proof against a known state root, enabling trustless cross-chain reads of balances, governance votes, or oracle prices without bridges or relayers.
+
+</details>
 
 ---
 

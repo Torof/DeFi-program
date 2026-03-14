@@ -322,6 +322,16 @@ After this section, you should be able to:
 - Configure the Governor + TimelockController role system: proposer, executor, canceller roles, and why the timelock enforces an execution delay that gives users exit rights before changes apply
 - Design quorum and threshold parameters that balance spam prevention with governance accessibility
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Proposal lifecycle:** Propose (creates proposal with calldata, snapshot of voting power taken at this block) -> voting delay (1-2 days, gives community time to review and deliberate before voting starts) -> active vote (3-7 days, token holders vote for/against/abstain using power at the snapshot block) -> queue in timelock (1-2 days, enforced delay giving users exit rights) -> execute (permissionless call). Each phase exists for a reason: the snapshot at propose-time is the primary defense against flash loan attacks (borrowed tokens after the snapshot block give zero voting power); voting delay provides community review time; timelock gives users time to exit if they disagree with a passed proposal.
+- **ERC20Votes:** Voting power requires explicit delegation (even self-delegation) to activate. Checkpointing records per-block balance snapshots using binary search, so a proposal's snapshot block determines voting power from historical balances — not current ones. This prevents flash loan governance attacks: borrowing tokens after the snapshot block gives zero voting power.
+- **Governor + TimelockController:** The Governor contract manages proposals and voting. The TimelockController holds execution authority over the protocol and enforces a minimum delay. Roles: proposer (Governor contract), executor (can be open or restricted), canceller (guardian multisig). The timelock delay is the critical security parameter — it gives users who disagree with a proposal time to withdraw funds before the change takes effect.
+- **Quorum and thresholds:** Quorum (minimum participation, e.g., 4% of total supply) prevents small groups from passing proposals when most holders aren't paying attention. Proposal threshold (minimum tokens to propose, e.g., 0.1-1% of supply) prevents spam. Too high and governance becomes inaccessible; too low and it's noisy or attackable. These must be calibrated to the token distribution and community activity.
+
+</details>
+
 ---
 
 <a id="ve-tokenomics"></a>
@@ -573,6 +583,15 @@ After this section, you should be able to:
 - Explain the vote-escrow model: lock tokens for 1-4 years → non-transferable voting power with linear decay (`amount × (lockEnd - now) / maxLock`), and why this forces continuous re-locking to maintain influence
 - Describe veCRV's three powers: gauge voting (directing CRV emissions), boosted LP rewards (up to 2.5x), fee sharing — and how the Curve Wars emerged from Convex aggregating veCRV into vlCVX meta-governance with bribery markets (Votium, Hidden Hand)
 - Compare Curve's ve model with Velodrome/Aerodrome ve(3,3): how "voters earn fees only from pools they vote for" fixes Curve's incentive misalignment between voting and liquidity provision
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Vote-escrow model:** Lock CRV tokens for 1-4 years to receive non-transferable veCRV. Voting power equals `amount * (lockEnd - now) / maxLock` and decays linearly toward zero as the lock approaches expiry. This forces continuous re-locking to maintain influence and aligns long-term holders with protocol governance — short-term speculators get minimal voting power.
+- **veCRV's three powers and Curve Wars:** veCRV grants gauge voting (directing CRV emissions to pools), boosted LP rewards (up to 2.5x for LPs who hold veCRV), and fee sharing (portion of protocol revenue). Convex aggregates veCRV from many users into vlCVX (vote-locked CVX), creating meta-governance. Bribery markets (Votium, Hidden Hand) emerged where protocols pay vlCVX holders to vote emissions toward their pools — the "Curve Wars" are protocols competing for CRV emissions via bribes.
+- **ve(3,3) improvement:** In Curve, voters earn fees from ALL pools regardless of where they vote — creating a misalignment where voters direct emissions to bribed pools but earn fees from unrelated high-volume pools. Velodrome/Aerodrome's ve(3,3) fixes this: voters earn trading fees ONLY from pools they vote for. This aligns incentives — voters direct emissions to pools that generate real fees, not just bribe revenue.
+
+</details>
 
 ---
 
@@ -844,6 +863,15 @@ After this section, you should be able to:
 - Analyze the Beanstalk governance attack: how flash-loaned governance tokens bypassed snapshot voting (no voting delay), and list the specific defenses that would have prevented it
 - Design an emergency mechanism for a governed protocol: guardian multisig with pause-only power, automatic timelock bypass for critical actions, and explain the trust trade-off
 - Position a protocol on the governance minimization spectrum (multisig → governed → immutable) and explain progressive decentralization: start governed, harden parameters over time, make core logic immutable
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Beanstalk governance attack:** The attacker flash-borrowed massive governance tokens, created a malicious proposal to drain the treasury, voted it through, and executed it — all in one transaction ($182M lost). This was possible because Beanstalk had no voting delay (so the snapshot was the current block, allowing flash-loaned tokens to vote) and no timelock (so execution was immediate). Defenses: voting delay (snapshot before vote starts defeats flash loans), timelock (execution delay gives users exit rights), and quorum requirements calibrated to circulating supply.
+- **Emergency mechanisms:** A guardian multisig with pause-only power can halt the protocol immediately without waiting for governance. The guardian CANNOT change parameters, move funds, or bypass the timelock for non-emergency actions. The trust trade-off: you're trusting a small group to correctly identify emergencies, but limiting their power to only pausing — they can stop damage but can't extract value. Unpausing should require full governance.
+- **Governance minimization:** The spectrum runs from full multisig control (fast, centralized) through token governance (slower, more decentralized) to fully immutable (no changes possible). Progressive decentralization means starting with more governance authority for rapid iteration, then hardening parameters one by one as the protocol matures. Core logic (swap math, liquidation formulas) should become immutable first; operational parameters (fee rates, caps) may remain governed longer.
+
+</details>
 
 ---
 

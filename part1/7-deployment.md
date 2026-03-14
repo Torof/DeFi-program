@@ -700,6 +700,17 @@ After this section, you should be able to:
 - Explain why deploying with a single-key EOA as owner is unacceptable for production and what replaces it
 - Describe a monitoring setup for a deployed protocol: what tools (Tenderly, Defender), what events to watch, and how monitoring limits exploit damage
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Atomic deploy + initialize**: If a proxy is deployed in tx1 and `initialize()` is called in tx2, anyone can call `initialize()` between those transactions, claiming ownership. A Foundry script that deploys the proxy and calls `initialize()` in a single transaction eliminates this window entirely.
+- **CREATE2 deterministic addresses**: `address = keccak256(0xff ‖ deployer ‖ salt ‖ initCodeHash)`. The address is known before deployment and is the same on any chain as long as the deployer, salt, and bytecode match. Permit2 uses this so its address (`0x000...22D473...`) is identical on every EVM chain — protocols can hardcode it.
+- **Deployment pipeline**: Dry-run (`forge script --fork-url`) → testnet deploy (Sepolia) → verify on block explorer (`--verify`) → transfer ownership to multisig → mainnet deploy with the same verified script. Each step catches different issues: dry-run catches logic bugs, testnet catches gas/integration issues, verification builds trust.
+- **No single-key EOA for production**: If the deployer EOA's private key is compromised, the attacker owns the protocol. Production contracts must transfer ownership to a multisig (Safe) or timelock. The deployer EOA should have no special permissions after deployment.
+- **Monitoring setup**: Tools like Tenderly or OpenZeppelin Defender watch for critical events (large withdrawals, ownership changes, paused/unpaused, oracle price jumps). Alerts trigger within seconds, giving the team time to pause the protocol before an exploit drains all funds. The difference between a $2M loss and a $200M loss is often just monitoring speed.
+
+</details>
+
 ---
 
 ## 📚 Resources

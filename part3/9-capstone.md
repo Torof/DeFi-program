@@ -163,6 +163,15 @@ After this section, you should be able to:
 - Position your protocol in the perp DEX landscape vs GMX V2, Synthetix, dYdX, and Hyperliquid, and articulate why oracle-based pool is the right model for an EVM Solidity capstone
 - Map 18 specific prerequisite concepts across Part 2 and Part 3 modules to the exchange components where they'll be applied
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Why a perp exchange:** It naturally integrates liquid staking (wstETH as collateral with dual oracle pricing), perpetual mechanics (funding rates, leverage, margin), MEV (liquidation keeper incentives), L2 awareness (sequencer uptime gating), and governance (parameter management with bounded ranges). No other single project touches this many Part 3 concepts simultaneously.
+- **Protocol landscape positioning:** GMX V2 uses oracle-based pricing with multi-asset pools; Synthetix uses synthetic debt pools; dYdX V4 runs a full order book on its own chain; Hyperliquid uses a centralized order book with on-chain settlement. An oracle-based pool model is the right fit for an EVM Solidity capstone because it's fully on-chain, doesn't require off-chain infrastructure, and exercises the most DeFi-specific patterns.
+- **Prerequisite mapping:** Rate accumulators (P2 M6) power funding rates; ERC-4626 share math (P2 M7) underpins LP pool accounting; dual oracle pricing (P3 M1) handles wstETH collateral; sequencer uptime feeds (P3 M7) gate operations; Dutch auction patterns (P2 M9) inform liquidation alternatives; governance parameter bounding (P3 M8) constrains admin powers.
+
+</details>
+
 ---
 
 ## 💡 Architecture Design
@@ -371,6 +380,15 @@ After this section, you should be able to:
 - Sketch the 5-contract architecture from memory (PerpEngine, LiquidityPool, FundingRate, Liquidator, PriceFeed) with clear responsibilities and data flow between them
 - Define the core data structures (Position per-position, Market per-market, CollateralConfig per-collateral) and explain why GMX V2 stores both `sizeInUsd` and `sizeInTokens`
 - Articulate a position on each of the 7 design decisions with trade-off reasoning, especially the keeper incentive model and its MEV implications
+
+<details>
+<summary>Check your understanding</summary>
+
+- **5-contract architecture:** PerpEngine (position lifecycle, margin math, PnL), LiquidityPool (LP deposits/withdrawals, counterparty to all trades, PnL settlement), FundingRate (per-second accumulator, skew-based rate calculation), Liquidator (health checks, partial/full liquidation, keeper incentives, insurance fund), PriceFeed (dual oracle for ETH/wstETH, sequencer uptime gating, staleness checks). Data flows from PriceFeed into all other contracts; PerpEngine calls LiquidityPool for settlement and FundingRate for accumulator updates.
+- **Core data structures:** Position stores per-position state (`sizeInUsd`, `sizeInTokens`, `collateralAmount`, `entryFundingIndex`, `isLong`). Storing both `sizeInUsd` AND `sizeInTokens` (GMX V2 pattern) lets you calculate PnL correctly when price changes — the USD size is the entry notional, the token size is the actual exposure. Market stores per-market parameters. CollateralConfig stores per-collateral oracle feeds and risk parameters.
+- **Design decisions and keeper incentives:** Key decisions include isolated vs shared pools, single vs multi-collateral, partial vs full liquidation, keeper fee model. For keeper incentives: flat fee is simple but may not incentivize large liquidations; percentage with cap scales with position size but creates MEV extraction; decaying fee (higher reward the more underwater the position) aligns keeper urgency with protocol risk. Each choice has MEV implications — the keeper fee IS an MEV bounty (Module 5 connection).
+
+</details>
 
 > **🧭 Checkpoint — Before Moving On:**
 > Can you sketch the 5-contract architecture from memory? Can you name the 7 design decisions and articulate a preference (with rationale) for each? If you can't, re-read the Architecture Design material above — the architecture IS the project, and changing it mid-build is expensive.
@@ -722,6 +740,17 @@ After this section, you should be able to:
 - Trace the position lifecycle (open → modify → close) with state changes and cross-contract calls at each step
 - Identify all 5 common mistakes and explain why each one breaks the system
 
+<details>
+<summary>Check your understanding</summary>
+
+- **PerpEngine interface and positionKey:** The external interface covers the full lifecycle: `openPosition`, `increasePosition`, `decreasePosition`, `closePosition`. The `positionKey` is a unique identifier (typically `keccak256(abi.encode(account, marketId, collateralToken))`) that maps to the position struct in storage — this pattern avoids iterating over positions and enables O(1) lookups.
+- **Margin calculation formula:** Effective margin = collateral value (collateral amount * oracle price) + unrealized PnL (current price vs entry price * size) + pending funding (accumulated funding since entry * position size) - accrued fees (open/close fees, borrow fees). This requires cross-contract calls: PriceFeed for current price, FundingRate for current accumulator index, internal accounting for fees.
+- **wstETH dual oracle:** Query both the wstETH/stETH exchange rate (from the wstETH contract) and the stETH/ETH market price (from Chainlink). Use `min(exchangeRate, marketPrice)` — this protects the protocol during a de-peg (uses lower market price) and protects the trader during a flash crash (uses the stable exchange rate). Two oracles, conservative selection.
+- **Position lifecycle state changes:** Open: validate margin, charge open fee, record entry price/funding index, update market OI. Modify: settle pending funding, recalculate margin, adjust size/collateral. Close: settle all pending funding/fees, calculate final PnL, settle with pool (pool pays if trader profits, receives if trader loses), return remaining collateral.
+- **5 common mistakes:** Forgetting to settle pending funding before modifying a position; not deducting close fees from remaining margin; using mark price instead of oracle price for collateral valuation; failing to update OI counters on position changes; not checking minimum margin after modifications.
+
+</details>
+
 ---
 
 ## 💡 LiquidityPool & LP Economics
@@ -901,6 +930,16 @@ After this section, you should be able to:
 - Walk through the deposit/withdrawal math with concrete numbers, including the withdrawal constraint that prevents bank runs
 - Describe the PnL settlement flow between PerpEngine and LiquidityPool, and the 4-layer backstop (margin → insurance fund → LP pool → ADL) for bad debt
 - Explain how open interest drives funding rate, OI caps, and dynamic borrow fees — three different risk management tools from one metric
+
+<details>
+<summary>Check your understanding</summary>
+
+- **LP share pricing:** `poolValue = totalDeposits + totalFeesAccrued - netTraderPnL`. Unlike ERC-4626 vaults where `totalAssets()` only goes up (yield accrual), a perp LP pool's value can decrease when traders are collectively profitable — the pool is paying them. LPs are effectively selling volatility exposure to traders in exchange for trading fees, funding fees, and borrow fees.
+- **Deposit/withdrawal math and bank-run prevention:** Deposits mint shares proportional to `depositAmount / sharePrice`. Withdrawals burn shares and return proportional assets. The withdrawal constraint ensures a minimum reserve ratio remains — preventing a scenario where all LPs exit during a period of trader profits, leaving no capital to settle winning positions. This is the perp equivalent of bank-run protection.
+- **PnL settlement and backstop layers:** When a position closes, PerpEngine calculates final PnL and calls LiquidityPool to settle. If trader profits, pool pays; if trader loses, pool receives. The 4-layer backstop for bad debt: (1) position margin absorbs losses first, (2) insurance fund covers any shortfall, (3) LP pool absorbs if insurance is depleted, (4) ADL (auto-deleveraging) closes profitable positions against underwater ones as last resort.
+- **Open interest as risk input:** OI skew drives funding rate (longs pay shorts when long OI > short OI, incentivizing balance). OI caps limit total exposure per market (preventing the pool from being over-leveraged). Dynamic borrow fees increase with utilization (OI / pool size), making it expensive to hold large positions when the pool is heavily utilized. All three use the same metric but manage different risk dimensions.
+
+</details>
 
 > **🧭 Checkpoint — Before Moving On:**
 > Can you explain what happens to LP share value when traders collectively profit $100K against a $1M pool? Can you trace a PnL settlement from position close through to pool accounting? If not, re-read the walkthrough — LP economics is what makes the exchange sustainable.
@@ -1114,6 +1153,17 @@ After this section, you should be able to:
 - Analyze the funding rate accumulation problem during sequencer downtime and articulate a design choice with trade-offs
 - Describe the interactions between risk parameters (why raising max leverage requires lowering OI caps) and why they can't be tuned independently
 - Classify every exchange parameter as governable (with bounded ranges) or immutable, and explain the bounded governance pattern that limits governance attack blast radius
+
+<details>
+<summary>Check your understanding</summary>
+
+- **PriceFeed dual oracle:** ETH uses a single Chainlink ETH/USD feed. wstETH uses dual oracle — query wstETH's internal exchange rate AND the Chainlink stETH/ETH market price, then use `min(exchangeRate, marketPrice)` for conservative valuation. Both paths include staleness checks: if the last Chainlink update exceeds the feed's heartbeat interval, the price is rejected.
+- **Three operational states:** Sequencer down (no transactions possible, oracle prices frozen), grace period (sequencer just restarted, oracle updating but positions may be stale — block liquidations and new borrows, allow repayments and collateral additions), normal (all operations permitted). The grace period matters MORE for perps than lending because leveraged positions can move from healthy to liquidatable during downtime, and traders had no chance to add margin.
+- **Funding rate during downtime:** The accumulator keeps accruing based on the last known skew, but no trades can rebalance it. Design choices: (1) accrue normally (punishes one side for downtime they couldn't avoid), (2) freeze accrual (creates a funding gap), (3) cap accrual at a maximum per-downtime-event (bounded unfairness). Each has trade-offs; the key is documenting the choice and its implications.
+- **Risk parameter interdependencies:** Raising max leverage requires lowering OI caps (more leverage = more risk per unit of OI). Raising OI caps requires more pool liquidity. Lowering maintenance margin requires faster liquidation execution (smaller buffer). These parameters form a system — changing one without adjusting others creates exploitable gaps.
+- **Bounded governance:** Governable parameters (fee rates, OI caps, margin requirements) have hardcoded min/max bounds in the contract. Even a compromised governance can only set fees between, say, 1-50 bps — not 100%. Immutable parameters (core math, liquidation logic, collateral token addresses) cannot be changed at all. This limits the blast radius of a governance attack to the bounded range of governable parameters.
+
+</details>
 
 > **🧭 Checkpoint — Before Moving On:**
 > Can you draw the three operational states and list which operations are blocked in each? Can you explain why the grace period matters more for perps than for lending? If not, re-read the sequencer awareness section — this is a production-critical concern that many L2 protocols get wrong.
@@ -1481,6 +1531,16 @@ After this section, you should be able to:
 - Analyze the keeper incentive as an MEV bounty (Module 5) and compare three approaches: flat fee, percentage with cap, and decaying fee
 - Trace a complete liquidation through all 7 protection layers (sequencer check → oracle freshness → margin verification → partial calculation → closure → distribution → bad debt handling)
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Perp vs stablecoin liquidation:** Perp liquidation closes a position at the current oracle price — no auction needed because the counterparty (LP pool) is always available at market price. The stablecoin capstone used Dutch auctions because liquidators needed to compete to buy collateral. In perps, the complexity is in partial vs full decisions, keeper incentive economics, and insurance fund management rather than auction mechanics.
+- **Partial liquidation math:** Calculate how much of the position to close to restore the margin ratio above maintenance. If closing a portion is sufficient, partial liquidation is preferred — it keeps the trader in the market and reduces protocol risk incrementally. Full liquidation is necessary when the position is too far underwater for partial closure to restore health, or when the remaining position would be below a minimum size threshold.
+- **Keeper incentive as MEV bounty:** The liquidation fee IS an MEV bounty (Module 5 connection). Flat fee: simple, predictable, but doesn't scale with position risk. Percentage with cap: scales with position size but creates extraction incentives for large positions. Decaying fee: starts low and increases as the position becomes more underwater — aligns keeper urgency with protocol risk, but more complex to implement. The fee must be large enough to attract keepers but small enough to not drain the position's remaining margin.
+- **7 protection layers:** (1) Sequencer check — not in grace period. (2) Oracle freshness — price not stale. (3) Margin verification — position actually below maintenance margin. (4) Partial calculation — determine minimum close amount to restore health. (5) Position closure — settle PnL with pool, deduct fees. (6) Distribution — keeper fee from remaining margin, rest to insurance fund or trader. (7) Bad debt handling — if remaining margin doesn't cover losses, insurance fund absorbs; if depleted, ADL.
+
+</details>
+
 ---
 
 ## 💡 Testing & Hardening
@@ -1703,6 +1763,16 @@ After this section, you should be able to:
 - Design an invariant test handler with 12 bounded operations that explores realistic action sequences across multiple traders, price movements, funding accrual, and sequencer state changes
 - Write fork tests against real Chainlink feeds, real wstETH contracts, and real sequencer uptime feeds on Arbitrum to verify behavior under production conditions
 - Test edge cases that break naive implementations: cascading liquidations, sequencer downtime, de-peg events, dust positions, insurance fund depletion
+
+<details>
+<summary>Check your understanding</summary>
+
+- **6 critical invariants:** Solvency (pool can pay all potential trader withdrawals), conservation (total tokens across all contracts = sum of all accounting entries), funding balance (total funding paid = total funding received across all positions), OI consistency (tracked OI matches sum of open position sizes), margin safety (no position exists below maintenance margin outside grace period), position integrity (every position's stored values are internally consistent — size, collateral, entry indices).
+- **Invariant test handler:** Design 12 bounded operations: `openPosition`, `closePosition`, `increasePosition`, `decreasePosition`, `addCollateral`, `removeCollateral`, `lpDeposit`, `lpWithdraw`, `moveOraclePrice`, `warpTime` (triggers funding accrual), `toggleSequencer`, `liquidate`. Each operation uses bounded inputs (realistic ranges for sizes, prices, time jumps). After each operation, assert all 6 invariants hold. The handler explores arbitrary sequences of these operations across multiple actors.
+- **Fork testing:** Deploy against real Arbitrum Chainlink ETH/USD and stETH/ETH feeds, real wstETH contract, and real sequencer uptime feed. Verify pricing paths return correct values at current block. Test with historical blocks where sequencer was down. This catches integration issues (decimal mismatches, feed-specific quirks) that mock tests miss.
+- **Edge cases:** Cascading liquidations (one liquidation moves price, triggering more liquidations — test that the system remains solvent). Sequencer downtime (funding accrual during gap, mass liquidation wave on restart). De-peg events (wstETH deviates from ETH, dual oracle must switch to lower price). Dust positions (tiny positions where keeper fees exceed remaining margin). Insurance fund depletion (multiple bad debt events exhaust the fund — ADL must activate).
+
+</details>
 
 > **🧭 Checkpoint — Before Starting to Build:**
 > Can you list all 6 invariants from memory and explain what failure of each one would mean for the exchange? Can you describe at least 6 handler operations and how they interact with the invariants? If yes, you understand the system well enough to build it. If not, re-read the invariants — they are the specification you're implementing against.

@@ -428,6 +428,16 @@ After this section, you should be able to:
 - Describe the YT yield accumulator pattern (same O(1) structure as Compound's borrowIndex and Aave's liquidityIndex) and explain how it tracks accrued yield via exchange rate snapshots
 - Trace the maturity mechanics: PT redeems 1:1 for underlying, YT expires worthless (all yield already claimed), and pre-maturity unsplitting recombines PT + YT back into the underlying
 
+<details>
+<summary>Check your understanding</summary>
+
+- **PT/YT split**: Like a zero-coupon bond split into principal and interest. PT represents the right to the underlying at maturity (bought at a discount, redeemed at par). YT represents the right to all yield generated until maturity. Together PT + YT = 1 unit of underlying.
+- **Implied rate calculation**: If PT trades at 0.95 with 6 months to maturity, the implied annualized rate is approximately `(1/0.95 - 1) * (365/182.5) = ~10.5%`. The discount from par reflects the market's expectation of future yield.
+- **YT yield accumulator**: Same O(1) pattern as Compound's borrowIndex. A global exchange rate snapshot grows as yield accrues. Each YT holder stores their last-claimed snapshot. Claimable yield = `ytBalance * (currentRate - lastClaimedRate)` — no iteration needed.
+- **Maturity mechanics**: At maturity, PT redeems 1:1 for the underlying asset. YT becomes worthless because all yield has been continuously claimable throughout the term. Before maturity, you can unsplit by combining PT + YT to recover the original underlying position.
+
+</details>
+
 ---
 
 ## 💡 ERC-5115: Standardized Yield
@@ -876,6 +886,16 @@ After this section, you should be able to:
 - Map Pendle's architecture: SY wrapping → YieldContractFactory → PT/YT minting → AMM (rate-space curve) → Router
 - Describe the TWAR (time-weighted average rate) oracle and explain how it uses the same cumulative accumulator pattern as Uniswap's TWAP
 
+<details>
+<summary>Check your understanding</summary>
+
+- **ERC-5115 vs ERC-4626**: ERC-4626 assumes a single underlying asset and that the vault IS the yield source. ERC-5115 (Standardized Yield) is more general — it supports multiple input/output tokens, external yield sources (like stETH rebases or GLP), and custom reward token handling that does not fit the vault model.
+- **Why constant-product fails for PT**: PT converges to 1:1 with the underlying at maturity, so its price is time-dependent. A standard x*y=k AMM would require increasingly large liquidity to handle this convergence. Pendle solves this by trading in rate-space — the AMM prices implied rates, not token amounts, so the curve naturally handles the time decay.
+- **Pendle architecture flow**: Yield-bearing asset wraps into SY (ERC-5115) → YieldContractFactory splits SY into PT + YT → PT trades against SY in the AMM (rate-space curve) → Router handles user-facing operations and multi-step swaps.
+- **TWAR oracle**: Same cumulative accumulator as Uniswap TWAP but for implied rates instead of prices. Each trade updates a cumulative rate sum. TWAR over a period = `(cumulativeRate_t2 - cumulativeRate_t1) / (t2 - t1)`, providing a manipulation-resistant average implied rate.
+
+</details>
+
 ---
 
 ## 💡 Strategies & Composability
@@ -1026,6 +1046,15 @@ After this section, you should be able to:
 - Design yield tokenization strategies for 4 use cases: fixed income (buy PT at discount), yield speculation (buy YT for leveraged yield exposure), LP (earn fees from rate trading), and PT as collateral (in lending markets)
 - Trace the LST + Pendle pipeline end-to-end: stake ETH → receive wstETH → wrap as SY → split into PT/YT → trade on Pendle AMM
 - Recognize the accumulator pattern's third appearance (after vault share pricing and funding rates): global growing counter + per-user snapshot + delta = amount owed
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Four yield tokenization strategies**: Fixed income (buy PT at discount, hold to maturity for guaranteed rate). Yield speculation (buy YT for leveraged exposure to variable yield — if yield exceeds implied rate, YT profits). LP (provide liquidity in the rate-space AMM, earn trading fees from rate movements). PT as collateral (use PT in lending markets like Morpho — it has a known floor value at maturity).
+- **LST + Pendle pipeline**: Stake ETH with Lido to get wstETH → wrap wstETH as SY (ERC-5115) → split SY into PT-wstETH + YT-wstETH via Pendle → trade PT or YT on Pendle's rate-space AMM. Each step adds composability and optionality.
+- **Accumulator pattern recognition**: Third instance of the same O(1) pattern: (1) ERC-4626 vault share price, (2) funding rate accumulator in perps, (3) YT yield accumulator. Structure is always: global counter grows over time + per-user snapshot of last interaction + delta between them = amount owed/earned.
+
+</details>
 
 ---
 

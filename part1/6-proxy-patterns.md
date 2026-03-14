@@ -741,6 +741,17 @@ After this section, you should be able to:
 - Use `forge inspect` to verify storage layout compatibility before deploying an upgrade
 - Explain when NOT to use a proxy — why protocols like Morpho Blue and Uniswap V4 choose immutable cores with upgradeable periphery
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Append-only storage layout**: The proxy's storage is persistent across upgrades — the implementation contract just provides the code. If you reorder, remove, or insert slots before existing ones, the new implementation reads old data from wrong slots (e.g., `totalSupply` reads from what used to be `owner`). Always append new variables at the end. Use storage gaps (`uint256[50] __gap`) to reserve space.
+- **Transparent vs UUPS**: Transparent proxy routes admin calls (upgrade) to the proxy itself and all other calls to the implementation via `delegatecall`. The proxy carries the upgrade logic, costing ~extra gas per call for the admin check. UUPS puts upgrade logic in the implementation — cheaper per call, but if you deploy an implementation without `upgradeTo`, the proxy is permanently locked. Transparent is safer; UUPS is cheaper.
+- **Uninitialized proxy attack**: After deploying a proxy + implementation, the implementation's `initialize()` must be called to set owner/critical state. If deploy and initialize are in separate transactions, an attacker can front-run the `initialize()` call, becoming the owner. Fix: use a deploy script that deploys and initializes atomically in one transaction.
+- **`forge inspect` for layout**: `forge inspect ContractV2 storage-layout` outputs every variable's slot and offset. Compare V1 and V2 layouts to verify no existing slots shifted. This is the pre-upgrade safety check — do it before every upgrade.
+- **When NOT to use proxies**: Proxies add trust assumptions (who can upgrade?) and attack surface (storage collisions, initialization bugs). Protocols prioritizing trustlessness (Morpho Blue, Uniswap V4) make the core immutable and only use upgradeable periphery contracts (routers, UI helpers) that don't hold user funds.
+
+</details>
+
 ---
 
 ## 📚 Resources

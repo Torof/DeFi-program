@@ -202,6 +202,15 @@ After this section, you should be able to:
 - Choose the right "How to Study" strategy from M1-M6 based on the assembly pattern (memory-heavy, storage-heavy, dispatch-heavy, call-heavy, optimization-heavy)
 - Scan assembly for the 9 most common bug classes: unchecked return values, missing return data validation, dirty memory, shift off-by-ones, encoding length errors, returndata confusion, unchecked overflow, reentrancy, and gas griefing
 
+<details>
+<summary>Check your understanding</summary>
+
+- **5-step reading methodology**: (1) Identify the pattern type (memory-heavy, storage-heavy, call-heavy, etc.) to pick the right mental model. (2) Read the interface (signature, NatSpec, return types) before any opcodes. (3) Draw the data layout (memory, storage, or calldata). (4) Trace one execution path end-to-end. (5) Identify optimization tricks used (PUSH0, branchless, scratch space).
+- **Module-specific study strategies**: Each M1-M6 module has a "How to Study" section tuned to its pattern type — M2 for memory layouts, M3 for storage slot computation, M4 for dispatch tracing, M5 for call lifecycle, M6 for opcode tricks. Choose the strategy that matches the dominant pattern in the assembly you're reading.
+- **9 common assembly bug classes**: The most critical are unchecked call return values (silent failure), missing return data validation (non-standard tokens like USDT), and dirty memory corruption (writing past FMP without advancing it when Solidity code follows). Each maps to a specific module's content and has a known defensive pattern.
+
+</details>
+
 ---
 
 ## 💡 Guided Walkthroughs
@@ -606,6 +615,16 @@ After this section, you should be able to:
 - Trace Solady's binary search pattern for `sqrt()` and `log2()` — branchless bit-shifting that replaces loops with unrolled comparisons
 - Read a complete Solady ERC20 transfer and identify each trick: scratch space slot computation, selector-only revert, address cleaning, manual return
 - Recognize precompile calls (`staticcall` to addresses `0x01`-`0x0a`) and know which DeFi patterns use which precompiles
+
+<details>
+<summary>Check your understanding</summary>
+
+- **FullMath 512-bit multiplication**: `mul(a, b)` computes `(a * b) mod 2^256`, giving the lower 256 bits (`prod0`). `mulmod(a, b, not(0))` computes `(a * b) mod (2^256 - 1)` — a slightly different remainder. The difference between these two values, with a borrow correction, recovers the upper 256 bits (`prod1`). Together they represent the full 512-bit product, enabling `mulDiv` without intermediate overflow — critical for fixed-point math in AMMs and vaults.
+- **Solady binary search for sqrt/log2**: Instead of a loop, Solady unrolls the binary search into fixed steps, each using a branchless bit-shift: compare against a threshold, shift the result, repeat. This eliminates loop overhead and branch mispredictions, computing sqrt in ~9 steps and log2 in ~8 steps.
+- **Solady ERC20 transfer tricks**: Uses scratch space (0x00-0x3f) instead of allocating memory for slot computation, emits events with selector-only revert on failure (no string errors), cleans addresses with `and(addr, 0xffffffffffffffffffffffffffffffffffffffff)`, and manually writes return data — all avoiding compiler overhead.
+- **Precompile calls**: `staticcall` to addresses 0x01-0x0a invokes EVM precompiles. DeFi uses ecrecover (0x01) for permit signatures, SHA-256 (0x02) for Bitcoin SPV proofs, modexp (0x05) for RSA verification, and the bn128 curve precompiles (0x06-0x08) for ZK proof verification.
+
+</details>
 
 ---
 

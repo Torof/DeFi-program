@@ -341,6 +341,15 @@ After this section, you should be able to:
 - Apply the L2 optimization priority flip: minimize calldata (not storage writes), and explain why L1 data posting dominates costs on rollups
 - Identify block property differences across L2s (`block.timestamp`, `block.number`) and explain why hardcoding assumptions from L1 breaks on L2
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Optimistic vs ZK rollups:** Optimistic rollups assume transactions are valid and use fraud proofs during a 7-day challenge window — cheap to post but slow finality. ZK rollups generate validity proofs (cryptographic proof of correct execution) for each batch — expensive to prove but finality in hours. For DeFi: optimistic rollups mean 7-day bridge withdrawals (without liquidity bridges) and longer settlement assumptions; ZK rollups enable faster finality but have higher prover costs.
+- **L2 gas model:** L2 gas has two components: L2 execution (cheap, sequencer computation) and L1 data posting (expensive, calldata/blob on Ethereum). EIP-4844 introduced blob transactions — a dedicated, cheaper data channel for rollups — reducing L1 data costs by 10-100x. The optimization priority flips: on L1 minimize storage writes (SSTORE), on L2 minimize calldata size (function parameters, event data).
+- **Block property differences:** `block.number` on Arbitrum returns the L2 block number (since Nitro), not the L1 block number — with ~4 blocks/second, block-based time calculations differ drastically from L1. `block.timestamp` on OP Stack updates per L2 block but may have different granularity than L1. Hardcoding `12 seconds per block` or using `block.number` for time calculations — patterns that work on L1 — will produce incorrect results on L2s.
+
+</details>
+
 ---
 
 <a id="sequencer-uptime"></a>
@@ -513,6 +522,15 @@ After this section, you should be able to:
 - Explain why sequencer downtime is critical for lending protocols: frozen oracle prices + blocked transactions = stale liquidations + unfair borrows when the sequencer restarts
 - Implement the PriceOracleSentinel pattern: check Sequencer Uptime Feed → enforce grace period after restart → combine with price staleness checks for defense-in-depth
 - Apply differential safety: always allow repayments and collateral additions (reduce risk) even during downtime, only block liquidations and new borrows (increase risk)
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Sequencer downtime risk:** When the sequencer goes down, no new L2 blocks are produced. Oracle prices freeze at the last known value, and users cannot submit transactions. When the sequencer restarts, oracles update to current prices — positions that were healthy may now be underwater. Mass liquidations follow with no user recourse. This is the most critical L2-specific DeFi risk.
+- **PriceOracleSentinel pattern:** Query the Chainlink Sequencer Uptime Feed to detect downtime. When the sequencer comes back online, enforce a grace period (e.g., 1 hour) before allowing liquidations or new borrows. Combine with price staleness checks — if the last oracle update is older than the heartbeat, reject the price. This gives users time to manage positions after a restart.
+- **Differential safety:** Risk-reducing operations (repayments, collateral additions) should always be allowed — even during downtime or grace period — because they make the protocol safer. Risk-increasing operations (new borrows, liquidations) should be blocked during unsafe periods. This asymmetry protects users while maintaining protocol solvency.
+
+</details>
 
 ---
 
@@ -794,6 +812,15 @@ After this section, you should be able to:
 - Compare L2 MEV landscapes: Arbitrum FCFS/Timeboost (latency competition) vs OP Stack priority fees (fee-based ordering) vs shared sequencing (cross-chain atomicity)
 - Design L2-native protocols that leverage cheap gas: auto-compounding at higher frequency, on-chain order books, keeper-executed operations that would be uneconomical on L1
 - Plan a multi-chain deployment: chain-specific parameter configuration, CREATE2 for deterministic addresses across chains, and cross-chain governance message passing
+
+<details>
+<summary>Check your understanding</summary>
+
+- **L2 MEV landscapes:** Arbitrum uses FCFS (first-come-first-served) ordering with Timeboost — an auction for express lane priority. This shifts competition from gas wars to latency races. OP Stack (Optimism, Base) uses priority fees for ordering, similar to L1 but with a single sequencer as builder. Shared sequencing (future) enables cross-chain atomicity — atomic arbitrage across rollups — but is still experimental.
+- **L2-native protocol design:** Cheap gas unlocks patterns uneconomical on L1: auto-compounding every few minutes instead of daily, fully on-chain order books (vs AMM-only on L1), keeper-executed operations like periodic rebalancing or limit orders. Protocols should be designed L2-first, not ported from L1 with the same assumptions.
+- **Multi-chain deployment:** Use CREATE2 with consistent salt and init code hash for deterministic addresses across chains — same address on every chain simplifies UX and cross-chain messaging. Configure chain-specific parameters (oracle feeds, gas settings, sequencer uptime feeds) via constructor or initialization. Use cross-chain governance messaging to propagate parameter changes from a governance chain to all deployments.
+
+</details>
 
 ---
 

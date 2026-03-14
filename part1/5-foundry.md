@@ -378,6 +378,15 @@ After this section, you should be able to:
 - Explain the difference between `vm.prank` (single call) and `vm.startPrank` (persistent impersonation)
 - Use `vm.expectRevert` with a custom error selector to test specific revert conditions
 
+<details>
+<summary>Check your understanding</summary>
+
+- **Reusable BaseTest**: Create a base contract that sets up a fork (`vm.createSelectFork("mainnet", blockNumber)`), funds test accounts with `deal(address, amount)`, and provides helpers for impersonation. All test contracts inherit from it, keeping setup DRY and ensuring every test runs against the same known state.
+- **`vm.prank` vs `vm.startPrank`**: `vm.prank(addr)` impersonates `addr` for only the next external call, then resets. `vm.startPrank(addr)` stays active until `vm.stopPrank()` — use it when you need multiple calls as the same address (e.g., approve then deposit). Forgetting `stopPrank` is a common bug in test suites.
+- **`vm.expectRevert` with selectors**: `vm.expectRevert(abi.encodeWithSelector(MyError.selector, arg1, arg2))` asserts the next call reverts with that exact custom error and arguments. This tests not just that it reverts, but that the correct error path was taken — critical for contracts with multiple revert conditions.
+
+</details>
+
 ---
 
 ## 💡 Fuzz Testing and Invariant Testing
@@ -827,6 +836,15 @@ After this section, you should be able to:
 - Design a handler contract that exposes valid operations and tracks ghost variables for invariant checking
 - Explain the difference between a unit test property and a system invariant (e.g., "sum of all balances equals contract balance")
 
+<details>
+<summary>Check your understanding</summary>
+
+- **`bound()` for fuzz inputs**: `amount = bound(amount, 1, MAX_SUPPLY)` constrains fuzz inputs to valid ranges. Without it, most random `uint256` values would hit trivial reverts (overflow, zero-amount), wasting runs. `bound` maps the random input into your range without discarding it, avoiding `max_test_rejects` failures.
+- **Handler contracts + ghost variables**: A handler exposes only valid sequences of operations (deposit, withdraw, swap) with properly bounded inputs. Ghost variables (e.g., `totalDeposited`) track expected state inside the handler. Invariant assertions compare ghost variables against actual contract state — if they diverge, the invariant is broken.
+- **Unit property vs system invariant**: A unit test property checks one function's behavior ("withdraw reverts if balance is zero"). A system invariant holds across all possible sequences of operations ("sum of all user balances always equals the contract's token balance"). Invariant tests explore random call sequences to find violations unit tests would miss.
+
+</details>
+
 ---
 
 ## 💡 Fork Testing and Gas Optimization
@@ -1213,6 +1231,15 @@ After this section, you should be able to:
 - Set up a fork test pinned to a specific block number and explain why pinning matters for deterministic results
 - Use `forge snapshot` and `forge snapshot --diff` to measure the gas impact of an optimization
 - Explain why `deal()` is preferred over impersonating whales for setting token balances in fork tests
+
+<details>
+<summary>Check your understanding</summary>
+
+- **Pinned block number**: `vm.createSelectFork("mainnet", 18_500_000)` pins to a specific block. Without pinning, tests hit the latest block which changes constantly — prices move, liquidity shifts, and tests become flaky. Pinning gives deterministic, reproducible results.
+- **`forge snapshot` for gas**: `forge snapshot` saves gas usage for every test to `.gas-snapshot`. After making changes, `forge snapshot --diff` shows exactly which tests got cheaper or more expensive. This is how you verify optimizations actually help and catch regressions.
+- **`deal()` vs whale impersonation**: `deal(token, user, amount)` directly sets a storage balance — clean, reliable, no dependency on external state. Impersonating a whale (`vm.prank(whale)` + `transfer`) can break if the whale's balance changes between blocks or if the token has transfer restrictions. `deal()` is deterministic.
+
+</details>
 
 ---
 
