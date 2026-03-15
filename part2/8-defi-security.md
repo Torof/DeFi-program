@@ -458,15 +458,30 @@ DeFi's composability means your protocol interacts with others in ways you can't
 **What DeFi teams expect you to know about attack patterns:**
 
 1. **"Walk me through a read-only reentrancy attack."**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Explains that a view function reads inconsistent state during an external call's callback
    - Great answer: Gives the Balancer BPT / Sentiment example — pool has received tokens but hasn't minted BPT yet, so `getRate()` is inflated. Mentions that the defense is checking the vault's reentrancy lock *before* reading the rate, and that this class of bug is extremely common in DeFi compositions
 
+   </details>
+
 2. **"How would you prevent price manipulation in a lending protocol?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Use Chainlink instead of spot prices, add staleness checks
    - Great answer: Describes the full taxonomy — spot manipulation (flash loan + swap), TWAP manipulation (capital × time), donation attacks (`balanceOf` inflation), ERC-4626 exchange rate attacks. Explains that defense is layered: primary oracle + TWAP fallback + rate caps + circuit breakers. Mentions that even "safe" oracles like Chainlink need staleness checks, L2 sequencer checks, and zero-price validation
 
+   </details>
+
 3. **"What's the most underestimated attack vector in DeFi right now?"**
+   <details>
+   <summary>Answer</summary>
+
    - Strong answer: Composability risk / cross-protocol interactions. Any time your protocol reads state from another protocol, you inherit their entire attack surface. Read-only reentrancy is one example, but there's also governance manipulation, oracle dependency chains, and the risk of external protocol upgrades changing behavior. The defense is documenting every external dependency and its failure modes
+
+   </details>
 
 **Interview red flags:**
 - ❌ Only knowing about classic reentrancy (state-modifying) but not read-only reentrancy
@@ -1164,15 +1179,30 @@ The security mindset isn't a checklist — it's a way of thinking about code:
 **What DeFi teams expect you to know about security tooling and process:**
 
 1. **"What does your security workflow look like before deployment?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Unit tests, fuzz tests, Slither, get an audit
    - Great answer: Describes a layered approach — unit tests → fuzz tests → invariant tests (with handlers and ghost variables) → static analysis (Slither + Aderyn, triage false positives) → self-audit with threat model → comprehensive documentation → external audit → fix cycle → re-audit changes → bug bounty program. Mentions that the test suite and documentation quality directly affect audit ROI
 
+   </details>
+
 2. **"Invariant testing vs fuzz testing — what's the difference and when do you use each?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Fuzz tests random inputs to one function; invariant tests random sequences of calls and check properties hold
    - Great answer: Fuzz tests verify per-function behavior (`testFuzz_depositReturnsCorrectShares`). Invariant tests verify protocol-wide properties across arbitrary call sequences — they find multi-step bugs like "deposit → accrue → withdraw → accrue → deposit creates phantom assets." The handler contract is key: it bounds inputs, manages actors, and tracks ghost state. For DeFi, invariant tests are essential because most real exploits involve multi-step interactions, not single-function edge cases
 
+   </details>
+
 3. **"Have you ever found a real bug with invariant testing?"**
+   <details>
+   <summary>Answer</summary>
+
    - This is a strong signal question. Having a concrete story (even from practice protocols) demonstrates real experience. If you haven't yet: run invariant tests on your Module 4 and Module 6 exercises with high depth — you'll likely find rounding edge cases or state inconsistencies worth discussing
+
+   </details>
 
 **Hot topics (2025-26):**
 - AI-assisted auditing (LLM-powered code review as a complement to manual audit)

@@ -310,8 +310,13 @@ Don't try to understand the full router in one pass. The core pattern is the mul
 **What DeFi teams expect you to know:**
 
 1. **"How does a DEX aggregator find the optimal route?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Aggregators query multiple pools off-chain, run an optimization algorithm to find the best split and routing path, then encode the solution as calldata for an on-chain executor contract."
    - Great answer: "The routing problem is a constrained optimization — maximize output given pools with different liquidity profiles. For constant-product pools, the optimal split is approximately proportional to pool depth, because price impact is nonlinear — doubling the trade size more than doubles slippage. In practice, aggregators use heuristics because the general multi-hop, multi-split problem is NP-hard. The on-chain part is just a multi-call executor with a min-output check — all the intelligence is off-chain. On L2s, routing gets more aggressive because the gas overhead of extra hops is near-zero, so more splits become profitable."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Thinking aggregators only do single-pool routing (the whole point is multi-pool, multi-hop optimization)
@@ -435,8 +440,13 @@ Solver: "I'll give you 1920 USDC — routing through V3 + Curve,
 **What DeFi teams expect you to know:**
 
 1. **"What's the difference between intent-based and transaction-based execution?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "In transaction-based, the user specifies exact routing. In intent-based, the user signs what they want and solvers compete to fill it."
    - Great answer: "The key insight is separation of concerns. Transaction-based systems couple the WHAT (swap ETH for USDC) with the HOW (via Uniswap V3, 0.3% pool). Intent-based systems decouple them — the user specifies only the WHAT, and a competitive market of solvers handles the HOW. This is strictly better because solvers have access to more liquidity sources than any individual user — CEX inventory, cross-chain bridges, private pools — and competition drives execution toward optimal. The tradeoff is trust assumptions: you need a settlement contract that cryptographically guarantees the user gets their minimum output, and you need a healthy solver ecosystem for competitive pricing."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Thinking intents are "gasless" (the solver pays gas, not the user, but gas still exists and affects solver economics)
@@ -677,8 +687,13 @@ The formula is identical across all of these. What changes is: who's buying, wha
 **What DeFi teams expect you to know:**
 
 1. **"Explain how UniswapX's Dutch auction works and why it's MEV-resistant."**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Users sign an order with a start and end output amount. The required output decays from start to end over time. Solvers fill when it becomes profitable — earlier fills give users better prices."
    - Great answer: "The Dutch auction creates continuous solver competition compressed into time. The output starts above market price — unprofitable for solvers — and decays toward the user's limit price. A solver fills when the auction price crosses below `marketPrice - gasCost`. This is MEV-resistant because the price discovery IS the auction — there's no pending swap transaction to sandwich. The exclusive filler window adds another layer: a designated solver gets priority in exchange for committing to better starting prices. And the callback pattern lets solvers source liquidity just-in-time during the fill — they can flash-swap from AMMs, meaning they don't need pre-funded inventory."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing what a Dutch auction is or confusing it with an English auction
@@ -947,8 +962,13 @@ contract MySolver is IReactorCallback {
 **What DeFi teams expect you to know:**
 
 1. **"If you were building a solver, what would your architecture look like?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Monitor order APIs for new orders, evaluate profitability, route through DEXes, submit fill transactions."
    - Great answer: "Three components: (1) An off-chain monitoring service that streams new orders from UniswapX/CoW APIs alongside real-time DEX prices. (2) A pricing engine that evaluates profitability at the current Dutch auction price — factoring in DEX quotes, gas costs, and expected competition. (3) An on-chain fill contract implementing `IReactorCallback` that sources liquidity just-in-time. Start with single-DEX routing using the callback pattern — you receive the user's input tokens, swap them on Uniswap, and the output goes directly to the user. Then add multi-DEX splits, then CEX hedging for large orders. The callback is key: you don't need inventory, you just need to source the output tokens between when you receive the input and when the Reactor checks the output."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Describing solver architecture without mentioning the callback pattern (IReactorCallback is the key to capital-efficient filling)
@@ -1077,8 +1097,13 @@ Both are valid approaches with different tradeoffs. Understanding both gives you
 **What DeFi teams expect you to know:**
 
 1. **"How does CoW Protocol's batch auction prevent MEV?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "All orders in a batch execute at the same clearing price in a single transaction, so there's nothing to sandwich."
    - Great answer: "Three layers of MEV protection: (1) Orders are signed off-chain and submitted to a private API, never the public mempool — invisible to searchers. (2) Batch execution means all trades happen at uniform clearing prices in one transaction — you can't insert a sandwich between individual trades. (3) Coincidence of Wants matching means some trades never touch AMMs at all — no pool interaction means zero MEV surface. The residual MEV from AMM interactions needed for unmatched volume is captured by solver competition — solvers internalize the MEV and return surplus to users in order to win the batch."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Conflating CoW's batch auction model with UniswapX's Dutch auction model (fundamentally different settlement approaches)

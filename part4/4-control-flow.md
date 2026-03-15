@@ -120,8 +120,13 @@ Deploy, call `onlyOwnerAction()` from the deployer (returns 42), then switch acc
 #### 💼 Job Market Context
 
 **"Why doesn't Yul have `else`?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "You use `switch` with two cases instead"
 - Great: "Yul is intentionally minimal — it maps closely to EVM opcodes. There's no JUMPELSE opcode, only JUMPI (conditional jump). An if-else would compile to JUMPI + JUMP, same as a `switch` with `case 0` / `default`. Yul makes you choose the right construct explicitly rather than hiding the cost. In practice, most assembly code uses guard-clause-style `if iszero(...) { revert }` — you rarely need `else` because the revert terminates execution"
+
+</details>
 
 🚩 **Red flag:** Not knowing `iszero` is the standard negation pattern
 
@@ -223,8 +228,13 @@ Deploy, call with different values. Verify the outputs match. At the bytecode le
 #### 💼 Job Market Context
 
 **"When do you use `switch` vs `if` in Yul?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "`switch` for matching specific values, `if` for boolean conditions"
 - Great: "`switch` when dispatching on a known set of values — selector dispatch, enum handling, error codes. `if` for boolean guards — access control, balance checks, zero-address validation. At the bytecode level they compile to the same JUMPI chains, but `switch` makes the intent explicit — especially important in audit-facing code. The Solidity compiler itself uses `switch` internally for selector dispatch in the Yul IR output"
+
+</details>
 
 🚩 **Red flag:** Assuming `switch` has fall-through like C
 
@@ -374,8 +384,13 @@ Both skip the overflow check. In checked Solidity, `i++` adds ~20 gas per iterat
 #### 💼 Job Market Context
 
 **"How do you iterate arrays safely in assembly?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "Use a `for` loop with `lt(i, length)`, pre-compute the length"
 - Great: "Cache the length in a local variable to avoid repeated SLOAD/MLOAD. Use `lt(i, len)` for the condition — there's no `le` opcode, so `<=` requires `iszero(gt(i, len))` or `lt(i, add(len, 1))`, which can overflow at type max. For storage arrays, load the length once with `sload` and compute element slots with `add(baseSlot, i)`. Always ensure the loop is bounded — unbounded loops are an audit finding because an attacker can grow the array to make the function exceed the block gas limit"
+
+</details>
 
 🚩 **Red flag:** Writing unbounded loops over user-controlled arrays
 
@@ -833,8 +848,13 @@ let saved := mload(0x00)             // restore when needed
 #### 💼 Job Market Context
 
 **"How do you handle 'stack too deep' in assembly?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "Break the code into smaller Yul functions to reduce variables per scope"
 - Great: "The stack limit is 16 reachable slots (DUP16/SWAP16 max). Each Yul function gets a clean scope — only its parameters, locals, and return values count. So the fix is decomposition: extract logic into Yul functions with focused parameter lists. For truly complex operations, spill intermediate values to memory (0x00-0x3f scratch space or allocated memory). The `via_ir` compiler does this automatically, but hand-written assembly gives you control over which values live in memory vs stack, which matters for gas-critical paths"
+
+</details>
 
 🚩 **Red flag:** Not knowing why "stack too deep" happens (it's not a language bug, it's a hardware constraint — the DUP/SWAP opcodes only reach 16 deep)
 
@@ -1121,8 +1141,13 @@ Some ultra-optimized frameworks use different strategies:
 #### 💼 Job Market Context
 
 **"How does the Solidity compiler handle function dispatch?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "It checks the selector against each function and routes to the right one"
 - Great: "For 4 or fewer functions, it's a linear if-chain of JUMPI instructions — each costing 13 gas (EQ + JUMPI). For more functions, it uses binary search: selectors are sorted numerically, and the dispatcher does log(n) comparisons. A contract with 32 functions needs ~5 comparisons (65 gas) to find any function. This is why some protocols put frequently-called functions in a separate facet (Diamond pattern) — to keep the dispatch table small on hot paths. In hand-written assembly, you can go further: arrange selectors by call frequency or use jump tables for O(1) dispatch"
+
+</details>
 
 🚩 **Red flag:** Thinking dispatch is free or constant-cost
 
@@ -1380,8 +1405,13 @@ Explore the full patterns at [github.com/Vectorized/solady](https://github.com/V
 #### 💼 Job Market Context
 
 **"Walk me through how a minimal proxy works at the bytecode level"**
+<details>
+<summary>Answer</summary>
+
 - Good: "It copies calldata, DELEGATECALLs to the implementation, and returns or reverts the result"
 - Great: "The EIP-1167 proxy is ~45 bytes of raw bytecode with no Solidity. It uses CALLDATASIZE to get input length, CALLDATACOPY to move all calldata to memory at offset 0, then DELEGATECALL to the hardcoded implementation address forwarding all gas. After the call, RETURNDATACOPY moves the response to memory. It checks the success flag with JUMPI — REVERT if false (forwards the error), RETURN if true (forwards the response). Every byte is optimized: RETURNDATASIZE is used instead of PUSH1 0 because it produces zero on the stack for 2 gas and 1 byte, versus 3 gas and 2 bytes for PUSH1 0. The implementation address is embedded directly in the bytecode as a PUSH20 literal"
+
+</details>
 
 🚩 **Red flag:** Not knowing that minimal proxies exist or how they save deployment gas (deploying a 45-byte clone vs a full contract)
 

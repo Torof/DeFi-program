@@ -613,16 +613,31 @@ function repay(uint256 amount) external {
 **What DeFi teams expect you to know about lending fundamentals:**
 
 1. **"Explain how a lending protocol's interest rate model works."**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Describes the kinked curve, utilization-based rates, slope1/slope2 distinction
    - Great answer: Explains *why* the kink exists (self-correcting mechanism), how supply rate derives from borrow rate × utilization × (1 - reserve factor), and mentions that Compound V3 uses independent curves vs Aave's derived approach
 
+   </details>
+
 2. **"How does interest accrue without updating every user's balance?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Global index pattern — store principal and index at deposit, compute live balance as `principal × currentIndex / depositIndex`
    - Great answer: Explains the gas motivation (O(1) vs O(n) updates), mentions the compound interest approximation in Aave's MathUtils.sol, and notes this same pattern appears in ERC-4626 vaults and staking contracts
 
+   </details>
+
 3. **"What happens if a user's health factor drops below 1?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Position becomes liquidatable, a third party repays part of the debt and receives collateral at a discount
    - Great answer: Explains close factor mechanics (50% vs 100% at HF < 0.95 in Aave V3), liquidation bonus calibration trade-offs, minimum position rules to prevent dust, and Compound V3's absorb/auction alternative
+
+   </details>
 
 **Interview red flags:**
 - Saying lending protocols "charge" interest (they don't — interest is algorithmic, not invoiced)
@@ -1459,15 +1474,30 @@ function liquidate(address user, uint256 amount) external {
 **What DeFi teams expect you to know about liquidation:**
 
 1. **"Design a liquidation bot. What's your architecture?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Monitor health factors, submit liquidation tx when HF < 1, use flash loans for capital efficiency
    - Great answer: Discusses mempool monitoring vs on-chain event listening, Flashbots bundles to avoid front-running, priority gas auction dynamics, the economics of when liquidation is profitable (bonus vs gas + flash loan fee + swap slippage), and multi-protocol monitoring (Aave + Compound + Euler simultaneously)
 
+   </details>
+
 2. **"A user reports they were liquidated unfairly. How do you investigate?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Check oracle prices at the liquidation block, verify HF was actually < 1
    - Great answer: Trace the full sequence — was the oracle price stale? Was the sequencer down (L2)? Was there a price manipulation in the same block? Did the liquidator front-run an oracle update? Check if the liquidation bonus was correctly applied and the close factor respected. This is a real scenario teams face in post-mortems.
 
+   </details>
+
 3. **"Compare Aave's direct liquidation with Compound V3's absorb/auction model."**
+   <details>
+   <summary>Answer</summary>
+
    - Great answer: Aave's model is simpler — one atomic transaction, liquidator bears price risk. Compound's two-step model (absorb → buyCollateral) separates urgency from price discovery — absorption happens immediately (protocol takes bad debt), then Dutch auction finds optimal price for seized collateral. Trade-off: Compound's model socializes losses temporarily but gets better execution prices; Aave's model relies on liquidator speed and can suffer from sandwich attacks.
+
+   </details>
 
 **Interview red flags:**
 - Not knowing that liquidation is permissionless (anyone can call it)
@@ -1714,15 +1744,30 @@ Aave continues evolving within the V3 framework. These updates are important to 
 **What DeFi teams expect you to know about lending architecture:**
 
 1. **"Compare Aave V3 and Compound V3 architectures. When would you choose one over the other?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Lists the differences (multi-asset vs single-asset, aTokens vs signed principal, libraries vs monolith)
    - Great answer: Frames it as a trade-off space — Aave optimizes for composability and capital efficiency (yield-bearing collateral, E-Mode), Compound optimizes for risk isolation and simplicity (no cross-asset contagion, smaller attack surface). Choice depends on whether you're building a general lending market (Aave) or a focused, risk-minimized product (Compound)
 
+   </details>
+
 2. **"How would you prevent bad debt in a lending protocol?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Overcollateralization, timely liquidations, conservative risk parameters
    - Great answer: Discusses defense in depth — E-Mode/Isolation/Siloed borrowing for risk segmentation, supply/borrow caps for exposure limits, virtual balance layer against donation attacks, PriceOracleSentinel for L2 sequencer recovery, Safety Module as backstop, and the fundamental tension between capital efficiency and safety margin
 
+   </details>
+
 3. **"Walk me through a liquidation cascade. How would you design defenses?"**
+   <details>
+   <summary>Answer</summary>
+
    - Great answer: Explains the positive feedback loop (liquidation → collateral sold → price drops → more liquidations), then discusses close factor < 100%, bonus calibration, oracle smoothing, and references Black Thursday 2020 as the canonical example that shaped current designs
+
+   </details>
 
 **Hot topics in 2025-2026:**
 - Cross-chain lending (L2 ↔ L1 collateral, shared liquidity across chains)

@@ -264,8 +264,13 @@ Some proxied tokens have multiple addresses pointing to the same contract. Don't
 **What DeFi teams expect you to know:**
 
 1. **"A user reports they deposited 100 tokens but only got credit for 97. What happened?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Fee-on-transfer token"
    - Great answer: "Almost certainly a fee-on-transfer token like STA or PAXG. The fix is the balance-before-after pattern — measure `balanceOf` before and after `transferFrom`, credit the delta not the input amount. If this is a new finding, we also need to audit all other deposit/transfer paths for the same bug. This is why testing with `FeeOnTransferToken` mocks is essential."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing what `SafeERC20` is or why `token.transfer()` needs wrapping
@@ -490,8 +495,13 @@ function emergencyWithdraw(address user) external {
 **What DeFi teams expect you to know:**
 
 1. **"What happens if your protocol holds USDC and Circle blacklists your contract address?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "USDC transfers would revert, funds would be stuck"
    - Great answer: "All USDC operations would revert. We need a mitigation strategy: either emergency withdrawal in an alternative asset (ETH, DAI), multi-stablecoin support so liquidity can migrate, or governance-triggered asset swap. MakerDAO's PSM handles this with emergency shutdown. We should also monitor the [OFAC SDN list](https://sanctionssearch.ofac.treas.gov/) and have an incident response plan."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing that USDC/USDT are upgradeable proxy tokens
@@ -731,8 +741,13 @@ Feel the simplicity — WETH is just a deposit/withdraw box. Now imagine every p
 **What DeFi teams expect you to know:**
 
 1. **"How does Uniswap V4 handle native ETH differently from V2/V3?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "V4 supports native ETH directly without requiring WETH wrapping"
    - Great answer: "V2/V3 used WETH as an intermediary — the Router wrapped ETH before interacting with pair/pool contracts. V4's singleton architecture manages ETH balances natively via flash accounting: ETH is tracked as internal deltas alongside ERC-20 tokens, settled at the end of the transaction. This eliminates the gas cost of wrapping/unwrapping and simplifies multi-hop swaps involving ETH. The `address(0)` or `CurrencyLibrary.NATIVE` represents ETH in V4's currency system."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Thinking V4 dropped native ETH support (it's the opposite — V4 added it)
@@ -848,12 +863,22 @@ Is your protocol permissionless or curated?
 **The synthesis question — tying the whole module together:**
 
 1. **"How would you safely integrate an arbitrary ERC-20 token into a lending protocol?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Use SafeERC20, balance-before-after for deposits, normalize decimals, check for reentrancy"
    - Great answer: "First decide if we're permissionless or curated. If permissionless: SafeERC20, balance-before-after, reentrancy guard, decimal normalization via `token.decimals()`, guard against zero transfers. If curated: still use SafeERC20, but we can skip balance-before-after for tokens we've verified. Either way, test with fee-on-transfer, rebasing, and USDT mocks. I'd also check if the token is upgradeable or pausable — that affects our risk model. I'd run through the 13-point token evaluation checklist before listing."
 
+   </details>
+
 2. **"Walk me through your token evaluation process for a new collateral asset."**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Check decimals, see if it's upgradeable, look for weird behaviors"
    - Great answer: "I have a 13-point checklist: return values, fee-on-transfer, rebasing, decimals, upgradeability, pausability, blacklistability, ERC-777 hooks, zero-transfer behavior, multiple entry points, flash-mintability, supply inflation, and approve race conditions. For a curated protocol, I'd write a Foundry fork test against the real deployed token to verify assumptions. For permissionless, I'd build defensive code that handles all 13 cases."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Treating all tokens as 18 decimals

@@ -84,14 +84,22 @@ function deposit() external {
 **Interview question you WILL be asked:**
 > "What is account abstraction and why does it matter for DeFi?"
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
+
 "Account abstraction makes smart contracts the primary account type, replacing EOA limitations with programmable validation. ERC-4337 achieves this without protocol changes through a system of UserOperations, Bundlers, an EntryPoint contract, and Paymasters. For DeFi, it means gasless onboarding, batch operations, custom signature schemes, and institutional-grade access controls. Over 40 million smart accounts are deployed — protocols that don't support them are losing users."
+
+</details>
 
 **Follow-up question:**
 > "What's the difference between ERC-4337 and EIP-7702?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
+
 "ERC-4337 deploys new smart contract accounts — full flexibility but requires asset migration. EIP-7702, activated with the Pectra upgrade, lets existing EOAs delegate to smart contract code — same address, no migration. Delegation persists until explicitly revoked. They're complementary: an EOA can use EIP-7702 to delegate to an ERC-4337-compatible implementation, getting the full bundler/paymaster ecosystem without changing addresses."
+
+</details>
 
 **Interview Red Flags:**
 - 🚩 "Account abstraction requires a hard fork" — ERC-4337 is entirely at the application layer
@@ -572,14 +580,22 @@ If your protocol requires [EIP-712](https://eips.ethereum.org/EIPS/eip-712) sign
 **Interview question you WILL be asked:**
 > "How does account abstraction affect DeFi protocol design?"
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
+
 "Five major changes: msg.sender can be a contract, so tx.origin checks break; tx.origin is the bundler, so authentication must use msg.sender; gas patterns change because paymasters mean users might not hold ETH; batch transactions are common so reentrancy protection matters more; and signatures are non-standard because smart accounts use passkeys, multisig, or session keys instead of ECDSA, requiring EIP-1271 support for any signature verification."
+
+</details>
 
 **Follow-up question:**
 > "How would you audit a protocol for smart account compatibility?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
+
 "I'd search for three red flags: any `msg.sender == tx.origin` checks, any `ecrecover`-only signature verification without EIP-1271 fallback, and any assumption that msg.sender can't be a contract. Then I'd verify reentrancy guards work correctly with batch operations, and check that gas refund patterns send to msg.sender, not tx.origin."
+
+</details>
 
 **Interview Red Flags:**
 - 🚩 Using `tx.origin` for any authentication purpose
@@ -754,14 +770,22 @@ function verifySignature(address signer, bytes32 hash, bytes memory sig) interna
 **Interview question you WILL be asked:**
 > "How do you verify signatures from smart contract wallets?"
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
+
 "Use EIP-1271. Check if the signer has code — if yes, call `isValidSignature(hash, signature)` on the signer contract and verify it returns the magic value `0x1626ba7e`. If no code, fall back to standard ECDSA recovery with `ecrecover`. Wrap the EIP-1271 call in try/catch to handle malicious implementations. OpenZeppelin's `SignatureChecker` library implements this pattern, and Permit2 uses it internally."
+
+</details>
 
 **Follow-up question:**
 > "What's the security risk of EIP-1271?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
+
 "The main risk is that `isValidSignature` is an external call to an arbitrary contract. A malicious implementation could: consume all gas (griefing), return the magic value for any input (always-valid), or have side effects. That's why you always use try/catch with a gas limit, and never trust that a valid EIP-1271 response means the signer actually authorized the action — it only means the contract says it did."
+
+</details>
 
 **Interview Red Flags:**
 - 🚩 Only using `ecrecover` without EIP-1271 fallback
@@ -970,14 +994,22 @@ require(block.timestamp - updatedAt < 1 hours, "Stale price feed");
 **Interview question you WILL be asked:**
 > "How would you implement gasless DeFi interactions?"
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
+
 "Using ERC-4337 paymasters. Three patterns: a verifying paymaster where the protocol backend signs each UserOperation it wants to sponsor — good for controlled onboarding. An ERC-20 paymaster that accepts stablecoins for gas, using a Chainlink oracle for the exchange rate — good for users who hold tokens but not ETH. Or a deposit paymaster where users pre-fund a gas balance. The paymaster's `validatePaymasterUserOp` decides whether to sponsor, and `postOp` handles accounting after execution."
+
+</details>
 
 **Follow-up question:**
 > "What are the security risks of paymasters?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
+
 "Griefing is the main risk — a malicious user could submit expensive UserOperations that the paymaster sponsors, draining its balance. Mitigations include: off-chain validation before signing (verifying paymaster), rate limiting per user, gas caps per UserOp, and requiring token pre-approval before sponsoring (ERC-20 paymaster). Also, oracle manipulation for ERC-20 paymasters — if the price feed is stale, the paymaster could underprice gas and lose money."
+
+</details>
 
 **Interview Red Flags:**
 - 🚩 "Just use meta-transactions" — ERC-4337 paymasters are the modern standard

@@ -76,14 +76,22 @@ When protocols get hacked ([Euler Finance March 2023](https://www.certik.com/res
 **Interview question you WILL be asked:**
 > "What's wrong with the traditional ERC-20 approval model?"
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
+
 "Three fundamental problems: two transactions per interaction wastes gas and creates UX friction; infinite approvals create a persistent attack surface where a protocol hack drains all approved tokens, not just deposited ones; and no built-in expiration means forgotten approvals from years ago remain exploitable. Permit2 solves all three by centralizing approval management with signature-based, time-bounded permits."
+
+</details>
 
 **Follow-up question:**
 > "How would you handle approvals in a protocol you're building today?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
+
 "I'd integrate Permit2 as the primary token ingress path with a fallback to standard approve for edge cases. For protocols that still need direct approvals, I'd enforce exact amounts instead of unlimited, and emit events that frontends can use to help users track and revoke."
+
+</details>
 
 **Interview Red Flags:**
 - 🚩 "Just use `approve(type(uint256).max)`" — shows no security awareness
@@ -336,14 +344,22 @@ bytes32 digest = buildPermitDigest(owner, spender, value, nonce, deadline);
 **Interview question you WILL be asked:**
 > "Explain how EIP-2612 permit works."
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
+
 "EIP-2612 adds a `permit` function to ERC-20 tokens that accepts an EIP-712 signed message instead of an on-chain `approve` transaction. The user signs a typed data message containing the spender, amount, nonce, and deadline off-chain — which is free — and anyone can submit that signature on-chain to set the allowance. This enables single-transaction flows where the protocol calls permit and transferFrom in the same tx."
+
+</details>
 
 **Follow-up question:**
 > "What's the relationship between EIP-712 and EIP-2612?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
+
 "EIP-712 is the general standard for typed structured data signing — it defines domain separators and type hashes that prevent cross-chain and cross-contract replay. EIP-2612 is a specific application of EIP-712 for token approvals. The domain separator includes chainId and the token contract address, so a USDC permit on Ethereum can't be replayed on Arbitrum."
+
+</details>
 
 **Interview Red Flags:**
 - 🚩 Confusing EIP-2612 with Permit2 — they're different systems
@@ -518,14 +534,22 @@ function depositWithPermit2(
 **Interview question you WILL be asked:**
 > "How does Permit2 work and why is it better than EIP-2612?"
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
+
 "Permit2 is a universal approval infrastructure deployed by Uniswap. Users do one standard ERC-20 approve to the Permit2 contract per token, then all subsequent protocol interactions use EIP-712 signed messages. It has two modes: SignatureTransfer for one-time stateless permits with bitmap nonces that enable parallel signatures, and AllowanceTransfer for persistent time-bounded allowances packed into single storage slots. The key advantage over EIP-2612 is universality — it works with any ERC-20, not just tokens that implement permit."
+
+</details>
 
 **Follow-up question:**
 > "What's the risk of everyone approving a single contract like Permit2? Isn't that a single point of failure?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
+
 "Valid concern. Permit2 is a singleton — if it had a critical bug, every protocol and user relying on it would be affected. The tradeoff is that one heavily-audited, immutable contract is easier to secure than thousands of individual protocol approvals. Permit2 is non-upgradeable (no proxy), has been audited multiple times, and has held billions in effective approvals since 2022 without incident. The risk is concentrated but well-managed, versus the traditional model where risk is scattered across many less-audited contracts."
+
+</details>
 
 **Interview Red Flags:**
 - 🚩 "Permit2 is just Uniswap's version of permit" — shows superficial understanding
@@ -824,21 +848,29 @@ function deposit(uint256 amount) external {
 **Interview question:**
 > "SignatureTransfer vs AllowanceTransfer — when would you use each?"
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
+
 "SignatureTransfer for maximum security — each signature is consumed immediately with a unique nonce, no persistent state. Best for one-off operations like swaps or NFT purchases. AllowanceTransfer for convenience — set a time-bounded allowance once, then the protocol can pull tokens repeatedly until it expires. Best for protocols users interact with frequently, like a DEX router they use daily."
+
+</details>
 
 **Follow-up question:**
 > "Why does Permit2 use bitmap nonces instead of sequential?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
+
 "Sequential nonces force serial execution — if you sign order A (nonce 0) and order B (nonce 1), order B can't settle before order A. Bitmap nonces use a bit-per-nonce model where any nonce can be consumed in any order. This is essential for intent-based systems like UniswapX, where users sign multiple orders that may be filled by different solvers at different times. Each nonce is a single bit in a 256-bit word, so one storage slot covers 256 unique nonces."
+
+</details>
 
 **Interview Red Flags:**
 - 🚩 Can't explain when to choose SignatureTransfer over AllowanceTransfer
 - 🚩 Doesn't understand why bitmap nonces enable parallel execution
 - 🚩 Thinks AllowanceTransfer's uint160 amount is a limitation (it's a deliberate packing optimization)
 
-**Pro tip:** If you're interviewing at a protocol that integrates Permit2, know which mode they use. Uniswap V4 uses SignatureTransfer (one-time, stateless). If the protocol has recurring interactions (like a lending pool), they likely use AllowanceTransfer. Showing you checked their codebase before the interview is a strong signal.
+**Pro tip:** If you're interviewing at a protocol that integrates Permit2, know which mode they use. Uniswap's periphery contracts (Universal Router, PositionManager) primarily use SignatureTransfer (one-time, stateless). If the protocol has recurring interactions (like a lending pool), they likely use AllowanceTransfer. Showing you checked their codebase before the interview is a strong signal.
 
 ---
 
@@ -1128,20 +1160,32 @@ Users can call Permit2's `invalidateUnorderedNonces(uint256 wordPos, uint256 mas
 **Interview question you WILL be asked:**
 > "What are the security risks of signature-based approvals?"
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
+
 "Three main risks: phishing, front-running, and implementation bugs. Phishing is the biggest — $314M was lost in 2024 to fake permit signature requests. Front-running is a protocol-level concern — if a permit signature is submitted publicly, someone can execute it before the intended transaction, so protocols must use try/catch and check allowances as fallback. Implementation risks include forgetting domain separator validation, mismatched nonces, and not supporting both EIP-2612 and Permit2 paths."
+
+</details>
 
 **Follow-up question:**
 > "How do you handle permit failures in production?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
+
 "Always wrap permit calls in try/catch. If the permit fails — whether from front-running, expiry, or the token not supporting it — check if the allowance is already sufficient and proceed with transferFrom. This pattern is used by OpenZeppelin's SafeERC20 and is considered mandatory in production DeFi code."
+
+</details>
 
 **Follow-up question:**
 > "How would you protect users from permit phishing?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
+
 "On the protocol side: use Permit2's SignatureTransfer with a specific `to` address so tokens can only go to the intended recipient, not an attacker. Include witness data to bind the permit to a specific action. On the wallet side: clearly display what the user is signing — the spender address, amount, and expiration — in human-readable format. But ultimately, phishing is a UX problem more than a smart contract problem."
+
+</details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing about the try/catch pattern for permits

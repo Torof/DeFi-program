@@ -303,13 +303,28 @@ function processDeposit(uint256 amount) external {
 
 **What DeFi teams expect you to know:**
 1. "When would you use `unchecked` in a vault contract?"
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Loop counters, intermediate calculations where inputs are validated, formulas with mathematical guarantees
 
+   </details>
+
 2. "Why can't we just divide first: `(a / c) * b` instead of `(a * b) / c`?"
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Lose precision. If `a < c`, you get 0, then 0 * b = 0 (wrong!)
 
+   </details>
+
 3. "How do you handle multiplication overflow in share price calculations?"
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Use a `mulDiv` library ([OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/Math.sol), [Solady](https://github.com/Vectorized/solady/blob/main/src/utils/FixedPointMathLib.sol), or custom) for precise 512-bit intermediate math
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Importing SafeMath in new Solidity 0.8+ code
@@ -428,16 +443,31 @@ Aave's frontend decodes 60+ custom errors to show specific messages like "Health
 **What DeFi teams expect you to know:**
 
 1. **"How do you handle errors when calling external protocols?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Use try/catch, decode custom error selectors, implement fallback logic based on error type
    - Better answer: Show code example of catching Uniswap errors and routing to Curve as fallback
 
+   </details>
+
 2. **"Why use custom errors over require strings in production?"**
+   <details>
+   <summary>Answer</summary>
+
    - Okay answer: Gas savings
    - Good answer: Gas savings + better off-chain tooling + smaller bytecode
    - Great answer: Plus explain the tradeoff (error handling complexity in try/catch)
 
+   </details>
+
 3. **"How would you design error handling for a cross-protocol aggregator?"**
+   <details>
+   <summary>Answer</summary>
+
    - Show understanding of: error propagation, selector decoding, graceful degradation
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Still using `require(condition, "String message")` everywhere in new code
@@ -846,16 +876,31 @@ This is the real power of UDVTs with operators: **complex internal representatio
 **What DeFi teams expect you to know:**
 
 1. **"Why does Uniswap V4 use PoolId instead of bytes32?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Type safety - prevents using random hashes as pool identifiers
    - Great answer: Plus explain the zero-cost abstraction (no runtime overhead)
 
+   </details>
+
 2. **"How would you design a type-safe vault?"**
+   <details>
+   <summary>Answer</summary>
+
    - Show understanding of: `type Shares is uint256`, custom operators, preventing shares/assets confusion
 
+   </details>
+
 3. **"Explain bit-packing in BalanceDelta."**
+   <details>
+   <summary>Answer</summary>
+
    - This is a common interview question for Uniswap-related roles
    - Expected: Explain the memory layout, how packing/unpacking works, why it saves gas
    - Bonus: Mention the tradeoff (complexity vs gas savings)
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Never heard of UDVTs
@@ -1062,13 +1107,23 @@ bytes memory data = abi.encodeCall(IERC20.transfer, (recipient, amount));
 **What DeFi teams expect you to know:**
 
 1. **"How would you build a multicall router?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Batch multiple calls, use `abi.encodeCall` for type safety
    - Great answer: Plus mention gas optimization (batch vs individual), error handling, and security (reentrancy)
 
+   </details>
+
 2. **"What's the difference between abi.encodeCall and abi.encodeWithSelector?"**
+   <details>
+   <summary>Answer</summary>
+
    - `abi.encodeCall`: Type-checked at compile time
    - `abi.encodeWithSelector`: No type checking, easy to make mistakes
    - Show you know when to use each (prefer encodeCall in new code)
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Still using `abi.encodeWithSelector` or `abi.encodeWithSignature` in new code
@@ -1417,16 +1472,31 @@ Savings: 4 transfers eliminated!
 **What DeFi teams expect you to know:**
 
 1. **"Explain Uniswap V4's flash accounting."**
+   <details>
+   <summary>Answer</summary>
+
    - This is THE interview question for DEX roles
    - Expected: Explain delta tracking, settlement, why transient storage
    - Bonus: Explain the gas savings quantitatively
 
+   </details>
+
 2. **"When would you use transient storage?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Reentrancy guards, temporary state within transaction
    - Great answer: Plus mention flash accounting pattern, multi-step operations, the tradeoff (only works within one transaction)
 
+   </details>
+
 3. **"How would you migrate a reentrancy guard to transient storage?"**
+   <details>
+   <summary>Answer</summary>
+
    - Show understanding of: drop-in replacement, gas savings, when it's worth it
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Never heard of transient storage (major red flag for modern DeFi roles)

@@ -145,8 +145,13 @@ Writing to a never-used slot means creating new trie nodes, computing new hashes
 #### 💼 Job Market Context
 
 **"How does EVM storage work?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "It's a key-value store mapping 256-bit keys to 256-bit values, persisted in the state trie"
 - Great: "Each contract has a 2^256 key-value store backed by a Merkle Patricia Trie in the world state. Cold access costs 2,100 gas because it requires loading trie nodes from disk. Warm access costs 100 gas because the node is cached. This is why Uniswap V2's reentrancy guard uses 1→2 instead of 0→1→0 — the SSTORE from non-zero to non-zero avoids the 20,000 gas creation cost"
+
+</details>
 
 🚩 **Red flag:** Not knowing the cold/warm distinction, or thinking storage is like a regular database
 
@@ -342,12 +347,22 @@ function liquidate(address user) external {
 #### 💼 Job Market Context
 
 **"Why does the SSTORE cost depend on the original value?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "Gas reflects the work the trie must do — creating a node costs more than updating one."
 - Great: "It's a three-state model: original, current, and new. The EVM tracks the original value per-transaction because restoring it (dirty → original) is cheaper than a fresh write. EIP-3529 capped refunds at 1/5 of gas used to kill gas token farming."
 
+</details>
+
 **"What happened with gas tokens?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "They exploited SSTORE refunds to bank gas when cheap and reclaim when expensive."
 - Great: "CHI and GST2 wrote to storage (20,000 gas each) during low-gas periods, then cleared those slots during high-gas periods to claim refunds. Pre-London, the 50% refund cap made this profitable. EIP-3529 reduced it to 20%, making the scheme uneconomical."
+
+</details>
 
 #### ⚠️ Common Mistakes
 
@@ -515,8 +530,13 @@ The slot "flows" through the second position at each level.
 #### 💼 Job Market Context
 
 **"How do you compute a mapping's storage slot?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "`keccak256(abi.encode(key, baseSlot))`"
 - Great: "The slot is `keccak256(abi.encode(key, mappingSlot))`. The key goes first, the mapping's base slot second, both padded to 32 bytes. This scatters entries uniformly across the 2^256 space, making collisions astronomically unlikely. For nested mappings like `mapping(address => mapping(uint => uint))`, you apply the formula twice: first hash the outer key with the base slot, then hash the inner key with that result. This is how `cast storage` and block explorers read arbitrary mapping values"
+
+</details>
 
 🚩 **Red flag:** Not being able to derive the formula or confusing the argument order
 
@@ -565,8 +585,13 @@ assembly {
 #### 💼 Job Market Context
 
 **"Where is a dynamic array's data stored?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "The length is at the base slot, elements start at `keccak256(baseSlot)`"
 - Great: "The base slot stores the array length. The first element lives at `keccak256(abi.encode(baseSlot))`, and element `i` is at that value plus `i`. This means arrays can overlap with mapping slots in theory, but the probability is negligible because both use keccak256. For `bytes` and `string`, short values (≤31 bytes) are packed into the base slot itself with the length in the lowest byte — this is the 'short string optimization' that saves a full SLOAD for common cases"
+
+</details>
 
 🚩 **Red flag:** Not knowing the short string optimization, or thinking arrays are stored sequentially starting at their declaration slot
 
@@ -700,8 +725,13 @@ ERC-7201 uses the same principle (see [below](#erc-7201)) with an additional has
 #### 💼 Job Market Context
 
 **"Why does ERC-7201 subtract 1 before hashing?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "To prevent storage collisions between namespaces and regular variable slots"
 - Great: "The -1 trick prevents preimage attacks. If you hash a namespace string directly, someone could craft a contract where a regular variable's sequential slot number happens to equal `keccak256(namespace)`. By subtracting 1 before the final hash, you force the input to be `keccak256(string) - 1`, which has no known preimage — making it impossible to construct a colliding sequential slot. Vyper uses the same principle in its storage layout"
+
+</details>
 
 🚩 **Red flag:** Not knowing what a preimage attack is in this context
 
@@ -932,8 +962,13 @@ assembly {
 #### 💼 Job Market Context
 
 **"Walk me through how you'd pack configuration data in a protocol."**
+<details>
+<summary>Answer</summary>
+
 - Good: Describe the mask/shift pattern for packing multiple fields into one uint256.
 - Great: Discuss when packing is worth it (read-heavy config) vs when it's not (frequently-updated individual fields). Reference Aave V3 as the canonical example. Mention that packing also reduces cold access overhead for functions that need multiple config values.
+
+</details>
 
 **Interview red flag:** Packing everything blindly without considering write frequency.
 
@@ -1072,8 +1107,13 @@ Transient storage use cases in production DeFi:
 #### 💼 Job Market Context
 
 **"What's the difference between transient storage and regular storage?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "Transient storage is cleared at the end of each transaction, so it costs less gas"
 - Great: "TLOAD/TSTORE (EIP-1153) provide a key-value store that's transaction-scoped — it persists across internal calls within a transaction but is wiped when the transaction ends. It costs 100 gas for both read and write (no cold/warm distinction, no refund complexity). The primary use case is replacing storage-based reentrancy guards and enabling flash accounting patterns like Uniswap V4's delta tracking, where you need cross-call state without permanent storage costs"
+
+</details>
 
 🚩 **Red flag:** Confusing transient storage with memory, or not knowing it persists across internal calls
 
@@ -1137,8 +1177,13 @@ The proxy's `fallback()` function reads this slot to find the implementation, th
 #### 💼 Job Market Context
 
 **"How do proxy contracts store the implementation address?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "At a specific storage slot defined by ERC-1967"
 - Great: "ERC-1967 defines the implementation slot as `bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1)`. The -1 prevents preimage attacks (same trick as ERC-7201). In assembly, the proxy reads this with `sload(IMPLEMENTATION_SLOT)` and delegates with `delegatecall`. The slot is constant and known, which is how block explorers detect and display proxy implementations automatically"
+
+</details>
 
 🚩 **Red flag:** Not knowing the slot constant or why it uses keccak256-minus-1
 
@@ -1216,8 +1261,13 @@ function _getERC20Storage() private pure returns (ERC20Storage storage $) {
 #### 💼 Job Market Context
 
 **"How does ERC-7201 prevent storage collisions in upgradeable contracts?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "It uses a hash-based namespace so different facets don't clash"
-- Great: "ERC-7201 computes a base slot as `keccak256(abi.encode(uint256(keccak256(namespace_id)) - 1)) & ~bytes32(uint256(0xff))`. The inner hash maps the namespace string to a unique seed, subtracting 1 prevents preimage attacks, the outer hash creates the actual base slot, and the `& ~0xff` mask aligns to a 256-byte boundary so that sequential struct fields can follow naturally. All struct members are at `base + offset`, making the layout predictable and collision-free across independent storage namespaces"
+- Great: "ERC-7201 computes a base slot as `keccak256(abi.encode(uint256(keccak256(namespace_id)) - 1)) & ~bytes32(uint256(0xff))`. The inner hash maps the namespace string to a unique seed, subtracting 1 prevents preimage attacks, the outer hash creates the actual base slot, and the `& ~0xff` mask aligns to a 256-slot boundary so that sequential struct fields can follow naturally. All struct members are at `base + offset`, making the layout predictable and collision-free across independent storage namespaces"
+
+</details>
 
 🚩 **Red flag:** Using string-based storage slots without understanding the collision prevention mechanism
 
@@ -1266,8 +1316,13 @@ bytes memory data = SSTORE2.read(pointer);
 #### 💼 Job Market Context
 
 **"When would you use SSTORE2 instead of regular storage?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "When you need to store large immutable data cheaply"
 - Great: "SSTORE2 deploys data as a contract's bytecode using CREATE, then reads it with EXTCODECOPY. Writing costs contract deployment gas (~200 gas/byte), but reading is only 2,600 base + 3 gas/word via EXTCODECOPY vs. 2,100 per 32-byte SLOAD. For data larger than ~96 bytes that never changes, SSTORE2 is cheaper to read. Solady and SSTORE2 library use this for on-chain metadata, Merkle trees, and any large blob storage. The trade-off: data is immutable once deployed"
+
+</details>
 
 🚩 **Red flag:** Not knowing that SSTORE2 data is immutable (it's bytecode, not storage)
 

@@ -78,12 +78,22 @@ If you've used Hardhat, the key mental shift: **everything happens in Solidity**
 **What DeFi teams expect you to know:**
 
 1. **"What testing framework do you use?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Foundry — I write Solidity tests with fuzz and invariant testing"
    - Great answer: "Foundry for everything — unit tests, fuzz tests, invariant suites with handlers, fork tests against mainnet, and gas snapshots in CI. I use Hardhat only when I need JavaScript integration tests for frontend"
 
+   </details>
+
 2. **"How do you test DeFi composability?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Fork testing against mainnet"
    - Great answer: "I pin fork tests to specific blocks for determinism, test against multiple market conditions, and use `deal()` instead of impersonating whales. For critical paths, I test against both mainnet and L2 forks"
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Only knowing Hardhat/JavaScript testing in 2025+
@@ -237,12 +247,22 @@ Run with `forge test --match-contract CheatcodePlayground -vvv` and watch the tr
 **What DeFi teams expect you to know:**
 
 1. **"Walk me through how you'd test a time-locked vault"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Use `vm.warp` to advance past the lock period, test both before and after"
    - Great answer: "I'd test at key boundaries — 1 second before unlock, exact unlock time, and after. I'd also fuzz the lock duration and test with `vm.roll` for block-number-based locks. For production, I'd add invariant tests ensuring no withdrawals are possible before the lock expires across random deposit/warp/withdraw sequences"
 
+   </details>
+
 2. **"How do you test signature-based flows?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Use `makeAddrAndKey` to create signers, then `vm.sign` for EIP-712 digests"
    - Great answer: "I create deterministic test signers with `makeAddrAndKey`, construct EIP-712 typed data hashes matching the contract's `DOMAIN_SEPARATOR`, sign with `vm.sign`, and test both valid signatures and invalid ones (wrong signer, expired deadline, replayed nonce). For EIP-1271, I test both EOA and contract signers"
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Using `vm.assume` instead of `bound()` for constraining fuzz inputs
@@ -720,15 +740,30 @@ function invariant_solvency() public {
 **What DeFi teams expect you to know:**
 
 1. **"How do you approach testing a new DeFi protocol?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Unit tests for individual functions, fuzz tests for properties, invariant tests for system-wide correctness"
    - Great answer: "I start by identifying the protocol's invariants — solvency, conservation of value, monotonicity of share price. Then I build handlers that simulate realistic user behavior (deposits, withdrawals, swaps, liquidations), use ghost variables to track expected state, and run invariant tests with high depth. I also write targeted fuzz tests for mathematical edge cases like rounding and overflow boundaries"
 
+   </details>
+
 2. **"What's the difference between fuzz testing and invariant testing?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Fuzz tests random inputs to one function, invariant tests random sequences of calls"
    - Great answer: "Fuzz testing verifies properties of individual functions across all inputs — like 'swap output is always positive for positive input.' Invariant testing verifies system-wide properties across arbitrary call sequences — like 'the pool is always solvent regardless of what operations happened.' The key insight is that bugs often emerge from *sequences* of valid operations, not from any single call"
 
+   </details>
+
 3. **"Have you ever found a bug with fuzz/invariant testing?"**
+   <details>
+   <summary>Answer</summary>
+
    - This is increasingly common in DeFi interviews. Having a real example (even from your own learning exercises) is powerful
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Only writing unit tests with hardcoded values (no fuzzing)
@@ -1096,16 +1131,31 @@ contract DifferentialTest is Test {
 **What DeFi teams expect you to know:**
 
 1. **"How would you reproduce a DeFi exploit?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Fork mainnet at the block before the exploit, replay the transactions"
    - Great answer: "I'd fork at `block - 1`, use `vm.prank` to impersonate the attacker, replay the exact call sequence, and verify the stolen amount matches the post-mortem. Then I'd write a test that proves the fix prevents the attack. I keep a library of exploit reproductions — it's the best way to learn DeFi security patterns"
 
+   </details>
+
 2. **"How do you approach gas optimization?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Use `forge snapshot` to measure and compare"
    - Great answer: "I establish a baseline with `forge snapshot`, then use `forge test -vvvv` to identify the expensive opcodes. I focus on storage operations first (SLOAD/SSTORE dominate gas costs), then calldata optimizations, then arithmetic. I always run the full invariant suite after optimization to ensure correctness wasn't sacrificed. In CI, I use `forge snapshot --check` to catch regressions"
 
+   </details>
+
 3. **"Walk me through testing a protocol integration"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Fork test against the deployed protocol"
    - Great answer: "I pin to a specific block for determinism, set up realistic token balances with `deal()`, test the happy path first, then systematically test edge cases — what happens when the external protocol pauses? What happens during extreme market conditions? I test against multiple blocks to catch time-dependent behavior, and I test on both mainnet and relevant L2 forks"
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Never having reproduced an exploit (shows no security awareness)

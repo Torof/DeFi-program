@@ -421,12 +421,22 @@ The Diamond pattern allows a single proxy to delegate to **multiple** implementa
 **What DeFi teams expect you to know:**
 
 1. **"When would you use UUPS vs Transparent vs no proxy at all?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "UUPS for new deployments, Transparent for legacy, no proxy for trust-minimized core logic"
    - Great answer: "It depends on the trust model. For core protocol logic that handles user funds, I'd argue for immutable contracts — users shouldn't trust that an upgrade won't change the rules. For periphery (routers, adapters, fee modules), UUPS gives flexibility with lower gas overhead than Transparent. Beacon makes sense when you have many instances of the same contract (e.g., token vaults, lending pools) and want atomic upgrades. Note that Aave V3's aTokens actually use individual transparent-style proxies upgraded via governance, not a shared beacon. I'd avoid Diamond unless the protocol truly needs 100+ functions split across domains"
 
+   </details>
+
 2. **"What's the biggest risk with upgradeable contracts?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Storage collisions and uninitialized proxies"
    - Great answer: "Three categories: (1) Storage collisions — silent data corruption when layout changes, caught with `forge inspect` in CI. (2) Initialization attacks — front-running `initialize()` calls to take ownership. (3) Trust risk — governance or multisig can change the implementation, which means users are trusting the upgrade authority, not just the code. The best mitigation is timelocked upgrades with on-chain governance"
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing the difference between UUPS and Transparent proxy
@@ -613,15 +623,30 @@ contract V2 { uint256 public fee = 100; }             // IN storage at slot 0 �
 **What DeFi teams expect you to know:**
 
 1. **"How do you ensure storage layout compatibility between versions?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Append-only variables, storage gaps, `forge inspect`"
    - Great answer: "I run `forge inspect` on both versions and diff the layouts before any upgrade. In CI, I use the [foundry-storage-check](https://github.com/Rubilmax/foundry-storage-check) tool to automatically catch layout regressions. I maintain `__gap` arrays sized so total slots stay constant, and I never change inheritance order. For complex upgrades, I write a fork test that deploys the new implementation against the live proxy state and verifies all existing data reads correctly"
 
+   </details>
+
 2. **"Walk me through a safe upgrade process"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Deploy new implementation, verify storage layout, upgrade proxy"
    - Great answer: "First, I diff storage layouts with `forge inspect`. Then I deploy the new implementation and write a fork test that: (1) forks mainnet with the live proxy, (2) upgrades to the new implementation, (3) verifies all existing state reads correctly, (4) tests new functionality. Only after the fork test passes do I prepare the governance proposal or multisig transaction. For UUPS, I also verify the new implementation has `_authorizeUpgrade` — without it, the proxy becomes permanently non-upgradeable"
 
+   </details>
+
 3. **"What's the uninitialized proxy attack?"**
+   <details>
+   <summary>Answer</summary>
+
    - This is a common interview question. Know the Wormhole and Parity examples, and explain the three protections: `initializer` modifier, `_disableInitializers()`, and atomic deploy+initialize
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing about storage layout compatibility

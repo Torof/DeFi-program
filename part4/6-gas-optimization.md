@@ -195,8 +195,13 @@ The compiler version: 7 steps, memory allocation, string in bytecode. Solady's v
 **What DeFi teams expect you to know:**
 
 1. **"How do you verify that your assembly is actually faster than Solidity?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "I use `forge test --gas-report` and `forge snapshot --diff` to measure before and after."
    - Great answer: "I also check `forge inspect` IR output to see what the compiler already optimizes, so I only write assembly where it actually helps. Sometimes the compiler's output is already optimal."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Writing assembly without measuring — "I assumed it was faster"
@@ -518,8 +523,13 @@ This is also why Solady's `FixedPointMathLib.mulDiv` uses branchless patterns fo
 **What DeFi teams expect you to know:**
 
 1. **"How does Solady implement `min()` without branching?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "It uses XOR and multiplication to select between two values without JUMPI."
    - Great answer: "The pattern `xor(b, mul(xor(a,b), lt(a,b)))` uses XOR as a reversible diff. Multiplying by the boolean condition either keeps or zeroes the diff. XOR-ing with b either applies the diff (giving a) or doesn't (giving b). It saves ~6 gas per call and provides constant gas cost regardless of inputs."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not recognizing the XOR-MUL-XOR pattern when reading Solady code
@@ -956,11 +966,21 @@ The key insight from Philogy's work: **the optimal dispatch strategy depends on 
 **What DeFi teams expect you to know:**
 
 1. **"How would you implement O(1) function dispatch?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Compute an index from the selector using shift and mask operations to find a unique mapping, then use that index to jump to the handler."
    - Great answer: "Find a minimal perfect hash for your selector set — a SHIFT and MASK such that `(selector >> SHIFT) & MASK` produces unique indices. In Huff or pure Yul, this becomes a computed JUMP for ~93 constant gas. In Solidity inline assembly, you're limited to switch statements since Yul doesn't support computed jumps. The real value is in protocols with 25+ functions where binary search's O(log n) starts to add up."
 
+   </details>
+
 2. **"When is jump table dispatch worth the complexity?"**
+   <details>
+   <summary>Answer</summary>
+
    - Great answer: "Almost never in inline assembly — binary search is good enough for most contracts. It matters in Huff/pure Yul for high-function-count contracts like Uniswap V4, or in frameworks where dispatch overhead must be constant regardless of function count."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Claiming jump tables are always faster than binary search (they're not, below ~128 functions)
@@ -1149,12 +1169,22 @@ This is a red flag in code reviews. If every function is hand-written assembly, 
 **What DeFi teams expect you to know:**
 
 1. **"When is assembly-level gas optimization worth it?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "When the function is on a hot path — high call volume, high gas cost per call."
    - Great answer: "I'd calculate the ROI: gas saved times expected calls times gas price, versus the audit and maintenance cost. Assembly makes sense for ecosystem primitives and hot protocol paths. For everything else, Solidity with the right optimizer settings is better. The Solady model — optimize the library, not the application — is the smartest approach."
 
+   </details>
+
 2. **"You're building a new lending protocol. Which functions would you write in assembly?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "The core supply/borrow/liquidation functions after profiling shows they're bottlenecks."
    - Great answer: "I'd import Solady for token transfers and math (already optimized, already audited), then write everything else in Solidity. If profiling shows a specific function is a bottleneck, I'd optimize that one function — not the whole protocol. I'd also tune optimizer settings (high runs for the core contract) before reaching for assembly."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 "I always use assembly for gas optimization" — shows no judgment

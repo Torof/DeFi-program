@@ -586,8 +586,13 @@ Empty reverts make debugging impossible. Always bubble the revert data, or encod
 **What DeFi teams expect you to know:**
 
 1. **"What happens when a sub-call reverts in assembly?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "The success flag is 0 and you should check it."
    - Great answer: "The CALL opcode pushes 0 but execution continues in the caller. The revert data sits in the return data buffer — accessible via RETURNDATASIZE and RETURNDATACOPY. You must explicitly copy and re-revert with that data to propagate the error. If you forget the check entirely, the call silently fails and execution continues with stale or zero data. Solidity's `try/catch` compiles to exactly this pattern — check success, branch, optionally decode the error selector."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing that sub-call failures don't automatically propagate in assembly
@@ -751,8 +756,13 @@ Try calling `NoReturnToken.transfer()` through a normal Solidity interface (`IER
 **What DeFi teams expect you to know:**
 
 1. **"Why can't you just use `require(token.transfer(to, amount))`?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "USDT doesn't return a bool, so the ABI decoder reverts."
    - Great answer: "Several major tokens — USDT, BNB, and others — omit the `bool` return from `transfer`. The Solidity ABI decoder expects exactly 32 bytes and reverts when it gets 0. SafeERC20 uses assembly to bypass the ABI decoder: make the low-level `call`, then check `and(success, or(iszero(returndatasize()), eq(mload(0x00), 1)))`. This accepts three cases: call reverted (fail), returned true (standard success), returned nothing (USDT success). Solady takes this further by writing calldata to scratch space for gas savings and skipping the `extcodesize` check that OpenZeppelin includes."
+
+   </details>
 
 This is arguably the number one assembly question in DeFi interviews. If you can explain the truth table from memory, you demonstrate both assembly fluency and practical DeFi awareness.
 
@@ -930,8 +940,13 @@ The fix is simple: know your callee. Trusted → `gas()`. Untrusted → fixed li
 **What DeFi teams expect you to know:**
 
 1. **"How would you prevent gas griefing in a flash loan callback?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Use a fixed gas limit for the callback."
    - Great answer: "Cap the callback gas to what the borrower's operation reasonably needs — say 500K gas. This keeps enough reserve for the lender's cleanup: verifying the loan was repaid, updating state, handling bad debt. Calculate the minimum reserve as `cleanup_gas_needed × 64` — that's how much you need before the call to guarantee enough after. Also check the `success` return value and revert the entire flash loan if the callback fails, ensuring atomicity."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing what the 63/64 rule is
@@ -1159,12 +1174,22 @@ Upgradeable contracts must only *append* new storage variables. Never reorder, r
 **What DeFi teams expect you to know:**
 
 1. **"Explain how DELEGATECALL enables proxy upgrades."**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "The proxy stores state and forwards calls to an implementation via DELEGATECALL. To upgrade, you point the proxy to a new implementation."
    - Great answer: "The proxy's fallback copies all calldata to memory, DELEGATECALLs the implementation, and forwards the return data back — or reverts with the same revert data. Because DELEGATECALL executes the implementation's code against the proxy's storage, `msg.sender` and `address(this)` remain the proxy's, so users don't notice the upgrade. The implementation address is stored at an EIP-1967 pseudo-random slot to avoid collisions. UUPS is becoming the preferred pattern because the proxy is cheaper to deploy and upgrade logic can be removed to make the protocol immutable."
 
+   </details>
+
 2. **"What are the risks of proxy patterns?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Storage layout conflicts between versions can corrupt data."
    - Great answer: "Four main risks: (1) storage layout conflicts between versions causing silent data corruption, (2) uninitialized implementations — anyone can call `initialize()` on the implementation directly, so you must use `_disableInitializers()`, (3) function selector clashes in Transparent proxies between admin and user calls, and (4) pre-Dencun, `selfdestruct` in DELEGATECALL context would destroy the proxy, not the implementation."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing the difference between CALL and DELEGATECALL context (who owns storage, what `msg.sender` is)
@@ -1403,8 +1428,13 @@ This is the exact vulnerability that Uniswap V3 Multicall guards against — ind
 **What DeFi teams expect you to know:**
 
 1. **"How does Uniswap V3's multicall work?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "It takes an array of encoded function calls and DELEGATECALLs to itself for each one, batching multiple operations atomically."
    - Great answer: "It loops through a `bytes[]` calldata array, DELEGATECALLs to `address(this)` for each element. DELEGATECALL preserves `msg.sender`, so inner functions see the real user, not the contract. If any call fails, it bubbles the revert. The key subtlety is `msg.value` — since each DELEGATECALL sees the original `msg.value`, functions that consume ETH need their own accounting to prevent double-spending. That's why Uniswap's `exactInputSingle` uses `refundETH()` as the last multicall element to sweep excess ETH back to the user."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing why multicall uses DELEGATECALL instead of CALL (preserving `msg.sender`)

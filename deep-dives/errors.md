@@ -1020,12 +1020,22 @@ Call `areEqual()` — returns `true`. The `.selector` property on errors works i
 **What DeFi teams expect you to know:**
 
 1. **"Why did you choose custom errors over require strings?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Gas savings from smaller returndata and no string encoding
    - Great answer: Gas savings plus structured parameters that integrators can decode programmatically, plus they serve as the contract's failure API when declared in interfaces
 
+   </details>
+
 2. **"How would you design the error hierarchy for a lending protocol?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Group errors by domain — authorization, validation, liquidity, oracle
    - Great answer: Declare all errors in interfaces so integrators can match selectors, use descriptive parameters that carry enough context to diagnose without a trace, prefer parameterless errors for simple conditions and parameterized errors when the caller needs the values to react
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Still using `require(cond, "string")` in new code
@@ -1898,12 +1908,22 @@ This is the "returnbomb" attack. When your catch clause accepts `bytes memory da
 **What DeFi teams expect you to know:**
 
 1. **"How would you implement oracle fallback logic?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Use try/catch around the primary oracle call, fall back to secondary on failure
    - Great answer: Use try/catch with `catch (bytes memory)` to handle all error formats, cap returndata size to prevent returnbomb attacks, validate the fallback oracle's response freshness, and consider the gas budget — ensure the catch path has enough gas for the fallback call
 
+   </details>
+
 2. **"What are the limitations of try/catch in Solidity?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Only works on external calls, can't catch out-of-gas in current frame
    - Great answer: Only works on external calls, can't catch out-of-gas in current frame, `catch Error` doesn't catch custom errors, state changes before the try persist in the catch path, and the returnbomb vulnerability when catching arbitrary bytes from untrusted contracts
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Using try/catch with only `catch Error(string)` and thinking all errors are handled
@@ -2811,16 +2831,31 @@ Use low-level `call` for batch operations, as shown above.
 **What DeFi teams expect you to know:**
 
 1. **"How would you design the error handling for a DEX aggregator?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Use low-level calls to try multiple routes, catch failures, fall back to alternative routes
    - Great answer: Use low-level calls with error classification — distinguish slippage errors (retry with different parameters) from liquidity errors (skip this pool) from oracle errors (abort entirely). Wrap the original error bytes in a context-providing custom error so the caller can decode both the failing DEX and the root cause. Simulate off-chain first to avoid wasting gas on-chain.
 
+   </details>
+
 2. **"A user reports 'execution reverted' with no message on your protocol. How do you debug it?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Check the transaction on Etherscan, use Tenderly to get a trace
    - Great answer: Empty revert data means either a bare `revert()`, INVALID opcode (pre-0.8.0 assert or handwritten assembly), or out-of-gas. Check the gas used — if it consumed nearly all forwarded gas, it's likely INVALID or OOG. Use `cast run <txHash>` or Tenderly to get the full call trace. If it's a proxy, the error might originate in the implementation but surface through the proxy's fallback. Check if the target address has code — a call to an empty address succeeds silently, which can cause downstream reverts with confusing data.
 
+   </details>
+
 3. **"How do flash loans stay safe without trusting the borrower?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: The transaction is atomic — if repayment fails, everything reverts
    - Great answer: The pool relies on the EVM's frame-level revert guarantee. The initial transfer, callback, and repayment check all run in the same top-level transaction. Any revert — whether from the callback, the repayment `transferFrom`, or a return-value check — rolls back the initial transfer. The pool doesn't trust the borrower's code at all; it trusts the EVM's atomicity. This is error propagation used as a security mechanism.
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Using `staticcall` to "simulate" state-modifying functions (it always fails)

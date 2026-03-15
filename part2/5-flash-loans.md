@@ -222,20 +222,40 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 **What DeFi teams expect you to know:**
 
 1. **"Explain the flash loan callback pattern"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Provider sends tokens, calls your callback, then verifies repayment
    - Great answer: It's a borrow-callback-verify pattern where atomicity guarantees zero risk for the provider. The key differences between providers: Aave uses `transferFrom` (you must approve), Balancer checks its own balance increased, Uniswap V2 verifies the constant product invariant. Aave's `modes[]` parameter lets you convert a flash loan into a collateralized borrow — that's how collateral swaps work.
 
+   </details>
+
 2. **"How do you choose between flash loan providers?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Compare fees — Balancer is free, Aave is 5 bps
    - Great answer: Fee is just one factor. Balancer V2 is cheapest (0%) but liquidity depends on pool composition. Aave has the deepest liquidity for major assets. Uniswap V2 is expensive (~0.3%) but available per-pair without pool dependencies. V4 flash accounting is the most flexible — no separate flash loan needed, it composes natively with swaps. For production, you'd check available liquidity across providers and route to the cheapest with sufficient depth.
 
+   </details>
+
 3. **"Walk through a flash loan liquidation end to end"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Borrow the debt asset, repay the position, receive collateral, sell it, repay the loan
    - Great answer: Flash borrow USDC from Balancer (0 fee). Call `Pool.liquidationCall(collateral, debt, user, debtToCover, receiveAToken=false)` — this repays the user's debt and sends you the collateral at the liquidation bonus discount. Swap collateral → USDC via Uniswap V3 exact input. Repay Balancer. Profit = `collateral × price × (1 + bonus) - debtRepaid - swapFees`. The key insight: you choose Balancer over Aave to save 5 bps, and you set `receiveAToken=false` to get the underlying directly for the swap.
 
+   </details>
+
 4. **"How should your protocol defend against flash loan attacks?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Use TWAP oracles instead of spot prices
    - Great answer: Flash loans don't create vulnerabilities — they eliminate capital barriers for exploiting existing ones. The defense framework: (1) never rely on values that can be manipulated within a single tx (spot prices, balanceOf, share ratios), (2) use values established in previous blocks (TWAPs, snapshots), (3) for governance, snapshot voting power at proposal creation block, (4) for vaults, use virtual shares/assets offset to prevent donation-based share inflation. Design assuming every user has infinite temporary capital.
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Thinking flash loans create risk for the provider (they're zero-risk by construction)

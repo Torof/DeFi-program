@@ -128,8 +128,13 @@ block.basefee    // L2 base fee — much lower than L1
 **What DeFi teams expect you to know:**
 
 1. **"What are the risks of relying on the sequencer for transaction ordering?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "The sequencer is centralized — it could censor transactions or go down."
    - Great answer: "Three risk categories: (1) Liveness — if the sequencer goes down, no transactions process, oracle prices freeze, users can't manage positions. Realized in the Arbitrum June 2023 outage. (2) Censorship — the sequencer can delay specific transactions. Forced inclusion via L1 mitigates this, but the delay (~24 hours on Arbitrum) is long enough to cause damage in fast-moving markets. (3) MEV extraction — the sequencer sees all pending transactions and controls ordering, so it could theoretically front-run or sandwich users. Current sequencers don't due to reputation, but there's no cryptographic guarantee — this is why sequencer decentralization is a major research area."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Treating L2 as "just cheaper L1" without understanding the architectural differences (sequencer centralization, different finality model, forced inclusion)
@@ -295,8 +300,13 @@ Call `compactSwap(addr, 1000, true)` and `verboseSwap(addr, 1000, 900, addr, 999
 **What DeFi teams expect you to know:**
 
 1. **"How does the L2 gas model differ from L1, and how does that affect protocol design?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "L2 transactions pay for L2 execution plus L1 data posting. L1 data is the main cost, so on L2 you optimize for calldata size rather than storage writes."
    - Great answer: "Every L2 transaction has two cost components: L2 execution gas (cheap) and L1 data posting cost (dominant). Pre-EIP-4844, L1 data was ~99% of total cost. Post-4844, blob space is 10-100x cheaper, but calldata remains the primary optimization target. This flips the L1 hierarchy: on L1 you minimize storage writes; on L2 you minimize calldata bytes. Practically, packed calldata encoding saves more than storage packing. It also means complex routing with more hops is viable — extra pool interactions cost negligible L2 execution gas. This is why L2 aggregators use more aggressive split routing than L1 aggregators."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing that L2 gas has two components (L2 execution + L1 data posting) — this is the most fundamental L2 cost concept
@@ -477,8 +487,13 @@ Returns:
 **What DeFi teams expect you to know:**
 
 1. **"What should a lending protocol do when the L2 sequencer goes down?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Check sequencer uptime using Chainlink's feed, and pause liquidations with a grace period after restart."
    - Great answer: "Aave V3's PriceOracleSentinel is the gold standard. It checks Chainlink's L2 Sequencer Uptime Feed, which reports whether the sequencer is up/down and when the current status started. During downtime: block liquidations and new borrows, but allow repayments and collateral additions (always safe). After restart: enforce a grace period (typically 1 hour) before allowing liquidations, giving users time to manage positions that became undercollateralized while they couldn't interact. Any lending protocol deploying to L2 without this pattern has a known vulnerability — the Arbitrum June 2023 outage proved this isn't theoretical."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Deploying a lending protocol to L2 without sequencer uptime checks — this is a known vulnerability with real-world precedent
@@ -602,8 +617,13 @@ Shared sequencing: multiple L2s share a sequencer
 **What DeFi teams expect you to know:**
 
 1. **"How does MEV differ between Arbitrum and Optimism?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Arbitrum uses first-come-first-served ordering, making sandwich attacks harder. Optimism uses priority fee ordering like L1."
    - Great answer: "The fundamental difference is ordering policy. Arbitrum uses FCFS — transactions ordered by arrival time, not gas price. You can't outbid for position, which makes traditional sandwich attacks harder, but it creates latency races instead. Arbitrum's Timeboost adds an auction layer: 60-second rounds, winner gets an express lane, revenue goes to the DAO (MEV internalization). OP Stack chains use standard priority fee ordering, so L1-style MEV dynamics apply. This affects protocol design: on Arbitrum you might rely on FCFS for MEV protection; on Base you'd still want intent-based execution or tight slippage limits."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Assuming L1 MEV dynamics apply identically on L2 — sequencer centralization changes the entire landscape
@@ -714,8 +734,13 @@ The numbers are modest per user, but for large vaults the compounding frequency 
 **What DeFi teams expect you to know:**
 
 1. **"How would you design differently for L2 vs L1?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Use cheaper gas to enable more frequent operations. Add sequencer uptime checks. Adjust time-based logic for different block times."
    - Great answer: "Three categories: (1) Enable new operations — hourly auto-compounding instead of monthly, more aggressive aggregation routing, on-chain order books, keeper-based two-step execution for any order size. (2) Handle L2-specific risks — sequencer uptime checks on all oracle-dependent operations with grace periods, account for different block times in lockup/epoch logic, consider the L2's MEV model when setting slippage defaults. (3) Optimize for the L2 cost model — minimize calldata over storage, packed encodings, shorter function signatures. The biggest mistake is deploying an L1 protocol to L2 unchanged — the sequencer risk alone makes that dangerous."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Only thinking about cost savings ("L2 is cheaper") without considering new design possibilities (order books, frequent compounding, keeper viability)

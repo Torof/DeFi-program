@@ -188,9 +188,12 @@ In a multi-hop Uniswap V3 swap touching 3 pools:
 
 > "How do cold and warm storage accesses affect gas costs?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
 
 "Since EIP-2929 (Berlin upgrade), the EVM maintains an access set per transaction. The first read of any storage slot costs 2,100 gas (cold), subsequent reads cost 100 gas (warm). Same pattern for external calls — first call to an address costs 2,600 gas. This means the order you access storage matters: reading the same slot twice costs 2,200 gas total, not 4,200. You can also use EIP-2930 access lists to pre-warm slots, which is valuable for multi-pool DEX swaps and liquidation bots."
+
+</details>
 
 **Interview Red Flags:**
 - 🚩 "SLOAD always costs 200 gas" — Outdated (pre-Berlin pricing)
@@ -270,9 +273,12 @@ Deploy and call `feeInfo()`. On a local Foundry/Hardhat chain, `baseFee` starts 
 
 > "How does EIP-1559 affect MEV strategies?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
 
 "EIP-1559 separated the gas price into base fee (burned, set by protocol) and priority fee (paid to validators, set by user). For MEV, the base fee is a floor cost you can't avoid — it determines whether an arbitrage is profitable. The priority fee is how you bid for inclusion. Flashbots bypasses the public mempool entirely, but understanding base fee dynamics helps you predict profitability windows and set appropriate tips."
+
+</details>
 
 ---
 
@@ -330,12 +336,22 @@ contract GasToken {
 **What DeFi teams expect you to know:**
 
 1. **"What were gas tokens and why don't they work anymore?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Gas tokens exploited SSTORE refunds by storing data cheaply and clearing it during high gas periods. EIP-3529 reduced refunds from 15,000 to 4,800 gas and capped total refunds at 20% of transaction gas."
    - Great answer: Adds that the 20% cap means you can't use gas refunds to subsidize large transactions, and that SELFDESTRUCT refunds were removed entirely — breaking any economic model that relied on contract destruction for gas recovery.
 
+   </details>
+
 2. **"How does SSTORE gas work for writing the same value?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Writing the same value that's already in the slot costs only 100 gas (warm access, no state change). The EVM detects no-op writes and charges minimally."
    - Great answer: Adds the optimization insight — Uniswap V2's reentrancy guard uses 1→2→1 instead of 0→1→0 because non-zero-to-non-zero writes (5,000 gas) are cheaper than zero-to-non-zero (20,000 gas), and the partial refund for clearing is now too small to offset the initial cost.
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Designing token economics that rely on gas refunds — the 20% cap makes this unreliable
@@ -390,7 +406,12 @@ evm_version = "cancun"  # PUSH0 saves ~1 byte per zero-push
 
 **Interview question:** "Your contract is 26 KiB and won't deploy. What do you do?"
 
-**What to say:** "First, enable the optimizer with `via_ir = true` and lower `optimizer_runs` — this often saves 10-20% bytecode. Second, replace string revert messages with custom errors. Third, check for dead code. If it's still too large, extract read-only view functions into a separate 'Lens' contract, or split business logic into a core + periphery pattern. For very large protocols, the Diamond pattern (EIP-2535) provides modular facets behind a single proxy address. I'd also check if any internal functions should be external libraries instead."
+<details>
+<summary>Answer</summary>
+
+"First, enable the optimizer with `via_ir = true` and lower `optimizer_runs` — this often saves 10-20% bytecode. Second, replace string revert messages with custom errors. Third, check for dead code. If it's still too large, extract read-only view functions into a separate 'Lens' contract, or split business logic into a core + periphery pattern. For very large protocols, the Diamond pattern (EIP-2535) provides modular facets behind a single proxy address. I'd also check if any internal functions should be external libraries instead."
+
+</details>
 
 ---
 
@@ -522,7 +543,12 @@ CREATE2 address depends on init code hash. If you can SELFDESTRUCT a contract an
 
 **Interview question:** "What's CREATE2 and why does Uniswap use it?"
 
-**What to say:** "CREATE2 gives deterministic contract addresses based on the deployer, a salt, and the init code hash — unlike CREATE where the address depends on the nonce. Uniswap uses it so any contract can compute a pair's address off-chain by hashing the two token addresses, without needing a storage read. This saves ~2,100 gas per pool lookup in multi-hop swaps. Safe uses it for counterfactual wallets — you know the wallet address before deployment so you can send funds to it first. The newer CREATE3 pattern makes addresses independent of init code, which is useful for cross-chain deployments where constructor args differ per chain."
+<details>
+<summary>Answer</summary>
+
+"CREATE2 gives deterministic contract addresses based on the deployer, a salt, and the init code hash — unlike CREATE where the address depends on the nonce. Uniswap uses it so any contract can compute a pair's address off-chain by hashing the two token addresses, without needing a storage read. This saves ~2,100 gas per pool lookup in multi-hop swaps. Safe uses it for counterfactual wallets — you know the wallet address before deployment so you can send funds to it first. The newer CREATE3 pattern makes addresses independent of init code, which is useful for cross-chain deployments where constructor args differ per chain."
+
+</details>
 
 ---
 
@@ -933,17 +959,23 @@ When you open PoolManager.sol, follow this path to understand the flash accounti
 
 > "What's the difference between transient storage and memory?"
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
 
 "Memory is byte-addressed and isolated per call frame—when you make an external call, the callee can't access your memory. Transient storage is slot-addressed like regular storage, but it persists across external calls within the same transaction and gets wiped when the transaction ends. This makes it perfect for flash accounting patterns like Uniswap V4, where you want to track deltas across multiple pools and settle the net at the end. Gas-wise, both TLOAD and TSTORE cost ~100 gas regardless of warm/cold state, versus storage which ranges from 2,100 to 20,000 gas depending on the operation."
+
+</details>
 
 **Follow-up question:**
 
 > "When would you use transient storage instead of memory or regular storage?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
 
 "Use transient storage when you need to share state across external calls within a single transaction. Classic examples: reentrancy guards (~40x cheaper than storage guards), flash accounting in AMMs, temporary approvals, or callback validation. Don't use it if the data needs to persist across transactions—that's what regular storage is for. And don't use it if you only need data within a single function scope—memory is cheaper at ~3 gas per access."
+
+</details>
 
 **Interview Red Flags:**
 
@@ -1144,17 +1176,23 @@ Deploy in Remix (set EVM to `cancun`) and call `currentBlobBaseFee()`. In a loca
 
 > "Why did L2 transaction costs drop 90%+ after the Dencun upgrade?"
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
 
-"Before Dencun, L2 rollups posted transaction data to L1 as calldata, which costs ~16 gas per byte. EIP-4844 introduced blob transactions—a new transaction type that carries up to ~128 KB of data per blob at ~1 gas/byte or less. Blobs use a separate fee market from regular gas, targeting 3 blobs per block with a max of 6. Since L2s were the primary users and adoption was gradual, blob fees stayed near-zero, dropping L2 costs by 90-97%. The blobs are available for ~18 days then pruned, which is fine since L2 nodes already have the data."
+"Before Dencun, L2 rollups posted transaction data to L1 as calldata, which costs ~16 gas per byte. EIP-4844 introduced blob transactions—a new transaction type that carries up to ~128 KB of data per blob at ~1 gas/byte or less. Blobs use a separate fee market from regular gas, originally targeting 3 blobs per block with a max of 6 (increased to 6 target / 9 max with Pectra). Since L2s were the primary users and adoption was gradual, blob fees stayed near-zero, dropping L2 costs by 90-97%. The blobs are available for ~18 days then pruned, which is fine since L2 nodes already have the data."
+
+</details>
 
 **Follow-up question:**
 
 > "Does EIP-4844 affect how you build DeFi protocols on L2?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
 
 "Not directly for application contracts. EIP-4844 is an L1 infrastructure change—the L2 sequencer uses blobs to post data to L1, but your DeFi contract on the L2 doesn't interact with blobs. The impact is **user acquisition**: cheaper transactions mean more users can afford to use your protocol. For example, a $0.02 Aave supply on Base is viable for small amounts, whereas $0.50 wasn't. Your protocol should be designed for higher volume, smaller transactions post-Dencun."
+
+</details>
 
 **Interview Red Flags:**
 
@@ -1293,17 +1331,23 @@ evm_version = "cancun"  # Enables PUSH0, MCOPY, and transient storage
 
 > "What are some gas optimizations from recent EVM upgrades?"
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
 
-"PUSH0 from Shanghai (EIP-3855) saves 1 byte and 1 gas every time you push zero to the stack—common in variable initialization and padding. MCOPY from Cancun (EIP-5656) makes memory copies ~50% cheaper by replacing word-by-word MLOAD/MSTORE loops with a single operation. These are automatic optimizations when you set your compiler's EVM target to `cancun` or later in foundry.toml. For a typical DeFi contract, PUSH0 saves ~5-10 KB of bytecode and hundreds of gas across all zero-pushes, while MCOPY optimizes struct copying in AMM swaps and lending protocols. The compiler handles these—you don't write them explicitly."
+"PUSH0 from Shanghai (EIP-3855) saves 1 byte and 1 gas every time you push zero to the stack—common in variable initialization and padding. MCOPY from Cancun (EIP-5656) makes memory copies ~50% cheaper by replacing word-by-word MLOAD/MSTORE loops with a single operation. These are automatic optimizations when you set your compiler's EVM target to `cancun` or later in foundry.toml. For a typical DeFi contract, PUSH0 saves ~200-500 bytes of bytecode and hundreds of gas across all zero-pushes, while MCOPY optimizes struct copying in AMM swaps and lending protocols. The compiler handles these—you don't write them explicitly."
+
+</details>
 
 **Follow-up question:**
 
 > "Should I manually optimize my code to use PUSH0 and MCOPY?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
 
 "No, the Solidity compiler handles these automatically when targeting the right EVM version. Trying to manually optimize at the opcode level is an anti-pattern—it makes code harder to read and maintain for minimal gain. Focus on high-level optimizations like reducing storage operations, using memory efficiently, and batching transactions. Set `evm_version = \"cancun\"` in your config and let the compiler do its job. The only time you'd write assembly with these opcodes is if you're building compiler tooling or doing very specialized low-level work."
+
+</details>
 
 **Interview Red Flags:**
 
@@ -1404,9 +1448,12 @@ An attacker used metamorphic contracts to:
 
 > "I noticed your ERC-20 contract has a `kill()` function using SELFDESTRUCT. Is that still safe?"
 
-**What to say (This is a red flag test!):**
+<details>
+<summary>Answer</summary>
 
 "Actually, SELFDESTRUCT behavior changed with EIP-6780 in the Dencun upgrade (March 2024). It no longer deletes contract code unless called in the same transaction as deployment. The `kill()` function will send ETH to the target address but the contract code and storage will remain. If the goal is to disable the contract, we should use a `paused` state variable instead. Using SELFDESTRUCT post-Dencun suggests the codebase hasn't been updated for recent EVM changes, which is a red flag."
+
+</details>
 
 **Interview Red Flags:**
 
@@ -1715,17 +1762,23 @@ Real delegation targets are what EOAs point to via EIP-7702. Study them to under
 
 > "How does EIP-7702 differ from ERC-4337 for account abstraction?"
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
 
 "ERC-4337 requires deploying a new smart account contract—the user creates a dedicated account abstraction wallet separate from their EOA. EIP-7702 lets existing EOAs temporarily delegate to smart contract code without deploying anything new. The EOA's code is set to a delegation designator (0xef0100 + address), and calls to the EOA DELEGATECALL to the implementation. Key difference: EIP-7702 is reversible and works with existing wallets, while ERC-4337 requires user migration to a new address. Both enable batching, paymasters, and custom validation, but EIP-7702 reduces onboarding friction."
+
+</details>
 
 **Follow-up question:**
 
 > "Your DeFi protocol has a function that checks `tx.origin == owner` for admin access. What happens with EIP-7702?"
 
-**What to say (This is a red flag test!):**
+<details>
+<summary>Answer</summary>
 
 "That's a security vulnerability. With EIP-7702, when an EOA delegates to a batch executor, `tx.origin` is still the EOA address even though the code executing is from the delegated contract. An attacker could trick the owner into batching malicious calls alongside legitimate ones, bypassing the `tx.origin` check. The fix is to use `msg.sender` instead of `tx.origin`, or implement a proper access control pattern like OpenZeppelin's `Ownable`. Using `tx.origin` for auth is already an antipattern, and EIP-7702 makes it actively exploitable."
+
+</details>
 
 **Interview Red Flags:**
 
@@ -1745,9 +1798,12 @@ Real delegation targets are what EOAs point to via EIP-7702. Study them to under
 
 > "A user with an EIP-7702-delegated EOA calls your lending protocol's `borrow()` function. What security considerations apply?"
 
-**What to say:**
+<details>
+<summary>Answer</summary>
 
 "From the lending protocol's perspective, the call looks normal: `msg.sender` is the EOA, the protocol can check balances, approvals work as expected. But we need to be aware that the user might be batching multiple operations—for example, borrow + swap + repay in one transaction. Our reentrancy guards must work correctly, and we shouldn't assume the call is 'simple'. Also, if we emit events with `msg.sender`, they'll correctly show the EOA address, not the delegated contract. The key is that EIP-7702 is transparent to most protocols—the EOA still owns the assets, still approves tokens, still is the `msg.sender`."
+
+</details>
 
 **Pro tip:** EIP-7702 and ERC-4337 are converging — wallets like Ambire and Rhinestone already support both paths. If you can articulate how a protocol should handle both delegated EOAs (7702) and smart accounts (4337) transparently, you show the kind of forward-thinking AA expertise teams are actively hiring for.
 
@@ -1908,17 +1964,23 @@ After BLS precompile:
 
 > "What's the BLS12-381 precompile and why does it matter for DeFi?"
 
-**What to say (30-second answer):**
+<details>
+<summary>Answer</summary>
 
 "BLS12-381 is an elliptic curve used for signature aggregation and pairing-based cryptography. EIP-2537 adds it as a precompile, reducing BLS signature verification from ~1 million gas to ~8,000 gas—a 99%+ reduction. This enables on-chain validator consensus for liquid staking protocols like Lido. Before the precompile, protocols had to verify signatures off-chain using trusted oracles, which is a centralization risk. Now they can verify multiple validator attestations on-chain, enabling truly decentralized oracle consensus. The gas savings also unlock threshold signatures and privacy-preserving protocols that weren't viable before."
+
+</details>
 
 **Follow-up question:**
 
 > "Is BLS12-381 the same curve used for zkSNARKs?"
 
-**What to say (This is a knowledge test!):**
+<details>
+<summary>Answer</summary>
 
 "No, that's a common misconception. Most zkSNARKs in production use BN254 (also called alt-bn128), which Ethereum already has precompiles for (EIP-196, EIP-197). BLS12-381 is optimized for signature aggregation—it lets you combine multiple signatures into one, which is why Ethereum 2.0 validators use it. Some newer zkSNARK systems do use BLS12-381, but the primary use case in Ethereum is validator signatures and threshold cryptography, not zero-knowledge proofs."
+
+</details>
 
 **Interview Red Flags:**
 

@@ -642,12 +642,22 @@ The underlying protocol mechanics (Vat, Dog, Clipper, etc.) remain the same. For
 **What DeFi teams expect you to know:**
 
 1. **"Why did MakerDAO switch from English to Dutch auctions?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: English auctions were slow and required capital lockup
    - Great answer: Black Thursday proved English auctions fail under network congestion — bots couldn't bid, allowing $0 wins and $8.3M bad debt. Dutch auctions fix this: instant settlement, flash-loan compatible, no bidding rounds. The falling price naturally finds the market clearing level.
 
+   </details>
+
 2. **"What's the trade-off of the PSM?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: It stabilizes the peg but makes DAI dependent on USDC
    - Great answer: The PSM creates a hard peg floor/ceiling but at the cost of centralization — at peak, >50% of DAI was backed by USDC through the PSM. This is the stablecoin trilemma in action: DAI chose stability over decentralization. The Sky rebrand introduced USDS with a freeze function, pushing further toward the centralized end.
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing how CDPs differ from lending (minting vs redistributing)
@@ -949,16 +959,31 @@ Speed of peg restoration:
 **Stablecoin design is a senior-level interview topic:**
 
 1. **"Explain the stablecoin trilemma and where DAI sits"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: DAI trades off capital efficiency for decentralization and stability
    - Great answer: DAI started decentralized (ETH-only collateral) but the PSM made it USDC-dependent for better stability. The Sky rebrand pushed further toward centralization with USDS's freeze function. Liquity V1 sits at the opposite extreme — fully decentralized and immutable, but less capital-efficient and narrower collateral. No design achieves all three.
 
+   </details>
+
 2. **"How does crvUSD's LLAMMA differ from traditional liquidation?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: It gradually converts collateral instead of a sudden liquidation event
    - Great answer: LLAMMA is essentially an AMM where your collateral IS the liquidity. As price drops, the AMM sells your collateral for crvUSD automatically. If price recovers, it buys back. This eliminates the discrete liquidation penalty but introduces AMM-like impermanent loss during soft liquidation. It's a fundamentally different paradigm — continuous adjustment vs threshold-triggered liquidation.
 
+   </details>
+
 3. **"What's the main risk with Ethena's USDe?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Funding rates can go negative
    - Great answer: Three correlated risks: (1) prolonged negative funding drains the insurance fund and erodes backing, (2) centralized exchange counterparty risk — positions are on Binance/Bybit/Deribit via custodians, (3) during a black swan, all three risks compound simultaneously (funding reversal + exchange stress + basis blowout). The model works great in bull markets with positive funding but hasn't been tested through a severe extended downturn with the current AUM.
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Thinking algorithmic stablecoins without external collateral can work (Terra killed this thesis)

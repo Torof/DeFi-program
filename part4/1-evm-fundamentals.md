@@ -363,8 +363,13 @@ Without DUP, you'd have to push `a` twice from calldata (more expensive). DUP co
 #### 💼 Job Market Context
 
 **"Explain how the EVM executes a simple addition"**
+<details>
+<summary>Answer</summary>
+
 - Good: "It pushes two values onto the stack, then ADD pops both and pushes the result"
 - Great: "The EVM is a stack machine — no registers. ADD pops the top two stack items, computes their sum mod 2^256, and pushes the result. The program counter advances by 1 byte. If the stack has fewer than 2 items, it's a stack underflow and the transaction reverts"
+
+</details>
 
 🚩 **Red flag:** Not knowing the stack is 256-bit wide, or confusing the EVM with register-based architectures
 
@@ -1029,12 +1034,22 @@ This is why every gas optimization in an AMM matters — a 2,000-gas saving is ~
 **What DeFi teams expect you to know:**
 
 1. **"Why is SSTORE so expensive?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "It writes to the world state trie, which every node must store permanently. The 20,000 gas for a new slot reflects the storage burden on all nodes"
    - Great answer: Adds EIP-2929 warm/cold distinction, refund mechanics, and why EIP-3529 reduced SSTORE refunds
 
+   </details>
+
 2. **"When is assembly-level gas optimization worth it?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Hot paths with high call frequency — DEX swaps, liquidation bots, frequently-called view functions"
    - Great answer: "It depends on the gas savings vs. the audit cost. A 200-gas saving in a function called once per user interaction isn't worth reduced readability. A 2,000-gas saving in a function called by every MEV searcher on every block is worth it"
+
+   </details>
 
 **Interview red flags:**
 - 🚩 Not knowing the order-of-magnitude difference between memory and storage costs
@@ -1176,12 +1191,22 @@ Notice: the assembly version does exactly what `msg.sender`, `msg.value`, `block
 **What DeFi teams expect you to know:**
 
 1. **"What's the difference between `msg.sender` and `tx.origin`?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "`msg.sender` is the immediate caller (CALLER opcode), `tx.origin` is the EOA that initiated the transaction (ORIGIN opcode). They differ when contracts call other contracts"
    - Great answer: "Never use `tx.origin` for authorization — it breaks composability with smart contract wallets (Gnosis Safe, ERC-4337 accounts) and is vulnerable to phishing attacks where a malicious contract tricks users into calling it"
 
+   </details>
+
 2. **"How does `delegatecall` affect `msg.sender`?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "`delegatecall` preserves the original `caller()` and `callvalue()`. The implementation runs in the caller's storage context"
    - Great answer: "This is what makes the proxy pattern work — the user interacts with the proxy, `delegatecall` forwards to the implementation, but `msg.sender` still points to the user. This also means the implementation must never assume `address(this)` is its own address"
+
+   </details>
 
 **Interview red flags:**
 - 🚩 Using `tx.origin` for access control
@@ -1386,8 +1411,13 @@ This is exactly the pattern used in Solady's [Ownable.sol](https://github.com/Ve
 #### 💼 Job Market Context
 
 **"When would you use inline assembly in production code?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "When the compiler generates inefficient code for a known-safe operation — like bitwise packing, or reading a specific storage slot"
 - Great: "Only when the gas savings justify the audit burden. Solady uses assembly extensively because it's a library called millions of times — the cumulative savings matter. But for application-level code, the compiler usually gets within 5-10% of hand-written assembly, and the readability cost isn't worth it"
+
+</details>
 
 🚩 **Red flag:** Wanting to write everything in assembly "for performance" — signals inexperience with the real trade-offs
 
@@ -1516,8 +1546,13 @@ When you want to understand how a contract or opcode works:
 #### 💼 Job Market Context
 
 **"What happens when you deploy a contract?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "The creation code runs, which returns the runtime bytecode that gets stored on-chain"
 - Great: "A transaction with `to: null` triggers contract creation. The EVM runs the initcode (creation bytecode), which executes the constructor logic, then uses RETURN to hand back the runtime bytecode. That runtime code is stored in the state trie at the new address. This is why constructor arguments aren't in the deployed bytecode — they're consumed during creation"
+
+</details>
 
 🚩 **Red flag:** Not distinguishing creation code from runtime code, or thinking the constructor is part of the deployed contract
 

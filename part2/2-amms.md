@@ -296,8 +296,13 @@ Fees must exceed LVR, not just IL, for LPs to profit. When evaluating whether a 
 **What DeFi teams expect you to know:**
 
 1. **"What is impermanent loss and when does it matter?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "IL is the difference between LP value and holding value. It's caused by arbitrageurs rebalancing the pool after external price changes."
    - Great answer: "LPs are implicitly short volatility — they sell the appreciating token and buy the depreciating one as the pool rebalances. IL = `2√r/(1+r) - 1` where r is the price ratio change. For a 2x move, that's ~5.7%. But IL is just a snapshot — the more accurate framework is LVR (Loss-Versus-Rebalancing), which measures the continuous cost of CEX-DEX arbitrageurs trading against stale AMM prices. LVR scales with σ² (volatility squared), which is why volatile pairs are so much more expensive to LP. For stablecoin pairs, both IL and LVR are near zero, making fee income almost pure profit. The key question is always: do fees exceed LVR? For most volatile pairs on V3, the answer is barely — especially with JIT liquidity extracting 5-10% of fee revenue."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Saying "impermanent loss isn't real" — it is real, and LVR makes it even more concrete
@@ -916,8 +921,13 @@ forge test --match-path "test/part2/module2/exercise2-v3-position/*"
 **What DeFi teams expect you to know:**
 
 1. **"Explain how Uniswap V3's concentrated liquidity works and why it matters."**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "LPs choose a price range. Within that range, their capital provides the same liquidity depth as a much larger V2 position. It's more capital-efficient but requires active management."
    - Great answer: "V3 divides the price space into ticks at 1 basis point intervals. Between any two initialized ticks, the pool behaves like a V2 pool with liquidity L. The swap loop crosses tick boundaries, adding/removing liquidity from positions. sqrtPriceX96 is stored as the square root to simplify the core math formulas. The tradeoff is that LPs now compete with JIT liquidity providers and need active management — which spawned Arrakis, Gamma, and eventually V4 hooks for native LP management."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing what sqrtPriceX96 is or why prices are stored as square roots
@@ -1180,8 +1190,13 @@ forge test --fork-url $MAINNET_RPC --match-contract V4Test
 **What DeFi teams expect you to know:**
 
 1. **"Walk me through Uniswap V4's flash accounting. How does it save gas?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "V4 uses a singleton contract and transient storage. Instead of transferring tokens between pool contracts for multi-hop swaps, it tracks balance changes (deltas) and only settles the net at the end."
    - Great answer: "V4's PoolManager consolidates all pools into one contract. When a caller `unlock()`s the PoolManager, it can perform multiple operations — swaps across different pools, liquidity changes — and the PoolManager tracks net balance changes per token using TSTORE/TLOAD (100 gas vs 2,100+ for SSTORE). For a 3-hop swap A→B→C→D, only A and D move — B and C deltas cancel to zero internally. The caller settles by transferring tokens or using ERC-6909 claim tokens. This saves 20-30% gas and eliminates intermediate token transfers entirely."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not understanding the unlock → callback → settle pattern
@@ -1348,8 +1363,13 @@ function afterSwap(...) external returns (...) {
 **What DeFi teams expect you to know:**
 
 1. **"How do V4 hooks work and what are the security considerations?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Hooks are external contracts called at specific points during pool operations. The hook address encodes which callbacks are enabled through specific address bits."
    - Great answer: "Hooks intercept 10 lifecycle points: before/after initialize, swap, add/remove liquidity, and donate. The hook address itself determines which callbacks are active — specific bits in the address are checked by the PoolManager (gas optimization: bit checks vs external calls). Critical security: hooks MUST verify `msg.sender == poolManager` (Cork Protocol lost $400k from missing this check), avoid unbounded loops (gas griefing), and handle reentrancy carefully. Once a pool is initialized with a hook, it's permanent — bugs mean abandoning the pool."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing that hooks are immutably linked to pools at initialization
@@ -1712,8 +1732,13 @@ Solutions: use private mempools, implement internal buffers, randomize execution
 **What DeFi teams expect you to know:**
 
 1. **"How would you protect a protocol's liquidation swaps from sandwich attacks?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Use slippage protection with `amountOutMin` and submit through Flashbots Protect."
    - Great answer: "Layer multiple defenses: (1) Flashbots Protect or MEV Blocker for private submission, (2) Set `amountOutMin` based on a reliable oracle price (Chainlink, not the AMM's spot price — that's circular), (3) Route through an aggregator like 1inch Fusion or CoW Protocol for large liquidations, (4) If the protocol has predictable rebalancing schedules, randomize timing. For maximum protection, use intent-based systems where solvers compete to fill the swap."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not mentioning MEV/sandwich attacks when discussing AMM integrations

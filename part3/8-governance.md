@@ -275,8 +275,13 @@ This test pattern is exactly what your Exercise 1 will use.
 **What DeFi teams expect you to know:**
 
 1. **"Walk through the lifecycle of an on-chain governance proposal."**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Someone proposes a change, token holders vote, if it passes it goes through a timelock, then anyone can execute it."
    - Great answer: "Five phases: (1) Propose — proposer submits targets, values, calldatas on-chain; a snapshot of all voting power is recorded. (2) Voting delay — 1-2 days for community review. (3) Active voting — holders cast for/against/abstain using power at the snapshot block, not current balance, preventing flash loan attacks. (4) Queue — if quorum met and majority for, queued in TimelockController with mandatory delay (24-48h) — the safety net giving users time to exit. (5) Execute — after timelock expires, anyone triggers execution. Total: 5-14 days."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing about snapshot-based voting and why it prevents flash loan attacks (votes recorded at proposal creation block, not at voting time)
@@ -532,12 +537,22 @@ Velodrome's fix:
 **What DeFi teams expect you to know:**
 
 1. **"How does vote-escrow prevent governance manipulation?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Users lock tokens for a period, so they can't flash-borrow or quickly acquire and dump voting power."
    - Great answer: "Three layers of resistance: (1) Time commitment — tokens locked 1-4 years, making flash-borrow impossible. An attacker must buy AND lock tokens, creating massive economic exposure. (2) Linear decay — power decreases as the lock approaches expiry, forcing continuous re-locking. (3) Incentive alignment — voters earn protocol fees, so voting against the protocol's interest reduces their own revenue. The formula `amount * (lockEnd - now) / maxLock` means 10,000 tokens locked 4 years = 40,000 tokens locked 1 year — the market prices this cost."
 
+   </details>
+
 2. **"Explain the Curve Wars — what are protocols competing for?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Protocols compete for veCRV votes that direct CRV emissions to their pools, attracting liquidity."
    - Great answer: "Curve emits CRV to LPs, but allocation depends on weekly gauge votes by veCRV holders. More emissions = higher LP rewards = more liquidity. Convex aggregates CRV permanently as veCRV; vlCVX holders control Convex's votes, creating meta-governance. On Votium, protocols pay $1 in bribes to vlCVX holders, directing ~$1.50 of CRV emissions — profitable for both sides. The key insight: governance voting power has quantifiable economic value, and a market naturally forms around it."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Thinking governance is "just voting" — ve-tokenomics proves it's a complex economic system where voting power has direct monetary value
@@ -740,8 +755,13 @@ Compound:
 **What DeFi teams expect you to know:**
 
 1. **"How did the Beanstalk governance attack work, and how would you prevent it?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "The attacker flash-borrowed tokens, voted on a malicious proposal, and executed it all in one transaction. Prevention: snapshot voting and timelocks."
    - Great answer: "Beanstalk had three fatal flaws: no snapshot voting (tokens acquired in the same block could vote), no voting delay (voting started immediately), and no timelock (proposals executed instantly). The attacker flash-borrowed $1B of tokens, created a proposal to drain the treasury, voted FOR, and executed it — all in one transaction ($182M loss). Standard OpenZeppelin Governor defaults prevent this entirely: snapshot voting means tokens must be held BEFORE proposal creation; voting delay prevents same-block voting; timelock delays execution 24-48h. The lesson: governance security is as critical as smart contract security."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing the Beanstalk attack — it's the most important governance case study in DeFi ($182M, entirely preventable)
@@ -843,8 +863,13 @@ SHOULD NOT be governable (hardcode):
 **What DeFi teams expect you to know:**
 
 1. **"What are the tradeoffs between governance and immutability?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Governance allows protocols to adapt but introduces attack surfaces. Immutability is more trustless but can't fix bugs."
    - Great answer: "The spectrum runs from full governance (multisig) through token-based governance (Governor + Timelock) to zero governance (Liquity — no admin keys, no upgradability). Full governance enables rapid response but every governable parameter is an attack surface. Zero governance eliminates these risks but can't adapt. The optimal approach is progressive decentralization: start with multisig, transition to token governance as the protocol matures, then systematically reduce what's governable. The key principle: only make governable what MUST change — core accounting math should be immutable; risk parameters should be governable."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Treating all governance as good or all governance as bad — it's a spectrum with real tradeoffs at every point

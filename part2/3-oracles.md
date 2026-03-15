@@ -395,12 +395,22 @@ When reading how a production protocol consumes oracle data:
 **What DeFi teams expect you to know:**
 
 1. **"What checks do you perform when reading a Chainlink price feed?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Check that the price is positive and the data isn't stale
    - Great answer: Four mandatory checks: (1) `answer > 0` — invalid/negative prices crash your math, (2) `updatedAt > 0` — round is complete, (3) `block.timestamp - updatedAt < heartbeat + buffer` — staleness, (4) `answeredInRound >= roundId` — stale round. On L2, also check the sequencer uptime feed and enforce a grace period after restart. Set `MAX_STALENESS` based on the specific feed's heartbeat, not a generic value.
 
+   </details>
+
 2. **"Why can't you use a DEX spot price as an oracle?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: It can be manipulated with a flash loan
    - Great answer: A flash loan gives any attacker unlimited temporary capital at zero cost. They can move the spot price `reserve1/reserve0` by any amount within a single transaction, exploit your protocol's reaction to that price, and restore it — all atomically. The cost is just gas. Chainlink is immune because its price is aggregated off-chain across multiple data sources. TWAPs resist single-block manipulation because the attacker needs to sustain the price across the entire window.
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not checking staleness on Chainlink feeds (the most commonly missed check)
@@ -411,8 +421,13 @@ When reading how a production protocol consumes oracle data:
 **Pro tip:** In a security review or interview, the first thing to check in any protocol is the oracle integration. Trace where prices come from, what validations exist, and what happens when the oracle fails. If you can identify a missing staleness check or a spot-price dependency, you've found the most common class of DeFi vulnerabilities.
 
 3. **"Design the oracle system for a new lending protocol"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Use Chainlink price feeds with staleness checks
    - Great answer: Primary: Chainlink feeds per asset with per-feed staleness thresholds based on heartbeat. Secondary: on-chain TWAP as cross-check — if Chainlink and TWAP disagree by >5%, pause new borrows and flag for review. Circuit breaker: if price moves >20% in a single update, require manual governance confirmation. For L2: sequencer uptime feed + grace period. Fallback: if Chainlink is stale beyond threshold, fall back to TWAP if it passes its own quality checks, otherwise pause. For LST collateral (wstETH): chain exchange rate oracle × ETH/USD from Chainlink, with a secondary market-price check.
+
+   </details>
 
 **Additional Red Flags:**
 - 🚩 Proposing a single oracle source without a fallback strategy
@@ -928,12 +943,22 @@ require(timeElapsed >= MINIMUM_WINDOW, "Window too short"); // e.g., 1800 second
 **What DeFi teams expect you to know:**
 
 1. **"You're auditing a protocol that uses `pair.getReserves()` for pricing. What's the risk?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: It can be manipulated with a flash loan
    - Great answer: Any protocol reading DEX spot price (`reserve1/reserve0`) for financial decisions is trivially exploitable. An attacker flash-loans massive capital (zero cost), swaps to distort reserves, exploits the protocol's reaction to the manipulated price, then unwinds. Cost: just gas. This is the Harvest Finance / Cream Finance / Inverse Finance pattern. The fix depends on the use case: for high-stakes decisions (collateral valuation, liquidation), use Chainlink. For supplementary checks, use a TWAP with a sufficiently long window (30+ minutes). Never trust any same-block-manipulable value.
 
+   </details>
+
 2. **"How would you detect an oracle manipulation attempt in a live protocol?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Compare the oracle price to a secondary source
    - Great answer: Defense in depth: (1) Dual-oracle deviation check — if Chainlink and TWAP disagree by more than a threshold, pause. (2) Price velocity check — if the oracle-reported price moves more than X% in a single update, flag it. (3) Position size limits — cap the maximum collateral/borrow in a single transaction to limit the damage from any single oracle-dependent action. (4) Time-delay on large operations — require a delay between depositing collateral and borrowing against it (MakerDAO's OSM does this at the oracle level). (5) Monitor for flash loan + oracle interaction patterns off-chain.
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Can't explain why `balanceOf()` or `getReserves()` is dangerous as a price source

@@ -238,8 +238,13 @@ Try: `cleanSwap(20000e18)` → 9.091 ETH. Then `sandwichedSwap(20000e18, 10000e1
 **What DeFi teams expect you to know:**
 
 1. **"Explain how a sandwich attack works and how to prevent it."**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "An attacker front-runs and back-runs a user's swap. The front-run pushes the price up, the user swaps at a worse rate, and the attacker sells for profit. Prevention: tight slippage limits or private mempools."
    - Great answer: "A sandwich exploits the public mempool and AMM nonlinear price impact. The attacker calculates the optimal front-run amount — enough to shift the price but within the user's slippage tolerance — then submits front-run, victim, back-run as an atomic bundle to a builder. Prevention exists at multiple levels: user-level tight slippage, private RPCs like Flashbots Protect, application-level intent systems like UniswapX where there's no on-chain tx to sandwich, and protocol-level V4 hooks that surcharge same-block opposite-direction swaps."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Thinking MEV only means sandwich attacks — it's a broad spectrum including arb, liquidation, backrunning, and JIT liquidity
@@ -488,8 +493,13 @@ This is the most debated topic in Ethereum governance:
 **What DeFi teams expect you to know:**
 
 1. **"What is Proposer-Builder Separation and why does it matter?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "PBS separates block construction from block proposal. Builders create blocks, proposers select the highest bid. This prevents validators from directly extracting MEV."
    - Great answer: "PBS is Ethereum's architectural response to MEV centralization. Post-Merge, specialized builders construct optimized blocks from user transactions plus searcher bundles, and proposers simply select the highest bid via MEV-Boost. Relays sit in between as blind escrows so proposers can't steal MEV. Competition at each layer drives most value up to the proposer. The current tension is builder centralization — top 3 builders produce the majority of blocks, creating censorship risk. The community is addressing this through inclusion lists and longer-term enshrined PBS (ePBS)."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not knowing about PBS or the post-Merge supply chain — this is foundational Ethereum infrastructure knowledge
@@ -633,12 +643,22 @@ function reveal(uint256 amount, bytes32 salt) external {
 **What DeFi teams expect you to know:**
 
 1. **"What's the difference between MEV-Share and Flashbots Protect?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Flashbots Protect hides your transaction from sandwich bots. MEV-Share goes further by letting searchers bid for backrun rights and giving users a rebate."
    - Great answer: "They're different layers of the same stack. Protect is simple privacy — your tx goes to a private mempool, preventing sandwiches. MEV-Share adds an economic layer: your tx is still private from sandwich bots, but hints are revealed to searchers — enough to evaluate backrun opportunities, not enough to sandwich. Searchers competitively bid for backrun rights, and the user receives a configurable rebate. Protect eliminates the tax; MEV-Share eliminates the tax AND turns leftover MEV into user revenue."
 
+   </details>
+
 2. **"How does cross-domain MEV work with L2s?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Price differences between L1 and L2 create arbitrage. L2 sequencers control ordering, creating L2-specific MEV."
    - Great answer: "Prices on L2s lag mainnet by the sequencer's batch submission delay, creating predictable arb windows. The centralized L2 sequencer is the de facto block builder and can extract MEV directly. This drives shared sequencing proposals that coordinate ordering across L2s, reducing cross-domain MEV. As L2 volume grows, cross-domain MEV is becoming dominant — which is why protocols like UniswapX V2 are building cross-chain intent settlement."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Saying "just use a private mempool" without understanding the trust tradeoffs — you're trusting Flashbots/bloXroute not to exploit your tx
@@ -775,8 +795,13 @@ Try: call `getHash(1000, 0xdead0000000000000000000000000000000000000000000000000
 **What DeFi teams expect you to know:**
 
 1. **"How would you design a protocol to minimize MEV extraction?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Use batch auctions, private execution, and tight slippage controls to reduce the MEV surface."
    - Great answer: "Four principles: (1) Minimize information leakage — route through intents or private channels. (2) Reduce ordering dependence — batch operations so tx order doesn't affect outcomes. (3) Internalize MEV — use V4 hooks or MEV taxes to capture extraction value for LPs. (4) Time-weight operations — spread large actions via TWAP execution to reduce per-block extractable value. The key mindset is: assume adversarial ordering and design so that ordering doesn't affect outcomes."
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Not connecting MEV to protocol design decisions — every swap, liquidation, and vault rebalance has an MEV surface

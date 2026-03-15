@@ -267,16 +267,31 @@ Also compare with Solmate's implementation (`solmate/src/tokens/ERC4626.sol`) wh
 **What DeFi teams expect you to know about ERC-4626:**
 
 1. **"Explain the rounding rules in ERC-4626 and why they matter."**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Conversions round in favor of the vault — fewer shares on deposit, fewer assets on withdrawal — so the vault can't be drained."
    - Great answer: "The spec mandates `deposit` rounds shares down, `mint` rounds assets up, `withdraw` rounds shares up, `redeem` rounds assets down. This creates a tiny vault-favorable spread on every operation. It's the same principle as a bank's bid/ask spread — the vault always wins the rounding."
 
+   </details>
+
 2. **"How does ERC-4626 differ from Compound cTokens or Aave aTokens?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "ERC-4626 standardizes the interface. cTokens use an exchange rate, aTokens rebase — both do the same thing differently."
    - Great answer: "cTokens store `exchangeRate` and you multiply by your balance. aTokens rebase your balance directly using a `scaledBalance × liquidityIndex` pattern. ERC-4626 abstracts both approaches behind `convertToShares/convertToAssets` — any protocol can implement the interface however they want. The key win is composability: any ERC-4626 vault works as a strategy in Yearn, as collateral in Morpho, etc."
 
+   </details>
+
 3. **"What's the first thing you check when auditing a new ERC-4626 vault?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "I check for the inflation attack — whether the vault uses virtual shares."
    - Great answer: "I check three things: (1) how `totalAssets()` is computed — if it reads `balanceOf(address(this))` it's vulnerable to donation attacks; (2) whether there's inflation protection (virtual shares or dead shares); (3) whether `preview` functions match actual `deposit`/`withdraw` behavior, since broken preview functions break all integrators."
+
+   </details>
 
 **Interview Red Flags:**
 - ❌ Not knowing what ERC-4626 is (it's the foundation of modern DeFi infrastructure)
@@ -770,16 +785,31 @@ Each layer uses ERC-4626, so they compose naturally.
 **What DeFi teams expect you to know about yield aggregation:**
 
 1. **"How would you design a multi-strategy vault from scratch?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "An ERC-4626 vault that holds a list of strategies, allocates debt to each, and pulls from them in order on withdrawal."
    - Great answer: "I'd follow the allocator pattern: the vault is an ERC-4626 shell with an ordered strategy queue. Each strategy is also ERC-4626 for composability. Key design decisions: (1) debt management — who sets target allocations and how often; (2) withdrawal queue priority — which strategies to pull from first (idle → lowest-yield → most-liquid); (3) profit accounting — harvest reports go through a `process_report()` that separates profit from fees and unlocks profit linearly to prevent sandwich attacks; (4) loss handling — reduce share price proportionally rather than reverting."
 
+   </details>
+
 2. **"What's the difference between Yearn V3 and MetaMorpho?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Both are ERC-4626 allocator vaults, but Yearn allocates across arbitrary strategies while MetaMorpho allocates across Morpho Blue lending markets."
    - Great answer: "The key difference is the strategy universe: Yearn strategies can do anything (LP, leverage, restaking), so the vault manager has more flexibility but more risk surface. MetaMorpho is constrained to Morpho Blue markets — the curator picks which markets to allocate to and sets caps, but all the underlying lending logic is in Morpho Blue itself. This constraint makes MetaMorpho easier to reason about and audit. The trend is toward this modular stack: protocol layer (Morpho Blue) handles mechanics, curator layer (MetaMorpho) handles risk allocation."
 
+   </details>
+
 3. **"How do you prevent a vault manager from rugging depositors?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Use a timelock on strategy changes and cap allocations per strategy."
    - Great answer: "Defense in depth: (1) granular role system — separate who can add strategies vs who can allocate debt vs who can trigger reports; (2) strategy allowlists with timelocked additions — depositors see new strategies before funds flow; (3) per-strategy max debt caps to limit blast radius; (4) depositor-side `max_loss` parameter on withdrawal — revert if the vault is trying to return less than expected; (5) the Yearn V3 approach of requiring strategy contracts to be pre-audited and whitelisted."
+
+   </details>
 
 **Interview Red Flags:**
 - ❌ Thinking vault managers have unrestricted access to user funds (they shouldn't — debt limits and roles constrain them)
@@ -991,16 +1021,31 @@ This composability is why ERC-4626 adoption has been so rapid — each new vault
 **What DeFi teams expect you to know about vault security:**
 
 1. **"How would you prevent sandwich attacks on a yield vault?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Use profit unlocking — spread harvested yield over hours/days so an attacker can't capture it instantly."
    - Great answer: "Three layers: (1) linear profit unlocking via `profitMaxUnlockTime` (Yearn's approach) — profits accrue to share price gradually; (2) deposit/withdrawal fees that punish short-term deposits; (3) private transaction submission (Flashbots Protect) for harvest calls so MEV searchers can't see them in the mempool."
 
+   </details>
+
 2. **"A protocol wants to use your ERC-4626 vault token as collateral. What do you warn them about?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Don't use `convertToAssets()` directly for pricing — it can be manipulated via donation."
    - Great answer: "Three risks: (1) the vault's exchange rate can be manipulated within a single transaction (donation attack) — use a TWAP or oracle for pricing; (2) the vault may have withdrawal liquidity constraints (strategy funds locked, withdrawal queue) — so liquidation may fail; (3) the vault's `totalAssets()` may include unrealized gains that could reverse (strategy loss, depeg). They should read `maxWithdraw()` to check actual liquidity."
 
+   </details>
+
 3. **"What yield strategy patterns have you built or reviewed?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Auto-compounders that claim rewards and reinvest, leveraged staking."
    - Great answer: "I've worked with (1) auto-compounders with keeper economics (harvest only when reward value exceeds gas + slippage); (2) leveraged yield via recursive borrowing with automated health factor management; (3) LP strategies that handle impermanent loss reporting; (4) allocator vaults that rebalance across multiple strategies based on utilization and APY signals."
+
+   </details>
 
 **Hot topics (2025-26):**
 - ERC-4626 as collateral in lending markets (Morpho, Euler V2, Aave V3.1)

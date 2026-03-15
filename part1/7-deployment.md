@@ -67,12 +67,22 @@ Post-deployment verification
 **What DeFi teams expect you to know:**
 
 1. **"How do you handle multi-chain deployments?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Same Foundry script with different RPC URLs"
    - Great answer: "I use `CREATE2` for deterministic addresses across chains, with a deployer contract that ensures the same address everywhere. The deployment script verifies chain-specific parameters (token addresses, oracle feeds) from a config file, and I run fork tests against each target chain before broadcasting. Post-deployment, I verify on each chain's block explorer and run the same integration test suite against the live deployments"
 
+   </details>
+
 2. **"What can go wrong during deployment?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Initialization front-running, wrong constructor args"
    - Great answer: "The biggest risk is initialization: if deploy and initialize aren't atomic, an attacker front-runs `initialize()` and takes ownership (← Module 6 Wormhole example). Second is address-dependent configuration — hardcoded token addresses that differ between chains. Third is gas estimation: a script that works on Sepolia may need different gas on mainnet during congestion. I always dry-run with `forge script` (no `--broadcast`) first"
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Deploying without dry-running first
@@ -589,12 +599,22 @@ contract Vault is Pausable, Ownable {
 **What DeFi teams expect you to know:**
 
 1. **"How would you set up operations for a new protocol?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Safe multisig for admin, Tenderly for monitoring"
    - Great answer: "I'd separate concerns: a 3-of-5 multisig for routine operations (fee changes, parameter updates), a separate Guardian multisig for emergencies (pause), and a governance timelock for upgrades. Monitoring with Tenderly alerts on admin function calls, large token movements, and oracle deviations. Event emission for every state change so we can build dashboards and respond to anomalies. I'd also write runbooks for common scenarios — 'oracle goes stale', 'exploit detected', 'governance proposal needs execution'"
 
+   </details>
+
 2. **"What's your deployment checklist before mainnet?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: "Tests pass, contract verified, multisig set up"
    - Great answer: "Pre-deployment: all tests pass including fork tests against mainnet, `forge inspect` confirms storage layout, dry-run with `forge script` (no broadcast). Deployment: atomic deploy+initialize, verify source on Etherscan/Sourcify immediately. Post-deployment: read all state variables with `cast call` to confirm configuration, transfer ownership to multisig, set up monitoring alerts, do a small real transaction to verify end-to-end, document all addresses in a deployment manifest"
+
+   </details>
 
 **Interview Red Flags:**
 - 🚩 Single-key ownership for any protocol managing value

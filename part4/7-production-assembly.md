@@ -165,9 +165,13 @@ See: [M5 — The Returnbomb Attack](5-external-calls.md#returnbomb)
 #### 💼 Job Market Context
 
 **"What do you look for when auditing inline assembly?"**
+<details>
+<summary>Answer</summary>
 
 - Good answer: "Unchecked return values, missing overflow checks, and dirty memory assumptions."
 - Great answer: "I use a checklist: return value checks on all external calls, return data validation for non-standard tokens, shift amount correctness for packed storage, memory safety when Solidity code follows the assembly block, and gas griefing vectors from unbounded returndata. I trace one execution path first to understand the logic, then check each branch against these patterns."
+
+</details>
 
 ---
 
@@ -447,9 +451,13 @@ After all 8 lines, `r` contains `floor(log2(x))`. No loops, no branches, constan
 #### 💼 Job Market Context
 
 **"How does Solady implement sqrt()?"**
+<details>
+<summary>Answer</summary>
 
 - Good answer: "Binary search for the initial guess using bit-shifting, then Newton-Raphson refinement."
 - Great answer: "It uses a branchless binary search that tests 4 thresholds to estimate the bit-length, scales an initial constant by 2^(bitLength/2), then runs exactly 7 unrolled Newton-Raphson iterations. A branchless final adjustment handles off-by-one. The whole thing runs in constant gas — no loops, no JUMPI."
+
+</details>
 
 <a id="walkthrough-erc20"></a>
 ### 💡 Walkthrough: Solady ERC20 Transfer

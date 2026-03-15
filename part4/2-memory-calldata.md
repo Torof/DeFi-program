@@ -168,8 +168,13 @@ assembly {
 #### 💼 Job Market Context
 
 **"Describe the EVM memory layout"**
+<details>
+<summary>Answer</summary>
+
 - Good: "Memory is a byte array. The first 64 bytes are scratch space, the free memory pointer is at 0x40, and the zero slot is at 0x60"
 - Great: "Memory is a linear byte array that expands as you write to it, with quadratic cost growth. Bytes 0x00-0x3f are scratch space (safe for temporary hashing operations), 0x40-0x5f stores the free memory pointer that Solidity uses for allocation, and 0x60 is the zero slot used as the initial value for dynamic memory arrays. Any assembly that corrupts 0x40 will break all subsequent Solidity memory operations"
+
+</details>
 
 🚩 **Red flag:** Not knowing about the free memory pointer, or thinking memory persists across transactions
 
@@ -336,13 +341,23 @@ function safeExample() external pure returns (bytes32) {
 **What DeFi teams expect:**
 
 1. **"What does memory-safe assembly mean?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: It tells the compiler the assembly respects the free memory pointer
    - Great answer: It promises the block only uses scratch space, reads FMP, or properly allocates memory — enabling the Yul optimizer to rearrange surrounding Solidity code for better gas efficiency
 
+   </details>
+
 2. **"When would you annotate assembly as memory-safe?"**
+   <details>
+   <summary>Answer</summary>
+
    - When your assembly only uses scratch space (0x00-0x3f) for temp operations
    - When you properly read and bump the FMP for any allocations
    - When you're not writing to the zero slot or beyond the FMP
+
+   </details>
 
 **Pro tip:** If you're auditing code that uses `memory-safe` annotations, verify the claim. A false `memory-safe` annotation can cause the optimizer to generate incorrect code — a subtle, critical bug.
 
@@ -572,8 +587,13 @@ items[1] data at 0x24 + 0x80 = 0xa4:
 #### 💼 Job Market Context
 
 **"How is function call data structured?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "First 4 bytes are the function selector, followed by ABI-encoded arguments"
 - Great: "The first 4 bytes are `keccak256(signature)[:4]` — the function selector. Static arguments follow in 32-byte padded slots. Dynamic types (bytes, string, arrays) use a head/tail pattern: the head contains an offset pointer to where the data actually lives in the tail region. This is why `msg.data.length` can be longer than you'd expect for functions with dynamic parameters"
+
+</details>
 
 🚩 **Red flag:** Not knowing what a function selector is or how it's computed
 
@@ -698,15 +718,30 @@ Total: 2 bytes
 **What DeFi teams expect:**
 
 1. **"Why is `bytes calldata` cheaper than `bytes memory`?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Calldata doesn't copy to memory
    - Great answer: `bytes memory` triggers `CALLDATACOPY` to heap memory, expanding it and paying `3 + 3*words + quadratic expansion`. `bytes calldata` reads directly with `CALLDATALOAD` at 3 gas per word, zero expansion. For a 1KB payload, memory costs ~3,000+ extra gas.
 
+   </details>
+
 2. **"What's the hash collision risk with `abi.encodePacked`?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Dynamic types can produce identical outputs for different inputs
    - Great answer: `abi.encodePacked(bytes("ab"), bytes("c"))` and `abi.encodePacked(bytes("a"), bytes("bc"))` both produce `0x616263`. This makes it unsafe for hashing multiple dynamic values — use `abi.encode` instead to get unambiguous 32-byte-padded encoding.
 
+   </details>
+
 3. **"How does ABI encoding handle dynamic types?"**
+   <details>
+   <summary>Answer</summary>
+
    - Great answer: The head section has a 32-byte offset pointer for each dynamic parameter (relative to the start of parameters). The tail section has length-prefixed data. Static parameters are inlined directly. This lets decoders jump to any parameter in O(1) using the head offsets.
+
+   </details>
 
 **Interview red flag:** Using `abi.encodePacked` for cross-contract call encoding or confusing it with `abi.encode`. Also: not knowing that addresses are left-padded (12 zero bytes) in ABI encoding.
 
@@ -923,17 +958,32 @@ The assembly pattern above does this:
 **What DeFi teams expect:**
 
 1. **"Why does Solady use `mstore(0, selector) + revert(0x1c, 4)` instead of `revert CustomError()`?"**
+   <details>
+   <summary>Answer</summary>
+
    - Good answer: Gas savings
    - Great answer: Solidity's error encoding allocates memory and bumps the FMP — ~200 gas overhead per revert. The assembly pattern writes to scratch space (0x00-0x3f) which doesn't require FMP management. In protocols with many revert paths, this saves meaningful gas.
 
+   </details>
+
 2. **"What does `0x1c` mean in `revert(0x1c, 0x04)`?"**
+   <details>
+   <summary>Answer</summary>
+
    - Great answer: 0x1c is 28 decimal. `mstore(0, selector)` writes a 32-byte word where the 4-byte selector is right-aligned (big-endian). So the selector starts at byte 28. `revert(0x1c, 0x04)` reads exactly those 4 bytes.
+
+   </details>
 
 **Interview red flag:** Blindly copying the `revert(0x1c, 0x04)` pattern without being able to explain the byte layout. Interviewers test this because it separates "can read Solady" from "understands Solady."
 
 **"How do custom errors work at the EVM level?"**
+<details>
+<summary>Answer</summary>
+
 - Good: "They use a 4-byte selector just like functions, followed by ABI-encoded error data"
 - Great: "The EVM has no concept of 'errors' — a revert is just `REVERT(offset, size)` which returns arbitrary bytes. Solidity custom errors encode a 4-byte selector plus ABI-encoded parameters, identical to function calldata. This is why you can decode revert reasons with `abi.decode`. The classic `Error(string)` and `Panic(uint256)` are just two specific selectors — custom errors are more gas-efficient because they skip string encoding"
+
+</details>
 
 🚩 **Red flag:** Thinking `require(condition, "message")` and custom errors are fundamentally different mechanisms
 
