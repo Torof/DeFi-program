@@ -105,11 +105,11 @@ The key insight: from the blockchain's perspective, if repayment fails, the loan
 <a id="flash-loan-providers"></a>
 ### 💡 Concept: Flash Loan Providers
 
-**Aave V3** — The original and most widely used.
+**Aave V3** — The most widely used flash loan provider (preceded by Marble Protocol in 2018 and dYdX).
 
 Two functions:
 - `flashLoanSimple(receiverAddress, asset, amount, params, referralCode)` — single asset, simpler interface, slightly cheaper gas
-- `flashLoan(receiverAddress, assets[], amounts[], modes[], onBehalfOf, params, referralCode)` — multiple assets simultaneously, with the option to convert the flash loan into a regular borrow (by setting `modes[i] = 1` or `2` for variable/stable rate)
+- `flashLoan(receiverAddress, assets[], amounts[], modes[], onBehalfOf, params, referralCode)` — multiple assets simultaneously, with the option to convert the flash loan into a regular borrow (by setting `modes[i] = 1` for stable rate or `2` for variable rate)
 
 Callback: `executeOperation(asset, amount, premium, initiator, params)` must return `true`.
 
@@ -189,7 +189,7 @@ Trace `executeFlashLoanSimple()`:
 
 **Key security observation:** The premium calculation happens before the callback. The receiver knows exactly how much it needs to repay. There's no reentrancy risk here because the Pool does the final pull after the callback returns.
 
-Also read `executeFlashLoan()` (the multi-asset version). Note the `modes[]` parameter: mode 0 = repay, mode 1 = open variable debt, mode 2 = open stable debt. This enables a pattern where you flash-borrow an asset and convert it into a collateralized borrow in the same transaction — useful for collateral swaps and leverage.
+Also read `executeFlashLoan()` (the multi-asset version). Note the `modes[]` parameter: mode 0 = repay, mode 1 = open stable debt, mode 2 = open variable debt. This enables a pattern where you flash-borrow an asset and convert it into a collateralized borrow in the same transaction — useful for collateral swaps and leverage.
 
 <a id="read-balancer-flash"></a>
 #### 📖 Read: Balancer FlashLoans
@@ -211,7 +211,7 @@ Balancer V3 introduces a transient unlock model similar to V4's flash accounting
 
 3. **Read the repayment verification** — This is where providers differ. Aave pulls tokens via `transferFrom` (you must approve). Balancer checks its own balance increased. Uniswap V2 verifies the constant product invariant. Understanding the verification mechanism tells you what your callback must do to succeed.
 
-4. **Study the `modes[]` parameter** (Aave only) — In the multi-asset `flashLoan()`, mode 0 = repay, mode 1 = open variable debt, mode 2 = open stable debt. This enables "flash borrow and keep" patterns (collateral swap, leverage). This parameter doesn't exist in Balancer or Uniswap.
+4. **Study the `modes[]` parameter** (Aave only) — In the multi-asset `flashLoan()`, mode 0 = repay, mode 1 = open stable debt, mode 2 = open variable debt. This enables "flash borrow and keep" patterns (collateral swap, leverage). This parameter doesn't exist in Balancer or Uniswap.
 
 5. **Compare gas costs** — Deploy identical flash loans on an Aave fork vs Balancer fork. The gas difference comes from: Aave's premium calculation + aToken mint + index update vs Balancer's simpler balance check. This informs your provider choice in production.
 

@@ -1896,7 +1896,7 @@ This is the "returnbomb" attack. When your catch clause accepts `bytes memory da
    Lending protocols use try/catch to query oracles: if the primary oracle (Chainlink) reverts or returns stale data, fall back to a secondary oracle (TWAP). The catch clause must handle both string errors (old oracles) and custom errors (new oracles), and must guard against the returnbomb from a compromised oracle.
 
 2. **Hook systems (Uniswap V4)**
-   When the PoolManager calls a hook contract, it uses try/catch to handle hook failures. If a hook reverts, the PoolManager can decide whether to abort the swap or continue without the hook. The limitation is that if the hook consumes all gas (malicious hook), the catch block may not execute.
+   When the PoolManager calls a hook contract, it calls the hook directly — **without try/catch**. If a hook reverts, the entire transaction reverts. This is by design: hooks are considered part of the pool's logic, not optional plugins. The implication for error handling is that hook developers must ensure their code doesn't revert unexpectedly, since there's no graceful degradation path.
 
 3. **Token approval race conditions**
    Some protocols try/catch the first `approve(0)` call before setting a new approval. If the token doesn't require zero-first (most don't), the catch block handles the revert gracefully.

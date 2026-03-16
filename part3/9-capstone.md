@@ -736,7 +736,7 @@ After this section, you should be able to:
 
 - Describe the PerpEngine's external interface and explain the `positionKey` pattern for position identification
 - Walk through the complete margin calculation formula with all four components (collateral value, unrealized PnL, pending funding, accrued fees) and the cross-contract calls involved
-- Explain the wstETH dual oracle pricing pipeline and why using `min(exchangeRate, marketPrice)` protects both the protocol (de-peg risk) and the trader (flash crash overreaction)
+- Explain the wstETH dual oracle pricing pipeline and why using `min(exchangeRate, marketPrice)` is a conservative valuation that protects the protocol in both scenarios (de-peg and flash crash)
 - Trace the position lifecycle (open → modify → close) with state changes and cross-contract calls at each step
 - Identify all 5 common mistakes and explain why each one breaks the system
 
@@ -745,7 +745,7 @@ After this section, you should be able to:
 
 - **PerpEngine interface and positionKey:** The external interface covers the full lifecycle: `openPosition`, `increasePosition`, `decreasePosition`, `closePosition`. The `positionKey` is a unique identifier (typically `keccak256(abi.encode(account, marketId, collateralToken))`) that maps to the position struct in storage — this pattern avoids iterating over positions and enables O(1) lookups.
 - **Margin calculation formula:** Effective margin = collateral value (collateral amount * oracle price) + unrealized PnL (current price vs entry price * size) + pending funding (accumulated funding since entry * position size) - accrued fees (open/close fees, borrow fees). This requires cross-contract calls: PriceFeed for current price, FundingRate for current accumulator index, internal accounting for fees.
-- **wstETH dual oracle:** Query both the wstETH/stETH exchange rate (from the wstETH contract) and the stETH/ETH market price (from Chainlink). Use `min(exchangeRate, marketPrice)` — this protects the protocol during a de-peg (uses lower market price) and protects the trader during a flash crash (uses the stable exchange rate). Two oracles, conservative selection.
+- **wstETH dual oracle:** Query both the wstETH/stETH exchange rate (from the wstETH contract) and the stETH/ETH market price (from Chainlink). Use `min(exchangeRate, marketPrice)` — this is a **conservative valuation that always protects the protocol**: during a de-peg it uses the lower market price (preventing over-valuation of collateral), and during a flash crash it also uses the lower value (the crashed market price). The `min()` never favors the trader — it always picks the more conservative valuation for collateral purposes. Two oracles, pessimistic selection.
 - **Position lifecycle state changes:** Open: validate margin, charge open fee, record entry price/funding index, update market OI. Modify: settle pending funding, recalculate margin, adjust size/collateral. Close: settle all pending funding/fees, calculate final PnL, settle with pool (pool pays if trader profits, receives if trader loses), return remaining collateral.
 - **5 common mistakes:** Forgetting to settle pending funding before modifying a position; not deducting close fees from remaining margin; using mark price instead of oracle price for collateral valuation; failing to update OI counters on position changes; not checking minimum margin after modifications.
 

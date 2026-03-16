@@ -784,9 +784,11 @@ GMX V2's codebase is large (~100+ contracts). Here's a focused reading path:
 
 **Why this is architecturally interesting:** Synthetix takes a completely different approach from GMX. Instead of an LP pool that acts as counterparty, Synthetix uses a **shared debt pool** where all SNX stakers collectively take the other side of every trade. This has profound implications for risk distribution.
 
+> **Note:** This section covers the Synthetix V2 debt pool architecture, which remains deployed on Optimism. [Synthetix V3](https://github.com/Synthetixio/synthetix-v3) is a modular redesign with isolated markets, multi-collateral vaults, and permissionless market creation — a fundamentally different architecture. V2 is covered here because the debt pool model is an important architectural pattern to understand, and many positions still exist on V2.
+
 **How it works:**
 
-1. SNX holders stake their tokens (must maintain ~400% collateralization ratio)
+1. SNX holders stake their tokens (V2 requires ~400% collateralization ratio; V3 uses configurable per-vault ratios)
 2. Staking lets them mint sUSD (a stablecoin)
 3. sUSD can be traded for any "synth" — synthetic assets that track real prices (sETH, sBTC, etc.)
 4. All synths are backed by the collective SNX staking pool

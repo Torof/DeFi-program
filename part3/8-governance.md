@@ -112,7 +112,9 @@ OpenZeppelin Governor is the industry standard — used by most new DeFi protoco
 // Key concept: delegation activates voting power
 // Holding tokens alone does NOT give voting power — you must delegate
 
-import { ERC20, ERC20Votes, ERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import { ERC20Votes } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract GovernanceToken is ERC20, ERC20Votes, ERC20Permit {
     constructor() ERC20("GovToken", "GOV") ERC20Permit("GovToken") {
@@ -467,7 +469,7 @@ Translation: your boost depends on your share of veCRV relative to your share of
 
 **3. Protocol fee sharing — 50% of trading fees:**
 
-veCRV holders receive 50% of all Curve trading fees, distributed in 3CRV (the stablecoin LP token).
+veCRV holders receive 50% of all Curve trading fees. Historically distributed in 3CRV (the stablecoin LP token), though some pools have shifted to distributing fees in crvUSD as Curve's stablecoin gains adoption.
 
 ### The Curve Wars
 

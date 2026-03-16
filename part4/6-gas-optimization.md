@@ -1080,7 +1080,7 @@ After this section, you should be able to:
 <summary>Check your understanding</summary>
 
 - **Jump table dispatch**: `(selector >> SHIFT) & MASK` maps each 4-byte selector to a unique table index in O(1) time. Finding collision-free SHIFT and MASK constants requires brute-force search over the selector set — no analytical solution exists.
-- **Dispatch strategy comparison**: Linear if-chain costs ~13 gas per function (O(n)); binary search costs ~13 gas per log2(n) comparisons (O(log n)); jump tables cost a fixed ~30 gas regardless of function count (O(1)). Jump tables only justify their complexity at ~128+ functions.
+- **Dispatch strategy comparison**: Linear if-chain costs ~13 gas per function (O(n)); binary search costs ~13 gas per log2(n) comparisons (O(log n)); jump tables cost a fixed ~93 gas regardless of function count (O(1), including calldata loading overhead). Jump tables only justify their complexity at ~128+ functions.
 - **Yul limitation for jump tables**: Yul does not allow computed JUMPs — all jump destinations must be known at compile time. True O(1) dispatch requires Huff or pure Yul (M8), which have direct access to JUMP with computed destinations.
 - **Selector mining**: Renaming functions (e.g., `swap_k1d4()` instead of `swap()`) to produce selectors with leading zero bytes saves 12 gas per zero byte in calldata. This matters primarily on L2 where calldata is the dominant cost.
 

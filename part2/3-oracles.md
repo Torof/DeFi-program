@@ -92,7 +92,7 @@ An oracle is any mechanism that feeds external data into a smart contract. The c
 
 **The most robust option for most use cases**, but introduces latency, update frequency considerations, and trust in the oracle network itself.
 
-> **Real impact:** [Chainlink secures $15B+ in DeFi TVL](https://data.chain.link/) (2024), used by [Aave](https://github.com/aave/aave-v3-core), [Compound](https://github.com/compound-finance/open-oracle), [Synthetix](https://github.com/Synthetixio/synthetix), and most major protocols.
+> **Real impact:** [Chainlink secures $15B+ in DeFi TVL](https://data.chain.link/) (as of Q4 2024), used by [Aave](https://github.com/aave/aave-v3-core), [Compound](https://github.com/compound-finance/open-oracle), [Synthetix](https://github.com/Synthetixio/synthetix), and most major protocols.
 
 ---
 
@@ -109,7 +109,7 @@ An oracle is any mechanism that feeds external data into a smart contract. The c
 
 **Layer 3: On-chain aggregation** — Nodes submit observations to an on-chain Aggregator contract. The contract computes the **median** of all observations and publishes it as the feed's answer.
 
-> **Why this matters:** The median is key — it's resistant to outliers, meaning a minority of compromised nodes can't skew the result. [Byzantine fault tolerance](https://docs.chain.link/architecture-overview/architecture-decentralized-model#aggregation): as long as >50% of nodes are honest, the median reflects reality.
+> **Why this matters:** The median is key — it's resistant to outliers, meaning a minority of compromised nodes can't skew the result. [Byzantine fault tolerance](https://docs.chain.link/architecture-overview/architecture-decentralized-model#aggregation): BFT requires >2/3 of nodes to be honest (specifically, the system tolerates up to f Byzantine faults out of 3f+1 total nodes). With a median-based aggregation, even if up to ~1/3 of nodes report malicious values, the median still reflects the honest majority.
 
 **Offchain Reporting (OCR):** Rather than each node submitting a separate on-chain transaction (expensive), Chainlink uses [OCR](https://docs.chain.link/architecture-overview/off-chain-reporting): nodes agree on a value off-chain and submit a single aggregated report with all signatures. This dramatically reduces gas costs (~90% reduction vs pre-OCR).
 
@@ -158,7 +158,7 @@ Off-chain                                     On-chain
 └──────────────┘   liquidation, settlement
 ```
 
-**Key trust assumptions:** You trust that (1) >50% of Chainlink nodes are honest (median protects against minority), (2) data sources provide accurate prices (nodes cross-reference multiple sources), (3) the Proxy points to a legitimate Aggregator (Chainlink governance controls this).
+**Key trust assumptions:** You trust that (1) >2/3 of Chainlink nodes are honest (BFT threshold — median protects against up to ~1/3 malicious nodes), (2) data sources provide accurate prices (nodes cross-reference multiple sources), (3) the Proxy points to a legitimate Aggregator (Chainlink governance controls this).
 
 #### ⚠️ Oracle Governance Risk
 

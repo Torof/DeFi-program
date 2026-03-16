@@ -415,7 +415,7 @@ forge verify-contract <IMPL_ADDRESS> src/VaultV1.sol:VaultV1 \
 <a id="safe-multisig"></a>
 ### 💡 Concept: Safe Multisig for Ownership
 
-**Why this matters:** A single private key is a single point of failure. Every significant protocol exploit includes the phrase "...and the admin key was compromised." [Ronin Bridge hack](https://www.halborn.com/blog/post/explained-the-ronin-hack-march-2022) ($625M) - single key access.
+**Why this matters:** A single private key is a single point of failure. Every significant protocol exploit includes the phrase "...and the admin key was compromised." [Ronin Bridge hack](https://www.halborn.com/blog/post/explained-the-ronin-hack-march-2022) ($625M) — attackers compromised 5 of 9 validator keys (4 Sky Mavis nodes + 1 Axie DAO node).
 
 **⚠️ For any protocol managing real value, a single-key owner is unacceptable.**
 

@@ -500,7 +500,7 @@ contract VaultV2 is Initializable {
 }
 ```
 
-> **Gap math rule:** When adding N new state variables, reduce `__gap` size by N. Each variable occupies one slot (even `uint128` — packed structs are the exception, but it's safer to count full slots). Always verify with `forge inspect`.
+> **Gap math rule:** When adding N new state variables, reduce `__gap` size by N. In practice, smaller types like `uint128` can pack together and share a single slot — but for gap accounting, it's safer to **conservatively count one gap slot per variable** and verify the actual layout with `forge inspect`. This avoids subtle packing bugs across upgrades.
 
 **`forge inspect` for storage layout:**
 

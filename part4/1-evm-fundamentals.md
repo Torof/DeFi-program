@@ -165,13 +165,13 @@ Total cost:
 
 **The block gas limit:**
 
-Each block has a **gas limit** (~30 million gas as of 2025, adjustable by validators). This is the hard ceiling on total computation per block. It means:
-- A single transaction can use at most ~30M gas (the full block)
+Each block has a **gas limit** (~36 million gas as of early 2025, adjustable by validators). This is the hard ceiling on total computation per block. It means:
+- A single transaction can use at most ~36M gas (the full block)
 - In practice, blocks contain many transactions sharing this budget
-- Complex DeFi operations (500K+ gas) consume ~1.5-2% of a block
+- Complex DeFi operations (500K+ gas) consume ~1.4% of a block
 - This is why gas optimization matters: cheaper operations → more transactions per block → lower fees for everyone
 
-> **Connection to everything else:** When you see that SSTORE costs 20,000 gas and a block fits ~30M gas, you can calculate: a block can do at most ~1,500 fresh storage writes. That's the physical constraint that drives every storage optimization pattern in DeFi.
+> **Connection to everything else:** When you see that SSTORE costs 20,000 gas and a block fits ~36M gas, you can calculate: a block can do at most ~1,800 fresh storage writes. That's the physical constraint that drives every storage optimization pattern in DeFi.
 
 ---
 
@@ -493,7 +493,7 @@ Hashing:            KECCAK256
 
 > **EOF (EVM Object Format):** [EIP-7692](https://eips.ethereum.org/EIPS/eip-7692) (proposed for a future fork) restructures EVM bytecode into a validated container format with separated code/data sections, typed function signatures, and removal of dynamic JUMPs. This would eliminate JUMPDEST scanning, enable static analysis, and improve safety. It's the biggest planned EVM change since the Merge. The new opcodes (RJUMP, CALLF, RETF, DATALOAD) would replace JUMP/JUMPI patterns. Not yet live, but worth tracking — it will significantly change how Yul compiles to bytecode.
 
-> **SELFDESTRUCT is deprecated.** [EIP-6780](https://eips.ethereum.org/EIPS/eip-6780) (Dencun fork, March 2024) neutered `SELFDESTRUCT` — it only works within the same transaction as contract creation. It no longer deletes contract code or transfers remaining balance. Don't use it in new code.
+> **SELFDESTRUCT is deprecated.** [EIP-6780](https://eips.ethereum.org/EIPS/eip-6780) (Dencun fork, March 2024) neutered `SELFDESTRUCT` — it only works within the same transaction as contract creation. It no longer deletes contract code or clears storage (but it still transfers remaining ETH balance to the target). Don't use it in new code.
 
 **EXTCODESIZE, EXTCODECOPY, EXTCODEHASH — reading other contracts:**
 
@@ -797,21 +797,21 @@ nonzero   0         nonzero   20,000      Re-create after delete
 Special case: If new == current → 100 gas (SLOAD cost, no-op write)
 ```
 
-**Why it matters — the Uniswap V2 reentrancy guard optimization:**
+**Why it matters — the reentrancy guard optimization (used by Uniswap V2, OpenZeppelin, and others):**
 
 ```solidity
-// Expensive pattern (V2 original):  0 → 1 → 0
+// Expensive pattern (naive approach):  0 → 1 → 0
 unlocked = 1;   // 20,000 gas (fresh write)
 // ... do work ...
 unlocked = 0;   // 2,900 gas (but 0→1→0 lifecycle refunded partially)
 
-// Cheap pattern (V2 optimized):  1 → 2 → 1
+// Cheap pattern (V2 shipped with this):  1 → 2 → 1
 unlocked = 2;   // 2,900 gas (update nonzero → nonzero)
 // ... do work ...
 unlocked = 1;   // 2,900 gas (update nonzero → nonzero)
 ```
 
-Using `1 → 2 → 1` instead of `0 → 1 → 0` saves ~15,000 gas per guarded call, because it never crosses the zero/nonzero boundary that triggers the 20,000-gas fresh write cost.
+Using `1 → 2 → 1` instead of `0 → 1 → 0` saves ~15,000 gas per guarded call, because it never crosses the zero/nonzero boundary that triggers the 20,000-gas fresh write cost. Uniswap V2 used this pattern from launch — you can verify in [UniswapV2Pair.sol](https://github.com/Uniswap/v2-core/blob/master/contracts/UniswapV2Pair.sol#L31).
 
 > **Gas refunds** ([EIP-3529](https://eips.ethereum.org/EIPS/eip-3529)): When you SSTORE to zero (clear a slot), you receive a refund of **4,800 gas**. But refunds are capped at **1/5 of total gas used** in the transaction, preventing "gas token" exploits that abused refunds for on-chain gas banking. The refund mechanism is why clearing storage (setting to zero) is encouraged — it reduces state size.
 

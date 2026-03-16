@@ -47,7 +47,7 @@
 
 **Why this matters:** Lending is where everything you've learned converges. Token mechanics (Module 1) govern how assets move in and out. Oracle integration (Module 3) determines collateral valuation and liquidation triggers. And the interest rate math shares DNA with the constant product formula from AMMs (Module 2) — both are mechanism design problems where smart contracts use mathematical curves to balance supply and demand without human intervention.
 
-> **Real impact:** Lending protocols are the highest-TVL category in DeFi. [Aave holds $18B+ TVL](https://defillama.com/protocol/aave) (2024), [Compound $3B+](https://defillama.com/protocol/compound), [Spark (MakerDAO) $2.5B+](https://defillama.com/protocol/spark). Combined, lending protocols represent >$30B in user deposits.
+> **Real impact:** Lending protocols are the highest-TVL category in DeFi. [Aave holds $18B+ TVL](https://defillama.com/protocol/aave), [Compound $3B+](https://defillama.com/protocol/compound), [Spark (MakerDAO) $2.5B+](https://defillama.com/protocol/spark) (as of Q4 2024). Combined, lending protocols represent >$30B in user deposits.
 
 > **Real impact — exploits:** Lending protocols have been the target of some of DeFi's largest hacks:
 - [Euler Finance](https://rekt.news/euler-rekt/) ($197M, March 2023) — donation attack bypassing health checks
@@ -1709,7 +1709,7 @@ Traditional (Aave/Compound):        Morpho Blue:
 
 **The MetaMorpho layer:** On top of Morpho Blue, [MetaMorpho vaults](https://github.com/morpho-org/metamorpho) (ERC-4626 vaults managed by curators) allocate capital across multiple Morpho Blue markets. This separates *lending logic* (Morpho Blue, immutable) from *risk management* (MetaMorpho, managed).
 
-> **Real impact:** Morpho Blue crossed [$3B+ TVL](https://defillama.com/protocol/morpho-blue) within its first year. Its market creation is permissionless — over 1,000 unique markets created by Q4 2024.
+> **Real impact:** Morpho Blue crossed [$3B+ TVL](https://defillama.com/protocol/morpho-blue) within its first year (as of Q4 2024). Its market creation is permissionless — over 1,000 unique markets created by Q4 2024.
 
 > **📖 How to study:** Read [Morpho.sol](https://github.com/morpho-org/morpho-blue/blob/main/src/Morpho.sol) — it's short enough to read entirely in one sitting. Focus on `supply()`, `borrow()`, and `liquidate()`. Compare the simplicity with Aave's 15,000 lines.
 

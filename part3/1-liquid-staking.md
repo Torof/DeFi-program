@@ -42,7 +42,7 @@
 
 **The solution:** Liquid staking protocols pool user deposits, run validators on their behalf, and issue a **liquid receipt token** (LST) that represents the staked position. The LST accrues staking rewards (~3-4% APR) while remaining freely tradeable and composable with DeFi.
 
-**Why this matters for DeFi developers:** LSTs are the largest DeFi sector by TVL (~$50B+). wstETH is the most popular collateral type on Aave. Every major lending protocol, AMM, and vault must handle LSTs correctly — and "correctly" means understanding exchange rates, rebasing mechanics, oracle pricing, and de-peg risk. If you're building DeFi, you're integrating with LSTs.
+**Why this matters for DeFi developers:** LSTs are the largest DeFi sector by TVL (~$50B+ as of Q4 2024). wstETH is the most popular collateral type on Aave. Every major lending protocol, AMM, and vault must handle LSTs correctly — and "correctly" means understanding exchange rates, rebasing mechanics, oracle pricing, and de-peg risk. If you're building DeFi, you're integrating with LSTs.
 
 ```
 Without liquid staking:                 With liquid staking:
@@ -546,7 +546,7 @@ The rate is updated by Rocket Pool's Oracle DAO (a set of trusted nodes) rather 
 
 | | Lido (stETH/wstETH) | Rocket Pool (rETH) |
 |---|---|---|
-| Market share | Dominant (historically 60-70%+) | ~5-8% |
+| Market share (Q4 2024) | Dominant (historically 60-70%+) | ~5-8% |
 | Operator model | Curated (permissioned) | Permissionless (8 ETH + RPL) |
 | Oracle | Oracle committee (5/9) | Oracle DAO (trusted node set) |
 | DeFi liquidity | Deep (Curve, Aave, Uniswap, etc.) | Thinner but growing |

@@ -45,7 +45,7 @@
 
 **Why this matters:** AMMs are the foundation of decentralized finance. Lending protocols need them for liquidations. Aggregators route through them. Yield strategies compose on top of them. Intent systems like [UniswapX](https://uniswap.org/whitepaper-uniswapx.pdf) exist to improve on them. If you're going to build your own protocols, you need to understand AMMs deeply — not just the interface, but the math, the design trade-offs, and the evolution from V2's elegant simplicity through V3's concentrated liquidity to V4's programmable hooks.
 
-> **Real impact:** [Uniswap V3 processes $1.5+ trillion in annual volume](https://dune.com/hagaetc/uniswap-metrics) (2024). The entire DeFi ecosystem — $50B+ TVL across lending, derivatives, yield — depends on AMM liquidity for price discovery and liquidations.
+> **Real impact:** [Uniswap V3 processes $1.5+ trillion in annual volume](https://dune.com/hagaetc/uniswap-metrics) (as of 2024). The entire DeFi ecosystem — $50B+ TVL across lending, derivatives, yield (Q4 2024) — depends on AMM liquidity for price discovery and liquidations.
 
 This module is 12 days because you're building one from scratch, then studying three generations of production AMM code, plus exploring alternative AMM designs and the advanced topics (MEV, aggregators, LP management) that every protocol builder needs.
 
@@ -532,8 +532,8 @@ contract FlashSwapConsumer is IUniswapV2Callee {
         // Do something with borrowed tokens
         // ...
 
-        // Return tokens + 0.3% fee
-        uint amountToRepay = amount0 > 0 ? amount0 * 1003 / 1000 : amount1 * 1003 / 1000;
+        // Return tokens + 0.3% fee (must satisfy k-invariant: amount * 1000 / 997)
+        uint amountToRepay = amount0 > 0 ? amount0 * 1000 / 997 : amount1 * 1000 / 997;
         IERC20(token).transfer(msg.sender, amountToRepay);
     }
 }
@@ -620,7 +620,7 @@ After this section, you should be able to:
 
 V3 lets LPs choose a specific price range for their liquidity. Capital between 0.99–1.01 instead of 0–∞ means the same dollar amount provides ~2000x more effective liquidity.
 
-> **Real impact:** [Uniswap V3 launched May 2021](https://uniswap.org/blog/uniswap-v3), currently holds $4B+ TVL with significantly less capital than V2's peak. The [USDC/ETH 0.05% pool](https://info.uniswap.org/#/pools/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640) on V3 provides equivalent liquidity to V2's pool with ~10x less capital.
+> **Real impact:** [Uniswap V3 launched May 2021](https://uniswap.org/blog/uniswap-v3), holds $4B+ TVL (as of Q4 2024) with significantly less capital than V2's peak. The [USDC/ETH 0.05% pool](https://info.uniswap.org/#/pools/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640) on V3 provides equivalent liquidity to V2's pool with ~10x less capital.
 
 > **Deep dive:** [Uniswap V3 Whitepaper](https://uniswap.org/whitepaper-v3.pdf), [V3 Math Primer](https://blog.uniswap.org/uniswap-v3-math-primer)
 
@@ -1110,7 +1110,7 @@ V4 trades the simplicity of independent pool contracts for a singleton that trac
 
 **Why this matters:** V4 is a fundamentally different architecture from V2/V3. The two key innovations make it significantly more gas-efficient and composable.
 
-> **Real impact:** [V4 launched November 2024](https://blog.uniswap.org/uniswap-v4), pool creation costs dropped from ~5M gas (V3) to ~500 gas (V4) — a 10,000x reduction. Multi-hop swaps save 20-30% gas compared to V3.
+> **Real impact:** [V4 launched January 2025](https://blog.uniswap.org/uniswap-v4), pool creation costs dropped from ~5M gas (V3) to ~500 gas (V4) — a 10,000x reduction. Multi-hop swaps save 20-30% gas compared to V3.
 
 **1. Singleton Pattern (PoolManager)**
 
@@ -1301,7 +1301,7 @@ Study these hook patterns:
 
 **Why this matters:** Hooks introduce new attack surfaces that don't exist in V2/V3.
 
-> **Real impact:** [Cork Protocol exploit](https://medium.com/coinmonks/cork-protocol-exploit-analysis-9b8c866ff776) (July 2024) — hook didn't verify `msg.sender` was the PoolManager, allowing direct calls to manipulate internal state. Loss: $400k.
+> **Real impact:** [Cork Protocol exploit](https://medium.com/coinmonks/cork-protocol-exploit-analysis-9b8c866ff776) (February 2025) — hook didn't verify `msg.sender` was the PoolManager, allowing direct calls to manipulate internal state. Loss: $400k.
 
 **Critical security patterns:**
 
@@ -1517,7 +1517,7 @@ This module focuses on Uniswap because it's the Rosetta Stone of AMMs — V2's c
 
 When prices are near 1:1, Curve pools offer far lower slippage than Uniswap. When prices deviate significantly, the curve reverts to constant-product behavior for safety.
 
-> **Real impact:** [Curve's 3pool (USDC/USDT/DAI)](https://curve.fi/#/ethereum/pools/3pool/deposit) holds $1B+ TVL, enables stablecoin swaps with <0.01% slippage for trades up to $10M.
+> **Real impact:** [Curve's 3pool (USDC/USDT/DAI)](https://curve.fi/#/ethereum/pools/3pool/deposit) holds $1B+ TVL (as of Q4 2024), enables stablecoin swaps with <0.01% slippage for trades up to $10M.
 
 **Why this matters for DeFi builders:** If your protocol involves stablecoin swaps (liquidations paying in USDC to receive DAI, for example), Curve pools will likely offer better execution than Uniswap V2/V3 for those pairs. Understanding the StableSwap invariant also helps you reason about stablecoin depegging mechanics (Module 6).
 
@@ -1611,7 +1611,7 @@ LB (bins):   Discrete buckets, each at a single price
 
 If you're launching a token and need DEX liquidity, ve(3,3) DEXes are a primary venue. Instead of paying for liquidity mining directly, you bribe veToken holders — often cheaper and more sustainable. Understanding this model is essential for token launch strategy and liquidity management.
 
-> **Real impact:** Aerodrome on Base holds $1.5B+ TVL (2024), making it one of the largest DEXes on any L2. The ve(3,3) model creates a flywheel: more TVL → more fees → more bribes → more emissions → more TVL.
+> **Real impact:** Aerodrome on Base holds $1.5B+ TVL (as of Q4 2024), making it one of the largest DEXes on any L2. The ve(3,3) model creates a flywheel: more TVL → more fees → more bribes → more emissions → more TVL.
 
 > **Deep dive:** [Andre Cronje's original ve(3,3) design](https://andrecronje.medium.com/ve-3-3-44466eaa088b), [Velodrome documentation](https://docs.velodrome.finance/), [Aerodrome documentation](https://aerodrome.finance/docs)
 
@@ -2016,7 +2016,7 @@ After this section, you should be able to:
 - [Uniswap V2 Core](https://github.com/Uniswap/v2-core) (deployed May 2020)
 - [Uniswap V2 Periphery](https://github.com/Uniswap/v2-periphery)
 - [Uniswap V3 Core](https://github.com/Uniswap/v3-core) (deployed May 2021, archived)
-- [Uniswap V4 Core](https://github.com/Uniswap/v4-core) (deployed November 2024)
+- [Uniswap V4 Core](https://github.com/Uniswap/v4-core) (deployed January 2025)
 - [Uniswap V4 Periphery](https://github.com/Uniswap/v4-periphery)
 - [Awesome Uniswap Hooks](https://github.com/fewwwww/awesome-uniswap-hooks)
 - [Curve StableSwap contracts](https://github.com/curvefi/curve-contract)
